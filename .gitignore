@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Test temp files
+test/.tmp/
+stress-test/
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Claude Code local/ephemeral files
+.claude/settings.local.json
