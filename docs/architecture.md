@@ -104,15 +104,17 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 **Purpose:** Shared foundation. Types, event definitions, and utilities used by all other packages.
 
 **Owns:**
-- Base entity types: `Participant`, `Issue`, `Topic`, `VotingEvent`.
-- Event type definitions: `VoteCast`, `DelegationCreated`, `DelegationRevoked`, `PredictionCommitted`, `PollResponseSubmitted`, `OutcomeRecorded`, etc.
-- Event store interface: `EventStore` (abstract — implementations provided by consumers or the engine package).
-- Common utilities: ID generation, timestamp handling, schema validation helpers.
-- Error types: typed errors for all domain-specific failure modes.
+- Branded ID types: `ParticipantId`, `TopicId`, `IssueId`, `VotingEventId`, `EventId`, `DelegationId`, `PredictionId`, `PollId`, `ProposalId`, `CommitmentId`, `OutcomeId`, `QuestionId`. Compile-time safety prevents accidentally mixing ID types.
+- Base entity types: `Participant`, `Issue`, `Topic`, `VotingEvent`, `EventTimeline`, `VoteChoice`.
+- Event type definitions: 12 domain event types as a discriminated union (`DomainEvent`), each extending `BaseEvent<TType, TPayload>`.
+- Event store interface: `EventStore` with `append()`, `getById()`, `query()`, `getAll()`. `InMemoryEventStore` implementation included for testing and simulation.
+- `Result<T, E>` type with `ok()`, `err()`, `isOk()`, `isErr()`, `unwrap()` helpers.
+- Error hierarchy: `VotiverseError` base class, `NotFoundError`, `ValidationError`, `InvalidStateError`, `GovernanceRuleViolation`.
+- Utilities: ID generators (`generateEventId()`, etc.), timestamp helpers (`now()`, `timestamp()`, `timestampFromDate()`).
 
 **Dependencies:** None (leaf package).
 
-**Key design decision:** The event store interface is defined here but not implemented. This allows the engine to use an in-memory store for testing, a database-backed store for production, and a blockchain-anchored store for integrity-critical deployments — all conforming to the same interface.
+**Key design decision:** The event store interface is defined here along with an `InMemoryEventStore` implementation. The interface is generic over `DomainEvent` — packages cast from the generic `Record<string, unknown>` payload to their typed structures. This keeps core stable while allowing packages to evolve their payload schemas independently. Database-backed implementations (SQLite, PostgreSQL) are future work.
 
 ---
 
@@ -138,14 +140,14 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 **Purpose:** Identity abstraction layer. Defines the interface for participant identity without mandating a specific provider.
 
 **Owns:**
-- `IdentityProvider` interface: `authenticate()`, `verifyUniqueness()`, `getParticipant()`.
-- Built-in providers: `InvitationProvider` (small groups), `OAuthProvider` (organizational SSO).
-- Provider registration: organizations plug in their identity provider at configuration time.
-- Sybil resistance interface: `SybilCheck` — a hook that providers implement to certify that a participant is unique.
+- `IdentityProvider` interface: `authenticate()`, `verifyUniqueness()`, `getParticipant()`, `listParticipants()`.
+- `SybilCheck` interface: a hook for certifying participant uniqueness.
+- Built-in provider: `InvitationProvider` for small groups (Stage 1). Records `ParticipantRegistered` events. Supports `rehydrate()` for rebuilding state from a persisted event store.
+- Structured `IdentityError` type with error kinds (`authentication_failed`, `not_found`, `duplicate_participant`, `invalid_invitation`, `provider_error`).
 
 **Dependencies:** `@votiverse/core`.
 
-**Key design decision:** The identity layer is deliberately thin. It defines *what* the engine needs from an identity system (authentication, uniqueness) without prescribing *how*. Verified-identity and cryptographic-identity providers are implemented outside the core engine, conforming to the same interface.
+**Key design decision:** The identity layer is deliberately thin. `OAuthProvider` is not yet implemented — only the interface and `InvitationProvider` exist. The `rehydrate()` pattern (replaying events to rebuild in-memory state) was added during CLI implementation and is a general pattern needed by any service that maintains in-memory maps alongside the event store.
 
 ---
 
@@ -191,16 +193,17 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 **Purpose:** Prediction lifecycle management, outcome recording, and accuracy computation.
 
 **Owns:**
-- Prediction creation: structured claims (variable, direction, magnitude, timeframe, methodology) attached to proposals.
-- Prediction commitment: produce a cryptographic hash of the prediction at submission time (for integrity layer anchoring).
-- Outcome recording: link outcome data (official metrics, poll-derived signals, AI-gathered evidence) to predictions.
-- Accuracy evaluation: compare outcomes to predictions using the standardized patterns (absolute change, percentage change, threshold, binary, range, comparative).
-- Track records: compute prediction accuracy for participants, delegates, and proponents over time.
-- Trend integration: accept poll trend data as a supplementary signal for outcome evaluation.
+- `PredictionClaim` with 6 pattern types as a discriminated union: `absolute-change`, `percentage-change`, `threshold`, `binary`, `range`, `comparative`. Each variant carries exactly the fields needed for its evaluation.
+- SHA-256 commitment hashing via deterministic JSON canonicalization (`computeCommitmentHash()`, `verifyCommitment()`).
+- Outcome recording with typed sources: `official`, `poll-derived`, `community`, `automated`. Multiple outcomes per prediction support temporal tracking.
+- Continuous accuracy evaluation (0.0–1.0 score), not binary. Status classifications: `met` (>=0.8), `partially-met` (>=0.5), `not-met`, `pending`, `insufficient`.
+- Trajectory analysis across outcome data points: `improving`, `stable`, `worsening`, `volatile`.
+- `evaluateFromTrend()`: explicit bridge between polling trends and prediction outcomes. Maps normalized [-1,+1] trend scores to pattern-appropriate measured values.
+- Track records: per-participant accuracy aggregates.
 
 **Dependencies:** `@votiverse/core`, `@votiverse/config`.
 
-**Key design decision:** Predictions are immutable once committed. The commitment hash ensures that predictions cannot be retroactively edited. Outcome data can be updated (new data arrives, measurements are revised), but each update is a new event, preserving the full history of how outcomes were assessed over time.
+**Key design decision:** Accuracy is continuous, not binary — addressing the "outcome measurement ambiguity" open question from the original spec. Outcome sources are typed to support future credibility weighting (currently all sources carry equal weight — see Decisions Log). The `evaluateFromTrend()` function is the structural link between the sensing layer (polls) and the accountability layer (predictions).
 
 ---
 
@@ -209,15 +212,15 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 **Purpose:** Participant polls — the non-delegable sensing mechanism.
 
 **Owns:**
-- Poll creation: structured questions, neutral framing validation, scheduling.
-- Response collection: non-transferable responses, one per participant per poll.
-- Aggregation: compute aggregate results, breakdowns by topic community, response rates.
-- Trend computation: given a series of polls on related questions over time, compute trend lines.
-- Cadence management: enforce configured frequency limits, schedule upcoming polls.
+- 5 question types as a discriminated union: `likert` (5/7 scale), `numeric` (range + unit), `direction` (improved/same/worsened), `yes-no`, `multiple-choice`.
+- Poll creation with scheduling, topic scoping, and question tagging.
+- Response collection: SHA-256 hashed participant IDs for deduplication without attribution. Duplicate responses rejected.
+- Aggregation: mean, median, standard deviation, frequency distributions.
+- Trend computation: per-topic normalized [-1,+1] sentiment scoring across polls. Linear regression slope classifies direction (`improving`, `stable`, `worsening`, `insufficient`).
 
-**Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/identity`.
+**Dependencies:** `@votiverse/core`, `@votiverse/config`.
 
-**Key design decision:** Poll responses are linked to verified participants (to ensure one-response-per-person) but can be aggregated anonymously (to protect individual privacy). The identity link is used for deduplication, not for attribution. Whether individual responses are visible to administrators is configurable.
+**Key design decision:** The identity dependency was removed (changed from the original spec). The polling package accepts `ParticipantId` values that have already been verified by the engine layer, and hashes them internally for deduplication. This keeps polling's dependency footprint minimal and follows the same pattern as other domain packages. Non-delegability is structural — there is no delegation reference in `SubmitResponseParams`. Trend computation is per-topic rather than per-question, handling the fact that question phrasing changes across polls while topic tags remain stable.
 
 ---
 
@@ -226,18 +229,17 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 **Purpose:** The governance awareness layer — monitoring, alerting, and contextual information delivery.
 
 **Owns:**
-- Concentration monitoring: real-time computation of weight distribution metrics, threshold alerts.
-- Chain resolution display: for a given participant and issue, compute and return the full delegation chain to the terminal voter.
-- Delegation harvesting detection: pattern recognition for bulk re-delegation behavior.
-- Delegate track records: aggregate a delegate's voting history, prediction accuracy, and delegation statistics.
-- Engagement prompts: given a participant's delegations and the current state of a vote, determine whether to surface a prompt (close vote, prediction mismatch, delegate behavior anomaly).
-- Personal voting history: for a given participant, compile the retrospective record of all votes (direct and delegated), outcomes, and prediction results.
-- Historical context: for a given issue and topic, retrieve relevant past decisions, predictions, outcomes, and poll trends.
-- Progressive disclosure: all queries support summary and detail levels.
+- `ConcentrationReport`: weight distribution analysis with threshold-based alerts (Gini coefficient, max weight).
+- Chain resolution: full delegation chain from participant to terminal voter.
+- `DelegateProfile`: aggregates delegation stats, prediction accuracy, and voting participation rate.
+- `EngagementPrompt` generation: triggered by `close-vote`, `concentration-alert`, `delegate-behavior-anomaly`, or `chain-changed` conditions.
+- `VotingHistory`: retrospective record per issue — direct vs. delegated, delegate chain, effective choice.
+- `HistoricalContext`: related past decisions by topic overlap, plus poll trend data.
+- `DetailLevel` type (`summary` | `full`) for progressive disclosure (defined but not yet consumed).
 
 **Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, `@votiverse/voting`, `@votiverse/prediction`, `@votiverse/polling`.
 
-**Key design decision:** The awareness layer is read-only. It queries the state produced by other packages but never modifies it. This makes it safe to add, remove, or modify awareness features without risk to the governance logic. It is also the most likely package to evolve rapidly — new signal types, new detection heuristics, new presentation strategies — so decoupling it from the core logic is essential.
+**Key design decision:** The awareness layer is read-only and uses the `IssueContext` pattern — rather than accessing engine internals directly, it receives plain data objects containing everything it needs (issueId, title, topicIds, eligible participants, topic ancestors). This makes it testable without the full engine stack and prevents tight coupling to engine internals. The layer instantiates its own `PredictionService` and `PollingService` for querying, but never writes events.
 
 ---
 
@@ -246,15 +248,17 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 **Purpose:** Blockchain anchoring and verification for platform meta-accountability.
 
 **Owns:**
-- Commitment generation: produce cryptographic commitments (hashes) of critical governance artifacts (vote tallies, prediction texts, poll results, delegation snapshots).
-- Blockchain interface: abstract `BlockchainAnchor` interface with methods `commit(hash)` and `verify(hash, blockReference)`.
-- Built-in anchors: Ethereum (via smart contract), and a no-op anchor for deployments that don't need blockchain integrity.
-- Verification tools: given a governance artifact and a block reference, verify that the artifact has not been altered since commitment.
-- Oracle interface: abstract `OracleProvider` interface for bringing external outcome data into the system with cryptographic provenance.
+- `hashArtifact()`: SHA-256 of deterministically canonicalized artifact data.
+- `commitArtifact()`: hash + anchor to blockchain + record `IntegrityCommitment` event.
+- `verifyArtifact()`: recompute hash + compare + verify blockchain anchor. Returns structured `VerificationResult` with hash validity, anchor validity, and human-readable message.
+- `BlockchainAnchor` interface: `commit(hash) → blockReference`, `verify(hash, blockReference) → boolean`.
+- Built-in anchors: `NoOpAnchor` (no blockchain, null references), `InMemoryAnchor` (for testing).
+- `OracleProvider` interface: for external data with cryptographic attestation (defined, not yet implemented).
+- 5 artifact types: `vote-tally`, `prediction-commitment`, `poll-results`, `delegation-snapshot`, `event-batch`.
 
 **Dependencies:** `@votiverse/core`, `@votiverse/config`.
 
-**Key design decision:** The integrity package does not depend on any specific blockchain. The `BlockchainAnchor` interface is abstract, and implementations are pluggable. An organization using Ethereum, Solana, or a private chain provides the appropriate anchor implementation. The no-op anchor allows the same engine code to run without blockchain integration — no conditional logic, just a different anchor at configuration time.
+**Key design decision:** No Ethereum-specific implementation yet — only the abstract interface and two anchors (no-op and in-memory). The Ethereum smart contract anchor is deferred until a real deployment needs it. The `canonicalize()` function is duplicated between prediction and integrity packages; extracting it to core is a known refactoring target.
 
 ---
 
@@ -263,15 +267,47 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 **Purpose:** Orchestration layer. Wires all packages together into a coherent runtime.
 
 **Owns:**
-- Engine initialization: accept a `GovernanceConfig`, instantiate all subsystems with the appropriate settings.
-- Event bus: route events from the event store to the packages that need to react to them.
-- API surface: the public interface that consumers (CLI, web app, API server) interact with. Delegates to the appropriate package for each operation.
-- Transaction boundaries: ensure that multi-step operations (e.g., "cast a vote, which triggers override rule, which updates weights, which may trigger an awareness alert") are atomic.
-- Configuration hot-reload: allow configuration changes between voting events without restarting the engine.
+- `VotiverseEngine` class with domain-organized API: `config`, `identity`, `topics_api`, `events`, `delegation`, `voting`, `prediction`, `polls`.
+- `createEngine(options)` factory accepting `GovernanceConfig`, optional `EventStore`, optional `IdentityProvider`.
+- `rehydrate()` for rebuilding in-memory state (topics, voting events) from a persisted event store.
+- `injectIssue()` for restoring issue data during rehydration (issues are stored separately from events since issue details aren't captured in `VotingEventCreated` payloads).
+- Re-exports key types from all sub-packages for consumer convenience.
 
-**Dependencies:** All other packages.
+**Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/identity`, `@votiverse/delegation`, `@votiverse/voting`, `@votiverse/prediction`, `@votiverse/polling`.
 
-**Key design decision:** The engine package is the only package that knows about all other packages. Every other package depends only on `core`, `config`, and at most one or two domain-specific peers. This keeps the dependency graph shallow and makes individual packages testable in isolation.
+**Key design decision:** The engine maintains in-memory maps for topics, voting events, and issues alongside the event store. These maps must be rebuilt via `rehydrate()` when loading a persisted event store. The awareness and integrity packages are not wired into the engine API yet — awareness queries require `IssueContext` objects that the engine could construct, and integrity could be exposed as `engine.integrity`. This is deferred to avoid expanding the engine's dependency footprint until consumers need it.
+
+---
+
+### 5.11 `@votiverse/simulate`
+
+**Purpose:** Rule-based simulation framework for stress-testing governance configurations.
+
+**Owns:**
+- Two-phase architecture: deterministic script generation (Mulberry32 seeded PRNG) → playback through the real engine.
+- `SimulationScenario` definition: config, topics, population spec, voting events, ground truth model.
+- `AgentProfile` with 4 engagement patterns, 4 trust heuristics, 3 forecasting abilities.
+- 3 adversarial strategies: `vote-harvester`, `vague-predictor`, `coordinated-capture`.
+- `SimulationScript`: JSON-serializable action sequence (register, create-topic, create-event, delegate, vote, predict, record-outcome).
+- `SimulationResults`: concentration snapshots over time, prediction accuracy per agent.
+- Ground truth model: per-topic base values with configurable trajectories and change rates.
+
+**Dependencies:** `@votiverse/engine` (and transitively all governance packages).
+
+**Key design decision:** Simulation is two-phase, not reactive. The entire action sequence is pre-generated from agent profiles and the seeded PRNG, then played back through the real engine. This gives reproducibility (same seed = same results), inspectability (scripts can be examined or hand-edited before playback), and correctness (simulation bugs are engine bugs, since playback uses the real engine API).
+
+---
+
+### 5.12 `@votiverse/cli`
+
+**Purpose:** Command-line interface for engine operations.
+
+**Owns:**
+- `votiverse init`, `status`, `config` (presets/show/validate), `participant` (add/list), `event` (create/list), `delegate` (set/list), `vote` (cast/tally/weights), `events log`.
+- JSON-file-based state persistence (`.votiverse/state.json`) for cross-invocation operation.
+- `TestOutput` class for programmatic CLI testing without console output.
+
+**Dependencies:** `@votiverse/engine`, `@votiverse/core`, `@votiverse/config`, `@votiverse/identity`, `commander`.
 
 ---
 
@@ -493,69 +529,118 @@ The event log and derived state (materialized views for performance) are separat
 
 The engine exposes a **programmatic TypeScript API**, not an HTTP API. An HTTP API (REST, GraphQL, or other) is a consumer-layer concern — built on top of the engine API by whatever server framework the deployment uses.
 
-The API is organized by domain:
+The implemented API is organized by domain. Key divergences from the original illustrative design are noted.
 
 ```typescript
 // Configuration
-engine.config.validate(config: GovernanceConfig): ValidationResult
-engine.config.getPreset(name: PresetName): GovernanceConfig
+engine.config.validate(config): ValidationResult
+engine.config.getPreset(name): GovernanceConfig
+engine.config.getPresetNames(): PresetName[]
+engine.config.derive(overrides): GovernanceConfig   // added: derive from current config
+engine.config.getCurrent(): GovernanceConfig         // added: access current config
+
+// Identity (added: not in original spec)
+engine.identity.getProvider(): IdentityProvider
+engine.identity.getParticipant(id): Participant | undefined
+engine.identity.listParticipants(): Participant[]
+
+// Topics (added: topic management)
+engine.topics_api.create(name, parentId?): Topic
+engine.topics_api.get(id): Topic | undefined
+engine.topics_api.list(): Topic[]
 
 // Voting Events
-engine.events.create(params: CreateEventParams): VotingEvent
-engine.events.get(id: EventId): VotingEvent
+engine.events.create(params): VotingEvent
+engine.events.get(id): VotingEvent | undefined
+engine.events.getIssue(id): Issue | undefined        // added: issue access
+engine.events.listIssues(): Issue[]                   // added: list all issues
+engine.events.list(): VotingEvent[]
 
 // Delegations
-engine.delegation.create(params: CreateDelegationParams): Delegation
-engine.delegation.revoke(params: RevokeDelegationParams): void
+engine.delegation.create(params): Delegation
+engine.delegation.revoke(params): void
+engine.delegation.listActive(sourceId?): Delegation[] // added: list delegations
 engine.delegation.resolve(participantId, issueId): DelegationChain
 engine.delegation.weights(issueId): WeightDistribution
+engine.delegation.concentration(issueId): ConcentrationMetrics  // added
 
-// Voting
-engine.voting.cast(params: CastVoteParams): void
+// Voting — changed: cast takes individual args instead of params object
+engine.voting.cast(participantId, issueId, choice): void
+engine.voting.getVotes(issueId): VoteRecord[]         // added
 engine.voting.tally(issueId): TallyResult
 
 // Predictions
-engine.prediction.commit(params: CommitPredictionParams): Prediction
-engine.prediction.recordOutcome(params: RecordOutcomeParams): void
+engine.prediction.commit(params): Prediction
+engine.prediction.recordOutcome(params): OutcomeRecord
 engine.prediction.evaluate(predictionId): PredictionEvaluation
-engine.prediction.trackRecord(participantId, topicScope?): TrackRecord
+engine.prediction.evaluateFromTrend(predictionId, score, pollId): OutcomeRecord  // added
+engine.prediction.trackRecord(participantId): TrackRecord
+engine.prediction.get(predictionId): Prediction | undefined     // added
+engine.prediction.getByParticipant(participantId): Prediction[] // added
 
 // Polls
-engine.polls.create(params: CreatePollParams): Poll
-engine.polls.respond(params: PollResponseParams): void
-engine.polls.results(pollId): PollResults
-engine.polls.trends(topicScope, timeRange): TrendData
-
-// Awareness
-engine.awareness.chain(participantId, issueId): ChainResolution
-engine.awareness.concentration(issueId): ConcentrationMetrics
-engine.awareness.delegateProfile(delegateId): DelegateProfile
-engine.awareness.votingHistory(participantId): VotingHistory
-engine.awareness.context(issueId): HistoricalContext
-engine.awareness.prompts(participantId, issueId): EngagementPrompt[]
-
-// Integrity
-engine.integrity.commit(artifactType, artifactData): Commitment
-engine.integrity.verify(commitment): VerificationResult
+engine.polls.create(params): Poll
+engine.polls.respond(params): PollResponse
+engine.polls.results(pollId, eligibleCount): PollResults  // changed: needs eligibleCount
+engine.polls.trends(topicId, eligibleCount): TrendData    // changed: topicId not scope
+engine.polls.get(pollId): Poll | undefined                // added
+engine.polls.list(): Poll[]                               // added
 ```
 
-This is illustrative, not final. The actual API will be shaped by implementation experience. But the domain structure should remain stable.
+**Not yet wired into the engine:** Awareness and integrity are implemented as standalone services but not exposed through the engine API. Awareness requires `IssueContext` objects that the engine could construct; integrity could be exposed as `engine.integrity`. These are deferred to avoid expanding the engine API until consumers need them.
 
 ---
 
 ## 8. Open Technical Questions
 
-Several technical problems are not yet resolved. They are listed here to guide early development and research.
+### Resolved
 
-**Verifiable secret ballots.** When ballot secrecy is configured, the system must tally votes without revealing individual choices, while still allowing participants to verify that their vote was counted. This is a well-studied problem in cryptographic voting (homomorphic encryption, zero-knowledge proofs, mixnets), but selecting and implementing the right approach for Votiverse requires careful analysis. The delegation-override interaction adds complexity: the system must verify that a direct vote was cast (to apply the override rule) without revealing the vote's content.
+**Outcome measurement ambiguity.** *Resolved in Phase 2.* The prediction package uses continuous accuracy scoring (0-1) rather than binary met/not-met. Multiple outcome data points are supported, with trajectory analysis detecting reversal patterns. The `EvaluationConfidence` level (high/medium/low) is currently based on outcome count; credibility weighting by source type is the planned next step.
 
-**Delegation graph performance at scale.** The current design computes the delegation graph fresh from the event log for each issue. This is correct and simple but potentially expensive for large deployments. Incremental graph maintenance (updating the graph as events arrive rather than recomputing from scratch) is a performance optimization that will be needed at Stage 3+. The key constraint is that incremental maintenance must produce identical results to full recomputation.
+**Polling dependency structure.** *Resolved in Phase 2.* The original spec listed `@votiverse/identity` as a polling dependency. This was removed — the polling package accepts pre-verified `ParticipantId` values and hashes them internally. Identity verification happens at the engine boundary.
 
-**Poll question neutrality.** The whitepaper states that poll questions must be neutrally framed. Enforcing this programmatically is an open problem. Initial deployments can rely on administrator review, but larger-scale deployments may need automated bias detection (potentially AI-assisted, with the same multi-provider and auditability constraints described in the whitepaper).
+### Remaining
 
-**Outcome measurement ambiguity.** Predictions claim "X will change by Y within Z time." Evaluating whether the prediction was met requires measuring X, which may be ambiguous (multiple data sources disagree), contested (the measurement methodology is disputed), or confounded (X changed, but for reasons unrelated to the proposal). The prediction package needs a framework for expressing evaluation confidence, not just binary right/wrong.
+**Verifiable secret ballots.** When ballot secrecy is configured, the system must tally votes without revealing individual choices, while still allowing participants to verify that their vote was counted. The delegation-override interaction adds complexity: the system must verify that a direct vote was cast without revealing the vote's content. Not yet addressed.
 
-**Blockchain cost and latency.** Anchoring every governance event to a public blockchain is expensive and slow. The integrity package should batch commitments (e.g., Merkle tree of events committed periodically) rather than committing individual events. The batching strategy — how often, what triggers a commit, how to handle verification of individual events within a batch — is a design problem.
+**Delegation graph performance at scale.** The current design computes the delegation graph fresh from the event log for each issue. Correct and simple but potentially expensive at scale. The awareness layer compounds this by querying the same graph data multiple times within a single request. Caching intermediate results within a query session would help.
+
+**Poll question neutrality.** Enforcing neutral framing programmatically remains an open problem. The current implementation has no automated bias detection.
+
+**Blockchain cost and latency.** The integrity package defines an `event-batch` artifact type for Merkle tree batching, but batch construction is not yet implemented. The `InMemoryAnchor` is sufficient for testing; real blockchain anchors need the batching strategy resolved first.
+
+### Discovered During Implementation
+
+**Proposal entity.** The whitepaper treats proposals as first-class objects that carry predictions. The current data model links predictions to `ProposalId` but does not define a `Proposal` entity. This means the awareness layer cannot fully implement "prediction summaries per issue" — there is no link from issues to proposals to predictions. Adding a `Proposal` entity to core would unblock this.
+
+**Event payload schema evolution.** Prediction and polling packages store typed structures in the generic `Record<string, unknown>` event payloads by casting. If a package's type shape changes, the event store contains old-format events that won't match. An event versioning strategy (even a simple `version` field) would make migration safer.
+
+**Canonicalization duplication.** Both `@votiverse/prediction` and `@votiverse/integrity` contain identical `canonicalize()` functions for deterministic JSON serialization. This should be extracted to `@votiverse/core`.
+
+**Engine rehydration complexity.** The engine, identity provider, and CLI state all need `rehydrate()` methods to rebuild in-memory maps from persisted events. Issue data is stored separately from events because `VotingEventCreated` payloads don't include full issue details. A more principled approach would embed issue data in events or define a `rehydrate` protocol.
+
+**Simulation poll integration.** The simulation playback phase skips `poll-respond` actions because polls aren't automatically created alongside voting events. The framework tests sensing via `evaluateFromTrend()` instead. A future improvement would have playback create polls during event creation.
+
+---
+
+## 8.1 Decisions Log
+
+Key architectural decisions made during implementation, with rationale. This is the canonical record — phase reports contain additional context.
+
+| # | Decision | Rationale | Phase |
+|---|----------|-----------|-------|
+| D1 | `InMemoryEventStore` in core, not just the interface | Testing and simulation need a concrete store. Defining it in core avoids every consumer creating their own. | 1 |
+| D2 | Branded ID types (`ParticipantId`, `IssueId`, etc.) | Compile-time safety prevents accidentally passing the wrong ID type. Small runtime cost (just string + brand). | 1 |
+| D3 | `Result<T, E>` for identity package, typed throws elsewhere | Identity operations are expected to fail (auth failures). Other packages use `ValidationError` / `NotFoundError` throws. Mixing patterns is pragmatic — pick what fits the domain. | 1 |
+| D4 | Prediction accuracy as continuous 0-1 score | Binary met/not-met is insufficient for governance accountability. The score enables ranking and trend analysis. Thresholds for status classification (`met` >= 0.8) are separable from the score itself. | 2 |
+| D5 | Prediction patterns as discriminated union | Exhaustive matching in evaluation logic. Each variant carries exactly the fields it needs — no optional field ambiguity. New patterns are addable without modifying existing evaluation code. | 2 |
+| D6 | Poll trends per-topic, not per-question | Questions change across polls; topics remain stable. Normalizing to [-1,+1] makes different question types comparable on the same trend line. | 2 |
+| D7 | Remove identity dependency from polling | The polling package doesn't authenticate — it deduplicates. Accepting pre-verified `ParticipantId` values keeps the dependency graph shallow. | 2 |
+| D8 | Outcome source credibility weighting deferred | The data model supports typed sources (`official`, `poll-derived`, `community`, `automated`). All currently carry equal weight. Implementing weighting requires solving the oracle trust problem (whitepaper 13.4–13.5). The infrastructure is ready; the policy is not. | 2 |
+| D9 | `IssueContext` pattern for awareness decoupling | The awareness layer needs issue data but shouldn't reach into engine internals. Plain data objects passed as parameters make the service testable in isolation. | 3 |
+| D10 | Two-phase simulation (generate then playback) | Reproducibility (same seed = same script), inspectability (examine/edit the script), and correctness (playback uses the real engine, so simulation bugs are engine bugs). | 4 |
+| D11 | `NoOpAnchor` as default when blockchain disabled | Same engine code runs with or without blockchain integrity. No conditional logic — just a different anchor at configuration time. | 5 |
+| D12 | Poll metadata in event payload workaround | Core's `PollCreatedPayload.questions` is `string[]`. The polling package encodes `closesAt`, `title`, `createdBy` as a JSON metadata object in the first array element, marked with `__meta: true`. Pragmatic workaround to avoid modifying core's event payloads. | 2 |
 
 ---
 

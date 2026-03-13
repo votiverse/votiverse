@@ -38,15 +38,63 @@ In this model, traditional representative democracy is not the default. It is a 
 
 ---
 
+## Quick Start
+
+```bash
+# Install
+git clone https://github.com/votiverse/votiverse.git
+cd votiverse
+pnpm install
+pnpm build
+
+# Run a simulation
+node -e "
+import { runSimulation } from '@votiverse/simulate';
+const result = await runSimulation({
+  name: 'Quick test', description: '', seed: 42,
+  config: 'LIQUID_STANDARD',
+  topics: [{ name: 'Finance' }],
+  population: {
+    count: 20,
+    engagementDistribution: { 'active-deliberator': 0.4, 'selective-engager': 0.3, 'pure-delegator': 0.2, 'pure-sensor': 0.1 },
+    forecastingDistribution: { good: 0.3, average: 0.4, poor: 0.3 },
+    adversarialFraction: 0
+  },
+  votingEvents: [{ title: 'Budget', issues: [{ title: 'Q1 Budget', topics: ['Finance'], groundTruthOutcome: true }] }],
+  groundTruth: { topics: { Finance: { baseValue: 100, trajectory: 'improving', changeRate: 10 } } }
+});
+console.log('Agents:', result.results.agentCount);
+console.log('Concentration:', result.results.concentrationOverTime);
+console.log('Prediction accuracy:', result.results.predictionAccuracies.slice(0, 5));
+"
+```
+
+---
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| `@votiverse/core` | Branded ID types, event definitions, EventStore, Result type, error hierarchy |
+| `@votiverse/config` | GovernanceConfig schema, validation, 6 named presets, diffing, derivation |
+| `@votiverse/identity` | IdentityProvider interface, InvitationProvider for small groups |
+| `@votiverse/delegation` | Delegation graph, scope resolution, weight computation, cycle detection |
+| `@votiverse/voting` | 4 ballot methods (SimpleMajority, Supermajority, RankedChoice, Approval), quorum |
+| `@votiverse/prediction` | Prediction lifecycle, 6 evaluation patterns, commitment hashing, track records |
+| `@votiverse/polling` | Non-delegable polls, 5 question types, topic-level trend computation |
+| `@votiverse/awareness` | Read-only monitoring: concentration alerts, chain resolution, delegate profiles, prompts |
+| `@votiverse/integrity` | Blockchain-agnostic commitment hashing, anchoring, verification |
+| `@votiverse/engine` | Orchestration layer, domain-organized API surface |
+| `@votiverse/simulate` | Two-phase rule-based simulation framework |
+| `@votiverse/cli` | Command-line interface with JSON state persistence |
+
+---
+
 ## Architecture
 
-Votiverse is implemented as a **headless TypeScript monorepo** — a set of composable packages published under the `@votiverse` npm scope. The engine has no opinion about presentation. It exposes a programmatic API that any client can drive.
+Votiverse is implemented as a **headless TypeScript monorepo** — 12 composable packages published under the `@votiverse` npm scope. The engine has no opinion about presentation. It exposes a programmatic API that any client can drive.
 
-The CLI operates in four modes: local simulation (in-memory, no auth), local persistent (SQLite), authenticated client to a remote engine (browser-based OAuth), and self-hosted server.
-
-An AI-driven simulation framework enables stress-testing governance configurations with rule-based and LLM-driven agents at any scale.
-
-See the [Architecture Document](docs/architecture.md) for full details.
+See the [Architecture Document](docs/architecture.md) for full details, including the implemented API, the decisions log, and open technical questions.
 
 ---
 
@@ -54,27 +102,31 @@ See the [Architecture Document](docs/architecture.md) for full details.
 
 | Document | Description |
 |----------|-------------|
-| [Whitepaper](docs/whitepaper.md) | Foundational document. Governance model, formal properties, the scale problem, prediction tracking, participant polling, awareness layer, risks and mitigations, platform architecture. |
-| [Architecture](docs/architecture.md) | Technical architecture. 12 packages, dependency graph, event-sourced data model, API design, CLI modes, simulation framework, research pipeline, development phases. |
-| [Liquid Democracy Research](docs/research/background.md) | Background research on liquid democracy, delegative democracy, and existing implementations. |
+| [Whitepaper](docs/whitepaper.md) | Governance model, formal properties, prediction tracking, participant polling, awareness layer. |
+| [Architecture](docs/architecture.md) | 12 packages, dependency graph, event-sourced data model, API design, decisions log. |
+| [Phase 2 Report](docs/phase2-report.md) | Prediction and polling implementation decisions. |
+| [Phase 3 Report](docs/phase3-report.md) | Awareness layer implementation and integration review. |
+| [Phase 4 Report](docs/phase4-report.md) | Simulation framework design and testing. |
+| [Phase 5 Report](docs/phase5-report.md) | Integrity package and blockchain anchoring. |
+| [Phase 6 Report](docs/phase6-report.md) | Production hardening: documentation, tooling, code quality. |
+| [Research Background](docs/research/background.md) | Liquid democracy and delegative democracy literature. |
 
 ---
 
 ## Status
 
-Votiverse is entering **Phase 1: Foundation** — implementing the core governance engine (types, configuration, delegation, voting). The whitepaper and architecture document are living drafts that will evolve alongside the implementation.
+Votiverse has completed **Phases 1–6** — all 12 packages are implemented with **319 tests passing**. The governance engine is functional for local simulation and development. Production deployment requires PostgreSQL storage adapter and performance profiling (future work).
 
 ---
 
 ## Get Involved
 
-Votiverse is an open project. Contributions are welcome at every level:
+Votiverse is an open project. Contributions are welcome:
 
-- **Read the whitepaper** and open an issue with questions, critiques, or suggestions.
-- **Propose extensions** to the governance model — new primitives, new configurations, new accountability mechanisms.
+- **Read the whitepaper** and open an issue with questions or critiques.
+- **Run simulations** against different governance presets and report findings.
 - **Challenge the assumptions** — the best way to strengthen the design is to find where it breaks.
-- **Run simulations** (once the framework is built) and publish findings.
-- **Share the project** with people who care about how groups make decisions.
+- **Propose extensions** to the governance model.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
