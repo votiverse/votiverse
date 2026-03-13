@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore } from "@votiverse/core";
-import type {
-  ParticipantId,
-  PollId,
-  TopicId,
-  Timestamp,
-} from "@votiverse/core";
+import type { ParticipantId, PollId, TopicId, Timestamp } from "@votiverse/core";
 import { getPreset } from "@votiverse/config";
 import { PollingService } from "../../src/polling-service.js";
 

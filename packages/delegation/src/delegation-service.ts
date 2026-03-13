@@ -60,22 +60,14 @@ export class DelegationService {
     }
 
     if (params.sourceId === params.targetId) {
-      throw new ValidationError(
-        "targetId",
-        "Cannot delegate to yourself",
-      );
+      throw new ValidationError("targetId", "Cannot delegate to yourself");
     }
 
     // Check max delegates per participant
     if (this.config.delegation.maxDelegatesPerParticipant !== null) {
       const active = await buildActiveDelegations(this.eventStore);
-      const existingDelegations = active.filter(
-        (d) => d.sourceId === params.sourceId,
-      );
-      if (
-        existingDelegations.length >=
-        this.config.delegation.maxDelegatesPerParticipant
-      ) {
+      const existingDelegations = active.filter((d) => d.sourceId === params.sourceId);
+      if (existingDelegations.length >= this.config.delegation.maxDelegatesPerParticipant) {
         throw new ValidationError(
           "delegation",
           `Maximum ${this.config.delegation.maxDelegatesPerParticipant} delegation(s) per participant exceeded`,
@@ -117,16 +109,11 @@ export class DelegationService {
   async revoke(params: RevokeDelegationParams): Promise<void> {
     const active = await buildActiveDelegations(this.eventStore);
     const matching = active.find(
-      (d) =>
-        d.sourceId === params.sourceId &&
-        topicScopeMatches(d.topicScope, params.topicScope),
+      (d) => d.sourceId === params.sourceId && topicScopeMatches(d.topicScope, params.topicScope),
     );
 
     if (!matching) {
-      throw new ValidationError(
-        "delegation",
-        "No matching active delegation found to revoke",
-      );
+      throw new ValidationError("delegation", "No matching active delegation found to revoke");
     }
 
     const event = createEvent<DelegationRevokedEvent>(
@@ -163,12 +150,7 @@ export class DelegationService {
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<DelegationGraph> {
     const delegations = await buildActiveDelegations(this.eventStore);
-    return buildDelegationGraph(
-      issueId,
-      issueTopics,
-      delegations,
-      topicAncestors ?? new Map(),
-    );
+    return buildDelegationGraph(issueId, issueTopics, delegations, topicAncestors ?? new Map());
   }
 
   /**
@@ -180,11 +162,7 @@ export class DelegationService {
     allParticipants: ReadonlySet<ParticipantId>,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<WeightDistribution> {
-    const graph = await this.buildGraph(
-      issueId,
-      issueTopics,
-      topicAncestors,
-    );
+    const graph = await this.buildGraph(issueId, issueTopics, topicAncestors);
     const directVoters = await getDirectVoters(this.eventStore, issueId);
     return computeWeights(graph, directVoters, allParticipants);
   }
@@ -198,11 +176,7 @@ export class DelegationService {
     issueTopics: readonly TopicId[],
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<DelegationChain> {
-    const graph = await this.buildGraph(
-      issueId,
-      issueTopics,
-      topicAncestors,
-    );
+    const graph = await this.buildGraph(issueId, issueTopics, topicAncestors);
     const directVoters = await getDirectVoters(this.eventStore, issueId);
     return resolveChain(participantId, graph, directVoters);
   }
@@ -216,21 +190,14 @@ export class DelegationService {
     allParticipants: ReadonlySet<ParticipantId>,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<ConcentrationMetrics> {
-    const graph = await this.buildGraph(
-      issueId,
-      issueTopics,
-      topicAncestors,
-    );
+    const graph = await this.buildGraph(issueId, issueTopics, topicAncestors);
     const directVoters = await getDirectVoters(this.eventStore, issueId);
     const weights = computeWeights(graph, directVoters, allParticipants);
     return computeConcentrationMetrics(weights, graph, directVoters);
   }
 }
 
-function topicScopeMatches(
-  a: readonly TopicId[],
-  b: readonly TopicId[],
-): boolean {
+function topicScopeMatches(a: readonly TopicId[], b: readonly TopicId[]): boolean {
   if (a.length !== b.length) return false;
   const setA = new Set(a);
   return b.every((t) => setA.has(t));

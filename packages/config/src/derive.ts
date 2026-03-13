@@ -27,10 +27,7 @@ export interface ConfigOverrides {
  * Creates a new GovernanceConfig by applying overrides to a base config.
  * The base config is never mutated.
  */
-export function deriveConfig(
-  base: GovernanceConfig,
-  overrides: ConfigOverrides,
-): GovernanceConfig {
+export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides): GovernanceConfig {
   return {
     name: overrides.name ?? base.name,
     description: overrides.description ?? base.description,

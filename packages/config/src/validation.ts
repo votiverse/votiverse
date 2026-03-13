@@ -34,8 +34,7 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
     if (config.delegation.transitive) {
       issues.push({
         field: "delegation.transitive",
-        message:
-          "Transitivity must be disabled when delegation is disabled",
+        message: "Transitivity must be disabled when delegation is disabled",
         severity: "error",
       });
     }
@@ -46,14 +45,10 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
         severity: "error",
       });
     }
-    if (
-      config.delegation.maxChainDepth !== null &&
-      config.delegation.maxChainDepth > 0
-    ) {
+    if (config.delegation.maxChainDepth !== null && config.delegation.maxChainDepth > 0) {
       issues.push({
         field: "delegation.maxChainDepth",
-        message:
-          "Chain depth limit is meaningless when delegation is disabled",
+        message: "Chain depth limit is meaningless when delegation is disabled",
         severity: "warning",
       });
     }
@@ -66,16 +61,12 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
   ) {
     issues.push({
       field: "delegation.maxChainDepth",
-      message:
-        "Chain depth > 1 has no effect when transitivity is disabled",
+      message: "Chain depth > 1 has no effect when transitivity is disabled",
       severity: "warning",
     });
   }
 
-  if (
-    config.delegation.maxChainDepth !== null &&
-    config.delegation.maxChainDepth < 1
-  ) {
+  if (config.delegation.maxChainDepth !== null && config.delegation.maxChainDepth < 1) {
     issues.push({
       field: "delegation.maxChainDepth",
       message: "Chain depth must be at least 1 if set",
@@ -102,16 +93,12 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
   ) {
     issues.push({
       field: "ballot.supermajorityThreshold",
-      message:
-        "Supermajority threshold is only relevant when voting method is 'supermajority'",
+      message: "Supermajority threshold is only relevant when voting method is 'supermajority'",
       severity: "warning",
     });
   }
 
-  if (
-    config.ballot.supermajorityThreshold <= 0 ||
-    config.ballot.supermajorityThreshold > 1
-  ) {
+  if (config.ballot.supermajorityThreshold <= 0 || config.ballot.supermajorityThreshold > 1) {
     issues.push({
       field: "ballot.supermajorityThreshold",
       message: "Supermajority threshold must be between 0 (exclusive) and 1 (inclusive)",
@@ -129,14 +116,10 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
 
   // --- Delegate vote visibility ---
 
-  if (
-    !config.delegation.enabled &&
-    config.ballot.delegateVoteVisibility !== "private"
-  ) {
+  if (!config.delegation.enabled && config.ballot.delegateVoteVisibility !== "private") {
     issues.push({
       field: "ballot.delegateVoteVisibility",
-      message:
-        "Delegate vote visibility is irrelevant when delegation is disabled",
+      message: "Delegate vote visibility is irrelevant when delegation is disabled",
       severity: "warning",
     });
   }
@@ -149,8 +132,7 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
   ) {
     issues.push({
       field: "ballot.participationMode",
-      message:
-        "'mandatory-with-delegation' requires delegation to be enabled",
+      message: "'mandatory-with-delegation' requires delegation to be enabled",
       severity: "error",
     });
   }
@@ -178,8 +160,7 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
   ) {
     issues.push({
       field: "thresholds.concentrationAlertThreshold",
-      message:
-        "Concentration alert threshold must be between 0 (exclusive) and 1 (inclusive)",
+      message: "Concentration alert threshold must be between 0 (exclusive) and 1 (inclusive)",
       severity: "error",
     });
   }

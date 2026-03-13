@@ -30,10 +30,7 @@ import type {
  * Base event interface. All domain events extend this.
  * Events are immutable: all fields are readonly.
  */
-export interface BaseEvent<
-  TType extends EventType = EventType,
-  TPayload = unknown,
-> {
+export interface BaseEvent<TType extends EventType = EventType, TPayload = unknown> {
   readonly id: EventId;
   readonly type: TType;
   readonly timestamp: Timestamp;
@@ -149,57 +146,30 @@ export type ParticipantRegisteredEvent = BaseEvent<
   ParticipantRegisteredPayload
 >;
 
-export type TopicCreatedEvent = BaseEvent<
-  "TopicCreated",
-  TopicCreatedPayload
->;
+export type TopicCreatedEvent = BaseEvent<"TopicCreated", TopicCreatedPayload>;
 
-export type VotingEventCreatedEvent = BaseEvent<
-  "VotingEventCreated",
-  VotingEventCreatedPayload
->;
+export type VotingEventCreatedEvent = BaseEvent<"VotingEventCreated", VotingEventCreatedPayload>;
 
-export type VotingEventClosedEvent = BaseEvent<
-  "VotingEventClosed",
-  VotingEventClosedPayload
->;
+export type VotingEventClosedEvent = BaseEvent<"VotingEventClosed", VotingEventClosedPayload>;
 
-export type DelegationCreatedEvent = BaseEvent<
-  "DelegationCreated",
-  DelegationCreatedPayload
->;
+export type DelegationCreatedEvent = BaseEvent<"DelegationCreated", DelegationCreatedPayload>;
 
-export type DelegationRevokedEvent = BaseEvent<
-  "DelegationRevoked",
-  DelegationRevokedPayload
->;
+export type DelegationRevokedEvent = BaseEvent<"DelegationRevoked", DelegationRevokedPayload>;
 
 export type VoteCastEvent = BaseEvent<"VoteCast", VoteCastPayload>;
 
-export type PredictionCommittedEvent = BaseEvent<
-  "PredictionCommitted",
-  PredictionCommittedPayload
->;
+export type PredictionCommittedEvent = BaseEvent<"PredictionCommitted", PredictionCommittedPayload>;
 
-export type OutcomeRecordedEvent = BaseEvent<
-  "OutcomeRecorded",
-  OutcomeRecordedPayload
->;
+export type OutcomeRecordedEvent = BaseEvent<"OutcomeRecorded", OutcomeRecordedPayload>;
 
-export type PollCreatedEvent = BaseEvent<
-  "PollCreated",
-  PollCreatedPayload
->;
+export type PollCreatedEvent = BaseEvent<"PollCreated", PollCreatedPayload>;
 
 export type PollResponseSubmittedEvent = BaseEvent<
   "PollResponseSubmitted",
   PollResponseSubmittedPayload
 >;
 
-export type IntegrityCommitmentEvent = BaseEvent<
-  "IntegrityCommitment",
-  IntegrityCommitmentPayload
->;
+export type IntegrityCommitmentEvent = BaseEvent<"IntegrityCommitment", IntegrityCommitmentPayload>;
 
 /**
  * Union of all concrete domain event types.

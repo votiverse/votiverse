@@ -4,18 +4,8 @@
  * High-level service for vote casting and tallying.
  */
 
-import type {
-  EventStore,
-  ParticipantId,
-  IssueId,
-  TopicId,
-  VoteCastEvent,
-} from "@votiverse/core";
-import {
-  createEvent,
-  generateEventId,
-  now,
-} from "@votiverse/core";
+import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent } from "@votiverse/core";
+import { createEvent, generateEventId, now } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
   buildActiveDelegations,
@@ -103,11 +93,7 @@ export class VotingService {
       delegations,
       topicAncestors ?? new Map(),
     );
-    const weightDist = computeWeights(
-      graph,
-      directVoters,
-      eligibleParticipantIds,
-    );
+    const weightDist = computeWeights(graph, directVoters, eligibleParticipantIds);
 
     // Build weighted votes: each direct voter's choice * their effective weight
     const weightedVotes: WeightedVote[] = [];

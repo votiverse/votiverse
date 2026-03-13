@@ -30,9 +30,7 @@ describe("Commitment hash", () => {
       ...claim,
       pattern: { type: "absolute-change", expected: 201 },
     };
-    expect(computeCommitmentHash(claim)).not.toBe(
-      computeCommitmentHash(altered),
-    );
+    expect(computeCommitmentHash(claim)).not.toBe(computeCommitmentHash(altered));
   });
 
   it("is order-independent — same data in different key order produces same hash", () => {
@@ -47,9 +45,7 @@ describe("Commitment hash", () => {
       timeframe: { deadline: ts(1), start: ts(0) },
       variable: "X",
     } as PredictionClaim;
-    expect(computeCommitmentHash(claim1)).toBe(
-      computeCommitmentHash(claim2),
-    );
+    expect(computeCommitmentHash(claim1)).toBe(computeCommitmentHash(claim2));
   });
 
   it("verifyCommitment returns true for matching hash", () => {

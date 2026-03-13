@@ -12,9 +12,7 @@ import type { BallotMethod, WeightedVote, TallyResult } from "./types.js";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function countVotes(
-  votes: readonly WeightedVote[],
-): Map<string, number> {
+function countVotes(votes: readonly WeightedVote[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const vote of votes) {
     const choice = typeof vote.choice === "string" ? vote.choice : vote.choice.join(",");
@@ -27,11 +25,7 @@ function totalWeight(votes: readonly WeightedVote[]): number {
   return votes.reduce((sum, v) => sum + v.weight, 0);
 }
 
-function checkQuorum(
-  participatingWeight: number,
-  eligibleCount: number,
-  quorum: number,
-): boolean {
+function checkQuorum(participatingWeight: number, eligibleCount: number, quorum: number): boolean {
   if (eligibleCount === 0) return quorum === 0;
   return participatingWeight / eligibleCount >= quorum;
 }
@@ -175,9 +169,7 @@ export class RankedChoice implements BallotMethod {
     // Parse ranked votes: each choice should be string[] (ranked options)
     const rankedBallots: { rankings: readonly string[]; weight: number }[] = [];
     for (const vote of votes) {
-      const rankings = Array.isArray(vote.choice)
-        ? vote.choice
-        : [vote.choice as string];
+      const rankings = Array.isArray(vote.choice) ? vote.choice : [vote.choice as string];
       rankedBallots.push({ rankings, weight: vote.weight });
     }
 
@@ -205,10 +197,7 @@ export class RankedChoice implements BallotMethod {
       for (const ballot of rankedBallots) {
         const topChoice = ballot.rankings.find((c) => !eliminated.has(c));
         if (topChoice !== undefined) {
-          roundCounts.set(
-            topChoice,
-            (roundCounts.get(topChoice) ?? 0) + ballot.weight,
-          );
+          roundCounts.set(topChoice, (roundCounts.get(topChoice) ?? 0) + ballot.weight);
         }
       }
 
@@ -229,13 +218,10 @@ export class RankedChoice implements BallotMethod {
       }
 
       // Find the candidate with the fewest votes
-      const remaining = [...roundCounts.entries()].filter(
-        ([c]) => !eliminated.has(c),
-      );
+      const remaining = [...roundCounts.entries()].filter(([c]) => !eliminated.has(c));
       if (remaining.length <= 1) {
         // Only one candidate left or no candidates
-        const winner =
-          remaining.length === 1 ? remaining[0]![0] : null;
+        const winner = remaining.length === 1 ? remaining[0]![0] : null;
         return buildResult(
           issueId,
           winner,
@@ -283,9 +269,7 @@ export class ApprovalVoting implements BallotMethod {
     // Each vote approves one or more choices
     const counts = new Map<string, number>();
     for (const vote of votes) {
-      const choices = Array.isArray(vote.choice)
-        ? vote.choice
-        : [vote.choice as string];
+      const choices = Array.isArray(vote.choice) ? vote.choice : [vote.choice as string];
       for (const choice of choices) {
         counts.set(choice, (counts.get(choice) ?? 0) + vote.weight);
       }
@@ -327,10 +311,7 @@ export class ApprovalVoting implements BallotMethod {
 /**
  * Creates a BallotMethod instance from the voting method name.
  */
-export function createBallotMethod(
-  method: string,
-  supermajorityThreshold?: number,
-): BallotMethod {
+export function createBallotMethod(method: string, supermajorityThreshold?: number): BallotMethod {
   switch (method) {
     case "simple-majority":
       return new SimpleMajority();

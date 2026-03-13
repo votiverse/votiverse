@@ -12,18 +12,13 @@ import type {
   IssueId,
   PollId,
   PredictionId,
+  ProposalId,
   Timestamp,
 } from "@votiverse/core";
-import {
-  InMemoryEventStore,
-  isOk,
-  timestamp,
-} from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
+import { InMemoryEventStore, isOk, timestamp } from "@votiverse/core";
+import type { GovernanceConfig, PresetName } from "@votiverse/config";
 import { getPreset } from "@votiverse/config";
-import {
-  createEngine,
-} from "@votiverse/engine";
+import { createEngine } from "@votiverse/engine";
 import type { VotiverseEngine } from "@votiverse/engine";
 import { InvitationProvider } from "@votiverse/identity";
 import type {
@@ -102,10 +97,7 @@ export async function playback(
   }
 
   // Compute final results
-  const predictionAccuracies = await computePredictionAccuracies(
-    state,
-    script,
-  );
+  const predictionAccuracies = await computePredictionAccuracies(state, script);
 
   const results: SimulationResults = {
     scenarioName: script.scenario.name,
@@ -123,10 +115,7 @@ export async function playback(
 // Action execution
 // ---------------------------------------------------------------------------
 
-async function executeAction(
-  state: PlaybackState,
-  action: SimulationAction,
-): Promise<void> {
+async function executeAction(state: PlaybackState, action: SimulationAction): Promise<void> {
   switch (action.type) {
     case "register-participant": {
       const result = await state.provider.invite(action.name);
@@ -137,13 +126,8 @@ async function executeAction(
     }
 
     case "create-topic": {
-      const parentId = action.parentName
-        ? state.topicIds.get(action.parentName)
-        : undefined;
-      const topic = await state.engine.topics_api.create(
-        action.name,
-        parentId,
-      );
+      const parentId = action.parentName ? state.topicIds.get(action.parentName) : undefined;
+      const topic = await state.engine.topics_api.create(action.name, parentId);
       state.topicIds.set(action.name, topic.id);
       break;
     }
@@ -151,9 +135,10 @@ async function executeAction(
     case "create-voting-event": {
       const allParticipantIds = [...state.participantIds.values()];
       const now = Date.now();
-      const eventIdx = state.issueIds.size > 0
-        ? Math.max(...[...state.issueIds.keys()].map(k => parseInt(k.split(":")[0]!, 10))) + 1
-        : 0;
+      const eventIdx =
+        state.issueIds.size > 0
+          ? Math.max(...[...state.issueIds.keys()].map((k) => parseInt(k.split(":")[0]!, 10))) + 1
+          : 0;
 
       const votingEvent = await state.engine.events.create({
         title: action.title,
@@ -204,9 +189,7 @@ async function executeAction(
 
     case "vote": {
       const participantId = state.participantIds.get(action.participantName);
-      const issueId = state.issueIds.get(
-        `${action.eventIndex}:${action.issueIndex}`,
-      );
+      const issueId = state.issueIds.get(`${action.eventIndex}:${action.issueIndex}`);
       if (!participantId || !issueId) break;
 
       try {
@@ -224,7 +207,8 @@ async function executeAction(
       try {
         const prediction = await state.engine.prediction.commit({
           participantId,
-          proposalId: `proposal-${action.eventIndex}-${action.issueIndex}` as import("@votiverse/core").ProposalId,
+          proposalId:
+            `proposal-${action.eventIndex}-${action.issueIndex}` as ProposalId,
           claim: action.claim,
         });
         state.predictionIds.set(
@@ -270,10 +254,7 @@ async function executeAction(
 // Metrics capture
 // ---------------------------------------------------------------------------
 
-async function captureEventMetrics(
-  state: PlaybackState,
-  eventIndex: number,
-): Promise<void> {
+async function captureEventMetrics(state: PlaybackState, eventIndex: number): Promise<void> {
   // Find all issues for this event and compute concentration
   for (const [key, issueId] of state.issueIds) {
     if (!key.startsWith(`${eventIndex}:`)) continue;
@@ -337,10 +318,10 @@ function findNameById(state: PlaybackState, id: ParticipantId): string {
 // ---------------------------------------------------------------------------
 
 function resolveConfig(
-  configOrPreset: import("@votiverse/config").GovernanceConfig | import("@votiverse/config").PresetName,
+  configOrPreset: GovernanceConfig | PresetName,
 ): GovernanceConfig {
   if (typeof configOrPreset === "string") {
-    return getPreset(configOrPreset as import("@votiverse/config").PresetName);
+    return getPreset(configOrPreset as PresetName);
   }
   return configOrPreset;
 }

@@ -12,14 +12,7 @@ import type {
   EventStore,
   ParticipantRegisteredEvent,
 } from "@votiverse/core";
-import {
-  ok,
-  err,
-  generateParticipantId,
-  generateEventId,
-  now,
-  createEvent,
-} from "@votiverse/core";
+import { ok, err, generateParticipantId, generateEventId, now, createEvent } from "@votiverse/core";
 import type {
   IdentityProvider,
   AuthCredentials,
@@ -119,9 +112,7 @@ export class InvitationProvider implements IdentityProvider, SybilCheck {
     return ok(participant);
   }
 
-  async authenticate(
-    credentials: AuthCredentials,
-  ): Promise<Result<AuthResult, IdentityError>> {
+  async authenticate(credentials: AuthCredentials): Promise<Result<AuthResult, IdentityError>> {
     const name = (credentials as InvitationCredentials).name;
     if (typeof name !== "string") {
       return err({
@@ -149,9 +140,7 @@ export class InvitationProvider implements IdentityProvider, SybilCheck {
     return ok({ participantId, participant });
   }
 
-  async verifyUniqueness(
-    participantId: ParticipantId,
-  ): Promise<Result<boolean, IdentityError>> {
+  async verifyUniqueness(participantId: ParticipantId): Promise<Result<boolean, IdentityError>> {
     // In invitation-based identity, uniqueness is guaranteed by the
     // administrator who invited the participant. If they exist, they're unique.
     if (this.participants.has(participantId)) {
@@ -160,15 +149,11 @@ export class InvitationProvider implements IdentityProvider, SybilCheck {
     return ok(false);
   }
 
-  async verify(
-    participantId: ParticipantId,
-  ): Promise<Result<boolean, IdentityError>> {
+  async verify(participantId: ParticipantId): Promise<Result<boolean, IdentityError>> {
     return this.verifyUniqueness(participantId);
   }
 
-  async getParticipant(
-    participantId: ParticipantId,
-  ): Promise<Participant | undefined> {
+  async getParticipant(participantId: ParticipantId): Promise<Participant | undefined> {
     return this.participants.get(participantId);
   }
 

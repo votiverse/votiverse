@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  PRESETS,
-  getPreset,
-  getPresetNames,
-  validateConfig,
-} from "../../src/index.js";
+import { PRESETS, getPreset, getPresetNames, validateConfig } from "../../src/index.js";
 import type { PresetName } from "../../src/index.js";
 
 describe("Named presets", () => {
@@ -44,9 +39,7 @@ describe("Named presets", () => {
         const result = validateConfig(getPreset(name));
         expect(result.valid).toBe(true);
         // No errors, maybe warnings
-        expect(
-          result.issues.filter((i) => i.severity === "error"),
-        ).toHaveLength(0);
+        expect(result.issues.filter((i) => i.severity === "error")).toHaveLength(0);
       });
     }
   });

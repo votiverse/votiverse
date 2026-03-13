@@ -26,10 +26,7 @@ function nextTs(): Timestamp {
   return (ts += 100) as Timestamp;
 }
 
-function delegationEvent(
-  source: string,
-  target: string,
-): DelegationCreatedEvent {
+function delegationEvent(source: string, target: string): DelegationCreatedEvent {
   return createEvent<DelegationCreatedEvent>(
     "DelegationCreated",
     {
@@ -56,10 +53,7 @@ function voteEvent(participant: string, issue: string): VoteCastEvent {
   );
 }
 
-function makeContext(
-  issueId: string,
-  participants: string[],
-): IssueContext {
+function makeContext(issueId: string, participants: string[]): IssueContext {
   return {
     issueId: iid(issueId),
     issueTitle: `Issue ${issueId}`,
@@ -93,13 +87,7 @@ describe("AwarenessService", () => {
       // Dave votes
       await store.append(voteEvent("dave", "issue-1"));
 
-      const ctx = makeContext("issue-1", [
-        "alice",
-        "bob",
-        "carol",
-        "dave",
-        "eve",
-      ]);
+      const ctx = makeContext("issue-1", ["alice", "bob", "carol", "dave", "eve"]);
       const report = await service.concentration(ctx);
 
       expect(report.hasAlerts).toBe(true);
@@ -118,9 +106,7 @@ describe("AwarenessService", () => {
       await store.append(voteEvent("dave", "issue-1"));
       await store.append(voteEvent("eve", "issue-1"));
 
-      const ctx = makeContext("issue-1", [
-        "alice", "bob", "carol", "dave", "eve",
-      ]);
+      const ctx = makeContext("issue-1", ["alice", "bob", "carol", "dave", "eve"]);
       const report = await service.concentration(ctx);
 
       expect(report.hasAlerts).toBe(false);
@@ -174,19 +160,11 @@ describe("AwarenessService", () => {
       await store.append(delegationEvent("carol", "dave"));
       await store.append(voteEvent("dave", "issue-1"));
 
-      const ctx = makeContext("issue-1", [
-        "alice",
-        "bob",
-        "carol",
-        "dave",
-        "eve",
-      ]);
+      const ctx = makeContext("issue-1", ["alice", "bob", "carol", "dave", "eve"]);
       const prompts = await service.prompts(pid("alice"), ctx);
 
       expect(prompts.length).toBeGreaterThanOrEqual(1);
-      expect(
-        prompts.some((p) => p.reason === "concentration-alert"),
-      ).toBe(true);
+      expect(prompts.some((p) => p.reason === "concentration-alert")).toBe(true);
     });
 
     it("returns no prompts for direct voters", async () => {
@@ -205,9 +183,7 @@ describe("AwarenessService", () => {
       const ctx = makeContext("issue-1", ["alice", "bob"]);
       const prompts = await service.prompts(pid("alice"), ctx);
 
-      expect(
-        prompts.some((p) => p.reason === "delegate-behavior-anomaly"),
-      ).toBe(true);
+      expect(prompts.some((p) => p.reason === "delegate-behavior-anomaly")).toBe(true);
     });
   });
 
@@ -258,9 +234,7 @@ describe("AwarenessService", () => {
       const result = await service.context(ctx2, [ctx1]);
 
       expect(result.relatedDecisions).toHaveLength(1);
-      expect(result.relatedDecisions[0]!.issueTitle).toBe(
-        "Past Education Decision",
-      );
+      expect(result.relatedDecisions[0]!.issueTitle).toBe("Past Education Decision");
     });
 
     it("excludes unrelated topics", async () => {

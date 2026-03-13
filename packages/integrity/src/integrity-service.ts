@@ -6,12 +6,7 @@
 
 import type { EventStore } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
-import type {
-  ArtifactType,
-  Commitment,
-  VerificationResult,
-  BlockchainAnchor,
-} from "./types.js";
+import type { ArtifactType, Commitment, VerificationResult, BlockchainAnchor } from "./types.js";
 import { commitArtifact, verifyArtifact, getCommitments } from "./commitment.js";
 import { NoOpAnchor } from "./anchors.js";
 
@@ -33,25 +28,14 @@ export class IntegrityService {
   /**
    * Commit a governance artifact for integrity verification.
    */
-  async commit(
-    artifactType: ArtifactType,
-    artifactData: unknown,
-  ): Promise<Commitment> {
-    return commitArtifact(
-      artifactType,
-      artifactData,
-      this.eventStore,
-      this.anchor,
-    );
+  async commit(artifactType: ArtifactType, artifactData: unknown): Promise<Commitment> {
+    return commitArtifact(artifactType, artifactData, this.eventStore, this.anchor);
   }
 
   /**
    * Verify that an artifact matches its commitment.
    */
-  async verify(
-    artifactData: unknown,
-    commitment: Commitment,
-  ): Promise<VerificationResult> {
+  async verify(artifactData: unknown, commitment: Commitment): Promise<VerificationResult> {
     return verifyArtifact(artifactData, commitment, this.anchor);
   }
 

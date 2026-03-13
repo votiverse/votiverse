@@ -29,9 +29,7 @@ export function aggregateResults(
   responses: readonly PollResponse[],
   eligibleCount: number,
 ): PollResults {
-  const questionResults = poll.questions.map((q) =>
-    aggregateQuestion(q, responses),
-  );
+  const questionResults = poll.questions.map((q) => aggregateQuestion(q, responses));
 
   return {
     pollId: poll.id,
@@ -45,9 +43,7 @@ function aggregateQuestion(
   question: PollQuestion,
   responses: readonly PollResponse[],
 ): QuestionResult {
-  const answers = responses
-    .flatMap((r) => r.answers)
-    .filter((a) => a.questionId === question.id);
+  const answers = responses.flatMap((r) => r.answers).filter((a) => a.questionId === question.id);
 
   const distribution = new Map<string, number>();
   const numericValues: number[] = [];
@@ -73,13 +69,8 @@ function aggregateQuestion(
     const sum = numericValues.reduce((s, v) => s + v, 0);
     const mean = sum / numericValues.length;
     const mid = Math.floor(sorted.length / 2);
-    const median =
-      sorted.length % 2 === 0
-        ? (sorted[mid - 1]! + sorted[mid]!) / 2
-        : sorted[mid]!;
-    const variance =
-      numericValues.reduce((s, v) => s + (v - mean) ** 2, 0) /
-      numericValues.length;
+    const median = sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+    const variance = numericValues.reduce((s, v) => s + (v - mean) ** 2, 0) / numericValues.length;
 
     return {
       ...result,
@@ -142,9 +133,7 @@ export function computeTrend(
   for (const poll of polls) {
     if (poll.status !== "closed") continue;
 
-    const relevantQuestions = poll.questions.filter((q) =>
-      q.topicIds.includes(topicId),
-    );
+    const relevantQuestions = poll.questions.filter((q) => q.topicIds.includes(topicId));
     if (relevantQuestions.length === 0) continue;
 
     const responses = responsesByPoll.get(poll.id) ?? [];
@@ -163,8 +152,7 @@ export function computeTrend(
     if (scores.length === 0) continue;
 
     const avgScore = scores.reduce((s, v) => s + v, 0) / scores.length;
-    const responseRate =
-      eligibleCount > 0 ? responses.length / eligibleCount : 0;
+    const responseRate = eligibleCount > 0 ? responses.length / eligibleCount : 0;
 
     // Confidence: based on response rate and question count
     const rateConfidence = Math.min(responseRate * 2, 1); // saturates at 50% response rate
@@ -184,8 +172,8 @@ export function computeTrend(
   points.sort((a, b) => a.timestamp - b.timestamp);
 
   const timeRange = {
-    start: points.length > 0 ? points[0]!.timestamp : 0 as Timestamp,
-    end: points.length > 0 ? points[points.length - 1]!.timestamp : 0 as Timestamp,
+    start: points.length > 0 ? points[0]!.timestamp : (0 as Timestamp),
+    end: points.length > 0 ? points[points.length - 1]!.timestamp : (0 as Timestamp),
   };
 
   const slope = computeSlope(points);
@@ -260,10 +248,7 @@ function computeSlope(points: readonly TrendPoint[]): number {
   return (n * sumXY - sumX * sumY) / denominator;
 }
 
-function classifyDirection(
-  slope: number,
-  pointCount: number,
-): TrendDirection {
+function classifyDirection(slope: number, pointCount: number): TrendDirection {
   if (pointCount < 2) return "insufficient";
   if (Math.abs(slope) < 0.02) return "stable";
   return slope > 0 ? "improving" : "worsening";

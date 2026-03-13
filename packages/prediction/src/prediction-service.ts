@@ -8,6 +8,7 @@
 import type {
   EventStore,
   ParticipantId,
+  PollId,
   PredictionId,
   PredictionCommittedEvent,
   OutcomeRecordedEvent,
@@ -162,12 +163,10 @@ export class PredictionService {
       predictionId,
       source: {
         type: "poll-derived",
-        pollId: pollId as unknown as import("@votiverse/core").PollId,
+        pollId: pollId as unknown as PollId,
       },
       measuredValue,
-      notes:
-        notes ??
-        `Derived from poll trend data. Normalized score: ${trendScore.toFixed(3)}`,
+      notes: notes ?? `Derived from poll trend data. Normalized score: ${trendScore.toFixed(3)}`,
     });
   }
 
@@ -186,9 +185,7 @@ export class PredictionService {
   /**
    * Compute the track record for a participant.
    */
-  async trackRecord(
-    participantId: ParticipantId,
-  ): Promise<TrackRecord> {
+  async trackRecord(participantId: ParticipantId): Promise<TrackRecord> {
     const predictions = await this.getPredictionsByParticipant(participantId);
     const evaluations: PredictionEvaluation[] = [];
 
@@ -198,8 +195,7 @@ export class PredictionService {
     }
 
     const evaluated = evaluations.filter(
-      (e) =>
-        e.status !== "pending" && e.status !== "insufficient",
+      (e) => e.status !== "pending" && e.status !== "insufficient",
     );
 
     const byStatus: Partial<Record<EvaluationStatus, number>> = {};
@@ -224,9 +220,7 @@ export class PredictionService {
   /**
    * Get a prediction by ID, reconstructed from the event store.
    */
-  async getPrediction(
-    predictionId: PredictionId,
-  ): Promise<Prediction | undefined> {
+  async getPrediction(predictionId: PredictionId): Promise<Prediction | undefined> {
     const events = await this.eventStore.query({
       types: ["PredictionCommitted"],
     });
@@ -251,9 +245,7 @@ export class PredictionService {
   /**
    * Get all predictions by a participant.
    */
-  async getPredictionsByParticipant(
-    participantId: ParticipantId,
-  ): Promise<readonly Prediction[]> {
+  async getPredictionsByParticipant(participantId: ParticipantId): Promise<readonly Prediction[]> {
     const events = await this.eventStore.query({
       types: ["PredictionCommitted"],
     });
@@ -279,9 +271,7 @@ export class PredictionService {
   /**
    * Get all outcome records for a prediction.
    */
-  async getOutcomes(
-    predictionId: PredictionId,
-  ): Promise<readonly OutcomeRecord[]> {
+  async getOutcomes(predictionId: PredictionId): Promise<readonly OutcomeRecord[]> {
     const events = await this.eventStore.query({
       types: ["OutcomeRecorded"],
     });
@@ -322,16 +312,10 @@ function validateClaim(claim: PredictionClaim): void {
     throw new ValidationError("variable", "Prediction variable must not be empty");
   }
   if (claim.timeframe.deadline <= claim.timeframe.start) {
-    throw new ValidationError(
-      "timeframe",
-      "Deadline must be after start",
-    );
+    throw new ValidationError("timeframe", "Deadline must be after start");
   }
   if (claim.pattern.type === "range" && claim.pattern.min > claim.pattern.max) {
-    throw new ValidationError(
-      "pattern.range",
-      "Range min must be <= max",
-    );
+    throw new ValidationError("pattern.range", "Range min must be <= max");
   }
 }
 
@@ -340,10 +324,7 @@ function validateClaim(claim: PredictionClaim): void {
  * for the prediction's pattern type. This is a heuristic bridge — poll
  * trends are qualitative observations, not precise measurements.
  */
-function mapTrendToMeasuredValue(
-  prediction: Prediction,
-  trendScore: number,
-): number {
+function mapTrendToMeasuredValue(prediction: Prediction, trendScore: number): number {
   const { pattern, baselineValue } = prediction.claim;
   const baseline = baselineValue ?? 0;
 

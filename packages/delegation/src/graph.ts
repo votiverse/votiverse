@@ -127,9 +127,7 @@ export function resolveDelegationForIssue(
 
   for (const delegation of delegations) {
     // Check if this delegation is active for the issue
-    const matchingTopics = delegation.topicScope.filter((t) =>
-      issueTopicSet.has(t),
-    );
+    const matchingTopics = delegation.topicScope.filter((t) => issueTopicSet.has(t));
 
     if (matchingTopics.length === 0) {
       // If delegation has empty scope, treat as global (matches everything)
@@ -150,9 +148,7 @@ export function resolveDelegationForIssue(
 
     // Specificity = number of matching topics that are also in the issue's
     // direct topic set (not ancestor matches). More specific = higher.
-    const directMatches = matchingTopics.filter((t) =>
-      issueTopics.includes(t),
-    );
+    const directMatches = matchingTopics.filter((t) => issueTopics.includes(t));
     const specificity = directMatches.length > 0 ? directMatches.length : 0.5;
 
     if (
@@ -204,11 +200,7 @@ export function buildDelegationGraph(
   const adjacency = new Map<ParticipantId, ParticipantId>();
 
   for (const [sourceId, delegations] of bySource) {
-    const best = resolveDelegationForIssue(
-      issueTopics,
-      delegations,
-      topicAncestors,
-    );
+    const best = resolveDelegationForIssue(issueTopics, delegations, topicAncestors);
     if (best) {
       edges.push({
         sourceId,
@@ -233,9 +225,7 @@ export function buildDelegationGraph(
  * Detects cycles in the delegation graph using iterative path-following.
  * Returns the set of participants involved in cycles.
  */
-function detectCycles(
-  adjacency: ReadonlyMap<ParticipantId, ParticipantId>,
-): Set<ParticipantId> {
+function detectCycles(adjacency: ReadonlyMap<ParticipantId, ParticipantId>): Set<ParticipantId> {
   const cycleMembers = new Set<ParticipantId>();
   const visited = new Set<ParticipantId>();
 
@@ -474,9 +464,7 @@ export function computeConcentrationMetrics(
   graph: DelegationGraph,
   directVoters: ReadonlySet<ParticipantId>,
 ): ConcentrationMetrics {
-  const weights = [...distribution.weights.entries()].filter(
-    ([_, w]) => w > 0,
-  );
+  const weights = [...distribution.weights.entries()].filter(([_, w]) => w > 0);
 
   // Gini coefficient
   const gini = computeGini(weights.map(([_, w]) => w));

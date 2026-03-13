@@ -41,9 +41,6 @@ export function computeCommitmentHash(claim: PredictionClaim): string {
 /**
  * Verifies that a claim matches its commitment hash.
  */
-export function verifyCommitment(
-  claim: PredictionClaim,
-  expectedHash: string,
-): boolean {
+export function verifyCommitment(claim: PredictionClaim, expectedHash: string): boolean {
   return computeCommitmentHash(claim) === expectedHash;
 }

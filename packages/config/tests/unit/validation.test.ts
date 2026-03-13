@@ -16,10 +16,7 @@ describe("validateConfig", () => {
       const result = validateConfig(config);
       expect(result.valid).toBe(false);
       expect(
-        result.issues.some(
-          (i) =>
-            i.field === "delegation.transitive" && i.severity === "error",
-        ),
+        result.issues.some((i) => i.field === "delegation.transitive" && i.severity === "error"),
       ).toBe(true);
     });
 
@@ -30,10 +27,7 @@ describe("validateConfig", () => {
       const result = validateConfig(config);
       expect(result.valid).toBe(false);
       expect(
-        result.issues.some(
-          (i) =>
-            i.field === "delegation.topicScoped" && i.severity === "error",
-        ),
+        result.issues.some((i) => i.field === "delegation.topicScoped" && i.severity === "error"),
       ).toBe(true);
     });
 
@@ -46,9 +40,7 @@ describe("validateConfig", () => {
       expect(result.valid).toBe(true);
       expect(
         result.issues.some(
-          (i) =>
-            i.field === "delegation.maxChainDepth" &&
-            i.severity === "warning",
+          (i) => i.field === "delegation.maxChainDepth" && i.severity === "warning",
         ),
       ).toBe(true);
     });
@@ -60,9 +52,7 @@ describe("validateConfig", () => {
       const result = validateConfig(config);
       expect(
         result.issues.some(
-          (i) =>
-            i.field === "delegation.maxChainDepth" &&
-            i.severity === "warning",
+          (i) => i.field === "delegation.maxChainDepth" && i.severity === "warning",
         ),
       ).toBe(true);
     });
@@ -74,10 +64,7 @@ describe("validateConfig", () => {
       const result = validateConfig(config);
       expect(result.valid).toBe(false);
       expect(
-        result.issues.some(
-          (i) =>
-            i.field === "delegation.maxChainDepth" && i.severity === "error",
-        ),
+        result.issues.some((i) => i.field === "delegation.maxChainDepth" && i.severity === "error"),
       ).toBe(true);
     });
 
@@ -98,9 +85,7 @@ describe("validateConfig", () => {
       const result = validateConfig(config);
       expect(
         result.issues.some(
-          (i) =>
-            i.field === "ballot.supermajorityThreshold" &&
-            i.severity === "warning",
+          (i) => i.field === "ballot.supermajorityThreshold" && i.severity === "warning",
         ),
       ).toBe(true);
     });
@@ -157,10 +142,7 @@ describe("validateConfig", () => {
       const result = validateConfig(config);
       expect(result.valid).toBe(false);
       expect(
-        result.issues.some(
-          (i) =>
-            i.field === "ballot.participationMode" && i.severity === "error",
-        ),
+        result.issues.some((i) => i.field === "ballot.participationMode" && i.severity === "error"),
       ).toBe(true);
     });
 
@@ -170,8 +152,7 @@ describe("validateConfig", () => {
       });
       const result = validateConfig(config);
       const participationErrors = result.issues.filter(
-        (i) =>
-          i.field === "ballot.participationMode" && i.severity === "error",
+        (i) => i.field === "ballot.participationMode" && i.severity === "error",
       );
       expect(participationErrors).toHaveLength(0);
     });
@@ -185,9 +166,7 @@ describe("validateConfig", () => {
       const result = validateConfig(config);
       expect(
         result.issues.some(
-          (i) =>
-            i.field === "ballot.delegateVoteVisibility" &&
-            i.severity === "warning",
+          (i) => i.field === "ballot.delegateVoteVisibility" && i.severity === "warning",
         ),
       ).toBe(true);
     });
@@ -200,10 +179,7 @@ describe("validateConfig", () => {
       });
       const result = validateConfig(config);
       expect(
-        result.issues.some(
-          (i) =>
-            i.field === "ballot.secrecy" && i.severity === "warning",
-        ),
+        result.issues.some((i) => i.field === "ballot.secrecy" && i.severity === "warning"),
       ).toBe(true);
     });
   });
@@ -231,9 +207,7 @@ describe("validateConfig", () => {
       });
       const result = validateConfig(config);
       const thresholdErrors = result.issues.filter(
-        (i) =>
-          i.field === "thresholds.concentrationAlertThreshold" &&
-          i.severity === "error",
+        (i) => i.field === "thresholds.concentrationAlertThreshold" && i.severity === "error",
       );
       expect(thresholdErrors).toHaveLength(0);
     });

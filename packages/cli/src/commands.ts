@@ -6,14 +6,9 @@
  */
 
 import type { PresetName } from "@votiverse/config";
-import {
-  getPresetNames,
-  validateConfig,
-  diffConfig,
-  getPreset,
-} from "@votiverse/config";
+import { getPresetNames, validateConfig, getPreset } from "@votiverse/config";
 import { isOk } from "@votiverse/core";
-import type { ParticipantId, TopicId, IssueId, Timestamp } from "@votiverse/core";
+import type { TopicId, IssueId, Timestamp } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
 import { initState, loadState, saveState } from "./state.js";
 import type { Output } from "./output.js";
@@ -22,10 +17,7 @@ import type { Output } from "./output.js";
 // Init
 // ---------------------------------------------------------------------------
 
-export async function cmdInit(
-  presetName: string,
-  out: Output,
-): Promise<void> {
+export async function cmdInit(presetName: string, out: Output): Promise<void> {
   const names = getPresetNames();
   if (!names.includes(presetName as PresetName)) {
     out.error(`Unknown preset: ${presetName}`);
@@ -74,10 +66,7 @@ export async function cmdConfigValidate(out: Output): Promise<void> {
 // Participant
 // ---------------------------------------------------------------------------
 
-export async function cmdParticipantAdd(
-  name: string,
-  out: Output,
-): Promise<void> {
+export async function cmdParticipantAdd(name: string, out: Output): Promise<void> {
   const { engine, store, provider } = await loadState();
   const result = await provider.invite(name);
   if (isOk(result)) {
@@ -182,12 +171,8 @@ export async function cmdDelegateSet(
   const { engine, store, provider } = await loadState();
   const participants = await provider.listParticipants();
 
-  const source = participants.find(
-    (p) => p.name.toLowerCase() === sourceName.toLowerCase(),
-  );
-  const target = participants.find(
-    (p) => p.name.toLowerCase() === targetName.toLowerCase(),
-  );
+  const source = participants.find((p) => p.name.toLowerCase() === sourceName.toLowerCase());
+  const target = participants.find((p) => p.name.toLowerCase() === targetName.toLowerCase());
 
   if (!source) {
     out.error(`Participant "${sourceName}" not found`);
@@ -260,24 +245,15 @@ export async function cmdVote(
   }
 
   try {
-    await engine.voting.cast(
-      participant.id,
-      issueId as IssueId,
-      choice,
-    );
+    await engine.voting.cast(participant.id, issueId as IssueId, choice);
     await saveState(engine, store);
-    out.success(
-      `${participant.name} voted "${choice}" on issue ${issueId}`,
-    );
+    out.success(`${participant.name} voted "${choice}" on issue ${issueId}`);
   } catch (err) {
     out.error(`Failed: ${(err as Error).message}`);
   }
 }
 
-export async function cmdVoteTally(
-  issueId: string,
-  out: Output,
-): Promise<void> {
+export async function cmdVoteTally(issueId: string, out: Output): Promise<void> {
   const { engine } = await loadState();
   try {
     const result = await engine.voting.tally(issueId as IssueId);
@@ -294,10 +270,7 @@ export async function cmdVoteTally(
   }
 }
 
-export async function cmdVoteWeights(
-  issueId: string,
-  out: Output,
-): Promise<void> {
+export async function cmdVoteWeights(issueId: string, out: Output): Promise<void> {
   const { engine, provider } = await loadState();
   const participants = await provider.listParticipants();
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
@@ -321,10 +294,7 @@ export async function cmdVoteWeights(
 // Events log
 // ---------------------------------------------------------------------------
 
-export async function cmdEventsLog(
-  tail: number,
-  out: Output,
-): Promise<void> {
+export async function cmdEventsLog(tail: number, out: Output): Promise<void> {
   const { store } = await loadState();
   const events = await store.getAll();
   const toShow = tail > 0 ? events.slice(-tail) : events;

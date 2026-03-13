@@ -54,20 +54,13 @@ export type EngagementPattern =
   | "pure-sensor";
 
 /** How an agent selects delegates. */
-export type TrustHeuristic =
-  | "highest-track-record"
-  | "most-active"
-  | "random"
-  | "topic-expert";
+export type TrustHeuristic = "highest-track-record" | "most-active" | "random" | "topic-expert";
 
 /** How well an agent forecasts outcomes. */
 export type ForecastingAbility = "good" | "average" | "poor";
 
 /** Adversarial strategies an agent may employ. */
-export type AdversarialStrategy =
-  | "vote-harvester"
-  | "vague-predictor"
-  | "coordinated-capture";
+export type AdversarialStrategy = "vote-harvester" | "vague-predictor" | "coordinated-capture";
 
 /**
  * Behavioral profile for a simulated agent.

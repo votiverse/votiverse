@@ -1,17 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  InMemoryEventStore,
-  createEvent,
-  generateEventId,
-  ValidationError,
-} from "@votiverse/core";
-import type {
-  ParticipantId,
-  TopicId,
-  IssueId,
-  Timestamp,
-  VoteCastEvent,
-} from "@votiverse/core";
+import { InMemoryEventStore, createEvent, generateEventId, ValidationError } from "@votiverse/core";
+import type { ParticipantId, TopicId, IssueId, Timestamp, VoteCastEvent } from "@votiverse/core";
 import { getPreset, deriveConfig } from "@votiverse/config";
 import type { GovernanceConfig } from "@votiverse/config";
 import { DelegationService } from "../../src/delegation-service.js";
@@ -200,11 +189,7 @@ describe("DelegationService", () => {
         ),
       );
 
-      const chain = await service.resolveChain(
-        pid("alice"),
-        iid("issue-1"),
-        [],
-      );
+      const chain = await service.resolveChain(pid("alice"), iid("issue-1"), []);
 
       expect(chain.terminalVoter).toBe(pid("bob"));
       expect(chain.chain).toEqual([pid("alice"), pid("bob")]);

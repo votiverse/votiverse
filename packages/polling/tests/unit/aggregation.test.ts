@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { aggregateResults, computeTrend } from "../../src/aggregation.js";
-import type {
-  Poll,
-  PollResponse,
-  PollQuestion,
-} from "../../src/types.js";
+import type { Poll, PollResponse, PollQuestion } from "../../src/types.js";
 import type { PollId, QuestionId, TopicId, ParticipantId, Timestamp } from "@votiverse/core";
 
 const pid = (s: string) => s as PollId;
@@ -141,43 +137,51 @@ describe("computeTrend", () => {
     // Create 4 polls over time with improving sentiment
     const polls: Poll[] = [
       makePoll(
-        [{
-          id: qid("q1"),
-          text: "Has education improved?",
-          questionType: { type: "direction" },
-          topicIds: [topicId],
-          tags: [],
-        }],
+        [
+          {
+            id: qid("q1"),
+            text: "Has education improved?",
+            questionType: { type: "direction" },
+            topicIds: [topicId],
+            tags: [],
+          },
+        ],
         { id: pid("p1"), closesAt: ts(10000), status: "closed" },
       ),
       makePoll(
-        [{
-          id: qid("q2"),
-          text: "Has education improved?",
-          questionType: { type: "direction" },
-          topicIds: [topicId],
-          tags: [],
-        }],
+        [
+          {
+            id: qid("q2"),
+            text: "Has education improved?",
+            questionType: { type: "direction" },
+            topicIds: [topicId],
+            tags: [],
+          },
+        ],
         { id: pid("p2"), closesAt: ts(20000), status: "closed" },
       ),
       makePoll(
-        [{
-          id: qid("q3"),
-          text: "Has education improved?",
-          questionType: { type: "direction" },
-          topicIds: [topicId],
-          tags: [],
-        }],
+        [
+          {
+            id: qid("q3"),
+            text: "Has education improved?",
+            questionType: { type: "direction" },
+            topicIds: [topicId],
+            tags: [],
+          },
+        ],
         { id: pid("p3"), closesAt: ts(30000), status: "closed" },
       ),
       makePoll(
-        [{
-          id: qid("q4"),
-          text: "Has education improved?",
-          questionType: { type: "direction" },
-          topicIds: [topicId],
-          tags: [],
-        }],
+        [
+          {
+            id: qid("q4"),
+            text: "Has education improved?",
+            questionType: { type: "direction" },
+            topicIds: [topicId],
+            tags: [],
+          },
+        ],
         { id: pid("p4"), closesAt: ts(40000), status: "closed" },
       ),
     ];
@@ -231,22 +235,21 @@ describe("computeTrend", () => {
     const topicId = tid("education");
     const polls: Poll[] = [
       makePoll(
-        [{
-          id: qid("q1"),
-          text: "Rate education",
-          questionType: { type: "direction" },
-          topicIds: [topicId],
-          tags: [],
-        }],
+        [
+          {
+            id: qid("q1"),
+            text: "Rate education",
+            questionType: { type: "direction" },
+            topicIds: [topicId],
+            tags: [],
+          },
+        ],
         { id: pid("p1"), closesAt: ts(10000), status: "closed" },
       ),
     ];
 
     const responsesByPoll = new Map<string, readonly PollResponse[]>([
-      [
-        "p1",
-        [makeResponse("p1", [{ questionId: "q1", value: "improved" }], "h1")],
-      ],
+      ["p1", [makeResponse("p1", [{ questionId: "q1", value: "improved" }], "h1")]],
     ]);
 
     const trend = computeTrend(topicId, polls, responsesByPoll, 10);
@@ -259,22 +262,21 @@ describe("computeTrend", () => {
 
     const polls: Poll[] = [
       makePoll(
-        [{
-          id: qid("q1"),
-          text: "Finance question",
-          questionType: { type: "direction" },
-          topicIds: [otherTopic],
-          tags: [],
-        }],
+        [
+          {
+            id: qid("q1"),
+            text: "Finance question",
+            questionType: { type: "direction" },
+            topicIds: [otherTopic],
+            tags: [],
+          },
+        ],
         { id: pid("p1"), closesAt: ts(10000), status: "closed" },
       ),
     ];
 
     const responsesByPoll = new Map<string, readonly PollResponse[]>([
-      [
-        "p1",
-        [makeResponse("p1", [{ questionId: "q1", value: "improved" }], "h1")],
-      ],
+      ["p1", [makeResponse("p1", [{ questionId: "q1", value: "improved" }], "h1")]],
     ]);
 
     const trend = computeTrend(topicId, polls, responsesByPoll, 10);

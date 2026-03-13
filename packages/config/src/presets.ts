@@ -15,8 +15,7 @@ import type { GovernanceConfig, PresetName } from "./types.js";
  */
 const TOWN_HALL: GovernanceConfig = Object.freeze({
   name: "Town Hall",
-  description:
-    "Direct democracy with secret ballot. No delegation. Simple majority decides.",
+  description: "Direct democracy with secret ballot. No delegation. Simple majority decides.",
   delegation: Object.freeze({
     enabled: false,
     topicScoped: false,
@@ -234,15 +233,14 @@ const CIVIC_PARTICIPATORY: GovernanceConfig = Object.freeze({
  * All named presets, indexed by PresetName.
  * Presets are frozen — use deriveConfig() to create customizations.
  */
-export const PRESETS: Readonly<Record<PresetName, GovernanceConfig>> =
-  Object.freeze({
-    TOWN_HALL,
-    SWISS_MODEL,
-    LIQUID_STANDARD,
-    LIQUID_ACCOUNTABLE,
-    BOARD_PROXY,
-    CIVIC_PARTICIPATORY,
-  });
+export const PRESETS: Readonly<Record<PresetName, GovernanceConfig>> = Object.freeze({
+  TOWN_HALL,
+  SWISS_MODEL,
+  LIQUID_STANDARD,
+  LIQUID_ACCOUNTABLE,
+  BOARD_PROXY,
+  CIVIC_PARTICIPATORY,
+});
 
 /** Returns a preset by name, or undefined if the name is not recognized. */
 export function getPreset(name: PresetName): GovernanceConfig {

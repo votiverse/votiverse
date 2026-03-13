@@ -24,11 +24,7 @@ describe("InMemoryEventStore", () => {
     store = new InMemoryEventStore();
   });
 
-  function makeParticipantEvent(
-    id: string,
-    name: string,
-    ts: number,
-  ): ParticipantRegisteredEvent {
+  function makeParticipantEvent(id: string, name: string, ts: number): ParticipantRegisteredEvent {
     return createEvent<ParticipantRegisteredEvent>(
       "ParticipantRegistered",
       {
@@ -90,9 +86,7 @@ describe("InMemoryEventStore", () => {
       await store.append(event);
 
       const duplicate = makeParticipantEvent("evt-1", "Bob", 2000);
-      await expect(store.append(duplicate)).rejects.toThrow(
-        DuplicateEventError,
-      );
+      await expect(store.append(duplicate)).rejects.toThrow(DuplicateEventError);
     });
 
     it("DuplicateEventError is a VotiverseError", async () => {
@@ -155,13 +149,9 @@ describe("InMemoryEventStore", () => {
   describe("query()", () => {
     beforeEach(async () => {
       await store.append(makeParticipantEvent("evt-1", "Alice", 1000));
-      await store.append(
-        makeVoteEvent("evt-2", "p-alice", "i-1", "for", 2000),
-      );
+      await store.append(makeVoteEvent("evt-2", "p-alice", "i-1", "for", 2000));
       await store.append(makeParticipantEvent("evt-3", "Bob", 3000));
-      await store.append(
-        makeVoteEvent("evt-4", "p-bob", "i-1", "against", 4000),
-      );
+      await store.append(makeVoteEvent("evt-4", "p-bob", "i-1", "against", 4000));
     });
 
     it("returns all events when no options provided", async () => {

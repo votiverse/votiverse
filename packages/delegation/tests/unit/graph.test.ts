@@ -56,11 +56,7 @@ function delegationEvent(
   );
 }
 
-function voteEvent(
-  participant: string,
-  issue: string,
-  choice: string = "for",
-): VoteCastEvent {
+function voteEvent(participant: string, issue: string, choice: string = "for"): VoteCastEvent {
   return createEvent<VoteCastEvent>(
     "VoteCast",
     {
@@ -469,11 +465,7 @@ describe("Scope resolution", () => {
       active: true,
     };
 
-    const result = resolveDelegationForIssue(
-      [health],
-      [delegation],
-      new Map(),
-    );
+    const result = resolveDelegationForIssue([health], [delegation], new Map());
 
     expect(result).toBeUndefined();
   });
@@ -490,11 +482,7 @@ describe("Scope resolution", () => {
       active: true,
     };
 
-    const result = resolveDelegationForIssue(
-      [health],
-      [globalDelegation],
-      new Map(),
-    );
+    const result = resolveDelegationForIssue([health], [globalDelegation], new Map());
 
     expect(result).toBe(globalDelegation);
   });

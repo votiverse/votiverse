@@ -27,10 +27,32 @@ import type {
 // ---------------------------------------------------------------------------
 
 const FIRST_NAMES = [
-  "Alice", "Bob", "Carol", "Dave", "Eve", "Frank", "Grace", "Hank",
-  "Iris", "Jack", "Karen", "Leo", "Mia", "Noah", "Olivia", "Pete",
-  "Quinn", "Rosa", "Sam", "Tina", "Uma", "Vic", "Wendy", "Xander",
-  "Yara", "Zach",
+  "Alice",
+  "Bob",
+  "Carol",
+  "Dave",
+  "Eve",
+  "Frank",
+  "Grace",
+  "Hank",
+  "Iris",
+  "Jack",
+  "Karen",
+  "Leo",
+  "Mia",
+  "Noah",
+  "Olivia",
+  "Pete",
+  "Quinn",
+  "Rosa",
+  "Sam",
+  "Tina",
+  "Uma",
+  "Vic",
+  "Wendy",
+  "Xander",
+  "Yara",
+  "Zach",
 ];
 
 function generateAgentName(index: number): string {
@@ -42,10 +64,7 @@ function generateAgentName(index: number): string {
 // Population generation
 // ---------------------------------------------------------------------------
 
-function generateAgents(
-  scenario: SimulationScenario,
-  rng: Rng,
-): SimulatedAgent[] {
+function generateAgents(scenario: SimulationScenario, rng: Rng): SimulatedAgent[] {
   const { population, topics } = scenario;
   const agents: SimulatedAgent[] = [];
   const topicNames = topics.map((t) => t.name);
@@ -66,11 +85,12 @@ function generateAgents(
       "topic-expert",
     ]);
 
-    const pollReliability = engagement === "pure-sensor" ? 0.8 + rng.next() * 0.2 : 0.5 + rng.next() * 0.3;
+    const pollReliability =
+      engagement === "pure-sensor" ? 0.8 + rng.next() * 0.2 : 0.5 + rng.next() * 0.3;
 
     const isAdversarial = rng.chance(population.adversarialFraction);
     const adversarial = isAdversarial
-      ? population.adversarialStrategy ?? "vote-harvester"
+      ? (population.adversarialStrategy ?? "vote-harvester")
       : undefined;
 
     const profile: AgentProfile = {
@@ -129,14 +149,7 @@ export function generateScript(scenario: SimulationScenario): SimulationScript {
     });
 
     // Determine delegation and voting behavior per agent
-    generateEventActions(
-      agents,
-      eventSpec,
-      eventIdx,
-      scenario,
-      rng,
-      actions,
-    );
+    generateEventActions(agents, eventSpec, eventIdx, scenario, rng, actions);
   }
 
   return { scenario, agents, actions };
@@ -187,9 +200,7 @@ function generateEventActions(
     // Harvester: delegate their own accumulated weight to a "co-conspirator"
     // Pick another adversarial agent or a random agent
     const otherAdversarial = agents.find(
-      (a) =>
-        a.name !== agent.name &&
-        a.profile.adversarial === "vote-harvester",
+      (a) => a.name !== agent.name && a.profile.adversarial === "vote-harvester",
     );
     if (otherAdversarial && !delegators.has(agent.name)) {
       actions.push({
@@ -243,13 +254,7 @@ function generateEventActions(
     for (let issueIdx = 0; issueIdx < eventSpec.issues.length; issueIdx++) {
       const issue = eventSpec.issues[issueIdx]!;
       if (!rng.chance(0.6)) continue; // Not everyone predicts every issue
-      const claim = generatePrediction(
-        agent,
-        issue,
-        eventIndex,
-        scenario.groundTruth,
-        rng,
-      );
+      const claim = generatePrediction(agent, issue, eventIndex, scenario.groundTruth, rng);
       actions.push({
         type: "commit-prediction",
         participantName: agent.name,
@@ -275,7 +280,8 @@ function generateEventActions(
         const noise = (1 - agent.profile.pollReliability) * rng.normal(0, 1);
         const reportedValue = trueValue + noise;
         // Map to direction response
-        const direction = reportedValue > 0.1 ? "improved" : reportedValue < -0.1 ? "worsened" : "same";
+        const direction =
+          reportedValue > 0.1 ? "improved" : reportedValue < -0.1 ? "worsened" : "same";
         answers.push({
           questionText: `Has ${topicName} improved, stayed the same, or worsened?`,
           value: direction,
@@ -343,9 +349,7 @@ function pickDelegate(
   rng: Rng,
 ): string | undefined {
   // Filter candidates: must be a direct voter, not self
-  const candidates = allAgents.filter(
-    (a) => a.name !== agent.name && directVoters.has(a.name),
-  );
+  const candidates = allAgents.filter((a) => a.name !== agent.name && directVoters.has(a.name));
   if (candidates.length === 0) return undefined;
 
   switch (agent.profile.trustHeuristic) {
@@ -368,9 +372,7 @@ function pickByForecasting(
   preferred: ForecastingAbility,
   rng: Rng,
 ): string {
-  const preferredAgents = candidates.filter(
-    (a) => a.profile.forecastingAbility === preferred,
-  );
+  const preferredAgents = candidates.filter((a) => a.profile.forecastingAbility === preferred);
   if (preferredAgents.length > 0) return rng.pick(preferredAgents).name;
   return rng.pick(candidates).name;
 }
@@ -380,9 +382,7 @@ function pickByEngagement(
   preferred: EngagementPattern,
   rng: Rng,
 ): string {
-  const preferredAgents = candidates.filter(
-    (a) => a.profile.engagement === preferred,
-  );
+  const preferredAgents = candidates.filter((a) => a.profile.engagement === preferred);
   if (preferredAgents.length > 0) return rng.pick(preferredAgents).name;
   return rng.pick(candidates).name;
 }
@@ -393,9 +393,7 @@ function pickByTopicOverlap(
   rng: Rng,
 ): string {
   const withOverlap = candidates.filter((c) =>
-    c.profile.topicInterests.some((t) =>
-      agent.profile.topicInterests.includes(t),
-    ),
+    c.profile.topicInterests.some((t) => agent.profile.topicInterests.includes(t)),
   );
   if (withOverlap.length > 0) return rng.pick(withOverlap).name;
   return rng.pick(candidates).name;
@@ -434,9 +432,7 @@ function getRelevantTopics(
     }
   }
   // Use agent's topic interests if they overlap, otherwise use all event topics
-  const overlapping = agent.profile.topicInterests.filter((t) =>
-    eventTopics.has(t),
-  );
+  const overlapping = agent.profile.topicInterests.filter((t) => eventTopics.has(t));
   return overlapping.length > 0 ? overlapping : [...eventTopics];
 }
 
@@ -464,8 +460,7 @@ function generatePrediction(
         ? 0.5
         : 1.0;
 
-  const predictedChange =
-    trueChange + trueChange * noiseMultiplier * rng.normal(0, 1);
+  const predictedChange = trueChange + trueChange * noiseMultiplier * rng.normal(0, 1);
 
   return {
     variable: mainTopic,
@@ -503,11 +498,7 @@ function generateVaguePrediction(rng: Rng): PredictionClaim {
 /**
  * Computes the ground truth value for a topic at a given event index.
  */
-export function computeGroundTruthAtEvent(
-  gt: GroundTruthTopic,
-  eventIndex: number,
-): number {
-  const direction =
-    gt.trajectory === "improving" ? 1 : gt.trajectory === "worsening" ? -1 : 0;
+export function computeGroundTruthAtEvent(gt: GroundTruthTopic, eventIndex: number): number {
+  const direction = gt.trajectory === "improving" ? 1 : gt.trajectory === "worsening" ? -1 : 0;
   return gt.baseValue + direction * gt.changeRate * (eventIndex + 1);
 }

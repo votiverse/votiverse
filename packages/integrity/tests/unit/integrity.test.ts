@@ -93,12 +93,7 @@ describe("End-to-end commitment flow", () => {
     const tallyData = { issueId: "i-1", for: 15, against: 5, total: 20 };
 
     // Commit
-    const commitment = await commitArtifact(
-      "vote-tally",
-      tallyData,
-      store,
-      anchor,
-    );
+    const commitment = await commitArtifact("vote-tally", tallyData, store, anchor);
 
     expect(commitment.artifactType).toBe("vote-tally");
     expect(commitment.artifactHash).toMatch(/^[0-9a-f]{64}$/);
@@ -115,12 +110,7 @@ describe("End-to-end commitment flow", () => {
     const anchor = new InMemoryAnchor();
     const tallyData = { issueId: "i-1", for: 15, against: 5 };
 
-    const commitment = await commitArtifact(
-      "vote-tally",
-      tallyData,
-      store,
-      anchor,
-    );
+    const commitment = await commitArtifact("vote-tally", tallyData, store, anchor);
 
     // Tamper with the data
     const tampered = { issueId: "i-1", for: 20, against: 5 };
@@ -175,30 +165,19 @@ describe("IntegrityService", () => {
   });
 
   it("uses NoOpAnchor by default when blockchain disabled", () => {
-    const service = new IntegrityService(
-      store,
-      getPreset("LIQUID_STANDARD"),
-    );
+    const service = new IntegrityService(store, getPreset("LIQUID_STANDARD"));
     expect(service.getAnchor().anchorName).toBe("no-op");
   });
 
   it("accepts custom anchor", () => {
     const anchor = new InMemoryAnchor();
-    const service = new IntegrityService(
-      store,
-      getPreset("CIVIC_PARTICIPATORY"),
-      anchor,
-    );
+    const service = new IntegrityService(store, getPreset("CIVIC_PARTICIPATORY"), anchor);
     expect(service.getAnchor().anchorName).toBe("in-memory");
   });
 
   it("full commit/verify flow through service", async () => {
     const anchor = new InMemoryAnchor();
-    const service = new IntegrityService(
-      store,
-      getPreset("CIVIC_PARTICIPATORY"),
-      anchor,
-    );
+    const service = new IntegrityService(store, getPreset("CIVIC_PARTICIPATORY"), anchor);
 
     const data = { event: "budget-vote", result: "passed" };
     const commitment = await service.commit("vote-tally", data);

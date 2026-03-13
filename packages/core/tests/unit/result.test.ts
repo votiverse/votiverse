@@ -74,9 +74,7 @@ describe("Result type", () => {
     });
 
     it("throws for an Err result", () => {
-      expect(() => unwrap(err("fail"))).toThrow(
-        "Attempted to unwrap an Err result: fail",
-      );
+      expect(() => unwrap(err("fail"))).toThrow("Attempted to unwrap an Err result: fail");
     });
   });
 
@@ -86,9 +84,7 @@ describe("Result type", () => {
     });
 
     it("throws for an Ok result", () => {
-      expect(() => unwrapErr(ok(42))).toThrow(
-        "Attempted to unwrapErr an Ok result",
-      );
+      expect(() => unwrapErr(ok(42))).toThrow("Attempted to unwrapErr an Ok result");
     });
   });
 });

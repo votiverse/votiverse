@@ -1,13 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  InMemoryEventStore,
-} from "@votiverse/core";
-import type {
-  ParticipantId,
-  ProposalId,
-  PredictionId,
-  Timestamp,
-} from "@votiverse/core";
+import { InMemoryEventStore } from "@votiverse/core";
+import type { ParticipantId, ProposalId, PredictionId, Timestamp } from "@votiverse/core";
 import { getPreset } from "@votiverse/config";
 import { PredictionService } from "../../src/prediction-service.js";
 import type { PredictionClaim } from "../../src/types.js";
@@ -185,11 +178,7 @@ describe("PredictionService", () => {
 
     it("throws for non-existent prediction", async () => {
       await expect(
-        service.evaluateFromTrend(
-          "nonexistent" as PredictionId,
-          0.5,
-          "poll-1",
-        ),
+        service.evaluateFromTrend("nonexistent" as PredictionId, 0.5, "poll-1"),
       ).rejects.toThrow("not found");
     });
   });

@@ -23,10 +23,7 @@ function nextTs(): Timestamp {
   return (ts += 100) as Timestamp;
 }
 
-function delegationEvent(
-  source: string,
-  target: string,
-): DelegationCreatedEvent {
+function delegationEvent(source: string, target: string): DelegationCreatedEvent {
   return createEvent<DelegationCreatedEvent>(
     "DelegationCreated",
     {
@@ -173,11 +170,7 @@ describe("VotingService", () => {
         choice: "for",
       });
 
-      const result = await service.tally(
-        iid("issue-1"),
-        [],
-        new Set([pid("alice"), pid("bob")]),
-      );
+      const result = await service.tally(iid("issue-1"), [], new Set([pid("alice"), pid("bob")]));
 
       // Alice overrides her delegation: both have weight 1
       expect(result.counts.get("for")).toBe(1);
@@ -203,11 +196,7 @@ describe("VotingService", () => {
       const result = await highQuorumService.tally(
         iid("issue-1"),
         [],
-        new Set(
-          Array.from({ length: 10 }, (_, i) => pid(`p${i}`)).concat([
-            pid("alice"),
-          ]),
-        ),
+        new Set(Array.from({ length: 10 }, (_, i) => pid(`p${i}`)).concat([pid("alice")])),
       );
 
       expect(result.quorumMet).toBe(false);

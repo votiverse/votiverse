@@ -7,22 +7,9 @@
  */
 
 import { createHash } from "node:crypto";
-import type {
-  EventStore,
-  IntegrityCommitmentEvent,
-} from "@votiverse/core";
-import {
-  createEvent,
-  generateCommitmentId,
-  generateEventId,
-  now,
-} from "@votiverse/core";
-import type {
-  ArtifactType,
-  Commitment,
-  VerificationResult,
-  BlockchainAnchor,
-} from "./types.js";
+import type { EventStore, IntegrityCommitmentEvent } from "@votiverse/core";
+import { createEvent, generateCommitmentId, generateEventId, now } from "@votiverse/core";
+import type { ArtifactType, Commitment, VerificationResult, BlockchainAnchor } from "./types.js";
 
 /**
  * Computes a SHA-256 hash of an artifact's canonical representation.
@@ -85,10 +72,7 @@ export async function verifyArtifact(
 
   let anchorValid = true;
   if (commitment.blockReference !== null) {
-    anchorValid = await anchor.verify(
-      commitment.artifactHash,
-      commitment.blockReference,
-    );
+    anchorValid = await anchor.verify(commitment.artifactHash, commitment.blockReference);
   }
 
   const verified = hashValid && anchorValid;
@@ -108,9 +92,7 @@ export async function verifyArtifact(
 /**
  * Retrieves all commitments from the event store.
  */
-export async function getCommitments(
-  eventStore: EventStore,
-): Promise<readonly Commitment[]> {
+export async function getCommitments(eventStore: EventStore): Promise<readonly Commitment[]> {
   const events = await eventStore.query({ types: ["IntegrityCommitment"] });
   return events.map((event) => {
     const e = event as IntegrityCommitmentEvent;

@@ -8,13 +8,7 @@
  * level: "summary" for quick checks, "full" for investigation.
  */
 
-import type {
-  ParticipantId,
-  IssueId,
-  TopicId,
-  PredictionId,
-  Timestamp,
-} from "@votiverse/core";
+import type { ParticipantId, IssueId, TopicId, PredictionId, Timestamp } from "@votiverse/core";
 import type { EvaluationStatus } from "@votiverse/prediction";
 
 // ---------------------------------------------------------------------------

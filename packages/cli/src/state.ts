@@ -9,9 +9,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  InMemoryEventStore,
-} from "@votiverse/core";
+import { InMemoryEventStore } from "@votiverse/core";
 import type {
   EventId,
   IssueId,
@@ -62,10 +60,7 @@ export async function initState(presetName: PresetName): Promise<VotiverseEngine
   }
 
   const state: PersistedState = { config, events: [], issues: [] };
-  await writeFile(
-    join(stateDir, STATE_FILE),
-    JSON.stringify(state, null, 2),
-  );
+  await writeFile(join(stateDir, STATE_FILE), JSON.stringify(state, null, 2));
 
   const store = new InMemoryEventStore();
   const provider = new InvitationProvider(store);
@@ -82,9 +77,7 @@ export async function loadState(): Promise<{
 }> {
   const statePath = join(process.cwd(), STATE_DIR, STATE_FILE);
   if (!existsSync(statePath)) {
-    throw new Error(
-      "No Votiverse instance found. Run 'votiverse init' first.",
-    );
+    throw new Error("No Votiverse instance found. Run 'votiverse init' first.");
   }
 
   const raw = await readFile(statePath, "utf-8");
@@ -132,10 +125,7 @@ export async function loadState(): Promise<{
 /**
  * Save the current engine state to the state file.
  */
-export async function saveState(
-  engine: VotiverseEngine,
-  store: InMemoryEventStore,
-): Promise<void> {
+export async function saveState(engine: VotiverseEngine, store: InMemoryEventStore): Promise<void> {
   const stateDir = join(process.cwd(), STATE_DIR);
   const events = await store.getAll();
   const serialized: SerializedEvent[] = events.map((e) => ({
@@ -155,8 +145,5 @@ export async function saveState(
 
   const config = engine.config.getCurrent();
   const state: PersistedState = { config, events: serialized, issues };
-  await writeFile(
-    join(stateDir, STATE_FILE),
-    JSON.stringify(state, null, 2),
-  );
+  await writeFile(join(stateDir, STATE_FILE), JSON.stringify(state, null, 2));
 }

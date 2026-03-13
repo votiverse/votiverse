@@ -6,13 +6,7 @@
  * non-transferable — every participant responds for themselves.
  */
 
-import type {
-  ParticipantId,
-  PollId,
-  QuestionId,
-  TopicId,
-  Timestamp,
-} from "@votiverse/core";
+import type { ParticipantId, PollId, QuestionId, TopicId, Timestamp } from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
 // Question types (discriminated union)

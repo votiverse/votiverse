@@ -108,9 +108,7 @@ describe("InvitationProvider", () => {
     });
 
     it("returns false for unknown participant IDs", async () => {
-      const result = await provider.verifyUniqueness(
-        "unknown-id" as ParticipantId,
-      );
+      const result = await provider.verifyUniqueness("unknown-id" as ParticipantId);
       expect(isOk(result)).toBe(true);
       if (isOk(result)) {
         expect(result.value).toBe(false);
@@ -144,9 +142,7 @@ describe("InvitationProvider", () => {
     });
 
     it("returns undefined for unknown IDs", async () => {
-      const participant = await provider.getParticipant(
-        "unknown" as ParticipantId,
-      );
+      const participant = await provider.getParticipant("unknown" as ParticipantId);
       expect(participant).toBeUndefined();
     });
   });

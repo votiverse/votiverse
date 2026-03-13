@@ -8,13 +8,7 @@
  * remove, or modify awareness features without risk to governance logic.
  */
 
-import type {
-  EventStore,
-  ParticipantId,
-  IssueId,
-  TopicId,
-  VoteCastEvent,
-} from "@votiverse/core";
+import type { EventStore, ParticipantId, IssueId, TopicId, Timestamp, VoteCastEvent } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
   buildActiveDelegations,
@@ -77,12 +71,7 @@ export class AwarenessService {
    */
   async concentration(ctx: IssueContext): Promise<ConcentrationReport> {
     const delegations = await buildActiveDelegations(this.eventStore);
-    const graph = buildDelegationGraph(
-      ctx.issueId,
-      ctx.topicIds,
-      delegations,
-      ctx.topicAncestors,
-    );
+    const graph = buildDelegationGraph(ctx.issueId, ctx.topicIds, delegations, ctx.topicAncestors);
     const voters = await getDirectVoters(this.eventStore, ctx.issueId);
     const eligible = new Set(ctx.eligibleParticipantIds);
     const weightDist = computeWeights(graph, voters, eligible);
@@ -121,17 +110,9 @@ export class AwarenessService {
   /**
    * Resolve the delegation chain for a participant on an issue.
    */
-  async chain(
-    participantId: ParticipantId,
-    ctx: IssueContext,
-  ): Promise<DelegationChain> {
+  async chain(participantId: ParticipantId, ctx: IssueContext): Promise<DelegationChain> {
     const delegations = await buildActiveDelegations(this.eventStore);
-    const graph = buildDelegationGraph(
-      ctx.issueId,
-      ctx.topicIds,
-      delegations,
-      ctx.topicAncestors,
-    );
+    const graph = buildDelegationGraph(ctx.issueId, ctx.topicIds, delegations, ctx.topicAncestors);
     const voters = await getDirectVoters(this.eventStore, ctx.issueId);
     return resolveChain(participantId, graph, voters);
   }
@@ -150,9 +131,7 @@ export class AwarenessService {
   ): Promise<DelegateProfile> {
     // Current delegator count
     const delegations = await buildActiveDelegations(this.eventStore);
-    const currentDelegators = delegations.filter(
-      (d) => d.targetId === delegateId,
-    );
+    const currentDelegators = delegations.filter((d) => d.targetId === delegateId);
 
     // Active topics
     const topicSet = new Set<TopicId>();
@@ -168,8 +147,7 @@ export class AwarenessService {
     // Voting participation
     const allVoteEvents = await this.eventStore.query({ types: ["VoteCast"] });
     const delegateVotes = allVoteEvents.filter(
-      (e) =>
-        (e as VoteCastEvent).payload.participantId === delegateId,
+      (e) => (e as VoteCastEvent).payload.participantId === delegateId,
     );
     const eligibleIssueCount = allIssueContexts.filter((ctx) =>
       ctx.eligibleParticipantIds.includes(delegateId),
@@ -183,9 +161,7 @@ export class AwarenessService {
       predictionCount: trackRecord.totalPredictions,
       predictionsByStatus: trackRecord.byStatus,
       votingParticipationRate:
-        eligibleIssueCount > 0
-          ? delegateVotes.length / eligibleIssueCount
-          : 0,
+        eligibleIssueCount > 0 ? delegateVotes.length / eligibleIssueCount : 0,
       totalVotesEligible: eligibleIssueCount,
       totalVotesCast: delegateVotes.length,
     };
@@ -213,12 +189,7 @@ export class AwarenessService {
 
     // Get chain
     const delegations = await buildActiveDelegations(this.eventStore);
-    const graph = buildDelegationGraph(
-      ctx.issueId,
-      ctx.topicIds,
-      delegations,
-      ctx.topicAncestors,
-    );
+    const graph = buildDelegationGraph(ctx.issueId, ctx.topicIds, delegations, ctx.topicAncestors);
     const chain = resolveChain(participantId, graph, voters);
 
     if (!chain.terminalVoter) {
@@ -228,8 +199,7 @@ export class AwarenessService {
           participantId,
           issueId: ctx.issueId,
           reason: "delegate-behavior-anomaly",
-          message:
-            "Your delegation chain does not reach a voter. Consider voting directly.",
+          message: "Your delegation chain does not reach a voter. Consider voting directly.",
           severity: "warning",
         });
       }
@@ -238,9 +208,7 @@ export class AwarenessService {
 
     // Concentration check
     const concentration = await this.concentration(ctx);
-    const terminalAlert = concentration.alerts.find(
-      (a) => a.delegateId === chain.terminalVoter,
-    );
+    const terminalAlert = concentration.alerts.find((a) => a.delegateId === chain.terminalVoter);
     if (terminalAlert) {
       prompts.push({
         participantId,
@@ -265,8 +233,7 @@ export class AwarenessService {
               participantId,
               issueId: ctx.issueId,
               reason: "close-vote",
-              message:
-                "This vote is very close. Your direct vote could make a difference.",
+              message: "This vote is very close. Your direct vote could make a difference.",
               severity: "info",
             });
           }
@@ -356,21 +323,17 @@ export class AwarenessService {
     for (const pastCtx of pastIssueContexts) {
       if (pastCtx.issueId === ctx.issueId) continue;
       // Check if topics overlap
-      const overlap = pastCtx.topicIds.some((t) =>
-        ctx.topicIds.includes(t),
-      );
+      const overlap = pastCtx.topicIds.some((t) => ctx.topicIds.includes(t));
       if (!overlap) continue;
 
-      const predictions = await this.getPredictionSummariesForIssue(
-        pastCtx.issueId,
-      );
+      const predictions = await this.getPredictionSummariesForIssue(pastCtx.issueId);
 
       relatedDecisions.push({
         issueId: pastCtx.issueId,
         issueTitle: pastCtx.issueTitle,
         outcome: "completed", // simplified for now
         predictions,
-        decisionDate: 0 as import("@votiverse/core").Timestamp,
+        decisionDate: 0 as Timestamp,
       });
     }
 
@@ -410,18 +373,14 @@ export class AwarenessService {
   // Helpers
   // -----------------------------------------------------------------------
 
-  private async getVoteCounts(
-    issueId: IssueId,
-  ): Promise<Map<string, number>> {
+  private async getVoteCounts(issueId: IssueId): Promise<Map<string, number>> {
     const events = await this.eventStore.query({ types: ["VoteCast"] });
     const counts = new Map<string, number>();
     for (const event of events) {
       const e = event as VoteCastEvent;
       if (e.payload.issueId === issueId) {
         const choice =
-          typeof e.payload.choice === "string"
-            ? e.payload.choice
-            : e.payload.choice.join(",");
+          typeof e.payload.choice === "string" ? e.payload.choice : e.payload.choice.join(",");
         counts.set(choice, (counts.get(choice) ?? 0) + 1);
       }
     }
@@ -436,14 +395,9 @@ export class AwarenessService {
     let latest: string | null = null;
     for (const event of events) {
       const e = event as VoteCastEvent;
-      if (
-        e.payload.issueId === issueId &&
-        e.payload.participantId === participantId
-      ) {
+      if (e.payload.issueId === issueId && e.payload.participantId === participantId) {
         latest =
-          typeof e.payload.choice === "string"
-            ? e.payload.choice
-            : e.payload.choice.join(",");
+          typeof e.payload.choice === "string" ? e.payload.choice : e.payload.choice.join(",");
       }
     }
     return latest;

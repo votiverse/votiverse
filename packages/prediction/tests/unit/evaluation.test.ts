@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { evaluate } from "../../src/evaluation.js";
-import type {
-  Prediction,
-  OutcomeRecord,
-  PredictionClaim,
-} from "../../src/types.js";
+import type { Prediction, OutcomeRecord, PredictionClaim } from "../../src/types.js";
 import type {
   PredictionId,
   ProposalId,
@@ -21,10 +17,7 @@ const pid = (s: string) => s as PredictionId;
 const oid = (s: string) => s as OutcomeId;
 const ts = (n: number) => n as Timestamp;
 
-function makePrediction(
-  claim: PredictionClaim,
-  overrides?: Partial<Prediction>,
-): Prediction {
+function makePrediction(claim: PredictionClaim, overrides?: Partial<Prediction>): Prediction {
   return {
     id: pid("pred-1"),
     proposalId: "prop-1" as ProposalId,
@@ -217,12 +210,8 @@ describe("Range evaluation", () => {
 
   it("returns 1.0 at range boundaries", () => {
     const prediction = makePrediction(claim);
-    expect(
-      evaluate(prediction, [makeOutcome("pred-1", 500, 60000)]).accuracy,
-    ).toBe(1.0);
-    expect(
-      evaluate(prediction, [makeOutcome("pred-1", 700, 60000)]).accuracy,
-    ).toBe(1.0);
+    expect(evaluate(prediction, [makeOutcome("pred-1", 500, 60000)]).accuracy).toBe(1.0);
+    expect(evaluate(prediction, [makeOutcome("pred-1", 700, 60000)]).accuracy).toBe(1.0);
   });
 
   it("decays accuracy outside range based on distance", () => {
@@ -246,9 +235,7 @@ describe("Comparative evaluation", () => {
       pattern: { type: "comparative", compareTo: "option B", direction: "less" },
     };
     const prediction = makePrediction(claim);
-    const outcomes = [
-      makeOutcome("pred-1", 10, 60000, { comparisonValue: 20 }),
-    ];
+    const outcomes = [makeOutcome("pred-1", 10, 60000, { comparisonValue: 20 })];
     const result = evaluate(prediction, outcomes);
     expect(result.accuracy).toBe(1.0);
   });
@@ -260,9 +247,7 @@ describe("Comparative evaluation", () => {
       pattern: { type: "comparative", compareTo: "option B", direction: "less" },
     };
     const prediction = makePrediction(claim);
-    const outcomes = [
-      makeOutcome("pred-1", 30, 60000, { comparisonValue: 20 }),
-    ];
+    const outcomes = [makeOutcome("pred-1", 30, 60000, { comparisonValue: 20 })];
     const result = evaluate(prediction, outcomes);
     expect(result.accuracy).toBe(0);
   });
@@ -389,10 +374,7 @@ describe("Confidence levels", () => {
 
   it("medium confidence with 2 outcomes", () => {
     const prediction = makePrediction(claim);
-    const outcomes = [
-      makeOutcome("pred-1", 200, 60000),
-      makeOutcome("pred-1", 195, 60001),
-    ];
+    const outcomes = [makeOutcome("pred-1", 200, 60000), makeOutcome("pred-1", 195, 60001)];
     const result = evaluate(prediction, outcomes);
     expect(result.confidence).toBe("medium");
   });

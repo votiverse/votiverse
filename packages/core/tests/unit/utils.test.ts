@@ -81,8 +81,7 @@ describe("ID generation", () => {
   });
 
   it("generates IDs in UUID format", () => {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
     expect(generateEventId()).toMatch(uuidRegex);
     expect(generateParticipantId()).toMatch(uuidRegex);
     expect(generateTopicId()).toMatch(uuidRegex);

@@ -11,6 +11,8 @@ import type {
   TopicId,
   IssueId,
   VotingEventId,
+  PredictionId,
+  PollId,
   Topic,
   Issue,
   VotingEvent,
@@ -29,17 +31,8 @@ import {
   now,
   NotFoundError,
 } from "@votiverse/core";
-import type {
-  GovernanceConfig,
-  PresetName,
-  ValidationResult,
-} from "@votiverse/config";
-import {
-  getPreset,
-  getPresetNames,
-  validateConfig,
-  deriveConfig,
-} from "@votiverse/config";
+import type { GovernanceConfig, PresetName, ValidationResult } from "@votiverse/config";
+import { getPreset, getPresetNames, validateConfig, deriveConfig } from "@votiverse/config";
 import type { ConfigOverrides } from "@votiverse/config";
 import { InvitationProvider } from "@votiverse/identity";
 import type { IdentityProvider } from "@votiverse/identity";
@@ -131,26 +124,12 @@ export class VotiverseEngine {
     this.governanceConfig = options.config;
     this.eventStore = options.eventStore ?? new InMemoryEventStore();
 
-    this.identityProvider =
-      options.identityProvider ??
-      new InvitationProvider(this.eventStore);
+    this.identityProvider = options.identityProvider ?? new InvitationProvider(this.eventStore);
 
-    this.delegationService = new DelegationService(
-      this.eventStore,
-      this.governanceConfig,
-    );
-    this.votingService = new VotingService(
-      this.eventStore,
-      this.governanceConfig,
-    );
-    this.predictionService = new PredictionService(
-      this.eventStore,
-      this.governanceConfig,
-    );
-    this.pollingService = new PollingService(
-      this.eventStore,
-      this.governanceConfig,
-    );
+    this.delegationService = new DelegationService(this.eventStore, this.governanceConfig);
+    this.votingService = new VotingService(this.eventStore, this.governanceConfig);
+    this.predictionService = new PredictionService(this.eventStore, this.governanceConfig);
+    this.pollingService = new PollingService(this.eventStore, this.governanceConfig);
   }
 
   /**
@@ -219,8 +198,7 @@ export class VotiverseEngine {
 
   /** Configuration operations. */
   readonly config = {
-    validate: (config: GovernanceConfig): ValidationResult =>
-      validateConfig(config),
+    validate: (config: GovernanceConfig): ValidationResult => validateConfig(config),
     getPreset: (name: PresetName): GovernanceConfig => getPreset(name),
     getPresetNames: (): readonly PresetName[] => getPresetNames(),
     derive: (overrides: ConfigOverrides): GovernanceConfig =>
@@ -273,10 +251,7 @@ export class VotiverseEngine {
     list: (): readonly Topic[] => [...this.topics.values()],
   };
 
-  private buildTopicAncestors(
-    topicId: TopicId,
-    parentId: TopicId | null,
-  ): void {
+  private buildTopicAncestors(topicId: TopicId, parentId: TopicId | null): void {
     const ancestors: TopicId[] = [];
     let current = parentId;
     while (current !== null) {
@@ -293,9 +268,7 @@ export class VotiverseEngine {
 
   /** Voting event operations. */
   readonly events = {
-    create: async (
-      params: CreateVotingEventParams,
-    ): Promise<VotingEvent> => {
+    create: async (params: CreateVotingEventParams): Promise<VotingEvent> => {
       const votingEventId = generateVotingEventId();
       const issueIds: IssueId[] = [];
 
@@ -341,8 +314,7 @@ export class VotiverseEngine {
       return votingEvent;
     },
 
-    get: (id: VotingEventId): VotingEvent | undefined =>
-      this.votingEvents.get(id),
+    get: (id: VotingEventId): VotingEvent | undefined => this.votingEvents.get(id),
 
     getIssue: (id: IssueId): Issue | undefined => this.issues.get(id),
 
@@ -371,13 +343,9 @@ export class VotiverseEngine {
     revoke: (params: RevokeDelegationParams): Promise<void> =>
       this.delegationService.revoke(params),
 
-    listActive: (sourceId?: ParticipantId) =>
-      this.delegationService.listActive(sourceId),
+    listActive: (sourceId?: ParticipantId) => this.delegationService.listActive(sourceId),
 
-    resolve: (
-      participantId: ParticipantId,
-      issueId: IssueId,
-    ): Promise<DelegationChain> => {
+    resolve: (participantId: ParticipantId, issueId: IssueId): Promise<DelegationChain> => {
       const issue = this.issues.get(issueId);
       if (!issue) {
         throw new NotFoundError("Issue", issueId);
@@ -431,11 +399,7 @@ export class VotiverseEngine {
 
   /** Voting operations. */
   readonly voting = {
-    cast: (
-      participantId: ParticipantId,
-      issueId: IssueId,
-      choice: VoteChoice,
-    ): Promise<void> =>
+    cast: (participantId: ParticipantId, issueId: IssueId, choice: VoteChoice): Promise<void> =>
       this.votingService.cast({ participantId, issueId, choice }),
 
     getVotes: (issueId: IssueId): Promise<readonly VoteRecord[]> =>
@@ -468,14 +432,14 @@ export class VotiverseEngine {
     commit: (params: CommitPredictionParams): Promise<Prediction> =>
       this.predictionService.commit(params),
 
-    recordOutcome: (params: RecordOutcomeParams) =>
-      this.predictionService.recordOutcome(params),
+    recordOutcome: (params: RecordOutcomeParams) => this.predictionService.recordOutcome(params),
 
-    evaluate: (predictionId: import("@votiverse/core").PredictionId): Promise<PredictionEvaluation> =>
-      this.predictionService.evaluate(predictionId),
+    evaluate: (
+      predictionId: PredictionId,
+    ): Promise<PredictionEvaluation> => this.predictionService.evaluate(predictionId),
 
     evaluateFromTrend: (
-      predictionId: import("@votiverse/core").PredictionId,
+      predictionId: PredictionId,
       trendScore: number,
       pollId: string,
       notes?: string,
@@ -484,7 +448,7 @@ export class VotiverseEngine {
     trackRecord: (participantId: ParticipantId): Promise<TrackRecord> =>
       this.predictionService.trackRecord(participantId),
 
-    get: (predictionId: import("@votiverse/core").PredictionId) =>
+    get: (predictionId: PredictionId) =>
       this.predictionService.getPrediction(predictionId),
 
     getByParticipant: (participantId: ParticipantId) =>
@@ -497,20 +461,19 @@ export class VotiverseEngine {
 
   /** Polling operations. */
   readonly polls = {
-    create: (params: CreatePollParams): Promise<Poll> =>
-      this.pollingService.create(params),
+    create: (params: CreatePollParams): Promise<Poll> => this.pollingService.create(params),
 
-    respond: (params: SubmitResponseParams) =>
-      this.pollingService.respond(params),
+    respond: (params: SubmitResponseParams) => this.pollingService.respond(params),
 
-    results: (pollId: import("@votiverse/core").PollId, eligibleCount: number): Promise<PollResults> =>
-      this.pollingService.results(pollId, eligibleCount),
+    results: (
+      pollId: PollId,
+      eligibleCount: number,
+    ): Promise<PollResults> => this.pollingService.results(pollId, eligibleCount),
 
     trends: (topicId: TopicId, eligibleCount: number): Promise<TrendData> =>
       this.pollingService.trends(topicId, eligibleCount),
 
-    get: (pollId: import("@votiverse/core").PollId) =>
-      this.pollingService.getPoll(pollId),
+    get: (pollId: PollId) => this.pollingService.getPoll(pollId),
 
     list: () => this.pollingService.getAllPolls(),
   };

@@ -92,9 +92,7 @@ export interface OracleProvider {
   /**
    * Fetch data from the oracle with a cryptographic attestation.
    */
-  fetchWithAttestation(
-    query: string,
-  ): Promise<OracleResponse>;
+  fetchWithAttestation(query: string): Promise<OracleResponse>;
 }
 
 export interface OracleResponse {

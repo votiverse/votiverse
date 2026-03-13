@@ -36,17 +36,10 @@ export type BallotSecrecy = "secret" | "public" | "anonymous-auditable";
 export type DelegateVoteVisibility = "public" | "delegators-only" | "private";
 
 /** Available voting methods. */
-export type VotingMethod =
-  | "simple-majority"
-  | "supermajority"
-  | "ranked-choice"
-  | "approval";
+export type VotingMethod = "simple-majority" | "supermajority" | "ranked-choice" | "approval";
 
 /** How participation is enforced. */
-export type ParticipationMode =
-  | "voluntary"
-  | "mandatory"
-  | "mandatory-with-delegation";
+export type ParticipationMode = "voluntary" | "mandatory" | "mandatory-with-delegation";
 
 /** Controls the voting mechanism and ballot parameters. */
 export interface BallotConfig {
@@ -69,11 +62,7 @@ export interface BallotConfig {
 // ---------------------------------------------------------------------------
 
 /** How strongly predictions are required on proposals. */
-export type PredictionRequirement =
-  | "disabled"
-  | "optional"
-  | "encouraged"
-  | "mandatory";
+export type PredictionRequirement = "disabled" | "optional" | "encouraged" | "mandatory";
 
 /** How intensively the awareness layer monitors governance activity. */
 export type AwarenessIntensity = "minimal" | "standard" | "aggressive";

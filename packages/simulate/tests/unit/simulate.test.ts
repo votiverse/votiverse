@@ -5,9 +5,7 @@ import {
   createRng,
   computeGroundTruthAtEvent,
 } from "../../src/index.js";
-import type {
-  SimulationScenario,
-} from "../../src/index.js";
+import type { SimulationScenario } from "../../src/index.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -19,10 +17,7 @@ function makeScenario(overrides?: Partial<SimulationScenario>): SimulationScenar
     description: "A basic test scenario",
     seed: 42,
     config: "LIQUID_ACCOUNTABLE",
-    topics: [
-      { name: "Finance" },
-      { name: "Education" },
-    ],
+    topics: [{ name: "Finance" }, { name: "Education" }],
     population: {
       count: 20,
       engagementDistribution: {
@@ -138,9 +133,7 @@ describe("Script generation", () => {
     // Same agents in same order
     for (let i = 0; i < script1.agents.length; i++) {
       expect(script1.agents[i]!.name).toBe(script2.agents[i]!.name);
-      expect(script1.agents[i]!.profile.engagement).toBe(
-        script2.agents[i]!.profile.engagement,
-      );
+      expect(script1.agents[i]!.profile.engagement).toBe(script2.agents[i]!.profile.engagement);
     }
 
     // Same actions in same order
@@ -160,46 +153,42 @@ describe("Script generation", () => {
   });
 
   it("generates correct agent count", () => {
-    const script = generateScript(makeScenario({ population: {
-      count: 15,
-      engagementDistribution: {
-        "active-deliberator": 0.5,
-        "selective-engager": 0.2,
-        "pure-delegator": 0.2,
-        "pure-sensor": 0.1,
-      },
-      forecastingDistribution: { good: 0.5, average: 0.3, poor: 0.2 },
-      adversarialFraction: 0,
-    }}));
+    const script = generateScript(
+      makeScenario({
+        population: {
+          count: 15,
+          engagementDistribution: {
+            "active-deliberator": 0.5,
+            "selective-engager": 0.2,
+            "pure-delegator": 0.2,
+            "pure-sensor": 0.1,
+          },
+          forecastingDistribution: { good: 0.5, average: 0.3, poor: 0.2 },
+          adversarialFraction: 0,
+        },
+      }),
+    );
 
     expect(script.agents).toHaveLength(15);
-    const registerActions = script.actions.filter(
-      (a) => a.type === "register-participant",
-    );
+    const registerActions = script.actions.filter((a) => a.type === "register-participant");
     expect(registerActions).toHaveLength(15);
   });
 
   it("generates topic creation actions", () => {
     const script = generateScript(makeScenario());
-    const topicActions = script.actions.filter(
-      (a) => a.type === "create-topic",
-    );
+    const topicActions = script.actions.filter((a) => a.type === "create-topic");
     expect(topicActions).toHaveLength(2); // Finance and Education
   });
 
   it("generates voting event creation actions", () => {
     const script = generateScript(makeScenario());
-    const eventActions = script.actions.filter(
-      (a) => a.type === "create-voting-event",
-    );
+    const eventActions = script.actions.filter((a) => a.type === "create-voting-event");
     expect(eventActions).toHaveLength(2);
   });
 
   it("generates delegation actions for delegators", () => {
     const script = generateScript(makeScenario());
-    const delegateActions = script.actions.filter(
-      (a) => a.type === "delegate",
-    );
+    const delegateActions = script.actions.filter((a) => a.type === "delegate");
     expect(delegateActions.length).toBeGreaterThan(0);
   });
 
@@ -211,17 +200,13 @@ describe("Script generation", () => {
 
   it("generates prediction actions for deliberators", () => {
     const script = generateScript(makeScenario());
-    const predActions = script.actions.filter(
-      (a) => a.type === "commit-prediction",
-    );
+    const predActions = script.actions.filter((a) => a.type === "commit-prediction");
     expect(predActions.length).toBeGreaterThan(0);
   });
 
   it("generates outcome recording actions", () => {
     const script = generateScript(makeScenario());
-    const outcomeActions = script.actions.filter(
-      (a) => a.type === "record-outcome",
-    );
+    const outcomeActions = script.actions.filter((a) => a.type === "record-outcome");
     expect(outcomeActions.length).toBeGreaterThan(0);
   });
 
@@ -360,11 +345,9 @@ describe("Prediction signal quality", () => {
 
     if (goodForecasters.length > 0 && poorForecasters.length > 0) {
       const avgGood =
-        goodForecasters.reduce((s, e) => s + e.averageAccuracy, 0) /
-        goodForecasters.length;
+        goodForecasters.reduce((s, e) => s + e.averageAccuracy, 0) / goodForecasters.length;
       const avgPoor =
-        poorForecasters.reduce((s, e) => s + e.averageAccuracy, 0) /
-        poorForecasters.length;
+        poorForecasters.reduce((s, e) => s + e.averageAccuracy, 0) / poorForecasters.length;
 
       // Good forecasters should tend to be more accurate
       // Note: with small sample sizes and randomness this may not always hold,

@@ -177,12 +177,7 @@ export type EvaluationStatus =
 export type EvaluationConfidence = "high" | "medium" | "low";
 
 /** Direction the measured values are trending relative to the prediction. */
-export type TrajectorySignal =
-  | "improving"
-  | "stable"
-  | "worsening"
-  | "volatile"
-  | "insufficient";
+export type TrajectorySignal = "improving" | "stable" | "worsening" | "volatile" | "insufficient";
 
 /**
  * Result of evaluating a prediction against its recorded outcomes.

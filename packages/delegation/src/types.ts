@@ -4,13 +4,7 @@
  * Types for delegation graph management, resolution, and weight computation.
  */
 
-import type {
-  ParticipantId,
-  TopicId,
-  IssueId,
-  DelegationId,
-  Timestamp,
-} from "@votiverse/core";
+import type { ParticipantId, TopicId, IssueId, DelegationId, Timestamp } from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
 // Delegation entity

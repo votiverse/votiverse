@@ -104,10 +104,7 @@ export function evaluate(
  * Computes accuracy for a prediction against a single outcome.
  * Returns a value between 0.0 and 1.0.
  */
-function computeAccuracy(
-  prediction: Prediction,
-  outcome: OutcomeRecord,
-): number {
+function computeAccuracy(prediction: Prediction, outcome: OutcomeRecord): number {
   const { pattern } = prediction.claim;
 
   switch (pattern.type) {
@@ -126,11 +123,7 @@ function computeAccuracy(
       );
 
     case "threshold":
-      return evaluateThreshold(
-        pattern.target,
-        pattern.direction,
-        outcome.measuredValue,
-      );
+      return evaluateThreshold(pattern.target, pattern.direction, outcome.measuredValue);
 
     case "binary":
       return evaluateBinary(pattern.expectedOutcome, outcome.measuredValue);
@@ -139,11 +132,7 @@ function computeAccuracy(
       return evaluateRange(pattern.min, pattern.max, outcome.measuredValue);
 
     case "comparative":
-      return evaluateComparative(
-        pattern.direction,
-        outcome.measuredValue,
-        outcome.comparisonValue,
-      );
+      return evaluateComparative(pattern.direction, outcome.measuredValue, outcome.comparisonValue);
   }
 }
 
@@ -166,7 +155,12 @@ function evaluatePercentageChange(
   baseline: number | undefined,
   measured: number | boolean | null,
 ): number {
-  if (measured === null || typeof measured === "boolean" || baseline === undefined || baseline === 0) {
+  if (
+    measured === null ||
+    typeof measured === "boolean" ||
+    baseline === undefined ||
+    baseline === 0
+  ) {
     return 0;
   }
   const actualPercentChange = ((measured - baseline) / Math.abs(baseline)) * 100;
@@ -192,20 +186,13 @@ function evaluateThreshold(
   }
 }
 
-function evaluateBinary(
-  expectedOutcome: boolean,
-  measured: number | boolean | null,
-): number {
+function evaluateBinary(expectedOutcome: boolean, measured: number | boolean | null): number {
   if (measured === null) return 0;
   const actualBool = typeof measured === "boolean" ? measured : measured !== 0;
   return actualBool === expectedOutcome ? 1 : 0;
 }
 
-function evaluateRange(
-  min: number,
-  max: number,
-  measured: number | boolean | null,
-): number {
+function evaluateRange(min: number, max: number, measured: number | boolean | null): number {
   if (measured === null || typeof measured === "boolean") return 0;
   if (measured >= min && measured <= max) return 1;
   const range = max - min;
@@ -260,8 +247,7 @@ function computeTrajectory(
 
   // Check for volatility: standard deviation of accuracies
   const allAvg = accuracies.reduce((s, v) => s + v, 0) / accuracies.length;
-  const variance =
-    accuracies.reduce((s, v) => s + (v - allAvg) ** 2, 0) / accuracies.length;
+  const variance = accuracies.reduce((s, v) => s + (v - allAvg) ** 2, 0) / accuracies.length;
   const stdDev = Math.sqrt(variance);
 
   if (stdDev > 0.3) return "volatile";
@@ -287,10 +273,7 @@ function classifyStatus(accuracy: number): EvaluationStatus {
   return "not-met";
 }
 
-function makePending(
-  predictionId: Prediction["id"],
-  evaluatedAt: Timestamp,
-): PredictionEvaluation {
+function makePending(predictionId: Prediction["id"], evaluatedAt: Timestamp): PredictionEvaluation {
   return {
     predictionId,
     status: "pending",

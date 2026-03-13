@@ -4,11 +4,7 @@
  * Types for vote casting, ballot methods, quorum checking, and tally results.
  */
 
-import type {
-  ParticipantId,
-  IssueId,
-  VoteChoice,
-} from "@votiverse/core";
+import type { ParticipantId, IssueId, VoteChoice } from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
 // Vote record

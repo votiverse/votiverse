@@ -27,10 +27,7 @@ import {
 const out = new ConsoleOutput();
 const program = new Command();
 
-program
-  .name("votiverse")
-  .description("Votiverse governance engine CLI")
-  .version("0.1.0");
+program.name("votiverse").description("Votiverse governance engine CLI").version("0.1.0");
 
 // Init
 program
@@ -50,9 +47,7 @@ program
   });
 
 // Config commands
-const config = program
-  .command("config")
-  .description("Configuration operations");
+const config = program.command("config").description("Configuration operations");
 
 config
   .command("presets")
@@ -76,9 +71,7 @@ config
   });
 
 // Participant commands
-const participant = program
-  .command("participant")
-  .description("Participant management");
+const participant = program.command("participant").description("Participant management");
 
 participant
   .command("add <name>")
@@ -95,9 +88,7 @@ participant
   });
 
 // Event commands
-const event = program
-  .command("event")
-  .description("Voting event management");
+const event = program.command("event").description("Voting event management");
 
 event
   .command("create")
@@ -117,9 +108,7 @@ event
   });
 
 // Delegate commands
-const delegate = program
-  .command("delegate")
-  .description("Delegation management");
+const delegate = program.command("delegate").description("Delegation management");
 
 delegate
   .command("set")
@@ -127,11 +116,9 @@ delegate
   .requiredOption("--source <name>", "delegating participant")
   .requiredOption("--target <name>", "delegate")
   .option("--scope <topic>", "topic scope")
-  .action(
-    async (opts: { source: string; target: string; scope?: string }) => {
-      await cmdDelegateSet(opts.source, opts.target, opts.scope, out);
-    },
-  );
+  .action(async (opts: { source: string; target: string; scope?: string }) => {
+    await cmdDelegateSet(opts.source, opts.target, opts.scope, out);
+  });
 
 delegate
   .command("list")
@@ -141,23 +128,15 @@ delegate
   });
 
 // Vote commands
-const vote = program
-  .command("vote")
-  .description("Voting operations");
+const vote = program.command("vote").description("Voting operations");
 
 vote
   .command("cast <issue-id> <choice>")
   .description("Cast a vote")
   .requiredOption("--participant <name>", "voting participant")
-  .action(
-    async (
-      issueId: string,
-      choice: string,
-      opts: { participant: string },
-    ) => {
-      await cmdVote(issueId, choice, opts.participant, out);
-    },
-  );
+  .action(async (issueId: string, choice: string, opts: { participant: string }) => {
+    await cmdVote(issueId, choice, opts.participant, out);
+  });
 
 vote
   .command("tally <issue-id>")

@@ -1,17 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  VotiverseEngine,
-  createEngine,
-} from "../../src/engine.js";
-import {
-  InMemoryEventStore,
-  timestamp,
-} from "@votiverse/core";
-import type {
-  ParticipantId,
-  TopicId,
-  Timestamp,
-} from "@votiverse/core";
+import { VotiverseEngine, createEngine } from "../../src/engine.js";
+import { InMemoryEventStore, timestamp } from "@votiverse/core";
+import type { ParticipantId, TopicId, Timestamp } from "@votiverse/core";
 import { getPreset } from "@votiverse/config";
 import { InvitationProvider } from "@votiverse/identity";
 import { isOk } from "@votiverse/core";
@@ -31,9 +21,7 @@ describe("VotiverseEngine — integration", () => {
     });
   });
 
-  async function inviteParticipants(
-    ...names: string[]
-  ): Promise<ParticipantId[]> {
+  async function inviteParticipants(...names: string[]): Promise<ParticipantId[]> {
     const ids: ParticipantId[] = [];
     for (const name of names) {
       const result = await provider.invite(name);
@@ -47,11 +35,7 @@ describe("VotiverseEngine — integration", () => {
   describe("Full voting lifecycle", () => {
     it("creates a voting event, casts votes, and computes tally", async () => {
       // 1. Register participants
-      const [alice, bob, carol] = await inviteParticipants(
-        "Alice",
-        "Bob",
-        "Carol",
-      );
+      const [alice, bob, carol] = await inviteParticipants("Alice", "Bob", "Carol");
 
       // 2. Create a topic
       const financeTopic = await engine.topics_api.create("Finance");
@@ -92,12 +76,7 @@ describe("VotiverseEngine — integration", () => {
     });
 
     it("handles delegation with voting override", async () => {
-      const [alice, bob, carol, dave] = await inviteParticipants(
-        "Alice",
-        "Bob",
-        "Carol",
-        "Dave",
-      );
+      const [alice, bob, carol, dave] = await inviteParticipants("Alice", "Bob", "Carol", "Dave");
 
       const topic = await engine.topics_api.create("Policy");
       const votingEvent = await engine.events.create({
@@ -203,11 +182,7 @@ describe("VotiverseEngine — integration", () => {
 
   describe("Weight distribution and chain resolution", () => {
     it("computes weight distribution", async () => {
-      const [alice, bob, carol] = await inviteParticipants(
-        "Alice",
-        "Bob",
-        "Carol",
-      );
+      const [alice, bob, carol] = await inviteParticipants("Alice", "Bob", "Carol");
 
       const topic = await engine.topics_api.create("Test");
       const event = await engine.events.create({

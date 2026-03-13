@@ -5,11 +5,7 @@
  */
 
 import type { VotiverseEngine } from "@votiverse/engine";
-import type {
-  SimulationScenario,
-  SimulationScript,
-  SimulationResults,
-} from "./types.js";
+import type { SimulationScenario, SimulationScript, SimulationResults } from "./types.js";
 import { generateScript } from "./generate.js";
 import { playback } from "./playback.js";
 
@@ -28,9 +24,7 @@ export interface SimulationRunResult {
 /**
  * Runs a complete simulation: generate script → play back through engine → extract metrics.
  */
-export async function runSimulation(
-  scenario: SimulationScenario,
-): Promise<SimulationRunResult> {
+export async function runSimulation(scenario: SimulationScenario): Promise<SimulationRunResult> {
   // Phase 1: Generate the deterministic action script
   const script = generateScript(scenario);
 

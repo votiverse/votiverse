@@ -35,25 +35,19 @@ export interface IdentityProvider {
    * Authenticate a participant with the given credentials.
    * Returns the participant on success, or an error description on failure.
    */
-  authenticate(
-    credentials: AuthCredentials,
-  ): Promise<Result<AuthResult, IdentityError>>;
+  authenticate(credentials: AuthCredentials): Promise<Result<AuthResult, IdentityError>>;
 
   /**
    * Verify that a participant ID corresponds to a unique real person.
    * Used for Sybil resistance.
    */
-  verifyUniqueness(
-    participantId: ParticipantId,
-  ): Promise<Result<boolean, IdentityError>>;
+  verifyUniqueness(participantId: ParticipantId): Promise<Result<boolean, IdentityError>>;
 
   /**
    * Retrieve a participant by their ID.
    * Returns undefined if not found.
    */
-  getParticipant(
-    participantId: ParticipantId,
-  ): Promise<Participant | undefined>;
+  getParticipant(participantId: ParticipantId): Promise<Participant | undefined>;
 
   /**
    * List all registered participants.

@@ -48,9 +48,7 @@ describe("Error types", () => {
     it("has the correct name, message, and field", () => {
       const error = new ValidationError("email", "invalid format");
       expect(error.name).toBe("ValidationError");
-      expect(error.message).toBe(
-        'Validation error on "email": invalid format',
-      );
+      expect(error.message).toBe('Validation error on "email": invalid format');
       expect(error.field).toBe("email");
     });
   });
@@ -71,23 +69,15 @@ describe("Error types", () => {
 
   describe("GovernanceRuleViolation", () => {
     it("extends VotiverseError", () => {
-      const error = new GovernanceRuleViolation(
-        "quorum",
-        "not enough participants",
-      );
+      const error = new GovernanceRuleViolation("quorum", "not enough participants");
       expect(error).toBeInstanceOf(VotiverseError);
       expect(error).toBeInstanceOf(GovernanceRuleViolation);
     });
 
     it("has the correct name, message, and rule", () => {
-      const error = new GovernanceRuleViolation(
-        "sovereignty",
-        "direct vote was blocked",
-      );
+      const error = new GovernanceRuleViolation("sovereignty", "direct vote was blocked");
       expect(error.name).toBe("GovernanceRuleViolation");
-      expect(error.message).toBe(
-        'Governance rule "sovereignty" violated: direct vote was blocked',
-      );
+      expect(error.message).toBe('Governance rule "sovereignty" violated: direct vote was blocked');
       expect(error.rule).toBe("sovereignty");
     });
   });

@@ -10,6 +10,7 @@ import type {
   EventStore,
   ParticipantId,
   PollId,
+  Timestamp,
   TopicId,
   PollCreatedEvent,
   PollResponseSubmittedEvent,
@@ -57,10 +58,7 @@ export class PollingService {
    */
   async create(params: CreatePollParams): Promise<Poll> {
     if (!this.config.features.polls) {
-      throw new ValidationError(
-        "polls",
-        "Polls are disabled in the current configuration",
-      );
+      throw new ValidationError("polls", "Polls are disabled in the current configuration");
     }
 
     if (params.questions.length === 0) {
@@ -78,8 +76,7 @@ export class PollingService {
     }));
 
     const currentTime = now();
-    const status: PollStatus =
-      currentTime >= params.schedule ? "open" : "scheduled";
+    const status: PollStatus = currentTime >= params.schedule ? "open" : "scheduled";
 
     // The core PollCreatedPayload.questions is string[]. We encode
     // poll metadata (closesAt, title, createdBy) as the first element
@@ -177,10 +174,7 @@ export class PollingService {
   /**
    * Get aggregated results for a poll.
    */
-  async results(
-    pollId: PollId,
-    eligibleCount: number,
-  ): Promise<PollResults> {
+  async results(pollId: PollId, eligibleCount: number): Promise<PollResults> {
     const poll = await this.getPoll(pollId);
     if (!poll) {
       throw new NotFoundError("Poll", pollId);
@@ -192,10 +186,7 @@ export class PollingService {
   /**
    * Compute trend data for a topic across all closed polls.
    */
-  async trends(
-    topicId: TopicId,
-    eligibleCount: number,
-  ): Promise<TrendData> {
+  async trends(topicId: TopicId, eligibleCount: number): Promise<TrendData> {
     const polls = await this.getAllPolls();
     const responsesByPoll = new Map<string, readonly PollResponse[]>();
     for (const poll of polls) {
@@ -226,7 +217,7 @@ export class PollingService {
 
       // Parse metadata and questions. First element may be metadata.
       let title = "";
-      let closesAt = (e.payload.schedule + 7 * 86400000) as import("@votiverse/core").Timestamp;
+      let closesAt = (e.payload.schedule + 7 * 86400000) as Timestamp;
       let createdBy = "" as ParticipantId;
       const questions: PollQuestion[] = [];
 
@@ -234,8 +225,9 @@ export class PollingService {
         const parsed = JSON.parse(raw) as Record<string, unknown>;
         if (parsed["__meta"] === true) {
           title = (parsed["title"] as string) ?? "";
-          closesAt = (parsed["closesAt"] as number ?? closesAt) as import("@votiverse/core").Timestamp;
-          createdBy = (parsed["createdBy"] as string ?? "") as ParticipantId;
+          closesAt = ((parsed["closesAt"] as number) ??
+            closesAt) as Timestamp;
+          createdBy = ((parsed["createdBy"] as string) ?? "") as ParticipantId;
         } else {
           questions.push(parsed as unknown as PollQuestion);
         }
@@ -272,9 +264,7 @@ export class PollingService {
     for (const event of events) {
       const e = event as PollResponseSubmittedEvent;
       if (e.payload.pollId === pollId) {
-        const answers: PollAnswer[] = e.payload.responses.map((r) =>
-          JSON.parse(r) as PollAnswer,
-        );
+        const answers: PollAnswer[] = e.payload.responses.map((r) => JSON.parse(r) as PollAnswer);
         responses.push({
           pollId,
           participantHash: e.payload.participantHash,
@@ -296,10 +286,7 @@ function hashParticipant(participantId: ParticipantId): string {
   return createHash("sha256").update(participantId).digest("hex");
 }
 
-function validateAnswers(
-  answers: readonly PollAnswer[],
-  questions: readonly PollQuestion[],
-): void {
+function validateAnswers(answers: readonly PollAnswer[], questions: readonly PollQuestion[]): void {
   const questionIds = new Set(questions.map((q) => q.id));
   for (const answer of answers) {
     if (!questionIds.has(answer.questionId)) {
