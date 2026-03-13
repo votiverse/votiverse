@@ -10,10 +10,12 @@ import type {
   DelegationId,
   EventId,
   IssueId,
+  OutcomeId,
   ParticipantId,
   PollId,
   PredictionId,
   ProposalId,
+  QuestionId,
   Timestamp,
   TopicId,
   VotingEventId,
@@ -71,6 +73,16 @@ export function generateProposalId(): ProposalId {
 /** Generates a new unique CommitmentId. */
 export function generateCommitmentId(): CommitmentId {
   return randomUUID() as CommitmentId;
+}
+
+/** Generates a new unique OutcomeId. */
+export function generateOutcomeId(): OutcomeId {
+  return randomUUID() as OutcomeId;
+}
+
+/** Generates a new unique QuestionId. */
+export function generateQuestionId(): QuestionId {
+  return randomUUID() as QuestionId;
 }
 
 // ---------------------------------------------------------------------------

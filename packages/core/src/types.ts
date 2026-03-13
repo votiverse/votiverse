@@ -40,6 +40,12 @@ export type ProposalId = string & { readonly __brand: "ProposalId" };
 /** Unique identifier for an integrity commitment. */
 export type CommitmentId = string & { readonly __brand: "CommitmentId" };
 
+/** Unique identifier for an outcome record (prediction evaluation data). */
+export type OutcomeId = string & { readonly __brand: "OutcomeId" };
+
+/** Unique identifier for a poll question. */
+export type QuestionId = string & { readonly __brand: "QuestionId" };
+
 // ---------------------------------------------------------------------------
 // Timestamp
 // ---------------------------------------------------------------------------
