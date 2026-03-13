@@ -52,6 +52,32 @@ export class InvitationProvider implements IdentityProvider, SybilCheck {
   constructor(private readonly eventStore: EventStore) {}
 
   /**
+   * Rebuild internal state from the event store.
+   * Call this after loading a persisted event store to restore
+   * the provider's participant maps.
+   */
+  async rehydrate(): Promise<void> {
+    const events = await this.eventStore.query({
+      types: ["ParticipantRegistered"],
+    });
+    for (const event of events) {
+      if (event.type === "ParticipantRegistered") {
+        const payload = event.payload as {
+          participantId: ParticipantId;
+          name: string;
+        };
+        const participant: Participant = {
+          id: payload.participantId,
+          name: payload.name,
+          registeredAt: event.timestamp,
+        };
+        this.participants.set(payload.participantId, participant);
+        this.nameIndex.set(payload.name.toLowerCase(), payload.participantId);
+      }
+    }
+  }
+
+  /**
    * Invite a new participant by name. Creates the participant and
    * records a ParticipantRegistered event.
    */

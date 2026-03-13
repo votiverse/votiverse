@@ -127,6 +127,66 @@ export class VotiverseEngine {
     );
   }
 
+  /**
+   * Rebuild internal state from the event store.
+   * Call this after loading a persisted event store to restore
+   * the engine's in-memory maps (topics, voting events, issues).
+   */
+  async rehydrate(): Promise<void> {
+    const events = await this.eventStore.getAll();
+    for (const event of events) {
+      if (event.type === "TopicCreated") {
+        const payload = event.payload as {
+          topicId: TopicId;
+          name: string;
+          parentId: TopicId | null;
+        };
+        const topic: Topic = {
+          id: payload.topicId,
+          name: payload.name,
+          parentId: payload.parentId,
+        };
+        this.topics.set(payload.topicId, topic);
+        this.buildTopicAncestors(payload.topicId, payload.parentId);
+      } else if (event.type === "VotingEventCreated") {
+        const payload = event.payload as {
+          votingEventId: VotingEventId;
+          title: string;
+          description: string;
+          issueIds: readonly IssueId[];
+          eligibleParticipantIds: readonly ParticipantId[];
+          timeline: EventTimeline;
+        };
+        const votingEvent: VotingEvent = {
+          id: payload.votingEventId,
+          title: payload.title,
+          description: payload.description,
+          issueIds: payload.issueIds,
+          eligibleParticipantIds: payload.eligibleParticipantIds,
+          timeline: payload.timeline,
+          createdAt: event.timestamp,
+        };
+        this.votingEvents.set(payload.votingEventId, votingEvent);
+
+        // Rebuild issues (we need to reconstruct from the event payload)
+        // Issues aren't individually evented in Phase 1, they're part of VotingEventCreated
+        // We need the issue details from the event, but the event only stores IDs
+        // For rehydration, we reconstruct minimal issues
+        for (const issueId of payload.issueIds) {
+          if (!this.issues.has(issueId)) {
+            this.issues.set(issueId, {
+              id: issueId,
+              title: "",
+              description: "",
+              topicIds: [],
+              votingEventId: payload.votingEventId,
+            });
+          }
+        }
+      }
+    }
+  }
+
   // -----------------------------------------------------------------------
   // Config API
   // -----------------------------------------------------------------------
@@ -260,8 +320,18 @@ export class VotiverseEngine {
 
     getIssue: (id: IssueId): Issue | undefined => this.issues.get(id),
 
+    listIssues: (): readonly Issue[] => [...this.issues.values()],
+
     list: (): readonly VotingEvent[] => [...this.votingEvents.values()],
   };
+
+  /**
+   * Inject issue data during rehydration (when issue details are stored
+   * outside the event log).
+   */
+  injectIssue(issue: Issue): void {
+    this.issues.set(issue.id, issue);
+  }
 
   // -----------------------------------------------------------------------
   // Delegation API
