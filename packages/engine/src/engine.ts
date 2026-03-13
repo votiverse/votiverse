@@ -54,6 +54,22 @@ import type {
 } from "@votiverse/delegation";
 import { VotingService } from "@votiverse/voting";
 import type { TallyResult, VoteRecord } from "@votiverse/voting";
+import { PredictionService } from "@votiverse/prediction";
+import type {
+  CommitPredictionParams,
+  RecordOutcomeParams,
+  Prediction,
+  PredictionEvaluation,
+  TrackRecord,
+} from "@votiverse/prediction";
+import { PollingService } from "@votiverse/polling";
+import type {
+  CreatePollParams,
+  SubmitResponseParams,
+  Poll,
+  PollResults,
+  TrendData,
+} from "@votiverse/polling";
 
 // ---------------------------------------------------------------------------
 // Engine initialization options
@@ -102,6 +118,8 @@ export class VotiverseEngine {
   private readonly identityProvider: IdentityProvider;
   private readonly delegationService: DelegationService;
   private readonly votingService: VotingService;
+  private readonly predictionService: PredictionService;
+  private readonly pollingService: PollingService;
 
   /** In-memory state derived from events. */
   private readonly topics = new Map<TopicId, Topic>();
@@ -122,6 +140,14 @@ export class VotiverseEngine {
       this.governanceConfig,
     );
     this.votingService = new VotingService(
+      this.eventStore,
+      this.governanceConfig,
+    );
+    this.predictionService = new PredictionService(
+      this.eventStore,
+      this.governanceConfig,
+    );
+    this.pollingService = new PollingService(
       this.eventStore,
       this.governanceConfig,
     );
@@ -431,6 +457,62 @@ export class VotiverseEngine {
         this.topicAncestors,
       );
     },
+  };
+
+  // -----------------------------------------------------------------------
+  // Prediction API
+  // -----------------------------------------------------------------------
+
+  /** Prediction operations. */
+  readonly prediction = {
+    commit: (params: CommitPredictionParams): Promise<Prediction> =>
+      this.predictionService.commit(params),
+
+    recordOutcome: (params: RecordOutcomeParams) =>
+      this.predictionService.recordOutcome(params),
+
+    evaluate: (predictionId: import("@votiverse/core").PredictionId): Promise<PredictionEvaluation> =>
+      this.predictionService.evaluate(predictionId),
+
+    evaluateFromTrend: (
+      predictionId: import("@votiverse/core").PredictionId,
+      trendScore: number,
+      pollId: string,
+      notes?: string,
+    ) => this.predictionService.evaluateFromTrend(predictionId, trendScore, pollId, notes),
+
+    trackRecord: (participantId: ParticipantId): Promise<TrackRecord> =>
+      this.predictionService.trackRecord(participantId),
+
+    get: (predictionId: import("@votiverse/core").PredictionId) =>
+      this.predictionService.getPrediction(predictionId),
+
+    getByParticipant: (participantId: ParticipantId) =>
+      this.predictionService.getPredictionsByParticipant(participantId),
+  };
+
+  // -----------------------------------------------------------------------
+  // Polling API
+  // -----------------------------------------------------------------------
+
+  /** Polling operations. */
+  readonly polls = {
+    create: (params: CreatePollParams): Promise<Poll> =>
+      this.pollingService.create(params),
+
+    respond: (params: SubmitResponseParams) =>
+      this.pollingService.respond(params),
+
+    results: (pollId: import("@votiverse/core").PollId, eligibleCount: number): Promise<PollResults> =>
+      this.pollingService.results(pollId, eligibleCount),
+
+    trends: (topicId: TopicId, eligibleCount: number): Promise<TrendData> =>
+      this.pollingService.trends(topicId, eligibleCount),
+
+    get: (pollId: import("@votiverse/core").PollId) =>
+      this.pollingService.getPoll(pollId),
+
+    list: () => this.pollingService.getAllPolls(),
   };
 
   // -----------------------------------------------------------------------

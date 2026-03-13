@@ -57,4 +57,21 @@ export type {
   IdentityProvider,
 } from "@votiverse/identity";
 
+export type {
+  Prediction,
+  PredictionClaim,
+  PredictionEvaluation,
+  TrackRecord,
+  CommitPredictionParams,
+  RecordOutcomeParams,
+} from "@votiverse/prediction";
+
+export type {
+  Poll,
+  PollResults,
+  TrendData,
+  CreatePollParams,
+  SubmitResponseParams,
+} from "@votiverse/polling";
+
 export { getPreset } from "@votiverse/config";
