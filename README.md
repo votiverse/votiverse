@@ -2,7 +2,7 @@
 
 ### Decisions, Democratically Delivered
 
-**[votiverse.org](https://votiverse.org)**
+**[votiverse.org](https://votiverse.org)** (comming soon)
 
 ---
 
@@ -56,7 +56,7 @@ See the [Architecture Document](docs/architecture.md) for full details.
 |----------|-------------|
 | [Whitepaper](docs/whitepaper.md) | Foundational document. Governance model, formal properties, the scale problem, prediction tracking, participant polling, awareness layer, risks and mitigations, platform architecture. |
 | [Architecture](docs/architecture.md) | Technical architecture. 12 packages, dependency graph, event-sourced data model, API design, CLI modes, simulation framework, research pipeline, development phases. |
-| [Liquid Democracy Research](docs/research/liquid-democracy.md) | Background research on liquid democracy, delegative democracy, and existing implementations. |
+| [Liquid Democracy Research](docs/research/background.md) | Background research on liquid democracy, delegative democracy, and existing implementations. |
 
 ---
 
