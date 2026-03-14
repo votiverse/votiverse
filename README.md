@@ -2,7 +2,7 @@
 
 ### Decisions, Democratically Delivered
 
-**[votiverse.org](https://votiverse.org)** (comming soon)
+**[votiverse.org](https://votiverse.org)** (coming soon)
 
 ---
 
