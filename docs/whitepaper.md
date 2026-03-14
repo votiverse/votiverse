@@ -95,7 +95,7 @@ Votiverse does not claim to solve the fundamental disconnect between human cogni
 
 What Votiverse can do is create better conditions at every scale:
 
-**At small scale** — clubs, cooperatives, teams, local associations — the platform provides structure and accountability for decisions that people already care about. Participants are cognitively engaged because they know each other, see the consequences, and feel their stake. This is where Votiverse is most likely to improve outcomes directly, and it may be the most important scale for the project.
+**At small scale** — clubs, cooperatives, teams, local associations — the platform provides structure and accountability for decisions that people already care about. Participants are cognitively engaged because they know each other, see the consequences, and feel their stake.
 
 **At medium scale** — organizations, municipalities, institutions — delegation and prediction tracking provide real value. The trust network makes expertise accessible without creating a permanent political class. The prediction record grounds decisions in evidence. The awareness layer keeps power dynamics visible.
 
