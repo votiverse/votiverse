@@ -134,9 +134,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Origin
 
-Votiverse was started by **Diego Serrano** (Montreal, Canada) as an attempt to build what has been missing from collective decision-making: a system where participation is flexible, delegation is transparent, sensing is valued, prediction is accountable, and the information infrastructure is honest.
-
-The project builds on the **Uniweb Platform** developed by [Proximify Inc.](https://proximify.com)
+Votiverse was started by **Diego Macrini** (Ottawa, Canada) as an attempt to build what has been missing from collective decision-making: a system where participation is flexible, delegation is transparent, sensing is valued, prediction is accountable, and the information infrastructure is honest.
 
 ---
 
