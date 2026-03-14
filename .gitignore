@@ -12,6 +12,7 @@ stress-test/
 *.swo
 .idea/
 .vscode/
+.sandbox/
 
 # Claude Code local/ephemeral files
 .claude/settings.local.json

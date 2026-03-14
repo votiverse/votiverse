@@ -1,0 +1,35 @@
+<svg viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="box-left" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#2B5D8C" />
+            <stop offset="100%" stop-color="#1A3B5C" />
+        </linearGradient>
+        <linearGradient id="box-right" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#A3C0DB" />
+            <stop offset="100%" stop-color="#6495C4" />
+        </linearGradient>
+        <linearGradient id="box-top" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#5581AA" />
+            <stop offset="100%" stop-color="#8DB6D9" />
+        </linearGradient>
+        <linearGradient id="checkDark" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#DDDDDD" />
+            <!-- <stop offset="100%" stop-color="oklch(76.8% 0.233 130.85)" /> -->
+            <!-- <stop offset="100%" stop-color="#BAE6FD" /> -->
+        </linearGradient>
+    </defs>
+    <g transform="translate(10, 8) scale(0.9)">
+        <polygon points="15,35 50,50 50,85 15,70" fill="url(#box-left)" />
+        <polygon points="50,50 85,35 85,70 50,85" fill="url(#box-right)" />
+        <polygon points="50,20 85,35 50,50 15,35" fill="url(#box-top)" />
+        <line x1="32" y1="35" x2="68" y2="35" stroke="#0f172a" stroke-width="2.5"
+            stroke-linecap="round" />
+
+        <!-- Primary Checkmark (Luminous) -->
+        <path d="M 36,14 L 50,34 L 75,0" stroke="url(#checkDark)" stroke-width="8"
+            stroke-linecap="round" stroke-linejoin="bevel" />
+    </g>
+    <text x="120" y="68" font-family="'Outfit', sans-serif" font-weight="600" font-size="64"
+        fill="#F8FAFC" letter-spacing="-0.03em">votiverse</text>
+</svg>
