@@ -70,6 +70,12 @@ export function assemblyRoutes(manager: AssemblyManager) {
     return c.json(assembly, 201);
   });
 
+  /** GET /assemblies — list all assemblies. */
+  app.get("/assemblies", (c) => {
+    const assemblies = manager.listAssemblies();
+    return c.json({ assemblies });
+  });
+
   /** GET /assemblies/:id — get assembly state. */
   app.get("/assemblies/:id", (c) => {
     const info = manager.getAssemblyInfo(c.req.param("id"));

@@ -89,6 +89,21 @@ export class AssemblyManager {
     };
   }
 
+  /** List all assemblies. */
+  listAssemblies(): AssemblyInfo[] {
+    const rows = this.db.query<AssemblyRecord>(
+      "SELECT * FROM assemblies ORDER BY created_at DESC",
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      organizationId: row.organization_id,
+      name: row.name,
+      config: JSON.parse(row.config) as GovernanceConfig,
+      status: row.status,
+      createdAt: row.created_at,
+    }));
+  }
+
   /** Get Assembly info without instantiating the engine. */
   getAssemblyInfo(assemblyId: string): AssemblyInfo | undefined {
     const row = this.db.queryOne<AssemblyRecord>(

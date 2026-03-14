@@ -3,6 +3,7 @@
  */
 
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { VCPAdapters } from "../adapters/index.js";
 import type { AssemblyManager } from "../engine/assembly-manager.js";
@@ -23,6 +24,11 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono
   const app = new Hono();
 
   // Middleware
+  app.use("*", cors({
+    origin: (origin) => origin,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  }));
   app.use("*", logger());
   app.use("*", errorHandler);
   app.use("*", createAuthMiddleware(adapters.auth));
