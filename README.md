@@ -41,37 +41,60 @@ In this model, traditional representative democracy is not the default. It is a 
 ## Quick Start
 
 ```bash
-# Install
 git clone https://github.com/votiverse/votiverse.git
 cd votiverse
 pnpm install
 pnpm build
 
-# Run a simulation
-node -e "
-import { runSimulation } from '@votiverse/simulate';
-const result = await runSimulation({
-  name: 'Quick test', description: '', seed: 42,
-  config: 'LIQUID_STANDARD',
-  topics: [{ name: 'Finance' }],
-  population: {
-    count: 20,
-    engagementDistribution: { 'active-deliberator': 0.4, 'selective-engager': 0.3, 'pure-delegator': 0.2, 'pure-sensor': 0.1 },
-    forecastingDistribution: { good: 0.3, average: 0.4, poor: 0.3 },
-    adversarialFraction: 0
-  },
-  votingEvents: [{ title: 'Budget', issues: [{ title: 'Q1 Budget', topics: ['Finance'], groundTruthOutcome: true }] }],
-  groundTruth: { topics: { Finance: { baseValue: 100, trajectory: 'improving', changeRate: 10 } } }
-});
-console.log('Agents:', result.results.agentCount);
-console.log('Concentration:', result.results.concentrationOverTime);
-console.log('Prediction accuracy:', result.results.predictionAccuracies.slice(0, 5));
-"
+# Terminal 1: Start the governance server
+cd platform/vcp
+pnpm dev
+
+# Terminal 2: Seed sample data
+cd platform/vcp
+pnpm seed
+
+# Terminal 3: Start the web client
+cd platform/web
+pnpm dev
 ```
+
+Open **http://localhost:5173**. You'll see a governance dashboard with a sample assembly (Liquid Standard preset), five participants, two voting events, delegations, and weighted votes already cast.
+
+Use the **participant selector** in the header to switch viewpoints — select Alice to see Alice's delegations, switch to Carol to see the delegation weight she carries, then cast a vote and watch the weighted tally update in real time.
 
 ---
 
-## Packages
+## Architecture
+
+Votiverse has three layers:
+
+```
+┌───────────────────────────────────────────────────────┐
+│  Web Client  (platform/web)                           │
+│  React SPA — visual interface for evaluation          │
+└──────────────────────┬────────────────────────────────┘
+                       │  HTTP / REST
+┌──────────────────────▼────────────────────────────────┐
+│  Cloud Platform  (platform/vcp)                       │
+│  Node.js server — REST API, SQLite, workers           │
+└──────────────────────┬────────────────────────────────┘
+                       │  library import
+┌──────────────────────▼────────────────────────────────┐
+│  Engine  (packages/*)                                 │
+│  12 TypeScript packages — pure governance computation │
+└───────────────────────────────────────────────────────┘
+```
+
+**Engine** — 12 composable TypeScript packages that implement the governance model. Pure computation: delegation graphs, vote tallying, prediction evaluation, poll aggregation, awareness metrics. No HTTP, no database, no infrastructure. See [Architecture](docs/architecture.md).
+
+**Cloud Platform (VCP)** — A Node.js server that imports the engine and wraps it in production infrastructure: REST API, SQLite/PostgreSQL database, task queue, scheduled jobs, webhook dispatch. See [VCP README](platform/vcp/README.md).
+
+**Web Client** — A React SPA for interacting with the VCP. Developer/evaluation client with assembly management, voting, delegation visualization, and awareness dashboards. See [Web Client README](platform/web/README.md).
+
+---
+
+## Engine Packages
 
 | Package | Description |
 |---------|-------------|
@@ -90,11 +113,84 @@ console.log('Prediction accuracy:', result.results.predictionAccuracies.slice(0,
 
 ---
 
-## Architecture
+## For Developers
 
-Votiverse is implemented as a **headless TypeScript monorepo** — 12 composable packages published under the `@votiverse` npm scope. The engine has no opinion about presentation. It exposes a programmatic API that any client can drive.
+### Programmatic API
 
-See the [Architecture Document](docs/architecture.md) for full details, including the implemented API, the decisions log, and open technical questions.
+The engine is a headless TypeScript library — no HTTP required:
+
+```typescript
+import { createEngine, getPreset, InMemoryEventStore, timestamp } from "@votiverse/engine";
+import { InvitationProvider } from "@votiverse/identity";
+
+const store = new InMemoryEventStore();
+const provider = new InvitationProvider(store);
+const engine = createEngine({
+  config: getPreset("LIQUID_STANDARD"),
+  eventStore: store,
+  identityProvider: provider,
+});
+
+// Register participants
+const alice = (await provider.invite("Alice")).value;
+const bob = (await provider.invite("Bob")).value;
+const carol = (await provider.invite("Carol")).value;
+
+// Create a voting event
+const now = Date.now();
+const event = await engine.events.create({
+  title: "Q1 Budget",
+  description: "Approve the quarterly budget",
+  issues: [{ title: "Approve Budget", description: "", topicIds: [] }],
+  eligibleParticipantIds: [alice.id, bob.id, carol.id],
+  timeline: {
+    deliberationStart: timestamp(now - 86400000),
+    votingStart: timestamp(now),
+    votingEnd: timestamp(now + 86400000),
+  },
+});
+
+// Alice delegates to Carol
+await engine.delegation.create({
+  sourceId: alice.id,
+  targetId: carol.id,
+  topicScope: [],
+});
+
+// Bob and Carol vote
+await engine.voting.cast(bob.id, event.issueIds[0], "for");
+await engine.voting.cast(carol.id, event.issueIds[0], "against");
+
+// Carol carries Alice's delegation weight — "against" wins 2-1
+const tally = await engine.voting.tally(event.issueIds[0]);
+console.log(tally.winner);  // "against"
+console.log(tally.counts);  // Map { "for" => 1, "against" => 2 }
+```
+
+### Simulation
+
+Run governance simulations with configurable agent populations:
+
+```bash
+node -e "
+import { runSimulation } from '@votiverse/simulate';
+const result = await runSimulation({
+  name: 'Quick test', description: '', seed: 42,
+  config: 'LIQUID_STANDARD',
+  topics: [{ name: 'Finance' }],
+  population: {
+    count: 20,
+    engagementDistribution: { 'active-deliberator': 0.4, 'selective-engager': 0.3, 'pure-delegator': 0.2, 'pure-sensor': 0.1 },
+    forecastingDistribution: { good: 0.3, average: 0.4, poor: 0.3 },
+    adversarialFraction: 0
+  },
+  votingEvents: [{ title: 'Budget', issues: [{ title: 'Q1 Budget', topics: ['Finance'], groundTruthOutcome: true }] }],
+  groundTruth: { topics: { Finance: { baseValue: 100, trajectory: 'improving', changeRate: 10 } } }
+});
+console.log('Agents:', result.results.agentCount);
+console.log('Concentration:', result.results.concentrationOverTime);
+"
+```
 
 ---
 
@@ -102,20 +198,32 @@ See the [Architecture Document](docs/architecture.md) for full details, includin
 
 | Document | Description |
 |----------|-------------|
-| [Whitepaper](docs/whitepaper.md) | Governance model, formal properties, prediction tracking, participant polling, awareness layer. |
-| [Architecture](docs/architecture.md) | 12 packages, dependency graph, event-sourced data model, API design, decisions log. |
-| [Phase 2 Report](docs/phase2-report.md) | Prediction and polling implementation decisions. |
-| [Phase 3 Report](docs/phase3-report.md) | Awareness layer implementation and integration review. |
-| [Phase 4 Report](docs/phase4-report.md) | Simulation framework design and testing. |
-| [Phase 5 Report](docs/phase5-report.md) | Integrity package and blockchain anchoring. |
-| [Phase 6 Report](docs/phase6-report.md) | Production hardening: documentation, tooling, code quality. |
-| [Research Background](docs/research/background.md) | Liquid democracy and delegative democracy literature. |
+| [Whitepaper](docs/whitepaper.md) | Governance model, formal properties, prediction tracking, participant polling, awareness layer |
+| [Architecture](docs/architecture.md) | Engine internals: 12 packages, dependency graph, event-sourced data model, decisions log |
+| [Integration Architecture](docs/integration-architecture.md) | VCP API contract: what the platform provides vs. what clients provide, REST endpoints |
+| [VCP Architecture](docs/vcp-architecture.md) | VCP internal design: adapter pattern, database schema, workers, scheduler, AWS deployment |
+| [Product Workflow](docs/product-workflow.md) | How organizations use Votiverse: entity model, workflows, user experience |
+| [Phase 2 Report](docs/phase2-report.md) | Prediction and polling implementation decisions |
+| [Phase 3 Report](docs/phase3-report.md) | Awareness layer implementation and integration review |
+| [Phase 4 Report](docs/phase4-report.md) | Simulation framework design and testing |
+| [Phase 5 Report](docs/phase5-report.md) | Integrity package and blockchain anchoring |
+| [Phase 6 Report](docs/phase6-report.md) | Production hardening: documentation, tooling, code quality |
+| [VCP Phase 1 Report](docs/vcp-phase1-report.md) | VCP implementation: server, adapters, API, engine integration |
+| [Web Client Report](docs/web-client-report.md) | Web client implementation: views, design, participant selector |
+| [Research Background](docs/research/background.md) | Liquid democracy and delegative democracy literature |
 
 ---
 
 ## Status
 
-Votiverse has completed **Phases 1–6** — all 12 packages are implemented with **319 tests passing**. The governance engine is functional for local simulation and development. Production deployment requires PostgreSQL storage adapter and performance profiling (future work).
+Votiverse is a complete, locally runnable governance platform:
+
+- **Engine** — 12 packages, 319 tests, all formal properties verified (sovereignty, one-person-one-vote, monotonicity, revocability, override rule, cycle resolution, scope precedence, poll non-transferability)
+- **Cloud Platform** — 27 REST endpoints, SQLite persistence, adapter pattern for future PostgreSQL/AWS migration, 16 integration tests
+- **Web Client** — 9 views covering assemblies, voting, delegations, polls, and awareness, with participant identity switching
+- **Total: 335 tests passing**
+
+Production deployment (PostgreSQL, real webhook delivery, AI integration) is future work. The system is fully functional for local development, evaluation, and governance research.
 
 ---
 
