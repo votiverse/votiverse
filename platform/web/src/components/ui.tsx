@@ -1,0 +1,132 @@
+/** Shared UI primitives. */
+
+import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes } from "react";
+
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function CardHeader({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`px-6 py-4 border-b border-gray-100 ${className}`}>{children}</div>;
+}
+
+export function CardBody({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`px-6 py-4 ${className}`}>{children}</div>;
+}
+
+export function Button({
+  variant = "primary",
+  size = "md",
+  className = "",
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "sm" | "md";
+}) {
+  const base = "inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  const variants = {
+    primary: "bg-brand text-white hover:bg-brand-light focus:ring-brand",
+    secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-brand",
+    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+    ghost: "text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-brand",
+  };
+  const sizes = {
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2 text-sm",
+  };
+
+  return (
+    <button className={`${base} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+}
+
+export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      className={`block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand ${className}`}
+      {...props}
+    />
+  );
+}
+
+export function Select({ className = "", children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      className={`block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand ${className}`}
+      {...props}
+    >
+      {children}
+    </select>
+  );
+}
+
+export function Label({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <label className={`block text-sm font-medium text-gray-700 mb-1 ${className}`}>{children}</label>;
+}
+
+export function Badge({ children, color = "gray" }: { children: ReactNode; color?: "gray" | "green" | "blue" | "yellow" | "red" }) {
+  const colors = {
+    gray: "bg-gray-100 text-gray-700",
+    green: "bg-green-100 text-green-700",
+    blue: "bg-blue-100 text-blue-700",
+    yellow: "bg-yellow-100 text-yellow-700",
+    red: "bg-red-100 text-red-700",
+  };
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[color]}`}>
+      {children}
+    </span>
+  );
+}
+
+export function Spinner() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-brand" />
+    </div>
+  );
+}
+
+export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="rounded-md bg-red-50 border border-red-200 p-4">
+      <p className="text-sm text-red-700">{message}</p>
+      {onRetry && (
+        <button onClick={onRetry} className="mt-2 text-sm text-red-600 underline hover:text-red-800">
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
+  return (
+    <div className="text-center py-12">
+      <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+      {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+export function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { color: "green" | "blue" | "yellow" | "gray" | "red"; label: string }> = {
+    active: { color: "green", label: "Active" },
+    voting: { color: "green", label: "Voting Open" },
+    deliberation: { color: "blue", label: "Deliberation" },
+    upcoming: { color: "yellow", label: "Upcoming" },
+    closed: { color: "gray", label: "Closed" },
+    open: { color: "green", label: "Open" },
+    scheduled: { color: "yellow", label: "Scheduled" },
+  };
+  const entry = map[status] ?? { color: "gray" as const, label: status };
+  return <Badge color={entry.color}>{entry.label}</Badge>;
+}
