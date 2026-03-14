@@ -1,0 +1,61 @@
+/**
+ * VCP entry point — reads config, wires adapters, starts services.
+ */
+
+import { serve } from "@hono/node-server";
+import { loadConfig } from "./config/schema.js";
+import { SQLiteAdapter } from "./adapters/database/sqlite.js";
+import { MemoryQueueAdapter } from "./adapters/queue/memory.js";
+import { LocalSchedulerAdapter } from "./adapters/scheduler/local.js";
+import { ConsoleWebhookAdapter } from "./adapters/webhook/console.js";
+import { SimpleAuthAdapter } from "./adapters/auth/simple.js";
+import type { VCPAdapters } from "./adapters/index.js";
+import { AssemblyManager } from "./engine/assembly-manager.js";
+import { createApp } from "./api/server.js";
+
+const config = loadConfig();
+
+// Wire adapters
+const database = new SQLiteAdapter(config.dbPath);
+database.initialize();
+
+const queue = new MemoryQueueAdapter();
+const scheduler = new LocalSchedulerAdapter();
+const webhook = new ConsoleWebhookAdapter();
+const auth = new SimpleAuthAdapter(config.apiKeys, database);
+
+const adapters: VCPAdapters = { database, queue, scheduler, webhook, auth };
+
+// Create assembly manager
+const manager = new AssemblyManager(database, queue);
+
+// Create HTTP app
+const app = createApp(adapters, manager);
+
+// Start queue processor
+queue.start();
+
+// Start HTTP server
+const server = serve({
+  fetch: app.fetch,
+  port: config.port,
+});
+
+console.log(`[vcp] Votiverse Cloud Platform started on http://localhost:${config.port}`);
+console.log(`[vcp] Database: ${config.dbPath}`);
+console.log(`[vcp] API key: ${config.apiKeys[0]?.key ?? "(none)"}`);
+
+// Graceful shutdown
+function shutdown() {
+  console.log("\n[vcp] Shutting down...");
+  queue.stop();
+  scheduler.stopAll();
+  database.close();
+  if (server && "close" in server) {
+    (server as { close: () => void }).close();
+  }
+  process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

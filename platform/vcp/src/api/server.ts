@@ -1,0 +1,43 @@
+/**
+ * HTTP API server — wires all routes together.
+ */
+
+import { Hono } from "hono";
+import { logger } from "hono/logger";
+import type { VCPAdapters } from "../adapters/index.js";
+import type { AssemblyManager } from "../engine/assembly-manager.js";
+import { createAuthMiddleware } from "./middleware/auth.js";
+import { errorHandler } from "./middleware/error-handler.js";
+import { healthRoutes } from "./routes/health.js";
+import { assemblyRoutes } from "./routes/assemblies.js";
+import { participantRoutes } from "./routes/participants.js";
+import { eventRoutes } from "./routes/events.js";
+import { delegationRoutes } from "./routes/delegations.js";
+import { votingRoutes } from "./routes/voting.js";
+import { predictionRoutes } from "./routes/predictions.js";
+import { pollRoutes } from "./routes/polls.js";
+import { awarenessRoutes } from "./routes/awareness.js";
+import { stubRoutes } from "./routes/stubs.js";
+
+export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono {
+  const app = new Hono();
+
+  // Middleware
+  app.use("*", logger());
+  app.use("*", errorHandler);
+  app.use("*", createAuthMiddleware(adapters.auth));
+
+  // Routes
+  app.route("/", healthRoutes(adapters.database));
+  app.route("/", assemblyRoutes(manager));
+  app.route("/", participantRoutes(manager));
+  app.route("/", eventRoutes(manager));
+  app.route("/", delegationRoutes(manager));
+  app.route("/", votingRoutes(manager));
+  app.route("/", predictionRoutes(manager));
+  app.route("/", pollRoutes(manager));
+  app.route("/", awarenessRoutes(manager));
+  app.route("/", stubRoutes());
+
+  return app;
+}
