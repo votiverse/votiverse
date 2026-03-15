@@ -59,9 +59,13 @@ cd platform/web
 pnpm dev
 ```
 
-Open **http://localhost:5173**. You'll see a governance dashboard with a sample assembly (Liquid Standard preset), five participants, two voting events, delegations, and weighted votes already cast.
+Open **http://localhost:5174**. Select a participant from the identity picker — each has a unique DiceBear avatar. The dashboard shows pending votes across all your assemblies with nearest deadlines. Click "Vote Now" to jump directly into a voting event.
 
-Use the **participant selector** in the header to switch viewpoints — select Alice to see Alice's delegations, switch to Carol to see the delegation weight she carries, then cast a vote and watch the weighted tally update in real time.
+### Sample Data
+
+The seed script creates a rich, diverse dataset across 4 organizations and 5 assemblies (each using a different governance preset): 63 participants, 13 voting events in all lifecycle states, 42 issues, 21 delegations with chains, 155 pre-cast votes, and 2 polls. Try these cross-assembly participants for the best evaluation experience: **Sofia Reyes** (OSC + Youth), **Marcus Chen** (OSC + Municipal), **Priya Sharma** (Municipal + Youth), **James Okafor** (Municipal + Board).
+
+To reset the database to fresh seed data: `cd platform/vcp && pnpm reset`.
 
 ---
 
@@ -90,7 +94,7 @@ Votiverse has three layers:
 
 **Cloud Platform (VCP)** — A Node.js server that imports the engine and wraps it in production infrastructure: REST API, SQLite/PostgreSQL database, task queue, scheduled jobs, webhook dispatch. See [VCP README](platform/vcp/README.md).
 
-**Web Client** — A React SPA for interacting with the VCP. Developer/evaluation client with assembly management, voting, delegation visualization, and awareness dashboards. See [Web Client README](platform/web/README.md).
+**Web Client** — A voter-centric React SPA for interacting with the VCP. Identity-aware dashboard with cross-assembly pending votes, DiceBear avatars, delegation chain visualization, neutral vote buttons, and rank-based tally display. See [Web Client README](platform/web/README.md).
 
 ---
 

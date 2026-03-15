@@ -25,36 +25,46 @@ pnpm seed
 # Start the web client (Terminal 3)
 cd platform/web
 pnpm dev
-# → http://localhost:5173
+# → http://localhost:5174
 ```
 
+To reset the VCP database to fresh seed data at any time: `cd platform/vcp && pnpm reset`.
+
 ---
+
+## Voter-Centric UX
+
+The web client is designed as a **voter-centric experience**. The dashboard greets you by name, shows pending votes across all assemblies, and provides one-click access to vote. Key design principles:
+
+- **Identity picker** — On first visit, select who you are from a list of seeded participants. Each participant has a DiceBear avatar that stays consistent across all views.
+- **Cross-assembly dashboard** — Aggregates pending votes, nearest deadlines, and assembly summaries across all assemblies where the selected participant is a member.
+- **Delegation visibility** — When your vote is delegated, the delegate's name and avatar appear inline. Delegation chains are visualized with arrows.
+- **Neutral vote buttons** — For/Against/Abstain are visually identical (no choice is privileged). Tally bars use a rank-based color palette.
 
 ## Views
 
 | View | Route | Description |
 |------|-------|-------------|
-| **Assembly List** | `/` | List and create assemblies with preset selector |
-| **Dashboard** | `/assembly/:id` | Assembly overview: stats, governance config, recent events |
-| **Members** | `/assembly/:id/members` | Add/remove participants, links to profiles and history |
-| **Events** | `/assembly/:id/events` | List voting events, create new events with issues |
+| **Dashboard** | `/` | Cross-assembly: pending votes, deadlines, assembly cards |
+| **Assembly List** | `/assemblies` | Browse and create assemblies |
+| **Assembly Overview** | `/assembly/:id` | Assembly stats, governance config, recent events |
+| **Members** | `/assembly/:id/members` | Participant list with avatars, profile/history links |
+| **Events** | `/assembly/:id/events` | Voting events with status badges and vote progress |
 | **Event Detail** | `/assembly/:id/events/:eid` | Vote buttons, weighted tally bars, weight distribution grid |
-| **Delegations** | `/assembly/:id/delegations` | Create/revoke delegations, chain visualization |
+| **Delegations** | `/assembly/:id/delegations` | Active delegations with avatars, chain resolver |
 | **Polls** | `/assembly/:id/polls` | Create polls, submit responses, view results |
-| **Awareness** | `/assembly/:id/awareness` | Concentration metrics, delegate profiles, voting history |
-| **Profile** | `/assembly/:id/awareness/profile/:pid` | Individual delegate profile page |
+| **Profile** | `/profile` | Cross-assembly profile: vote count, delegators, history |
 
 ---
 
-## Participant Selector
+## Identity Switching
 
-The header contains a **participant selector** — a dropdown that lets you switch which participant you're acting as. This is the key UX feature for evaluation:
+The header shows your current identity with a DiceBear avatar. Click to open the identity menu:
 
-- Select **Alice** → votes, delegations, and polls are submitted as Alice
-- Switch to **Carol** → you see Carol's perspective, her delegation weight, her history
-- Cast a vote as Carol → watch the weighted tally update, then switch to Alice and see the delegation chain
+- **Profile** — See your cross-assembly voting stats and delegation info
+- **Switch Identity** — Return to the identity picker to become a different participant
 
-Without real user authentication, this simulates multiple users interacting with the governance system from a single browser.
+Cross-assembly participants (e.g. Sofia Reyes in OSC and Youth Advisory) are deduplicated in the picker by name. Selecting one shows data from all assemblies where that name appears.
 
 ---
 

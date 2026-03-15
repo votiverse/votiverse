@@ -17,11 +17,26 @@ pnpm dev
 # Seed sample data (in a second terminal)
 pnpm seed
 
+# Reset to fresh seed data (wipes DB and re-seeds)
+pnpm reset
+
 # Run tests
 pnpm test
 ```
 
-The seed script creates a sample assembly (Liquid Standard preset) with 5 participants, delegations, a voting event with 2 issues, and pre-cast votes.
+### Sample Data
+
+The seed script (`pnpm seed`) creates a rich, diverse dataset for UI/UX evaluation:
+
+- **4 organizations, 5 assemblies** — each using a different governance preset (Town Hall, Liquid Standard, Civic Participatory, Liquid Accountable, Board Proxy)
+- **63 participants** across all assemblies, with 4 cross-assembly participants (same name, different IDs) to test identity deduplication
+- **13 voting events** in all lifecycle states: 4 closed, 5 voting, 2 deliberation, 2 upcoming
+- **42 issues** with unique, realistic titles and descriptions
+- **21 delegations** including depth-2 chains and override scenarios
+- **155 pre-cast votes** with varied margins (landslides, tight races, quorum edge cases)
+- **2 polls** with 16 responses across assemblies that have polling enabled
+
+To reset the database to fresh seed data at any time, run `pnpm reset`. This wipes the SQLite database, starts the server, runs the seed script, and stops the server — one command to get back to a known state.
 
 ---
 
@@ -101,6 +116,7 @@ Every request (except `/health`) requires `Authorization: Bearer <key>`.
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/assemblies/:id/polls` | Create poll |
+| `GET` | `/assemblies/:id/polls` | List polls |
 | `POST` | `/assemblies/:id/polls/:pid/respond` | Submit poll response |
 | `GET` | `/assemblies/:id/polls/:pid/results` | Poll results |
 | `GET` | `/assemblies/:id/trends/:topic` | Topic trend data |
