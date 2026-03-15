@@ -52,6 +52,14 @@ export function votingRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
 
+    const info = manager.getAssemblyInfo(assemblyId);
+    if (!info) {
+      return c.json(
+        { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
+        404,
+      );
+    }
+
     const { engine } = await manager.getEngine(assemblyId);
     const votingEvent = engine.events.get(eid as VotingEventId);
     if (!votingEvent) {
@@ -61,25 +69,46 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
+    const { resultsVisibility } = info.config.ballot;
+    const now = Date.now();
+    const votingEnded = votingEvent.timeline.votingEnd <= now;
+    const isSealed = resultsVisibility === "sealed" && !votingEnded;
+
     // Compute tallies for all issues in the event
     const tallies = [];
     for (const issueId of votingEvent.issueIds) {
       const tally = await engine.voting.tally(issueId);
-      tallies.push({
-        issueId: tally.issueId,
-        winner: tally.winner,
-        counts: Object.fromEntries(tally.counts),
-        totalVotes: tally.totalVotes,
-        quorumMet: tally.quorumMet,
-        quorumThreshold: tally.quorumThreshold,
-        eligibleCount: tally.eligibleCount,
-        participatingCount: tally.participatingCount,
-      });
+
+      if (isSealed) {
+        // Return participation metadata only — no choice distribution
+        tallies.push({
+          issueId: tally.issueId,
+          sealed: true,
+          winner: null,
+          counts: {},
+          totalVotes: 0,
+          quorumMet: tally.quorumMet,
+          quorumThreshold: tally.quorumThreshold,
+          eligibleCount: tally.eligibleCount,
+          participatingCount: tally.participatingCount,
+        });
+      } else {
+        tallies.push({
+          issueId: tally.issueId,
+          sealed: false,
+          winner: tally.winner,
+          counts: Object.fromEntries(tally.counts),
+          totalVotes: tally.totalVotes,
+          quorumMet: tally.quorumMet,
+          quorumThreshold: tally.quorumThreshold,
+          eligibleCount: tally.eligibleCount,
+          participatingCount: tally.participatingCount,
+        });
+      }
     }
 
     // Materialize participation records for closed events (lazy, idempotent)
-    const now = Date.now();
-    if (votingEvent.timeline.votingEnd <= now) {
+    if (votingEnded) {
       for (const issueId of votingEvent.issueIds) {
         await manager.materializeParticipation(assemblyId, issueId);
       }
@@ -201,12 +230,24 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secrecy } = info.config.ballot;
+    const { secrecy, resultsVisibility } = info.config.ballot;
 
     // Per-participant weights reveal who voted — forbidden under secret ballot
     if (secrecy !== "public") {
       return c.json(
         { error: { code: "FORBIDDEN", message: "Per-participant weight breakdown is not available under secret ballot" } },
+        403,
+      );
+    }
+
+    // Sealed results: weights not available until voting ends
+    const now = Date.now();
+    if (
+      resultsVisibility === "sealed" &&
+      votingEvent.timeline.votingEnd > now
+    ) {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Vote weight breakdown is not available until voting ends (sealed results)" } },
         403,
       );
     }

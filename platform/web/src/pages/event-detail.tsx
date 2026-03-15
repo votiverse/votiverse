@@ -32,7 +32,11 @@ export function EventDetail() {
     [assemblyId, eventId],
   );
   const { data: weightsData } = useApi(
-    () => api.getWeights(assemblyId!, eventId!),
+    () => api.getWeights(assemblyId!, eventId!).catch((err) => {
+      // 403 is expected for secret ballots or sealed results — suppress
+      if (err instanceof api.ApiError && err.status === 403) return { eventId: eventId!, weights: [] };
+      throw err;
+    }),
     [assemblyId, eventId],
   );
   const { data: participantsData } = useApi(
@@ -353,8 +357,25 @@ function IssueVotingCard({
           <p className="text-sm text-gray-400">Select an identity to vote.</p>
         )}
 
-        {/* Tally visualization */}
-        {tally && totalVotes > 0 && (
+        {/* Sealed results indicator during open voting */}
+        {tally && tally.sealed && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            <span className="text-sm text-gray-500">
+              Results are sealed until voting ends
+              {tally.participatingCount > 0 && (
+                <span className="ml-1">
+                  · {tally.participatingCount} of {tally.eligibleCount} members have voted
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Tally visualization — hidden when sealed */}
+        {tally && !tally.sealed && totalVotes > 0 && (
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Results</h3>
             <div className="space-y-3">
@@ -434,7 +455,7 @@ function IssueVotingCard({
           </div>
         )}
 
-        {tally && totalVotes === 0 && (
+        {tally && !tally.sealed && totalVotes === 0 && (
           <p className="text-sm text-gray-400">No votes cast yet.</p>
         )}
       </CardBody>

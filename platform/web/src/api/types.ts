@@ -36,6 +36,7 @@ export interface GovernanceConfig {
     supermajorityThreshold: number;
     quorum: number;
     participationMode: string;
+    resultsVisibility: string;
   };
   features: {
     predictions: string;
@@ -116,6 +117,7 @@ export interface MyWeight {
 
 export interface Tally {
   issueId: string;
+  sealed?: boolean;
   winner: string | null;
   counts: Record<string, number>;
   totalVotes: number;
