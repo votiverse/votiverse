@@ -129,33 +129,22 @@ describe("Ballot secrecy enforcement", () => {
       expect(data.history[0]!.choice).toBe("for"); // own vote is visible
     });
 
-    it("secret ballot: other's history omits choices", async () => {
+    it("secret ballot: other's history returns 403", async () => {
       const res = await vcp.request(
         "GET",
         `/assemblies/${secretAsmId}/awareness/history/${alice.id}`,
         undefined,
         { "X-Participant-Id": bob.id }, // Bob asking about Alice
       );
-      const data = (await res.json()) as {
-        history: Array<{ issueId: string; choice?: string; votedAt: string }>;
-      };
-
-      expect(data.history).toHaveLength(1);
-      expect(data.history[0]!.choice).toBeUndefined(); // choice not included
-      expect(data.history[0]!.issueId).toBeDefined(); // but vote record exists
-      expect(data.history[0]!.votedAt).toBeDefined();
+      expect(res.status).toBe(403);
     });
 
-    it("secret ballot: no caller ID = no choices", async () => {
+    it("secret ballot: no caller ID returns 403", async () => {
       const res = await vcp.request(
         "GET",
         `/assemblies/${secretAsmId}/awareness/history/${alice.id}`,
       );
-      const data = (await res.json()) as {
-        history: Array<{ choice?: string }>;
-      };
-
-      expect(data.history[0]!.choice).toBeUndefined();
+      expect(res.status).toBe(403);
     });
 
     it("public ballot: choices always visible", async () => {

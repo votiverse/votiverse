@@ -60,10 +60,20 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { engine } = await manager.getEngine(assemblyId);
-    const store = engine.getEventStore();
     const { secrecy } = info.config.ballot;
     const isOwnHistory = callerId === pid;
+
+    // Under secret/anonymous-auditable ballot, only the participant can view their own history
+    // (participation patterns — which issues, when — are individual-level information)
+    if (secrecy !== "public" && !isOwnHistory) {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Voting history is restricted to the participant under secret ballot" } },
+        403,
+      );
+    }
+
+    const { engine } = await manager.getEngine(assemblyId);
+    const store = engine.getEventStore();
 
     // Query vote events for this participant
     const voteEvents = await store.query({ types: ["VoteCast"] });
