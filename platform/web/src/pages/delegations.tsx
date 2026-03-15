@@ -2,16 +2,20 @@ import { useState } from "react";
 import { useParams } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
+import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
 import type { DelegationChain } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Select, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
+import { TopicPicker } from "../components/topic-picker.js";
 
 export function Delegations() {
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
+  const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
+  const { assembly } = useAssembly(assemblyId);
   const [creating, setCreating] = useState(false);
 
   if (loading) return <Spinner />;
@@ -21,6 +25,8 @@ export function Delegations() {
   const participants = participantsData?.participants ?? [];
   const events = eventsData?.events ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
+  const topicNameMap = new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name]));
+  const isTopicScoped = assembly?.config.delegation.topicScoped ?? false;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -33,6 +39,7 @@ export function Delegations() {
         <CreateDelegationForm
           assemblyId={assemblyId!}
           participants={participants}
+          isTopicScoped={isTopicScoped}
           onClose={() => setCreating(false)}
           onCreated={refetch}
         />
@@ -64,7 +71,9 @@ export function Delegations() {
                         {nameMap.get(d.targetId) ?? d.targetId.slice(0, 8)}
                       </span>
                       <span className="text-xs text-gray-400">
-                        {d.topicScope.length === 0 ? "(global)" : `(${d.topicScope.length} topic${d.topicScope.length !== 1 ? "s" : ""})`}
+                        {d.topicScope.length === 0
+                          ? "(global)"
+                          : `(${d.topicScope.map((id) => topicNameMap.get(id) ?? id.slice(0, 8)).join(", ")})`}
                       </span>
                     </div>
                     <RevokeButton assemblyId={assemblyId!} delegationId={d.id} onRevoked={refetch} />
@@ -90,17 +99,21 @@ export function Delegations() {
 function CreateDelegationForm({
   assemblyId,
   participants,
+  isTopicScoped,
   onClose,
   onCreated,
 }: {
   assemblyId: string;
   participants: Array<{ id: string; name: string }>;
+  isTopicScoped: boolean;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const { participantId } = useIdentity();
   const [sourceId, setSourceId] = useState(participantId ?? "");
   const [targetId, setTargetId] = useState("");
+  const [scopeMode, setScopeMode] = useState<"global" | "topics">("global");
+  const [topicScope, setTopicScope] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -110,7 +123,8 @@ function CreateDelegationForm({
     setSubmitting(true);
     setFormError(null);
     try {
-      await api.createDelegation(assemblyId, { sourceId, targetId, topicScope: [] });
+      const resolvedScope = scopeMode === "topics" ? topicScope : [];
+      await api.createDelegation(assemblyId, { sourceId, targetId, topicScope: resolvedScope });
       onCreated();
       onClose();
     } catch (err: unknown) {
@@ -146,10 +160,45 @@ function CreateDelegationForm({
               </Select>
             </div>
           </div>
-          <p className="text-xs text-gray-400">Global delegation (all topics). Topic-scoped delegation coming soon.</p>
+          {isTopicScoped && (
+            <div>
+              <Label>Scope</Label>
+              <div className="space-y-2 mt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scope"
+                    checked={scopeMode === "global"}
+                    onChange={() => setScopeMode("global")}
+                    className="text-brand focus:ring-brand"
+                  />
+                  <span className="text-sm text-gray-700">All topics (global delegation)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scope"
+                    checked={scopeMode === "topics"}
+                    onChange={() => setScopeMode("topics")}
+                    className="text-brand focus:ring-brand"
+                  />
+                  <span className="text-sm text-gray-700">Specific topics</span>
+                </label>
+                {scopeMode === "topics" && (
+                  <div className="ml-6 mt-1 bg-gray-50 rounded-md p-2">
+                    <TopicPicker
+                      assemblyId={assemblyId}
+                      value={topicScope}
+                      onChange={setTopicScope}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting || !sourceId || !targetId}>
+            <Button type="submit" disabled={submitting || !sourceId || !targetId || (scopeMode === "topics" && topicScope.length === 0)}>
               {submitting ? "Creating..." : "Delegate"}
             </Button>
           </div>

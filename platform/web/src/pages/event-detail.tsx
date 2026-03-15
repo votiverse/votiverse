@@ -39,12 +39,17 @@ export function EventDetail() {
     () => api.listParticipants(assemblyId!),
     [assemblyId],
   );
+  const { data: topicsData } = useApi(
+    () => api.listTopics(assemblyId!),
+    [assemblyId],
+  );
 
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? "Event not found"} onRetry={refetch} />;
 
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
+  const topicNameMap = new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name]));
 
   const refreshAll = () => {
     invalidateHistoryCache();
@@ -94,6 +99,8 @@ export function EventDetail() {
               title={issue.title}
               description={issue.description}
               choices={issue.choices}
+              topicIds={issue.topicIds}
+              topicNameMap={topicNameMap}
               tally={tally ?? null}
               weightDist={weightDist ?? null}
               nameMap={nameMap}
@@ -206,6 +213,8 @@ function IssueVotingCard({
   title,
   description,
   choices,
+  topicIds,
+  topicNameMap,
   tally,
   weightDist,
   nameMap,
@@ -217,6 +226,8 @@ function IssueVotingCard({
   title: string;
   description: string;
   choices?: string[];
+  topicIds?: string[];
+  topicNameMap: Map<string, string>;
   tally: Tally | null;
   weightDist: WeightDist | null;
   nameMap: Map<string, string>;
@@ -269,6 +280,15 @@ function IssueVotingCard({
               )}
             </div>
             {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
+            {topicIds && topicIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {topicIds.map((tid) => (
+                  <span key={tid} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {topicNameMap.get(tid) ?? tid.slice(0, 8)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           {tally?.winner && <Badge color="green">Winner: {tally.winner}</Badge>}
         </div>
