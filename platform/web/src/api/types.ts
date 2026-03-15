@@ -67,6 +67,7 @@ export interface Issue {
   title: string;
   description: string;
   topicIds: string[];
+  choices?: string[];
 }
 
 export interface Delegation {

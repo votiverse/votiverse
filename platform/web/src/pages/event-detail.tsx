@@ -93,6 +93,7 @@ export function EventDetail() {
               issueId={issue.id}
               title={issue.title}
               description={issue.description}
+              choices={issue.choices}
               tally={tally ?? null}
               weightDist={weightDist ?? null}
               nameMap={nameMap}
@@ -204,6 +205,7 @@ function IssueVotingCard({
   issueId,
   title,
   description,
+  choices,
   tally,
   weightDist,
   nameMap,
@@ -214,6 +216,7 @@ function IssueVotingCard({
   issueId: string;
   title: string;
   description: string;
+  choices?: string[];
   tally: Tally | null;
   weightDist: WeightDist | null;
   nameMap: Map<string, string>;
@@ -259,7 +262,12 @@ function IssueVotingCard({
       <CardHeader>
         <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
           <div>
-            <h2 className="font-medium text-gray-900">{title}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-medium text-gray-900">{title}</h2>
+              {choices && choices.length > 0 && (
+                <Badge color="blue">{choices.length} candidates</Badge>
+              )}
+            </div>
             {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
           </div>
           {tally?.winner && <Badge color="green">Winner: {tally.winner}</Badge>}
@@ -283,23 +291,12 @@ function IssueVotingCard({
         {votingOpen && participantId && (
           (!issueStatus.hasVoted && !issueStatus.isDelegated && !issueStatus.loading) || showVoteButtons
         ) && (
-          <div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-              <span className="text-sm text-gray-500">Cast vote:</span>
-              <div className="flex gap-2">
-                <Button size="lg" variant="secondary" onClick={() => handleVote("for")} disabled={voting} className="flex-1 sm:flex-none">
-                  For
-                </Button>
-                <Button size="lg" variant="secondary" onClick={() => handleVote("against")} disabled={voting} className="flex-1 sm:flex-none">
-                  Against
-                </Button>
-                <Button size="lg" variant="secondary" onClick={() => handleVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
-                  Abstain
-                </Button>
-              </div>
-            </div>
-            {voteError && <p className="text-sm text-red-600 mt-1">{voteError}</p>}
-          </div>
+          <VoteButtons
+            choices={choices}
+            voting={voting}
+            voteError={voteError}
+            onVote={handleVote}
+          />
         )}
 
         {!participantId && votingOpen && (
@@ -386,6 +383,69 @@ function IssueVotingCard({
         )}
       </CardBody>
     </Card>
+  );
+}
+
+/** Renders either binary For/Against/Abstain buttons or multi-option candidate buttons. */
+function VoteButtons({
+  choices,
+  voting,
+  voteError,
+  onVote,
+}: {
+  choices?: string[];
+  voting: boolean;
+  voteError: string | null;
+  onVote: (choice: string) => void;
+}) {
+  const isMultiOption = choices && choices.length > 0;
+
+  if (isMultiOption) {
+    return (
+      <div>
+        <span className="text-sm text-gray-500 mb-2 block">Select your choice:</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {choices.map((choice) => (
+            <Button
+              key={choice}
+              size="lg"
+              variant="secondary"
+              onClick={() => onVote(choice)}
+              disabled={voting}
+              className="w-full justify-center"
+            >
+              {choice}
+            </Button>
+          ))}
+        </div>
+        <div className="mt-2">
+          <Button size="sm" variant="ghost" onClick={() => onVote("abstain")} disabled={voting}>
+            Abstain
+          </Button>
+        </div>
+        {voteError && <p className="text-sm text-red-600 mt-1">{voteError}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <span className="text-sm text-gray-500">Cast vote:</span>
+        <div className="flex gap-2">
+          <Button size="lg" variant="secondary" onClick={() => onVote("for")} disabled={voting} className="flex-1 sm:flex-none">
+            For
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => onVote("against")} disabled={voting} className="flex-1 sm:flex-none">
+            Against
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => onVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
+            Abstain
+          </Button>
+        </div>
+      </div>
+      {voteError && <p className="text-sm text-red-600 mt-1">{voteError}</p>}
+    </div>
   );
 }
 
