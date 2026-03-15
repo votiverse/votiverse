@@ -238,21 +238,72 @@ Emergency Infrastructure Measures — Vote needed, closes in 2d 23h
   • Resident Relocation Assistance Program
 ```
 
-### 3.6 "Vote needed" vs "Vote now"
+### 3.7 "Vote needed" vs "Vote now"
 
 The dashboard banner says "Vote Now" (prominent blue CTA) and the cards say "Vote needed" (orange text). These should be consistent. "Vote now" on the banner is good. The cards could say "Not yet voted" or simply show no badge if the user hasn't voted, and a checkmark if they have.
+
+### 3.8 Participant vs Organizer — two different experiences
+
+**Problem:** The app mixes participation and organization on every screen. The "Create Assembly" button sits next to the list that most users are just browsing. Creation actions are scattered across different sections. But most users (90%+) are participants — they open the app, see what needs attention, vote, respond, done. A smaller group are organizers — the club president, the board chair — who create votes, write surveys, add members.
+
+**Fix:** Separate these paths without complicating navigation:
+
+**For participants (the default experience):**
+- The home dashboard shows what needs attention: pending votes, open surveys, recent results.
+- Tapping a group shows its activity: active votes, surveys, delegate info, insights.
+- No creation buttons visible in the primary flow. The experience is: read, decide, respond.
+
+**For organizers (accessible but not prominent):**
+- A persistent **"+"** button (floating action button or header icon) available on relevant screens. Tapping it shows contextual creation options:
+  - On the home/groups screen: "New group"
+  - Inside a group: "New vote," "New survey," "Add member"
+- Within each section, a subtle creation link at the top: "Create a vote →" in the Votes tab, "New survey →" in the Surveys tab. Visually quiet — a text link, not a prominent button.
+- A dedicated **"Manage"** or **"Settings"** area within each group for administrative tasks: member management, governance configuration, delegation rules.
+
+**The principle:** Participation is the default. Organization is available but doesn't clutter the participant experience. A soccer parent voting on jerseys should never feel like they're looking at an admin panel.
+
+**Creation action naming:**
+
+| Action | User-facing label |
+|--------|------------------|
+| Create a voting event | "New vote" or "Create a vote" |
+| Create a poll | "New survey" |
+| Create an Assembly | "New group" or "Start a new group" |
+| Add a participant | "Add a member" or "Invite someone" |
+| Create a delegation | "Trust someone with your vote" |
+| Create an Organization | "Set up an organization" (this is rare and admin-only) |
 
 ---
 
 ## 4. Navigation Structure
 
-Current nav (inside an Assembly): Overview | Events | Delegations | Polls | Members
+### 4.1 Top-level navigation
 
-Recommended: Overview | Votes | Delegates | Surveys | Members | Insights
+Current: Dashboard | Assemblies | Profile
 
-The top-level nav: Dashboard | Assemblies | Profile
+Recommended: **Home | My Groups | Me**
 
-Recommended: Home | My Groups | Profile (or Me)
+"Home" is the personal dashboard — what needs your attention across all your groups. "My Groups" is the list of Assemblies. "Me" is profile and settings.
+
+### 4.2 Inside a group (Assembly)
+
+Current: Overview | Events | Delegations | Polls | Members
+
+Recommended: **Overview | Votes | Delegates | Surveys | Members | Insights**
+
+"Overview" is the group dashboard — activity summary, pending items, quick stats. The other tabs drill into each domain.
+
+### 4.3 Creation actions
+
+A "+" icon in the header or a floating action button, contextual to the current screen:
+
+- **On Home:** + → "New group"
+- **On a group's Overview:** + → "New vote" / "New survey" / "Invite member"
+- **On Votes tab:** + → "New vote"
+- **On Surveys tab:** + → "New survey"
+- **On Members tab:** + → "Invite member"
+
+The "+" is only visible to users with organizer permissions for that group. Participants don't see it.
 
 ---
 
