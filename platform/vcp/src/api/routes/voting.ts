@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId, IssueId, VotingEventId, VoteChoice } from "@votiverse/core";
 import { ValidationError } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { getParticipantId } from "../middleware/auth.js";
 
 export function votingRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -92,6 +93,15 @@ export function votingRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
     const participantId = c.req.query("participantId");
+    const callerId = getParticipantId(c);
+
+    const info = manager.getAssemblyInfo(assemblyId);
+    if (!info) {
+      return c.json(
+        { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
+        404,
+      );
+    }
 
     const { engine } = await manager.getEngine(assemblyId);
     const votingEvent = engine.events.get(eid as VotingEventId);
@@ -102,17 +112,69 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
+    const { secrecy, delegateVoteVisibility } = info.config.ballot;
+    const delegationVisibility = info.config.delegation.visibility ?? { mode: "public" as const };
+
+    // Access control: in private delegation mode, you can only query your own participation
+    if (delegationVisibility.mode === "private" && participantId && participantId !== callerId) {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Cannot view another participant's participation in private visibility mode" } },
+        403,
+      );
+    }
+
     // Materialize if not yet done (idempotent)
     for (const issueId of votingEvent.issueIds) {
       await manager.materializeParticipation(assemblyId, issueId);
     }
 
-    // Collect participation records for all issues in the event
-    const participation = [];
+    // Collect raw records
+    const rawRecords = [];
     for (const issueId of votingEvent.issueIds) {
       const records = manager.getParticipation(assemblyId, issueId, participantId);
-      participation.push(...records);
+      rawRecords.push(...records);
     }
+
+    // Apply secrecy filtering to effectiveChoice
+    const participation = rawRecords.map((record) => {
+      const isOwnRecord = callerId === record.participantId;
+      let filteredChoice: unknown = record.effectiveChoice;
+
+      if (secrecy !== "public") {
+        // Secret or anonymous-auditable: restrict who sees choices
+        if (isOwnRecord && record.status === "direct") {
+          // You always know your own direct vote
+          filteredChoice = record.effectiveChoice;
+        } else if (isOwnRecord && record.status === "delegated") {
+          // You delegated — can you see how your delegate voted?
+          if (delegateVoteVisibility === "private") {
+            filteredChoice = null;
+          }
+          // "public" or "delegators-only": you ARE the delegator, so you can see
+        } else {
+          // Not your record — never reveal choices under secret/anonymous-auditable
+          filteredChoice = null;
+        }
+      }
+
+      // In private delegation mode, strip structural info from other people's records
+      if (delegationVisibility.mode === "private" && !isOwnRecord) {
+        return {
+          participantId: record.participantId,
+          issueId: record.issueId,
+          status: record.status,
+          effectiveChoice: null,
+          delegateId: null,
+          terminalVoterId: null,
+          chain: [],
+        };
+      }
+
+      return {
+        ...record,
+        effectiveChoice: filteredChoice,
+      };
+    });
 
     return c.json({ eventId: eid, participation });
   });
