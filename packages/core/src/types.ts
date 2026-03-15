@@ -88,6 +88,15 @@ export interface Issue {
   readonly description: string;
   readonly topicIds: readonly TopicId[];
   readonly votingEventId: VotingEventId;
+  /**
+   * Declared choices for this issue. When present, votes must select from
+   * these options (or abstain). When undefined, the issue is binary
+   * (for/against/abstain) and any string choice is accepted.
+   *
+   * // DECISION: "abstain" is always implicitly available and does not need
+   * // to appear in this array.
+   */
+  readonly choices?: readonly string[];
 }
 
 /**

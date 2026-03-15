@@ -71,10 +71,25 @@ export interface TopicCreatedPayload {
   readonly parentId: TopicId | null;
 }
 
+/** Issue metadata stored within a VotingEventCreated event. */
+export interface VotingEventIssuePayload {
+  readonly id: IssueId;
+  readonly title: string;
+  readonly description: string;
+  readonly topicIds: readonly TopicId[];
+  readonly choices?: readonly string[];
+}
+
 export interface VotingEventCreatedPayload {
   readonly votingEventId: VotingEventId;
   readonly title: string;
   readonly description: string;
+  /**
+   * Full issue metadata. Present in events created after multi-option support.
+   * When replaying older events, this may be absent — fall back to issueIds.
+   */
+  readonly issues?: readonly VotingEventIssuePayload[];
+  /** Retained for backward compatibility with pre-existing events. */
   readonly issueIds: readonly IssueId[];
   readonly eligibleParticipantIds: readonly ParticipantId[];
   readonly timeline: EventTimeline;

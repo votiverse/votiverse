@@ -39,6 +39,7 @@ export type {
   EventType,
   ParticipantRegisteredPayload,
   TopicCreatedPayload,
+  VotingEventIssuePayload,
   VotingEventCreatedPayload,
   VotingEventClosedPayload,
   DelegationCreatedPayload,
