@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
+import { Avatar } from "../components/avatar.js";
 
 export function Members() {
   const { assemblyId } = useParams();
@@ -36,9 +37,12 @@ export function Members() {
           <div className="divide-y divide-gray-100">
             {participants.map((p) => (
               <div key={p.id} className="px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-h-[56px]">
-                <div className="min-w-0">
-                  <div className="font-medium text-gray-900">{p.name}</div>
-                  <div className="text-xs text-gray-400 font-mono mt-0.5 truncate">{p.id}</div>
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar name={p.name} size="md" />
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900">{p.name}</div>
+                    <div className="text-xs text-gray-400 font-mono mt-0.5 truncate">{p.id}</div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 sm:gap-2 shrink-0">
                   <Link

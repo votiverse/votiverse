@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import { Spinner } from "./ui.js";
+import { Avatar } from "./avatar.js";
 
 interface KnownParticipant {
   id: string;
@@ -74,9 +75,7 @@ export function IdentityPicker() {
             onClick={() => setParticipant(p.id, p.name)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 bg-white hover:border-brand-200 hover:shadow transition-all min-h-[52px] text-left"
           >
-            <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center text-brand font-semibold shrink-0">
-              {p.name[0].toUpperCase()}
-            </div>
+            <Avatar name={p.name} size="md" />
             <div>
               <p className="font-medium text-gray-900">{p.name}</p>
               <p className="text-xs text-gray-400">{p.assemblyName}</p>

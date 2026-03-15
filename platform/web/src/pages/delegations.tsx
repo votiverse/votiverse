@@ -5,6 +5,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { DelegationChain } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Select, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
+import { Avatar } from "../components/avatar.js";
 
 export function Delegations() {
   const { assemblyId } = useParams();
@@ -51,12 +52,14 @@ export function Delegations() {
                 {delegations.map((d) => (
                   <div key={d.id} className="flex items-center justify-between bg-gray-50 rounded-md px-3 sm:px-4 py-3 gap-2 min-h-[52px]">
                     <div className="flex items-center gap-1.5 sm:gap-2 text-sm min-w-0 flex-wrap">
+                      <Avatar name={nameMap.get(d.sourceId) ?? d.sourceId} size="xs" />
                       <span className="font-medium text-gray-900 truncate">
                         {nameMap.get(d.sourceId) ?? d.sourceId.slice(0, 8)}
                       </span>
                       <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
+                      <Avatar name={nameMap.get(d.targetId) ?? d.targetId} size="xs" />
                       <span className="font-medium text-brand truncate">
                         {nameMap.get(d.targetId) ?? d.targetId.slice(0, 8)}
                       </span>
@@ -267,7 +270,7 @@ function ChainVisualization({ chain, nameMap }: { chain: DelegationChain; nameMa
                 </>
               )}
               <div
-                className={`px-4 py-2.5 rounded-md text-sm font-medium w-full sm:w-auto text-center min-h-[44px] flex items-center justify-center ${
+                className={`px-4 py-2.5 rounded-md text-sm font-medium w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2 ${
                   isTerminal
                     ? "bg-brand text-white"
                     : isFirst
@@ -275,9 +278,10 @@ function ChainVisualization({ chain, nameMap }: { chain: DelegationChain; nameMa
                       : "bg-white border border-gray-300 text-gray-700"
                 }`}
               >
+                <Avatar name={nameMap.get(pid) ?? pid} size="xs" />
                 {nameMap.get(pid) ?? pid.slice(0, 8)}
-                {isTerminal && <span className="ml-1.5 text-xs opacity-75">(voter)</span>}
-                {isFirst && !isTerminal && <span className="ml-1.5 text-xs opacity-75">(source)</span>}
+                {isTerminal && <span className="ml-1 text-xs opacity-75">(voter)</span>}
+                {isFirst && !isTerminal && <span className="ml-1 text-xs opacity-75">(source)</span>}
               </div>
             </div>
           );

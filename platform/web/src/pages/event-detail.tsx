@@ -6,6 +6,7 @@ import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-statu
 import * as api from "../api/client.js";
 import type { Tally, WeightDist } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
+import { Avatar } from "../components/avatar.js";
 
 export function EventDetail() {
   const { assemblyId, eventId } = useParams();
@@ -348,7 +349,10 @@ function IssueVotingCard({
                   .sort(([, a], [, b]) => b - a)
                   .map(([pid, weight]) => (
                     <div key={pid} className="flex items-center justify-between text-sm bg-gray-50 rounded-md px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2">
-                      <span className="text-gray-700">{nameMap.get(pid) ?? pid.slice(0, 8)}</span>
+                      <span className="flex items-center gap-2 text-gray-700">
+                        <Avatar name={nameMap.get(pid) ?? pid} size="xs" />
+                        {nameMap.get(pid) ?? pid.slice(0, 8)}
+                      </span>
                       <span className="font-semibold text-gray-900">
                         {weight === 1 ? "1" : weight.toFixed(0)}
                         {weight > 1 && (
@@ -418,13 +422,15 @@ function UserVoteStatus({
 
   // Delegated
   if (issueStatus.isDelegated) {
-    const chainDisplay = chainNames.join(" \u2192 ");
+    const chainDisplay = chainNames.join(" → ");
+    const delegateName = terminalVoterName ?? chainNames[chainNames.length - 1];
     return (
       <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+          {delegateName && <Avatar name={delegateName} size="xs" />}
           <span className="text-sm text-blue-700 truncate">
-            Delegated to <span className="font-semibold">{terminalVoterName ?? chainNames[chainNames.length - 1]}</span>
+            Delegated to <span className="font-semibold">{delegateName}</span>
             {chainNames.length > 1 && (
               <span className="text-blue-400 ml-1">via {chainDisplay}</span>
             )}

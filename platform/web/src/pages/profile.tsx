@@ -3,6 +3,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Spinner, Badge } from "../components/ui.js";
+import { Avatar } from "../components/avatar.js";
 
 interface AssemblyProfileData {
   assembly: Assembly;
@@ -75,9 +76,7 @@ export function Profile() {
         <CardBody>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-semibold text-xl">
-                {(participantName ?? "?")[0].toUpperCase()}
-              </div>
+              <Avatar name={participantName ?? "?"} size="lg" />
               <div>
                 <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
                 <p className="text-xs text-gray-400 font-mono">{participantId.slice(0, 16)}...</p>

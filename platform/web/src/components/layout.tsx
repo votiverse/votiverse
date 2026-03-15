@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useParams, useLocation } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
+import { Avatar } from "./avatar.js";
 
 export function Header() {
   const { assemblyId } = useParams();
@@ -96,8 +97,6 @@ function IdentityIndicator({ name }: { name: string | null }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const initial = (name ?? "?")[0].toUpperCase();
-
   return (
     <div className="relative" ref={ref}>
       <button
@@ -105,9 +104,7 @@ function IdentityIndicator({ name }: { name: string | null }) {
         className="flex items-center gap-2 min-h-[44px] sm:min-h-0 px-1"
         aria-label="Identity menu"
       >
-        <div className="w-7 h-7 rounded-full bg-brand/10 text-brand font-semibold text-sm flex items-center justify-center">
-          {initial}
-        </div>
+        <Avatar name={name ?? "?"} size="sm" />
         <span className="hidden sm:inline text-sm text-gray-700 font-medium max-w-[120px] truncate">{name}</span>
       </button>
       {open && (
