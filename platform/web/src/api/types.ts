@@ -70,6 +70,13 @@ export interface Issue {
   choices?: string[];
 }
 
+export interface Topic {
+  id: string;
+  name: string;
+  parentId: string | null;
+  sortOrder: number;
+}
+
 export interface Delegation {
   id: string;
   sourceId: string;

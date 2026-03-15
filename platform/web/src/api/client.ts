@@ -4,6 +4,7 @@ import type {
   Assembly,
   Participant,
   VotingEvent,
+  Topic,
   Delegation,
   DelegationChain,
   Tally,
@@ -119,6 +120,12 @@ export function createEvent(
 
 export function getEvent(assemblyId: string, eventId: string): Promise<VotingEvent> {
   return request("GET", `/assemblies/${assemblyId}/events/${eventId}`);
+}
+
+// ---- Topics ----
+
+export function listTopics(assemblyId: string): Promise<{ topics: Topic[] }> {
+  return request("GET", `/assemblies/${assemblyId}/topics`);
 }
 
 // ---- Delegations ----
