@@ -122,6 +122,7 @@ export class DelegationService {
         delegationId: matching.id,
         sourceId: params.sourceId,
         topicScope: params.topicScope,
+        revokedBy: params.revokedBy ?? { kind: "source" },
       },
       generateEventId(),
       now(),

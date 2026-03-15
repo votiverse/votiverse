@@ -12,6 +12,7 @@ import type {
   EventId,
   IssueId,
   ParticipantId,
+  ParticipantStatus,
   PollId,
   PredictionId,
   ProposalId,
@@ -44,6 +45,7 @@ export interface BaseEvent<TType extends EventType = EventType, TPayload = unkno
 /** All recognized event types in the system. */
 export type EventType =
   | "ParticipantRegistered"
+  | "ParticipantStatusChanged"
   | "TopicCreated"
   | "VotingEventCreated"
   | "VotingEventClosed"
@@ -106,10 +108,25 @@ export interface DelegationCreatedPayload {
   readonly topicScope: readonly TopicId[];
 }
 
+/** Tracks who or what initiated a delegation revocation. */
+export type DelegationRevocationInitiator =
+  | { readonly kind: "source" }
+  | { readonly kind: "sunset"; readonly participantId: ParticipantId }
+  | { readonly kind: "expiry" }
+  | { readonly kind: "system"; readonly reason: string };
+
 export interface DelegationRevokedPayload {
   readonly delegationId: DelegationId;
   readonly sourceId: ParticipantId;
   readonly topicScope: readonly TopicId[];
+  readonly revokedBy: DelegationRevocationInitiator;
+}
+
+export interface ParticipantStatusChangedPayload {
+  readonly participantId: ParticipantId;
+  readonly previousStatus: ParticipantStatus;
+  readonly newStatus: ParticipantStatus;
+  readonly reason: string;
 }
 
 export interface VoteCastPayload {
@@ -161,6 +178,11 @@ export type ParticipantRegisteredEvent = BaseEvent<
   ParticipantRegisteredPayload
 >;
 
+export type ParticipantStatusChangedEvent = BaseEvent<
+  "ParticipantStatusChanged",
+  ParticipantStatusChangedPayload
+>;
+
 export type TopicCreatedEvent = BaseEvent<"TopicCreated", TopicCreatedPayload>;
 
 export type VotingEventCreatedEvent = BaseEvent<"VotingEventCreated", VotingEventCreatedPayload>;
@@ -192,6 +214,7 @@ export type IntegrityCommitmentEvent = BaseEvent<"IntegrityCommitment", Integrit
  */
 export type DomainEvent =
   | ParticipantRegisteredEvent
+  | ParticipantStatusChangedEvent
   | TopicCreatedEvent
   | VotingEventCreatedEvent
   | VotingEventClosedEvent

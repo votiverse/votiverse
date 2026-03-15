@@ -116,6 +116,7 @@ describe("Event definitions", () => {
     it("supports all event types in the union", () => {
       const types: DomainEvent["type"][] = [
         "ParticipantRegistered",
+        "ParticipantStatusChanged",
         "TopicCreated",
         "VotingEventCreated",
         "VotingEventClosed",
@@ -129,7 +130,7 @@ describe("Event definitions", () => {
         "IntegrityCommitment",
       ];
 
-      expect(types).toHaveLength(12);
+      expect(types).toHaveLength(13);
     });
   });
 });
