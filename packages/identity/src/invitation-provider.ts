@@ -63,6 +63,7 @@ export class InvitationProvider implements IdentityProvider, SybilCheck {
           id: payload.participantId,
           name: payload.name,
           registeredAt: event.timestamp,
+          status: "active",
         };
         this.participants.set(payload.participantId, participant);
         this.nameIndex.set(payload.name.toLowerCase(), payload.participantId);
@@ -96,6 +97,7 @@ export class InvitationProvider implements IdentityProvider, SybilCheck {
       id,
       name: normalizedName,
       registeredAt: timestamp,
+      status: "active",
     };
 
     const event = createEvent<ParticipantRegisteredEvent>(

@@ -66,3 +66,17 @@ export class GovernanceRuleViolation extends VotiverseError {
     this.name = "GovernanceRuleViolation";
   }
 }
+
+/**
+ * Thrown when an operation is not authorized for the requesting identity.
+ * Defined in core for consistent error handling across the stack.
+ */
+export class AuthorizationError extends VotiverseError {
+  constructor(
+    public readonly action: string,
+    public readonly reason: string,
+  ) {
+    super(`Authorization denied for "${action}": ${reason}`);
+    this.name = "AuthorizationError";
+  }
+}

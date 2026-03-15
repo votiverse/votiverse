@@ -25,6 +25,7 @@ export type {
   OutcomeId,
   QuestionId,
   Timestamp,
+  ParticipantStatus,
   Participant,
   Topic,
   Issue,
@@ -81,6 +82,7 @@ export {
   ValidationError,
   InvalidStateError,
   GovernanceRuleViolation,
+  AuthorizationError,
 } from "./errors.js";
 
 // Utilities

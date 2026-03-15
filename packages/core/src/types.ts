@@ -54,6 +54,13 @@ export type QuestionId = string & { readonly __brand: "QuestionId" };
 export type Timestamp = number & { readonly __brand: "Timestamp" };
 
 // ---------------------------------------------------------------------------
+// Participant status
+// ---------------------------------------------------------------------------
+
+/** Lifecycle status of a participant. */
+export type ParticipantStatus = "active" | "inactive" | "sunset";
+
+// ---------------------------------------------------------------------------
 // Base entity types
 // ---------------------------------------------------------------------------
 
@@ -65,6 +72,7 @@ export interface Participant {
   readonly id: ParticipantId;
   readonly name: string;
   readonly registeredAt: Timestamp;
+  readonly status: ParticipantStatus;
 }
 
 /**
