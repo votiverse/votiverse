@@ -4,7 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
 import * as api from "../api/client.js";
-import type { Tally, WeightDist } from "../api/types.js";
+import type { Tally, WeightDist, ParticipationRecord } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 
@@ -44,6 +44,17 @@ export function EventDetail() {
     [assemblyId],
   );
 
+  const status = event?.status ?? "upcoming";
+
+  // Fetch participation records for closed events (O(1) lookup for what happened with your vote)
+  const { data: participationData } = useApi(
+    () =>
+      status === "closed" && participantId
+        ? api.getParticipation(assemblyId!, eventId!, participantId)
+        : Promise.resolve(null),
+    [assemblyId, eventId, participantId, status],
+  );
+
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? "Vote not found"} onRetry={refetch} />;
 
@@ -58,7 +69,17 @@ export function EventDetail() {
   };
 
   const issues = event.issues ?? [];
-  const status = event.status ?? "upcoming";
+
+  // Build a map from issueId → ParticipationRecord for the current user
+  const participationByIssue = useMemo(() => {
+    const map = new Map<string, ParticipationRecord>();
+    if (participationData?.participation) {
+      for (const rec of participationData.participation) {
+        map.set(rec.issueId, rec);
+      }
+    }
+    return map;
+  }, [participationData]);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -105,6 +126,7 @@ export function EventDetail() {
               weightDist={weightDist ?? null}
               nameMap={nameMap}
               eventStatus={status}
+              participation={participationByIssue.get(issue.id) ?? null}
               onVoted={refreshAll}
             />
           );
@@ -219,6 +241,7 @@ function IssueVotingCard({
   weightDist,
   nameMap,
   eventStatus,
+  participation,
   onVoted,
 }: {
   assemblyId: string;
@@ -232,6 +255,7 @@ function IssueVotingCard({
   weightDist: WeightDist | null;
   nameMap: Map<string, string>;
   eventStatus: string;
+  participation: ParticipationRecord | null;
   onVoted: () => void;
 }) {
   const { participantId } = useIdentity();
@@ -306,6 +330,8 @@ function IssueVotingCard({
             terminalVoterName={issueStatus.terminalVoterId ? (nameMap.get(issueStatus.terminalVoterId) ?? null) : null}
             votingOpen={votingOpen}
             eventStatus={eventStatus}
+            participation={participation}
+            nameMap={nameMap}
             showVoteButtons={showVoteButtons}
             onToggleVoteButtons={() => setShowVoteButtons(!showVoteButtons)}
           />
@@ -485,6 +511,8 @@ function UserVoteStatus({
   terminalVoterName,
   votingOpen,
   eventStatus,
+  participation,
+  nameMap,
   showVoteButtons,
   onToggleVoteButtons,
 }: {
@@ -493,6 +521,8 @@ function UserVoteStatus({
   terminalVoterName: string | null;
   votingOpen: boolean;
   eventStatus: string;
+  participation: ParticipationRecord | null;
+  nameMap: Map<string, string>;
   showVoteButtons: boolean;
   onToggleVoteButtons: () => void;
 }) {
@@ -562,12 +592,7 @@ function UserVoteStatus({
       );
     }
     if (eventStatus === "closed") {
-      return (
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
-          <div className="w-2 h-2 rounded-full bg-gray-400" />
-          <span className="text-sm text-gray-500">Voting has closed</span>
-        </div>
-      );
+      return <ClosedEventParticipation participation={participation} nameMap={nameMap} />;
     }
     return null;
   }
@@ -577,6 +602,83 @@ function UserVoteStatus({
     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
       <div className="w-2 h-2 rounded-full bg-amber-500" />
       <span className="text-sm text-amber-700 font-medium">You haven't voted on this yet</span>
+    </div>
+  );
+}
+
+/** Shows what happened with your vote on a closed event, using materialized participation records. */
+function ClosedEventParticipation({
+  participation,
+  nameMap,
+}: {
+  participation: ParticipationRecord | null;
+  nameMap: Map<string, string>;
+}) {
+  // No participation data yet (still loading, or no identity)
+  if (!participation) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+        <div className="w-2 h-2 rounded-full bg-gray-400" />
+        <span className="text-sm text-gray-500">Voting has closed</span>
+      </div>
+    );
+  }
+
+  // Voted directly
+  if (participation.status === "direct") {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-200">
+        <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="text-sm text-green-700">
+          You voted{" "}
+          <span className="font-semibold capitalize">{participation.effectiveChoice}</span>
+          {" "}directly
+        </span>
+      </div>
+    );
+  }
+
+  // Delegated — show chain
+  if (participation.status === "delegated") {
+    const chainDisplay = participation.chain
+      .slice(1) // skip self
+      .map((id) => nameMap.get(id) ?? id.slice(0, 8))
+      .join(" → ");
+    const terminalName = participation.terminalVoterId
+      ? (nameMap.get(participation.terminalVoterId) ?? participation.terminalVoterId.slice(0, 8))
+      : null;
+
+    return (
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200">
+        <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+        <span className="text-sm text-blue-700">
+          Your vote counted as{" "}
+          <span className="font-semibold capitalize">{participation.effectiveChoice}</span>
+          {terminalName && (
+            <>
+              {" "}via{" "}
+              <span className="font-semibold">{terminalName}</span>
+            </>
+          )}
+          {chainDisplay && (
+            <span className="text-blue-400 ml-1">({chainDisplay})</span>
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  // Absent — did not participate
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+      </svg>
+      <span className="text-sm text-gray-500">You did not participate in this vote</span>
     </div>
   );
 }

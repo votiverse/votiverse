@@ -12,6 +12,7 @@ import type {
   WeightDist,
   ConcentrationMetrics,
   VotingHistory,
+  ParticipationRecord,
   DelegateProfile,
   Poll,
   PollResults,
@@ -210,6 +211,15 @@ export function getWeights(
   eventId: string,
 ): Promise<{ eventId: string; weights: WeightDist[] }> {
   return request("GET", `/assemblies/${assemblyId}/events/${eventId}/weights`);
+}
+
+export function getParticipation(
+  assemblyId: string,
+  eventId: string,
+  participantId?: string,
+): Promise<{ eventId: string; participation: ParticipationRecord[] }> {
+  const qs = participantId ? `?participantId=${participantId}` : "";
+  return request("GET", `/assemblies/${assemblyId}/events/${eventId}/participation${qs}`);
 }
 
 // ---- Awareness ----

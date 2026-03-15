@@ -150,6 +150,18 @@ export interface VotingHistory {
   }>;
 }
 
+export type ParticipationStatus = "direct" | "delegated" | "absent";
+
+export interface ParticipationRecord {
+  participantId: string;
+  issueId: string;
+  status: ParticipationStatus;
+  effectiveChoice: string | null;
+  delegateId: string | null;
+  terminalVoterId: string | null;
+  chain: string[];
+}
+
 export interface DelegateProfile {
   participantId: string;
   name: string | null;
