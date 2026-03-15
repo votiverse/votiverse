@@ -41,7 +41,7 @@ export function Header() {
             {assemblyId && (
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="lg:hidden p-2 -mr-2 text-gray-500 hover:text-gray-900"
+                className="lg:hidden p-2 -mr-2 text-gray-500 hover:text-gray-900 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Menu"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,11 +57,18 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile dropdown menu for secondary nav */}
+      {/* Mobile dropdown menu with backdrop */}
       {menuOpen && assemblyId && (
-        <div className="lg:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
-          <MobileMenuLinks assemblyId={assemblyId} onNavigate={() => setMenuOpen(false)} />
-        </div>
+        <>
+          <div
+            className="lg:hidden fixed inset-0 top-14 bg-black/20 z-10"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="lg:hidden absolute left-0 right-0 border-t border-gray-100 bg-white px-4 py-3 space-y-1 z-20 shadow-lg">
+            <MobileMenuLinks assemblyId={assemblyId} onNavigate={() => setMenuOpen(false)} />
+          </div>
+        </>
       )}
     </header>
   );
@@ -175,7 +182,7 @@ function ParticipantSelector({ assemblyId }: { assemblyId: string }) {
           setParticipant(id, p?.name ?? null);
         }
       }}
-      className="text-sm border border-gray-300 rounded-md px-2 py-1.5 min-h-[36px] focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none max-w-[140px] sm:max-w-none"
+      className="text-sm border border-gray-300 rounded-md px-2 py-2 min-h-[44px] sm:min-h-[36px] sm:py-1.5 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none max-w-[140px] sm:max-w-none"
       aria-label="Select participant"
     >
       <option value="">{participantId ? "Switch..." : "Participant..."}</option>
