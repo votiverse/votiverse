@@ -12,6 +12,8 @@ export interface IssueDef {
   description: string;
   /** Named choices for multi-option ballots. Omit for binary for/against. */
   choices?: string[];
+  /** Topic keys for linking this issue to topics. Resolved to IDs at seed time. */
+  topicKeys?: string[];
 }
 
 export interface EventDef {
@@ -117,14 +119,17 @@ export const EVENTS: EventDef[] = [
       {
         title: "Approve 2025 Feature Completion Report",
         description: "Accept the official report showing 87% of planned features shipped, with 3 deferred to H1 2026.",
+        topicKeys: ["roadmap"],
       },
       {
         title: "Ratify Deprecation of Legacy API v1",
         description: "Formally deprecate API v1 with a 6-month sunset period. Migration tooling and documentation have been prepared.",
+        topicKeys: ["technical"],
       },
       {
         title: "Accept Community Contributor Recognition Awards",
         description: "Approve the list of 12 community contributors for the annual recognition program, including travel stipends for the contributor summit.",
+        topicKeys: ["contributors"],
       },
     ],
   },
@@ -141,22 +146,27 @@ export const EVENTS: EventDef[] = [
       {
         title: "Mandate License Compatibility Checks for All Dependencies",
         description: "Require automated license scanning in CI for all new dependencies. Reject packages with GPL-incompatible licenses without board exemption.",
+        topicKeys: ["dependencies"],
       },
       {
         title: "Adopt Automated Vulnerability Scanning Pipeline",
         description: "Integrate Snyk or Dependabot into all repositories with blocking on critical/high vulnerabilities.",
+        topicKeys: ["security"],
       },
       {
         title: "Restrict Use of Pre-1.0 Dependencies in Production",
         description: "Require explicit board approval for any dependency below version 1.0 in production builds. Dev/test dependencies exempt.",
+        topicKeys: ["dependencies"],
       },
       {
         title: "Require Two-Maintainer Review for Security Patches",
         description: "Security-related PRs must have approval from at least 2 core maintainers before merge, even for urgent fixes.",
+        topicKeys: ["security"],
       },
       {
         title: "Fund External Security Audit for Core Modules",
         description: "Allocate $15,000 from the project fund for an independent security audit of the authentication and data storage modules.",
+        topicKeys: ["security"],
       },
     ],
   },
@@ -173,10 +183,12 @@ export const EVENTS: EventDef[] = [
       {
         title: "Create Funded Internship for First-Time Contributors",
         description: "Establish a 3-month paid internship program ($2,000/month) for 4 first-time contributors per cycle, mentored by core maintainers.",
+        topicKeys: ["contributors"],
       },
       {
         title: "Establish Code of Conduct Review Committee",
         description: "Form a 5-member rotating committee to handle CoC reports, replacing the current ad-hoc process. Members serve 6-month terms.",
+        topicKeys: ["governance"],
       },
     ],
   },
@@ -193,18 +205,22 @@ export const EVENTS: EventDef[] = [
       {
         title: "Prioritize WebAssembly Support",
         description: "Compile core engine to WASM for browser-native execution. Estimated effort: 3 engineer-months.",
+        topicKeys: ["roadmap", "infrastructure"],
       },
       {
         title: "Build Plugin Marketplace",
         description: "Create a curated marketplace for community-built plugins with automated security review and sandboxed execution.",
+        topicKeys: ["roadmap"],
       },
       {
         title: "Native Mobile SDK Development",
         description: "Develop iOS and Android SDKs wrapping the core API with platform-native UI components.",
+        topicKeys: ["roadmap"],
       },
       {
         title: "Enterprise SSO Integration",
         description: "Add SAML 2.0 and OIDC support for enterprise single sign-on, including directory sync and role mapping.",
+        topicKeys: ["roadmap", "security"],
       },
     ],
   },
@@ -223,18 +239,22 @@ export const EVENTS: EventDef[] = [
       {
         title: "Allocate $2M for Public Transit Expansion",
         description: "Fund two new bus routes connecting underserved neighborhoods to the downtown transit hub, including shelters and real-time arrival displays.",
+        topicKeys: ["transit"],
       },
       {
         title: "Fund Community Health Clinic Staffing",
         description: "Hire 4 additional staff members for the community health clinic: 2 nurse practitioners, 1 mental health counselor, and 1 bilingual coordinator.",
+        topicKeys: ["health"],
       },
       {
         title: "Renovate Downtown Public Library",
         description: "Modernize the main library branch with new HVAC, accessibility upgrades, a maker space, and expanded children's section. Budget: $1.2M.",
+        topicKeys: ["buildings"],
       },
       {
         title: "Install Solar Panels on Municipal Buildings",
         description: "Phase 1 solar installation on city hall, community center, and fire station. Projected 30% energy cost reduction over 10 years.",
+        topicKeys: ["energy", "buildings"],
       },
     ],
   },
@@ -251,14 +271,17 @@ export const EVENTS: EventDef[] = [
       {
         title: "Approve Emergency Bridge Repair Funding",
         description: "Release $800,000 from the infrastructure reserve for immediate structural repairs on the River Road bridge, rated 'poor' in the February inspection.",
+        topicKeys: ["roads"],
       },
       {
         title: "Temporary Traffic Management Plan",
         description: "Implement weight restrictions and alternate routing during bridge repairs. Includes signage, traffic officer overtime, and public notification campaign.",
+        topicKeys: ["roads", "transit"],
       },
       {
         title: "Resident Relocation Assistance Program",
         description: "Provide temporary relocation stipends ($500/month for up to 3 months) for households directly affected by construction noise and access restrictions.",
+        topicKeys: ["housing"],
       },
     ],
   },
@@ -277,14 +300,17 @@ export const EVENTS: EventDef[] = [
       {
         title: "Expand After-School STEM Workshops",
         description: "Add robotics and coding workshops at 3 additional community centers, reaching an estimated 200 more students per semester.",
+        topicKeys: ["stem"],
       },
       {
         title: "Launch Youth Mental Health Support Initiative",
         description: "Partner with local therapists to offer free counseling sessions and peer support groups for teens. Budget: $40,000/year.",
+        topicKeys: ["mental-health"],
       },
       {
         title: "Create Youth-Led Environmental Action Fund",
         description: "Establish a $15,000 micro-grant fund for youth-proposed environmental projects, administered by a student review board.",
+        topicKeys: ["environment"],
       },
     ],
   },
@@ -301,10 +327,12 @@ export const EVENTS: EventDef[] = [
       {
         title: "Introduce Digital Literacy in Middle Schools",
         description: "Develop a 10-week curriculum covering critical thinking about online information, basic data privacy, and responsible social media use.",
+        topicKeys: ["digital"],
       },
       {
         title: "Pilot Youth Online Safety Program",
         description: "Launch a peer-educator program where trained high school students lead online safety workshops for younger students.",
+        topicKeys: ["digital"],
       },
     ],
   },
@@ -323,14 +351,17 @@ export const EVENTS: EventDef[] = [
       {
         title: "Approve Merger with Pacific Industries",
         description: "Authorize the acquisition of Pacific Industries for $42M in a stock-and-cash transaction. Due diligence complete; regulatory approval pending.",
+        topicKeys: ["partnerships"],
       },
       {
         title: "Executive Compensation Package Review",
         description: "Approve revised compensation packages for C-suite executives including base salary adjustments, equity grants, and performance bonus restructuring.",
+        topicKeys: ["compensation"],
       },
       {
         title: "Shareholder Dividend Declaration",
         description: "Declare quarterly dividend of $0.85 per share, payable to shareholders of record as of December 15, 2025.",
+        topicKeys: ["dividends"],
       },
     ],
   },
@@ -347,10 +378,12 @@ export const EVENTS: EventDef[] = [
       {
         title: "Authorize New Market Expansion into Southeast Asia",
         description: "Approve the business case for opening regional offices in Singapore and Jakarta. Initial investment: $8M over 18 months.",
+        topicKeys: ["expansion"],
       },
       {
         title: "Appoint Independent Audit Committee Chair",
         description: "Confirm the appointment of an independent director to chair the audit committee, replacing the outgoing chair whose term expired.",
+        topicKeys: ["committees"],
       },
     ],
   },
@@ -368,16 +401,19 @@ export const EVENTS: EventDef[] = [
         title: "Elect Lead Maintainer",
         description: "Select the Lead Maintainer responsible for merge authority, release scheduling, and technical direction for the next 12 months.",
         choices: ["Anika Patel", "Leo Fernandez", "Marcus Chen", "Jordan Blake"],
+        topicKeys: ["governance"],
       },
       {
         title: "Elect Release Manager",
         description: "Select the Release Manager who will own the release pipeline, changelog curation, and backward compatibility reviews.",
         choices: ["Mei-Ling Wu", "Sofia Reyes", "Tyler Nguyen"],
+        topicKeys: ["governance"],
       },
       {
         title: "Elect Community Liaison",
         description: "Select the Community Liaison who will represent the project at conferences, manage contributor onboarding, and coordinate with downstream users.",
         choices: ["Chiara Rossi", "Nadia Boutros", "Oscar Lindgren", "Zara Ibrahim"],
+        topicKeys: ["contributors"],
       },
     ],
   },
@@ -395,16 +431,19 @@ export const EVENTS: EventDef[] = [
         title: "Elect Chairperson",
         description: "Select the next Chairperson of the Board of Directors for the 2026-2027 term. The Chairperson presides over board meetings and serves as the primary liaison with executive management.",
         choices: ["Victoria Harrington", "Robert Blackwell", "Catherine Zhao"],
+        topicKeys: ["officers"],
       },
       {
         title: "Elect Vice-Chairperson",
         description: "Select the Vice-Chairperson who will serve as acting Chair when the Chairperson is unavailable and lead the governance committee.",
         choices: ["James Okafor", "William Thornton", "Margaret Ashworth"],
+        topicKeys: ["officers"],
       },
       {
         title: "Elect Treasurer",
         description: "Select the Treasurer responsible for financial oversight, audit committee liaison, and quarterly financial report review.",
         choices: ["Catherine Zhao", "William Thornton", "Elizabeth Fairfax"],
+        topicKeys: ["officers", "finance"],
       },
     ],
   },

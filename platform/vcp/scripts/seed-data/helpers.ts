@@ -69,6 +69,19 @@ export function aid(assemblyKey: string): string {
   return id;
 }
 
+/** (assemblyKey, topicKey) → topicId */
+export const topicIds = new Map<string, string>();
+
+export function tKey(assemblyKey: string, topicKey: string): string {
+  return `${assemblyKey}::${topicKey}`;
+}
+
+export function tid(assemblyKey: string, topicKey: string): string {
+  const id = topicIds.get(tKey(assemblyKey, topicKey));
+  if (!id) throw new Error(`Topic "${topicKey}" not found for assembly "${assemblyKey}"`);
+  return id;
+}
+
 /** eventKey → { eventId, issueIds } */
 export const eventRegistry = new Map<string, { eventId: string; issueIds: string[] }>();
 

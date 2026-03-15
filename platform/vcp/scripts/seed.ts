@@ -13,8 +13,11 @@ import {
   fromNow,
   assemblyIds,
   participantIds,
+  topicIds,
   pKey,
+  tKey,
   pid,
+  tid,
   aid,
   eventRegistry,
   iid,
@@ -22,6 +25,7 @@ import {
 } from "./seed-data/helpers.js";
 import { ASSEMBLIES } from "./seed-data/organizations.js";
 import { PARTICIPANTS } from "./seed-data/participants.js";
+import { TOPICS } from "./seed-data/topics.js";
 import { EVENTS } from "./seed-data/events.js";
 import { DELEGATIONS } from "./seed-data/delegations.js";
 import { VOTES } from "./seed-data/votes.js";
@@ -59,7 +63,39 @@ export async function main() {
   }
   console.log(`\n  Added ${totalParticipants} participants total\n`);
 
-  // ── Step 3: Create voting events with issues ───────────────────────
+  // ── Step 3: Create topics ─────────────────────────────────────────
+
+  console.log("═══ TOPICS ═══\n");
+  const topicsByAssembly = new Map<string, number>();
+  // First pass: create root topics (no parent)
+  for (const def of TOPICS.filter((t) => t.parentKey === null)) {
+    const assemblyId = aid(def.assemblyKey);
+    const topic = await post(`/assemblies/${assemblyId}/topics`, {
+      name: def.name,
+      parentId: null,
+      sortOrder: def.sortOrder,
+    });
+    topicIds.set(tKey(def.assemblyKey, def.key), topic.id as string);
+    topicsByAssembly.set(def.assemblyKey, (topicsByAssembly.get(def.assemblyKey) ?? 0) + 1);
+  }
+  // Second pass: create child topics (have parent)
+  for (const def of TOPICS.filter((t) => t.parentKey !== null)) {
+    const assemblyId = aid(def.assemblyKey);
+    const parentId = tid(def.assemblyKey, def.parentKey!);
+    const topic = await post(`/assemblies/${assemblyId}/topics`, {
+      name: def.name,
+      parentId,
+      sortOrder: def.sortOrder,
+    });
+    topicIds.set(tKey(def.assemblyKey, def.key), topic.id as string);
+    topicsByAssembly.set(def.assemblyKey, (topicsByAssembly.get(def.assemblyKey) ?? 0) + 1);
+  }
+  for (const [key, count] of topicsByAssembly) {
+    console.log(`  ✓ ${key}: ${count} topics`);
+  }
+  console.log(`\n  Created ${TOPICS.length} topics total\n`);
+
+  // ── Step 4: Create voting events with issues ───────────────────────
 
   console.log("═══ VOTING EVENTS ═══\n");
   for (const def of EVENTS) {
@@ -75,7 +111,7 @@ export async function main() {
       issues: def.issues.map((i) => ({
         title: i.title,
         description: i.description,
-        topicIds: [],
+        topicIds: (i.topicKeys ?? []).map((tk) => tid(def.assemblyKey, tk)),
         ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: eligibleIds,
@@ -98,7 +134,7 @@ export async function main() {
   }
   console.log(`\n  Created ${EVENTS.length} events\n`);
 
-  // ── Step 4: Create delegations ─────────────────────────────────────
+  // ── Step 5: Create delegations ─────────────────────────────────────
 
   console.log("═══ DELEGATIONS ═══\n");
   for (const def of DELEGATIONS) {
@@ -112,7 +148,7 @@ export async function main() {
   }
   console.log(`\n  Created ${DELEGATIONS.length} delegations\n`);
 
-  // ── Step 5: Cast votes ─────────────────────────────────────────────
+  // ── Step 6: Cast votes ─────────────────────────────────────────────
 
   console.log("═══ VOTES ═══\n");
   const votesByEvent = new Map<string, number>();
@@ -131,7 +167,7 @@ export async function main() {
   }
   console.log(`\n  Cast ${VOTES.length} votes total\n`);
 
-  // ── Step 6: Create polls and responses ─────────────────────────────
+  // ── Step 7: Create polls and responses ─────────────────────────────
 
   console.log("═══ POLLS ═══\n");
   const pollIds = new Map<string, string>();
@@ -186,6 +222,7 @@ export async function main() {
   console.log("═══ SEED COMPLETE ═══\n");
   console.log("  Assemblies:    ", ASSEMBLIES.length);
   console.log("  Participants:  ", totalParticipants);
+  console.log("  Topics:        ", TOPICS.length);
   console.log("  Events:        ", EVENTS.length);
   console.log("  Issues:        ", EVENTS.reduce((sum, e) => sum + e.issues.length, 0));
   console.log("  Delegations:   ", DELEGATIONS.length);
