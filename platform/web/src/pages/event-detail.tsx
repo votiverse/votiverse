@@ -308,7 +308,11 @@ function IssueVotingCard({
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Results</h3>
             <div className="space-y-3">
-              {Object.entries(tally.counts)
+              {Object.entries(
+                  choices && choices.length > 0
+                    ? { ...Object.fromEntries(choices.map((c) => [c, 0])), ...tally.counts }
+                    : tally.counts,
+                )
                 .sort(([, a], [, b]) => b - a)
                 .map(([choice, count], idx) => {
                   const pct = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
