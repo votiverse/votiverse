@@ -55,6 +55,17 @@ export function EventDetail() {
     [assemblyId, eventId, participantId, status],
   );
 
+  // Build a map from issueId → ParticipationRecord (must be before early returns — rules of hooks)
+  const participationByIssue = useMemo(() => {
+    const map = new Map<string, ParticipationRecord>();
+    if (participationData?.participation) {
+      for (const rec of participationData.participation) {
+        map.set(rec.issueId, rec);
+      }
+    }
+    return map;
+  }, [participationData]);
+
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? "Vote not found"} onRetry={refetch} />;
 
@@ -69,17 +80,6 @@ export function EventDetail() {
   };
 
   const issues = event.issues ?? [];
-
-  // Build a map from issueId → ParticipationRecord for the current user
-  const participationByIssue = useMemo(() => {
-    const map = new Map<string, ParticipationRecord>();
-    if (participationData?.participation) {
-      for (const rec of participationData.participation) {
-        map.set(rec.issueId, rec);
-      }
-    }
-    return map;
-  }, [participationData]);
 
   return (
     <div className="max-w-5xl mx-auto">
