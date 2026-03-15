@@ -30,13 +30,25 @@ import type {
 // Build active delegations from event log
 // ---------------------------------------------------------------------------
 
+/** Options for building the active delegation set. */
+export interface BuildActiveDelegationsOptions {
+  /** Only consider events before this timestamp. */
+  readonly before?: Timestamp;
+  /** Maximum delegation age in ms. null = no expiry. */
+  readonly maxAge?: number | null;
+  /** Reference time for expiry computation. Defaults to Date.now(). */
+  readonly asOf?: Timestamp;
+}
+
 /**
  * Replays the event log to build the current set of active delegations.
+ * Optionally filters out expired delegations when `maxAge` is set.
  */
 export async function buildActiveDelegations(
   eventStore: EventStore,
-  before?: Timestamp,
+  options?: BuildActiveDelegationsOptions,
 ): Promise<Delegation[]> {
+  const before = options?.before;
   const events = await eventStore.query({
     types: ["DelegationCreated", "DelegationRevoked"],
     ...(before !== undefined ? { before } : {}),
@@ -61,7 +73,16 @@ export async function buildActiveDelegations(
     }
   }
 
-  return [...delegations.values()].filter((d) => d.active);
+  let result = [...delegations.values()].filter((d) => d.active);
+
+  // Apply TTL expiry filtering
+  const maxAge = options?.maxAge;
+  if (maxAge !== undefined && maxAge !== null) {
+    const asOf = options?.asOf ?? (Date.now() as Timestamp);
+    result = result.filter((d) => (asOf - d.createdAt) <= maxAge);
+  }
+
+  return result;
 }
 
 /**

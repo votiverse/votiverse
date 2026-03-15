@@ -18,6 +18,7 @@ export type {
 } from "./types.js";
 
 // Graph functions
+export type { BuildActiveDelegationsOptions } from "./graph.js";
 export {
   buildActiveDelegations,
   getDirectVoters,

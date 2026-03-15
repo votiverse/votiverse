@@ -19,6 +19,7 @@ import {
   generateEventId,
   now,
   ValidationError,
+  GovernanceRuleViolation,
 } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import type {
@@ -65,7 +66,7 @@ export class DelegationService {
 
     // Check max delegates per participant
     if (this.config.delegation.maxDelegatesPerParticipant !== null) {
-      const active = await buildActiveDelegations(this.eventStore);
+      const active = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
       const existingDelegations = active.filter((d) => d.sourceId === params.sourceId);
       if (existingDelegations.length >= this.config.delegation.maxDelegatesPerParticipant) {
         throw new ValidationError(
@@ -107,7 +108,19 @@ export class DelegationService {
    * Finds the matching active delegation and records a revocation event.
    */
   async revoke(params: RevokeDelegationParams): Promise<void> {
-    const active = await buildActiveDelegations(this.eventStore);
+    // Enforce revocableAnytime governance rule (sunset bypass via revokedBy)
+    const initiator = params.revokedBy ?? { kind: "source" as const };
+    if (!this.config.delegation.revocableAnytime && initiator.kind === "source") {
+      // DECISION NEEDED: BOARD_PROXY has revocableAnytime=false. The whitepaper's
+      // "revocable before meeting" semantic requires future work where the engine
+      // accepts a voting event context and checks timing.
+      throw new GovernanceRuleViolation(
+        "revocableAnytime",
+        "Delegation revocation is not permitted in the current configuration",
+      );
+    }
+
+    const active = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
     const matching = active.find(
       (d) => d.sourceId === params.sourceId && topicScopeMatches(d.topicScope, params.topicScope),
     );
@@ -135,7 +148,7 @@ export class DelegationService {
    * Lists all active delegations, optionally filtered by source participant.
    */
   async listActive(sourceId?: ParticipantId): Promise<readonly Delegation[]> {
-    const all = await buildActiveDelegations(this.eventStore);
+    const all = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
     if (sourceId !== undefined) {
       return all.filter((d) => d.sourceId === sourceId);
     }
@@ -150,7 +163,7 @@ export class DelegationService {
     issueTopics: readonly TopicId[],
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<DelegationGraph> {
-    const delegations = await buildActiveDelegations(this.eventStore);
+    const delegations = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
     return buildDelegationGraph(issueId, issueTopics, delegations, topicAncestors ?? new Map());
   }
 

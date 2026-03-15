@@ -4,7 +4,7 @@
  * Types for delegation graph management, resolution, and weight computation.
  */
 
-import type { ParticipantId, TopicId, IssueId, DelegationId, Timestamp } from "@votiverse/core";
+import type { ParticipantId, TopicId, IssueId, DelegationId, Timestamp, DelegationRevocationInitiator } from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
 // Delegation entity
@@ -121,4 +121,5 @@ export interface CreateDelegationParams {
 export interface RevokeDelegationParams {
   readonly sourceId: ParticipantId;
   readonly topicScope: readonly TopicId[];
+  readonly revokedBy?: DelegationRevocationInitiator;
 }
