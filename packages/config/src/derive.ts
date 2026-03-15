@@ -8,16 +8,22 @@
 import type {
   GovernanceConfig,
   DelegationConfig,
+  DelegationVisibilityConfig,
   BallotConfig,
   FeatureConfig,
   ThresholdConfig,
 } from "./types.js";
 
+/** Deep partial override for DelegationConfig, with nested visibility support. */
+export type DelegationOverrides = Partial<Omit<DelegationConfig, "visibility">> & {
+  readonly visibility?: Partial<DelegationVisibilityConfig>;
+};
+
 /** Deep partial type for GovernanceConfig overrides. */
 export interface ConfigOverrides {
   readonly name?: string;
   readonly description?: string;
-  readonly delegation?: Partial<DelegationConfig>;
+  readonly delegation?: DelegationOverrides;
   readonly ballot?: Partial<BallotConfig>;
   readonly features?: Partial<FeatureConfig>;
   readonly thresholds?: Partial<ThresholdConfig>;
@@ -25,15 +31,21 @@ export interface ConfigOverrides {
 
 /**
  * Creates a new GovernanceConfig by applying overrides to a base config.
- * The base config is never mutated.
+ * The base config is never mutated. Nested objects (e.g. delegation.visibility)
+ * are merged at two levels.
  */
 export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides): GovernanceConfig {
+  const { visibility: visibilityOverride, ...delegationFlat } = overrides.delegation ?? {};
   return {
     name: overrides.name ?? base.name,
     description: overrides.description ?? base.description,
     delegation: {
       ...base.delegation,
-      ...overrides.delegation,
+      ...delegationFlat,
+      visibility: {
+        ...base.delegation.visibility,
+        ...visibilityOverride,
+      },
     },
     ballot: {
       ...base.ballot,

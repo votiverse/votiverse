@@ -23,6 +23,8 @@ const TOWN_HALL: GovernanceConfig = Object.freeze({
     revocableAnytime: false,
     maxChainDepth: null,
     maxDelegatesPerParticipant: null,
+    maxAge: null,
+    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
   }),
   ballot: Object.freeze({
     secrecy: "secret" as const,
@@ -60,6 +62,8 @@ const SWISS_MODEL: GovernanceConfig = Object.freeze({
     revocableAnytime: false,
     maxChainDepth: null,
     maxDelegatesPerParticipant: null,
+    maxAge: null,
+    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
   }),
   ballot: Object.freeze({
     secrecy: "secret" as const,
@@ -97,6 +101,8 @@ const LIQUID_STANDARD: GovernanceConfig = Object.freeze({
     revocableAnytime: true,
     maxChainDepth: null,
     maxDelegatesPerParticipant: null,
+    maxAge: null,
+    visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "direct" as const }),
   }),
   ballot: Object.freeze({
     secrecy: "public" as const,
@@ -134,6 +140,8 @@ const LIQUID_ACCOUNTABLE: GovernanceConfig = Object.freeze({
     revocableAnytime: true,
     maxChainDepth: null,
     maxDelegatesPerParticipant: null,
+    maxAge: null,
+    visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "chain" as const }),
   }),
   ballot: Object.freeze({
     secrecy: "public" as const,
@@ -171,6 +179,8 @@ const BOARD_PROXY: GovernanceConfig = Object.freeze({
     revocableAnytime: false,
     maxChainDepth: 1,
     maxDelegatesPerParticipant: 1,
+    maxAge: null,
+    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
   }),
   ballot: Object.freeze({
     secrecy: "secret" as const,
@@ -208,6 +218,8 @@ const CIVIC_PARTICIPATORY: GovernanceConfig = Object.freeze({
     revocableAnytime: true,
     maxChainDepth: 3,
     maxDelegatesPerParticipant: null,
+    maxAge: 31_536_000_000,
+    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
   }),
   ballot: Object.freeze({
     secrecy: "anonymous-auditable" as const,

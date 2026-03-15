@@ -8,6 +8,7 @@
 export type {
   GovernanceConfig,
   DelegationConfig,
+  DelegationVisibilityConfig,
   BallotConfig,
   FeatureConfig,
   ThresholdConfig,

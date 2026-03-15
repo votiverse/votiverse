@@ -9,6 +9,17 @@
 // Delegation configuration
 // ---------------------------------------------------------------------------
 
+/** Controls who can see delegation graph edges. */
+export interface DelegationVisibilityConfig {
+  /** 'public' = all edges visible to all; 'private' = only own edges visible. */
+  readonly mode: "public" | "private";
+  /**
+   * What a delegate can see about who delegated to them.
+   * 'direct' = only direct delegators; 'chain' = full upstream chain.
+   */
+  readonly incomingVisibility: "direct" | "chain";
+}
+
 /** Controls how voting power delegation works. */
 export interface DelegationConfig {
   /** Whether delegation is enabled at all. */
@@ -23,6 +34,10 @@ export interface DelegationConfig {
   readonly maxChainDepth: number | null;
   /** Maximum number of delegates a participant can assign. null = unlimited. */
   readonly maxDelegatesPerParticipant: number | null;
+  /** Maximum delegation age in milliseconds. null = never expires. */
+  readonly maxAge: number | null;
+  /** Visibility settings for delegation graph edges. */
+  readonly visibility: DelegationVisibilityConfig;
 }
 
 // ---------------------------------------------------------------------------

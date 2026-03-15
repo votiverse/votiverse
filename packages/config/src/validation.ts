@@ -85,6 +85,41 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
     });
   }
 
+  if (config.delegation.maxAge !== null && config.delegation.maxAge < 86_400_000) {
+    issues.push({
+      field: "delegation.maxAge",
+      message: "maxAge must be at least 1 day (86400000ms) if set",
+      severity: "error",
+    });
+  }
+
+  if (!config.delegation.enabled && config.delegation.maxAge !== null) {
+    issues.push({
+      field: "delegation.maxAge",
+      message: "maxAge is meaningless when delegation is disabled",
+      severity: "warning",
+    });
+  }
+
+  if (!config.delegation.enabled && config.delegation.visibility.mode === "public") {
+    issues.push({
+      field: "delegation.visibility.mode",
+      message: "Public visibility is meaningless when delegation is disabled",
+      severity: "warning",
+    });
+  }
+
+  if (
+    !config.delegation.transitive &&
+    config.delegation.visibility.incomingVisibility === "chain"
+  ) {
+    issues.push({
+      field: "delegation.visibility.incomingVisibility",
+      message: "'chain' incoming visibility has no effect when transitivity is disabled (chain depth is always 1)",
+      severity: "warning",
+    });
+  }
+
   // --- Ballot consistency ---
 
   if (
