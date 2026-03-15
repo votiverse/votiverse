@@ -104,7 +104,7 @@ export const POLLS: PollDef[] = [
       },
     ],
     scheduleOffset: -20 * DAY,
-    closesAtOffset: -6 * DAY,
+    closesAtOffset: 60_000, // closes 1 min after seeding → "closed" by the time user opens browser
     createdByName: "Chloe Beaumont",
   },
 
