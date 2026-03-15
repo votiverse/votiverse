@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router";
 import { ParticipantContext } from "./hooks/use-participant.js";
-import { Header } from "./components/layout.js";
+import { Header, BottomTabs } from "./components/layout.js";
 import { AssemblyList } from "./pages/assembly-list.js";
 import { AssemblyDashboard } from "./pages/assembly-dashboard.js";
 import { Members } from "./pages/members.js";
@@ -15,9 +15,10 @@ function Layout() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="py-8 px-4 sm:px-6 lg:px-8">
+      <main className="py-6 px-4 sm:py-8 sm:px-6 lg:px-8 pb-20 lg:pb-8">
         <Outlet />
       </main>
+      <BottomTabs />
     </div>
   );
 }

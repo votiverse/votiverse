@@ -17,7 +17,7 @@ export function Members() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Members</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Members</h1>
         <Button onClick={() => setAdding(true)}>Add Member</Button>
       </div>
 
@@ -35,21 +35,21 @@ export function Members() {
         <Card>
           <div className="divide-y divide-gray-100">
             {participants.map((p) => (
-              <div key={p.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
+              <div key={p.id} className="px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-h-[56px]">
+                <div className="min-w-0">
                   <div className="font-medium text-gray-900">{p.name}</div>
-                  <div className="text-xs text-gray-400 font-mono mt-0.5">{p.id}</div>
+                  <div className="text-xs text-gray-400 font-mono mt-0.5 truncate">{p.id}</div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 sm:gap-2 shrink-0">
                   <Link
                     to={`/assembly/${assemblyId}/awareness/profile/${p.id}`}
-                    className="text-sm text-brand hover:text-brand-light"
+                    className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center"
                   >
                     Profile
                   </Link>
                   <Link
                     to={`/assembly/${assemblyId}/awareness/history/${p.id}`}
-                    className="text-sm text-brand hover:text-brand-light"
+                    className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center"
                   >
                     History
                   </Link>
@@ -87,7 +87,7 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
           <h3 className="font-medium text-gray-900">Add Member</h3>

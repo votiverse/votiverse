@@ -11,11 +11,11 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 }
 
 export function CardHeader({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`px-6 py-4 border-b border-gray-100 ${className}`}>{children}</div>;
+  return <div className={`px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 ${className}`}>{children}</div>;
 }
 
 export function CardBody({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`px-6 py-4 ${className}`}>{children}</div>;
+  return <div className={`px-4 py-3 sm:px-6 sm:py-4 ${className}`}>{children}</div>;
 }
 
 export function Button({
@@ -26,18 +26,19 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "danger" | "ghost";
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }) {
   const base = "inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
-    primary: "bg-brand text-white hover:bg-brand-light focus:ring-brand",
-    secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-brand",
-    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-    ghost: "text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-brand",
+    primary: "bg-brand text-white hover:bg-brand-light focus:ring-brand active:bg-brand-dark",
+    secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-brand active:bg-gray-100",
+    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 active:bg-red-800",
+    ghost: "text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-brand active:bg-gray-200",
   };
   const sizes = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-sm",
+    sm: "px-3 py-2 text-sm min-h-[36px] sm:min-h-0 sm:py-1.5",
+    md: "px-4 py-2.5 text-sm min-h-[44px] sm:min-h-0 sm:py-2",
+    lg: "px-6 py-3 text-base min-h-[48px]",
   };
 
   return (
@@ -50,7 +51,7 @@ export function Button({
 export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand ${className}`}
+      className={`block w-full rounded-md border border-gray-300 px-3 py-2.5 text-base sm:text-sm shadow-sm placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
       {...props}
     />
   );
@@ -59,7 +60,7 @@ export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInpu
 export function Select({ className = "", children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
-      className={`block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand ${className}`}
+      className={`block w-full rounded-md border border-gray-300 px-3 py-2.5 text-base sm:text-sm shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
       {...props}
     >
       {children}
@@ -99,7 +100,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
     <div className="rounded-md bg-red-50 border border-red-200 p-4">
       <p className="text-sm text-red-700">{message}</p>
       {onRetry && (
-        <button onClick={onRetry} className="mt-2 text-sm text-red-600 underline hover:text-red-800">
+        <button onClick={onRetry} className="mt-2 text-sm text-red-600 underline hover:text-red-800 min-h-[44px] sm:min-h-0">
           Retry
         </button>
       )}
@@ -109,7 +110,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
-    <div className="text-center py-12">
+    <div className="text-center py-12 px-4">
       <h3 className="text-sm font-medium text-gray-900">{title}</h3>
       {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
       {action && <div className="mt-4">{action}</div>}

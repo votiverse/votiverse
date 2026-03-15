@@ -22,26 +22,26 @@ export function AssemblyDashboard() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-gray-900">{assembly.name}</h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{assembly.name}</h1>
           <StatusBadge status={assembly.status} />
         </div>
         <p className="mt-1 text-sm text-gray-500">{config.description}</p>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      {/* Stats row — 2 cols on mobile, 4 on desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <StatCard label="Members" value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
         <StatCard label="Events" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
-        <StatCard label="Active Delegations" value={delegations.length} linkTo={`/assembly/${assemblyId}/delegations`} />
+        <StatCard label="Delegations" value={delegations.length} linkTo={`/assembly/${assemblyId}/delegations`} />
         <StatCard
           label="Quorum"
           value={`${(config.ballot.quorum * 100).toFixed(0)}%`}
         />
       </div>
 
-      {/* Config summary */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* Config summary — stacked on mobile, 2 cols on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Card>
           <CardHeader>
             <h2 className="font-medium text-gray-900">Governance Configuration</h2>
@@ -70,7 +70,7 @@ export function AssemblyDashboard() {
             <ConfigRow label="Polls" value={config.features.polls ? "Enabled" : "Disabled"} />
             <ConfigRow label="Awareness" value={config.features.awarenessIntensity} />
             <ConfigRow label="Community Notes" value={config.features.communityNotes ? "Enabled" : "Disabled"} />
-            <ConfigRow label="Blockchain Integrity" value={config.features.blockchainIntegrity ? "Enabled" : "Disabled"} />
+            <ConfigRow label="Blockchain" value={config.features.blockchainIntegrity ? "Enabled" : "Disabled"} />
             <ConfigRow label="Concentration Alert" value={`${(config.thresholds.concentrationAlertThreshold * 100).toFixed(0)}%`} />
           </CardBody>
         </Card>
@@ -78,7 +78,7 @@ export function AssemblyDashboard() {
 
       {/* Recent events */}
       {events.length > 0 && (
-        <Card className="mt-6">
+        <Card className="mt-4 sm:mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-gray-900">Recent Events</h2>
@@ -88,17 +88,15 @@ export function AssemblyDashboard() {
             </div>
           </CardHeader>
           <CardBody>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {events.slice(0, 5).map((evt) => (
                 <Link
                   key={evt.id}
                   to={`/assembly/${assemblyId}/events/${evt.id}`}
-                  className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between py-2.5 sm:py-2 px-3 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors min-h-[44px] sm:min-h-0"
                 >
                   <span className="text-sm text-gray-900">{evt.title}</span>
-                  <div className="flex items-center gap-2">
-                    <Badge color="gray">{evt.issueIds?.length ?? 0} issues</Badge>
-                  </div>
+                  <Badge color="gray">{evt.issueIds?.length ?? 0} issues</Badge>
                 </Link>
               ))}
             </div>
@@ -111,10 +109,10 @@ export function AssemblyDashboard() {
 
 function StatCard({ label, value, linkTo }: { label: string; value: string | number; linkTo?: string }) {
   const content = (
-    <Card className={linkTo ? "hover:border-brand-200 transition-colors" : ""}>
-      <CardBody className="text-center py-6">
-        <div className="text-3xl font-semibold text-gray-900">{value}</div>
-        <div className="text-sm text-gray-500 mt-1">{label}</div>
+    <Card className={linkTo ? "hover:border-brand-200 active:border-brand transition-colors" : ""}>
+      <CardBody className="text-center py-4 sm:py-6">
+        <div className="text-2xl sm:text-3xl font-semibold text-gray-900">{value}</div>
+        <div className="text-xs sm:text-sm text-gray-500 mt-1">{label}</div>
       </CardBody>
     </Card>
   );

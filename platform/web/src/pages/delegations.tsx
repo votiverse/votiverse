@@ -24,7 +24,7 @@ export function Delegations() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Delegations</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Delegations</h1>
         <Button onClick={() => setCreating(true)}>Set Delegation</Button>
       </div>
 
@@ -37,7 +37,7 @@ export function Delegations() {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Active delegations */}
         <Card>
           <CardHeader>
@@ -47,27 +47,22 @@ export function Delegations() {
             {delegations.length === 0 ? (
               <EmptyState title="No delegations" description="No active delegations in this assembly." />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {delegations.map((d) => (
-                  <div key={d.id} className="flex items-center justify-between bg-gray-50 rounded-md px-4 py-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium text-gray-900">
+                  <div key={d.id} className="flex items-center justify-between bg-gray-50 rounded-md px-3 sm:px-4 py-3 gap-2 min-h-[52px]">
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-sm min-w-0 flex-wrap">
+                      <span className="font-medium text-gray-900 truncate">
                         {nameMap.get(d.sourceId) ?? d.sourceId.slice(0, 8)}
                       </span>
-                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
-                      <span className="font-medium text-brand">
+                      <span className="font-medium text-brand truncate">
                         {nameMap.get(d.targetId) ?? d.targetId.slice(0, 8)}
                       </span>
-                      {d.topicScope.length > 0 && (
-                        <span className="text-xs text-gray-400 ml-2">
-                          ({d.topicScope.length} topic{d.topicScope.length !== 1 ? "s" : ""})
-                        </span>
-                      )}
-                      {d.topicScope.length === 0 && (
-                        <span className="text-xs text-gray-400 ml-2">(global)</span>
-                      )}
+                      <span className="text-xs text-gray-400">
+                        {d.topicScope.length === 0 ? "(global)" : `(${d.topicScope.length} topic${d.topicScope.length !== 1 ? "s" : ""})`}
+                      </span>
                     </div>
                     <RevokeButton assemblyId={assemblyId!} delegationId={d.id} onRevoked={refetch} />
                   </div>
@@ -123,12 +118,12 @@ function CreateDelegationForm({
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
           <h3 className="font-medium text-gray-900">New Delegation</h3>
           {formError && <ErrorBox message={formError} />}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>From (Delegator)</Label>
               <Select value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
@@ -178,7 +173,6 @@ function ChainResolver({
   const [chainLoading, setChainLoading] = useState(false);
   const [chainError, setChainError] = useState<string | null>(null);
 
-  // Flatten all issues from all events
   const allIssues = events.flatMap((evt) =>
     (evt.issueIds ?? []).map((id) => ({ id, eventTitle: evt.title })),
   );
@@ -204,9 +198,9 @@ function ChainResolver({
       </CardHeader>
       <CardBody className="space-y-4">
         <p className="text-sm text-gray-500">
-          Trace how a participant's vote flows through the delegation chain for a specific issue.
+          Trace how a participant's vote flows through the delegation chain.
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label>Participant</Label>
             <Select value={selectedParticipant} onChange={(e) => setSelectedParticipant(e.target.value)}>
@@ -229,9 +223,9 @@ function ChainResolver({
           </div>
         </div>
         <Button
-          size="sm"
           onClick={resolveChain}
           disabled={!selectedParticipant || !selectedIssue || chainLoading}
+          className="w-full sm:w-auto"
         >
           {chainLoading ? "Resolving..." : "Resolve Chain"}
         </Button>
@@ -251,20 +245,28 @@ function ChainResolver({
 function ChainVisualization({ chain, nameMap }: { chain: DelegationChain; nameMap: Map<string, string> }) {
   return (
     <div className="bg-gray-50 rounded-lg p-4">
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Vertical on mobile, horizontal on desktop */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap">
         {chain.chain.map((pid, idx) => {
           const isFirst = idx === 0;
           const isTerminal = pid === chain.terminalVoter;
 
           return (
-            <div key={`${pid}-${idx}`} className="flex items-center gap-2">
+            <div key={`${pid}-${idx}`} className="flex flex-col sm:flex-row items-center gap-2">
               {idx > 0 && (
-                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
+                <>
+                  {/* Vertical arrow on mobile */}
+                  <svg className="w-5 h-5 text-gray-400 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                  </svg>
+                  {/* Horizontal arrow on desktop */}
+                  <svg className="w-5 h-5 text-gray-400 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
               )}
               <div
-                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                className={`px-4 py-2.5 rounded-md text-sm font-medium w-full sm:w-auto text-center min-h-[44px] flex items-center justify-center ${
                   isTerminal
                     ? "bg-brand text-white"
                     : isFirst
@@ -273,18 +275,18 @@ function ChainVisualization({ chain, nameMap }: { chain: DelegationChain; nameMa
                 }`}
               >
                 {nameMap.get(pid) ?? pid.slice(0, 8)}
-                {isTerminal && <span className="ml-1 text-xs opacity-75">(voter)</span>}
-                {isFirst && !isTerminal && <span className="ml-1 text-xs opacity-75">(source)</span>}
+                {isTerminal && <span className="ml-1.5 text-xs opacity-75">(voter)</span>}
+                {isFirst && !isTerminal && <span className="ml-1.5 text-xs opacity-75">(source)</span>}
               </div>
             </div>
           );
         })}
       </div>
       {chain.votedDirectly && (
-        <p className="text-xs text-gray-500 mt-2">Direct vote — delegation overridden.</p>
+        <p className="text-xs text-gray-500 mt-3">Direct vote — delegation overridden.</p>
       )}
       {!chain.terminalVoter && (
-        <p className="text-xs text-red-500 mt-2">Chain unresolved (cycle or no terminal voter).</p>
+        <p className="text-xs text-red-500 mt-3">Chain unresolved (cycle or no terminal voter).</p>
       )}
     </div>
   );
@@ -304,15 +306,15 @@ function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: str
 
   if (confirming) {
     return (
-      <div className="flex items-center gap-1">
-        <Button size="sm" variant="danger" onClick={handleRevoke}>Confirm</Button>
+      <div className="flex items-center gap-1 shrink-0">
+        <Button size="sm" variant="danger" onClick={handleRevoke}>Yes</Button>
         <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>No</Button>
       </div>
     );
   }
 
   return (
-    <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700">
+    <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700 shrink-0">
       Revoke
     </Button>
   );

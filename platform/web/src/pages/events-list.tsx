@@ -17,7 +17,7 @@ export function EventsList() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Voting Events</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Voting Events</h1>
         <Button onClick={() => setCreating(true)}>Create Event</Button>
       </div>
 
@@ -35,18 +35,18 @@ export function EventsList() {
         <div className="space-y-3">
           {events.map((evt) => (
             <Link key={evt.id} to={`/assembly/${assemblyId}/events/${evt.id}`} className="block">
-              <Card className="hover:border-brand-200 hover:shadow transition-all">
+              <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
                 <CardBody>
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex items-start sm:items-center justify-between gap-2">
+                    <div className="min-w-0">
                       <h3 className="font-medium text-gray-900">{evt.title}</h3>
                       {evt.description && (
                         <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{evt.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Badge color="gray">{evt.issueIds?.length ?? 0} issues</Badge>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 hidden sm:inline">
                         {new Date(evt.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -105,7 +105,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
           <h3 className="font-medium text-gray-900">New Voting Event</h3>
@@ -122,7 +122,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
             <Label>Issues</Label>
             <div className="space-y-3">
               {issues.map((issue, idx) => (
-                <div key={idx} className="flex gap-2">
+                <div key={idx} className="flex flex-col sm:flex-row gap-2">
                   <Input
                     value={issue.title}
                     onChange={(e) => updateIssue(idx, "title", e.target.value)}
@@ -137,7 +137,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
                   />
                 </div>
               ))}
-              <button type="button" onClick={addIssue} className="text-sm text-brand hover:text-brand-light">
+              <button type="button" onClick={addIssue} className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center">
                 + Add another issue
               </button>
             </div>

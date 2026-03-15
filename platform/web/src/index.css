@@ -8,3 +8,15 @@
   --color-brand-100: #D1E2F4;
   --color-brand-200: #A8C8E9;
 }
+
+/* Safe area padding for bottom tab bar (notched phones) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent iOS zoom on focus — inputs must be at least 16px */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}

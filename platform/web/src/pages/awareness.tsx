@@ -20,9 +20,9 @@ export function Awareness() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Awareness</h1>
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Awareness</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <ConcentrationPanel assemblyId={assemblyId!} issues={allIssues} nameMap={nameMap} />
         <ProfilePanel assemblyId={assemblyId!} participants={participants} nameMap={nameMap} />
         <HistoryPanel assemblyId={assemblyId!} participants={participants} />
@@ -79,7 +79,7 @@ function ConcentrationPanel({
             ))}
           </Select>
         </div>
-        <Button size="sm" onClick={loadMetrics} disabled={!selectedIssue || loading}>
+        <Button onClick={loadMetrics} disabled={!selectedIssue || loading} className="w-full sm:w-auto">
           {loading ? "Loading..." : "Load Metrics"}
         </Button>
         {error && <ErrorBox message={error} />}
@@ -96,7 +96,7 @@ function ConcentrationPanel({
             {Object.keys(metrics.chainLengthDistribution).length > 0 && (
               <div>
                 <p className="text-xs text-gray-500 mb-1">Chain Length Distribution</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {Object.entries(metrics.chainLengthDistribution).map(([len, count]) => (
                     <span key={len} className="text-xs bg-gray-100 px-2 py-1 rounded">
                       Len {len}: {count}
@@ -105,12 +105,11 @@ function ConcentrationPanel({
                 </div>
               </div>
             )}
-            {/* Visual indicator */}
             <div>
               <p className="text-xs text-gray-500 mb-1">Concentration Level</p>
-              <div className="w-full bg-gray-100 rounded-full h-4">
+              <div className="w-full bg-gray-100 rounded-full h-5 sm:h-4">
                 <div
-                  className={`h-4 rounded-full transition-all ${
+                  className={`h-5 sm:h-4 rounded-full transition-all ${
                     metrics.giniCoefficient < 0.3 ? "bg-green-400" : metrics.giniCoefficient < 0.6 ? "bg-yellow-400" : "bg-red-400"
                   }`}
                   style={{ width: `${Math.min(metrics.giniCoefficient * 100, 100)}%` }}
@@ -169,7 +168,7 @@ function ProfilePanel({
             ))}
           </Select>
         </div>
-        <Button size="sm" onClick={loadProfile} disabled={!selectedPid || loading}>
+        <Button onClick={loadProfile} disabled={!selectedPid || loading} className="w-full sm:w-auto">
           {loading ? "Loading..." : "Load Profile"}
         </Button>
         {profile && (
@@ -181,7 +180,7 @@ function ProfilePanel({
                 <p className="text-xs text-gray-500 mb-1">Who delegates to them</p>
                 <div className="flex flex-wrap gap-1">
                   {profile.delegatorsIds.map((id) => (
-                    <span key={id} className="text-xs bg-brand-50 text-brand px-2 py-1 rounded">
+                    <span key={id} className="text-xs bg-brand-50 text-brand px-2 py-1.5 rounded min-h-[32px] inline-flex items-center">
                       {nameMap.get(id) ?? id.slice(0, 8)}
                     </span>
                   ))}
@@ -236,7 +235,7 @@ function HistoryPanel({
         <h2 className="font-medium text-gray-900">Voting History</h2>
       </CardHeader>
       <CardBody className="space-y-4">
-        <div className="flex gap-3 items-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
             <Label>Participant</Label>
             <Select value={selectedPid} onChange={(e) => setSelectedPid(e.target.value)}>
@@ -246,7 +245,7 @@ function HistoryPanel({
               ))}
             </Select>
           </div>
-          <Button size="sm" onClick={loadHistory} disabled={!selectedPid || loading}>
+          <Button onClick={loadHistory} disabled={!selectedPid || loading} className="w-full sm:w-auto">
             {loading ? "Loading..." : "Load History"}
           </Button>
         </div>
@@ -254,26 +253,41 @@ function HistoryPanel({
           history.history.length === 0 ? (
             <p className="text-sm text-gray-400">No votes recorded for this participant.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-gray-500 border-b">
-                    <th className="pb-2 font-medium">Issue ID</th>
-                    <th className="pb-2 font-medium">Choice</th>
-                    <th className="pb-2 font-medium">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {history.history.map((entry, idx) => (
-                    <tr key={idx}>
-                      <td className="py-2 font-mono text-xs text-gray-500">{entry.issueId.slice(0, 12)}...</td>
-                      <td className="py-2 capitalize font-medium text-gray-900">{entry.choice}</td>
-                      <td className="py-2 text-gray-500">{new Date(entry.votedAt).toLocaleString()}</td>
+            <>
+              {/* Mobile: card layout */}
+              <div className="sm:hidden space-y-2">
+                {history.history.map((entry, idx) => (
+                  <div key={idx} className="bg-gray-50 rounded-md px-3 py-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="capitalize font-medium text-gray-900">{entry.choice}</span>
+                      <span className="text-xs text-gray-400">{new Date(entry.votedAt).toLocaleDateString()}</span>
+                    </div>
+                    <span className="font-mono text-xs text-gray-500">{entry.issueId.slice(0, 16)}...</span>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: table layout */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b">
+                      <th className="pb-2 font-medium">Issue ID</th>
+                      <th className="pb-2 font-medium">Choice</th>
+                      <th className="pb-2 font-medium">Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {history.history.map((entry, idx) => (
+                      <tr key={idx}>
+                        <td className="py-2 font-mono text-xs text-gray-500">{entry.issueId.slice(0, 12)}...</td>
+                        <td className="py-2 capitalize font-medium text-gray-900">{entry.choice}</td>
+                        <td className="py-2 text-gray-500">{new Date(entry.votedAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )
         )}
       </CardBody>
@@ -305,7 +319,7 @@ export function AwarenessProfile() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">
         {profile.name ?? "Unknown"} — Profile
       </h1>
       <Card>
@@ -317,7 +331,7 @@ export function AwarenessProfile() {
               <p className="text-xs text-gray-500 mb-1">People who delegate to this participant</p>
               <div className="flex flex-wrap gap-1">
                 {profile.delegatorsIds.map((id) => (
-                  <span key={id} className="text-xs bg-brand-50 text-brand px-2 py-1 rounded">
+                  <span key={id} className="text-xs bg-brand-50 text-brand px-2 py-1.5 rounded min-h-[32px] inline-flex items-center">
                     {nameMap.get(id) ?? id.slice(0, 8)}
                   </span>
                 ))}
@@ -354,30 +368,47 @@ export function AwarenessHistory() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Voting History</h1>
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Voting History</h1>
       <Card>
         <CardBody>
           {history.history.length === 0 ? (
             <p className="text-sm text-gray-400">No votes recorded.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-500 border-b">
-                  <th className="pb-2 font-medium">Issue ID</th>
-                  <th className="pb-2 font-medium">Choice</th>
-                  <th className="pb-2 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <>
+              {/* Mobile: card layout */}
+              <div className="sm:hidden space-y-2">
                 {history.history.map((entry, idx) => (
-                  <tr key={idx}>
-                    <td className="py-2 font-mono text-xs text-gray-500">{entry.issueId.slice(0, 12)}...</td>
-                    <td className="py-2 capitalize font-medium text-gray-900">{entry.choice}</td>
-                    <td className="py-2 text-gray-500">{new Date(entry.votedAt).toLocaleString()}</td>
-                  </tr>
+                  <div key={idx} className="bg-gray-50 rounded-md px-3 py-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="capitalize font-medium text-gray-900">{entry.choice}</span>
+                      <span className="text-xs text-gray-400">{new Date(entry.votedAt).toLocaleDateString()}</span>
+                    </div>
+                    <span className="font-mono text-xs text-gray-500">{entry.issueId.slice(0, 16)}...</span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+              {/* Desktop: table layout */}
+              <div className="hidden sm:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b">
+                      <th className="pb-2 font-medium">Issue ID</th>
+                      <th className="pb-2 font-medium">Choice</th>
+                      <th className="pb-2 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {history.history.map((entry, idx) => (
+                      <tr key={idx}>
+                        <td className="py-2 font-mono text-xs text-gray-500">{entry.issueId.slice(0, 12)}...</td>
+                        <td className="py-2 capitalize font-medium text-gray-900">{entry.choice}</td>
+                        <td className="py-2 text-gray-500">{new Date(entry.votedAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardBody>
       </Card>

@@ -13,7 +13,7 @@ export function Polls() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Polls</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Polls</h1>
         <Button onClick={() => setCreating(true)}>Create Poll</Button>
       </div>
 
@@ -92,7 +92,7 @@ function CreatePollForm({
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
           <h3 className="font-medium text-gray-900">New Poll</h3>
@@ -179,20 +179,24 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
       </CardHeader>
       <CardBody className="space-y-3">
         {poll.questions.map((q) => (
-          <div key={q.id} className="bg-gray-50 rounded-md p-3">
-            <p className="text-sm text-gray-700 mb-2">{q.text}</p>
+          <div key={q.id} className="bg-gray-50 rounded-md p-3 sm:p-4">
+            <p className="text-sm text-gray-700 mb-3">{q.text}</p>
             {participantId && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {q.questionType.type === "yes-no" && (
                   <>
-                    <Button size="sm" onClick={() => submitResponse(q.id, true)} disabled={responding}>Yes</Button>
-                    <Button size="sm" variant="secondary" onClick={() => submitResponse(q.id, false)} disabled={responding}>No</Button>
+                    <Button size="lg" onClick={() => submitResponse(q.id, true)} disabled={responding} className="flex-1 sm:flex-none">
+                      Yes
+                    </Button>
+                    <Button size="lg" variant="secondary" onClick={() => submitResponse(q.id, false)} disabled={responding} className="flex-1 sm:flex-none">
+                      No
+                    </Button>
                   </>
                 )}
                 {q.questionType.type === "likert" && (
                   <>
                     {[1, 2, 3, 4, 5].map((v) => (
-                      <Button key={v} size="sm" variant="secondary" onClick={() => submitResponse(q.id, v)} disabled={responding}>
+                      <Button key={v} variant="secondary" onClick={() => submitResponse(q.id, v)} disabled={responding} className="flex-1 min-w-[48px] min-h-[48px]">
                         {v}
                       </Button>
                     ))}
@@ -200,25 +204,29 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
                 )}
                 {q.questionType.type === "direction" && (
                   <>
-                    <Button size="sm" onClick={() => submitResponse(q.id, "support")} disabled={responding}>Support</Button>
-                    <Button size="sm" variant="secondary" onClick={() => submitResponse(q.id, "oppose")} disabled={responding}>Oppose</Button>
+                    <Button size="lg" onClick={() => submitResponse(q.id, "support")} disabled={responding} className="flex-1 sm:flex-none">
+                      Support
+                    </Button>
+                    <Button size="lg" variant="secondary" onClick={() => submitResponse(q.id, "oppose")} disabled={responding} className="flex-1 sm:flex-none">
+                      Oppose
+                    </Button>
                   </>
                 )}
               </div>
             )}
           </div>
         ))}
-        <Button size="sm" variant="ghost" onClick={loadResults}>
+        <Button variant="ghost" onClick={loadResults} className="w-full sm:w-auto">
           {showResults ? "Refresh Results" : "View Results"}
         </Button>
         {showResults && results && (
-          <div className="bg-gray-50 rounded-md p-3">
+          <div className="bg-gray-50 rounded-md p-3 sm:p-4">
             <p className="text-sm text-gray-500 mb-1">{results.responseCount} responses</p>
             {results.questionResults.map((qr) => (
               <div key={qr.questionId} className="text-sm">
                 {qr.mean !== undefined && <p>Mean: {qr.mean.toFixed(2)}</p>}
                 {Object.keys(qr.distribution).length > 0 && (
-                  <div className="flex gap-3 mt-1">
+                  <div className="flex flex-wrap gap-3 mt-1">
                     {Object.entries(qr.distribution).map(([val, count]) => (
                       <span key={val} className="text-gray-600">
                         {val}: <span className="font-medium">{count}</span>

@@ -39,18 +39,18 @@ export function EventDetail() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-2xl font-semibold text-gray-900">{event.title}</h1>
+        <div className="flex items-center gap-3 flex-wrap mb-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{event.title}</h1>
           <StatusBadge status={event.status ?? "upcoming"} />
         </div>
         {event.description && <p className="text-sm text-gray-500">{event.description}</p>}
-        <div className="flex gap-4 mt-2 text-xs text-gray-400">
-          <span>Deliberation: {new Date(event.timeline.deliberationStart).toLocaleString()}</span>
-          <span>Voting: {new Date(event.timeline.votingStart).toLocaleString()} - {new Date(event.timeline.votingEnd).toLocaleString()}</span>
+        <div className="flex flex-col sm:flex-row sm:gap-4 mt-2 text-xs text-gray-400 gap-0.5">
+          <span>Deliberation: {new Date(event.timeline.deliberationStart).toLocaleDateString()}</span>
+          <span>Voting: {new Date(event.timeline.votingStart).toLocaleDateString()} - {new Date(event.timeline.votingEnd).toLocaleDateString()}</span>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {(event.issues ?? []).map((issue, idx) => {
           const tally = tallyData?.tallies?.[idx];
           const weightDist = weightsData?.weights?.[idx];
@@ -118,7 +118,7 @@ function IssueCard({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
           <div>
             <h2 className="font-medium text-gray-900">{title}</h2>
             {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
@@ -127,23 +127,25 @@ function IssueCard({
         </div>
       </CardHeader>
       <CardBody className="space-y-4">
-        {/* Vote buttons */}
+        {/* Vote buttons — large touch targets on mobile */}
         {votingOpen && (
           <div>
             {!participantId ? (
-              <p className="text-sm text-gray-400">Select a participant in the header to vote.</p>
+              <p className="text-sm text-gray-400">Select a participant to vote.</p>
             ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 mr-2">Cast vote:</span>
-                <Button size="sm" onClick={() => handleVote("for")} disabled={voting}>
-                  For
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => handleVote("against")} disabled={voting}>
-                  Against
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => handleVote("abstain")} disabled={voting}>
-                  Abstain
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <span className="text-sm text-gray-500">Cast vote:</span>
+                <div className="flex gap-2">
+                  <Button size="lg" onClick={() => handleVote("for")} disabled={voting} className="flex-1 sm:flex-none">
+                    For
+                  </Button>
+                  <Button size="lg" variant="secondary" onClick={() => handleVote("against")} disabled={voting} className="flex-1 sm:flex-none">
+                    Against
+                  </Button>
+                  <Button size="lg" variant="ghost" onClick={() => handleVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
+                    Abstain
+                  </Button>
+                </div>
               </div>
             )}
             {voteError && <p className="text-sm text-red-600 mt-1">{voteError}</p>}
@@ -154,7 +156,7 @@ function IssueCard({
         {tally && totalVotes > 0 && (
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Tally (weighted)</h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {Object.entries(tally.counts)
                 .sort(([, a], [, b]) => b - a)
                 .map(([choice, count]) => {
@@ -167,9 +169,9 @@ function IssueCard({
                           {count} vote{count !== 1 ? "s" : ""} ({pct.toFixed(0)}%)
                         </span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-3">
+                      <div className="w-full bg-gray-100 rounded-full h-4 sm:h-3">
                         <div
-                          className={`h-3 rounded-full transition-all ${choice === "for" ? "bg-brand" : choice === "against" ? "bg-red-400" : "bg-gray-400"}`}
+                          className={`h-4 sm:h-3 rounded-full transition-all ${choice === "for" ? "bg-brand" : choice === "against" ? "bg-red-400" : "bg-gray-400"}`}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -177,7 +179,7 @@ function IssueCard({
                   );
                 })}
             </div>
-            <div className="flex gap-4 mt-3 text-xs text-gray-400">
+            <div className="flex flex-col sm:flex-row sm:gap-4 mt-3 text-xs text-gray-400 gap-0.5">
               <span>Total: {tally.totalVotes} weighted votes</span>
               <span>Participating: {tally.participatingCount}/{tally.eligibleCount}</span>
               <span>Quorum: {tally.quorumMet ? "Met" : "Not met"} ({(tally.quorumThreshold * 100).toFixed(0)}%)</span>
@@ -185,21 +187,21 @@ function IssueCard({
           </div>
         )}
 
-        {/* Weight breakdown */}
+        {/* Weight breakdown — full width on mobile */}
         {weightDist && Object.keys(weightDist.weights).length > 0 && (
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Weight Distribution</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {Object.entries(weightDist.weights)
                 .sort(([, a], [, b]) => b - a)
                 .map(([pid, weight]) => (
-                  <div key={pid} className="flex items-center justify-between text-sm bg-gray-50 rounded-md px-3 py-2">
+                  <div key={pid} className="flex items-center justify-between text-sm bg-gray-50 rounded-md px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2">
                     <span className="text-gray-700">{nameMap.get(pid) ?? pid.slice(0, 8)}</span>
                     <span className="font-semibold text-gray-900">
                       {weight === 1 ? "1" : weight.toFixed(0)}
                       {weight > 1 && (
                         <span className="text-xs text-gray-400 ml-1">
-                          (1+{(weight - 1).toFixed(0)} delegated)
+                          (1+{(weight - 1).toFixed(0)})
                         </span>
                       )}
                     </span>
