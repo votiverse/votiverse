@@ -42,12 +42,27 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   const res = await fetch(`${BASE_URL}${path}`, init);
   if (res.status === 204) return undefined as T;
-  const data = await res.json();
+
+  // Check res.ok BEFORE parsing JSON — the response body may not be JSON
+  // (e.g. Vite proxy returns HTML when VCP is unreachable).
   if (!res.ok) {
-    const err = data?.error ?? {};
-    throw new ApiError(res.status, err.code ?? "UNKNOWN", err.message ?? res.statusText);
+    let code = "UNKNOWN";
+    let message = res.statusText;
+    try {
+      const data = await res.json();
+      const err = data?.error ?? {};
+      code = err.code ?? code;
+      message = err.message ?? message;
+    } catch {
+      // Response body wasn't JSON — use status text
+      try {
+        message = await res.text();
+      } catch { /* ignore */ }
+    }
+    throw new ApiError(res.status, code, message);
   }
-  return data as T;
+
+  return (await res.json()) as T;
 }
 
 // ---- Assemblies ----

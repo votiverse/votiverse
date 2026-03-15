@@ -72,7 +72,14 @@ export function pollRoutes(manager: AssemblyManager) {
     const { engine } = await manager.getEngine(assemblyId);
     const results = await engine.polls.results(pid as PollId, eligibleCount);
 
-    return c.json(results);
+    // Convert Map → plain object for JSON serialization (Maps serialize as {})
+    return c.json({
+      ...results,
+      questionResults: results.questionResults.map((qr) => ({
+        ...qr,
+        distribution: Object.fromEntries(qr.distribution),
+      })),
+    });
   });
 
   /** GET /assemblies/:id/trends/:topic — trend data. */

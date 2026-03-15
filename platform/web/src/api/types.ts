@@ -140,7 +140,9 @@ export interface Poll {
   status: string;
   questions: PollQuestion[];
   topicIds: string[];
-  createdAt: string;
+  schedule: number;
+  closesAt: number;
+  createdBy: string;
 }
 
 export interface PollQuestion {
