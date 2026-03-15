@@ -85,7 +85,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
             </svg>
             <div>
               <p className="font-medium text-green-800">You're all caught up!</p>
-              <p className="text-sm text-green-600 mt-0.5">No pending votes across your assemblies.</p>
+              <p className="text-sm text-green-600 mt-0.5">No pending votes across your groups.</p>
             </div>
           </div>
         </div>
@@ -94,7 +94,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Pending votes list */}
       {pendingVotes.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Voting Activity</h2>
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Pending Votes</h2>
           <div className="space-y-2">
             {pendingVotes.map((vote) => (
               <Link
@@ -132,17 +132,17 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Assembly cards */}
       {assemblySummaries.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Your Assemblies</h2>
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Your Groups</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {assemblySummaries.map(({ assembly, activeEventCount, pendingVoteCount }) => (
               <Link key={assembly.id} to={`/assembly/${assembly.id}`} className="block">
                 <Card className="hover:border-brand-200 hover:shadow transition-all h-full">
                   <CardBody>
                     <h3 className="font-medium text-gray-900">{assembly.name}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{assembly.config.name} preset</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{assembly.config.name}</p>
                     <div className="flex items-center gap-3 mt-3">
                       <Badge color={activeEventCount > 0 ? "blue" : "gray"}>
-                        {activeEventCount} active event{activeEventCount !== 1 ? "s" : ""}
+                        {activeEventCount} active vote{activeEventCount !== 1 ? "s" : ""}
                       </Badge>
                       {pendingVoteCount > 0 && (
                         <Badge color="red">
@@ -160,9 +160,9 @@ function DashboardContent({ participantName }: { participantName: string | null 
 
       {assemblySummaries.length === 0 && pendingVotes.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">No assemblies found.</p>
+          <p className="text-gray-500">No groups found.</p>
           <Link to="/assemblies" className="text-sm text-brand hover:text-brand-light mt-2 inline-block">
-            Browse assemblies
+            Browse groups
           </Link>
         </div>
       )}

@@ -43,9 +43,9 @@ export function AssemblyDashboard() {
       {/* Stats row — participant-centric */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <StatCard label="Members" value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
-        <StatCard label="Events" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
+        <StatCard label="Votes" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
         <StatCard
-          label="Your Delegations"
+          label="Your Delegates"
           value={delegations.length}
           linkTo={`/assembly/${assemblyId}/delegations`}
         />
@@ -74,7 +74,7 @@ export function AssemblyDashboard() {
                 <h2 className="font-medium text-gray-900">Configuration</h2>
               </CardHeader>
               <CardBody className="space-y-3">
-                <ConfigRow label="Preset" value={config.name} />
+                <ConfigRow label="Decision Model" value={config.name} />
                 <ConfigRow label="Voting Method" value={config.ballot.votingMethod} />
                 <ConfigRow label="Ballot Secrecy" value={config.ballot.secrecy} />
                 <ConfigRow label="Participation" value={config.ballot.participationMode} />
@@ -94,8 +94,8 @@ export function AssemblyDashboard() {
               </CardHeader>
               <CardBody className="space-y-3">
                 <ConfigRow label="Predictions" value={config.features.predictions} />
-                <ConfigRow label="Polls" value={config.features.polls ? "Enabled" : "Disabled"} />
-                <ConfigRow label="Awareness" value={config.features.awarenessIntensity} />
+                <ConfigRow label="Surveys" value={config.features.polls ? "Enabled" : "Disabled"} />
+                <ConfigRow label="Insights" value={config.features.awarenessIntensity} />
                 <ConfigRow label="Community Notes" value={config.features.communityNotes ? "Enabled" : "Disabled"} />
                 <ConfigRow label="Blockchain" value={config.features.blockchainIntegrity ? "Enabled" : "Disabled"} />
                 <ConfigRow label="Concentration Alert" value={`${(config.thresholds.concentrationAlertThreshold * 100).toFixed(0)}%`} />
@@ -110,7 +110,7 @@ export function AssemblyDashboard() {
         <Card className="mt-4 sm:mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="font-medium text-gray-900">Recent Events</h2>
+              <h2 className="font-medium text-gray-900">Recent Votes</h2>
               <Link to={`/assembly/${assemblyId}/events`} className="text-sm text-brand hover:text-brand-light">
                 View all
               </Link>
@@ -125,7 +125,7 @@ export function AssemblyDashboard() {
                   className="flex items-center justify-between py-2.5 sm:py-2 px-3 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors min-h-[44px] sm:min-h-0"
                 >
                   <span className="text-sm text-gray-900">{evt.title}</span>
-                  <Badge color="gray">{evt.issueIds?.length ?? 0} issues</Badge>
+                  <Badge color="gray">{evt.issueIds?.length ?? 0} questions</Badge>
                 </Link>
               ))}
             </div>

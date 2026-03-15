@@ -54,7 +54,7 @@ export function IdentityPicker() {
     return (
       <div className="max-w-md mx-auto py-16 text-center">
         <Spinner />
-        <p className="mt-4 text-sm text-gray-500">Loading participants...</p>
+        <p className="mt-4 text-sm text-gray-500">Loading members...</p>
       </div>
     );
   }
@@ -85,7 +85,7 @@ export function IdentityPicker() {
       </div>
       {participants.length === 0 && (
         <p className="text-center text-sm text-gray-400 mt-8">
-          No participants found. Create an assembly first.
+          No members found. Create a group first.
         </p>
       )}
     </div>

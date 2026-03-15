@@ -20,8 +20,8 @@ export function EventsList() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Voting Events</h1>
-        <Button onClick={() => setCreating(true)}>Create Event</Button>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Votes</h1>
+        <Button onClick={() => setCreating(true)}>Create a Vote</Button>
       </div>
 
       {creating && (
@@ -33,7 +33,7 @@ export function EventsList() {
       )}
 
       {events.length === 0 ? (
-        <EmptyState title="No voting events yet" description="Create an event to start voting on issues." />
+        <EmptyState title="No votes yet" description="Create a vote to start making decisions." />
       ) : (
         <div className="space-y-3">
           {events.map((evt) => (
@@ -78,7 +78,7 @@ function EventCard({ assemblyId, event: evt }: { assemblyId: string; event: Voti
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <div className="flex items-center gap-2">
-                <Badge color="gray">{issueCount} issue{issueCount !== 1 ? "s" : ""}</Badge>
+                <Badge color="gray">{issueCount} question{issueCount !== 1 ? "s" : ""}</Badge>
               </div>
               {votedCount !== null && issueCount > 0 && status === "voting" && (
                 <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-green-600" : "text-amber-600"}`}>
@@ -133,7 +133,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
       onCreated();
       onClose();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create event");
+      setFormError(err instanceof Error ? err.message : "Failed to create vote");
     } finally {
       setSubmitting(false);
     }
@@ -143,25 +143,25 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">New Voting Event</h3>
+          <h3 className="font-medium text-gray-900">New Vote</h3>
           {formError && <ErrorBox message={formError} />}
           <div>
             <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" autoFocus />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Vote title" autoFocus />
           </div>
           <div>
             <Label>Description</Label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description" />
           </div>
           <div>
-            <Label>Issues</Label>
+            <Label>Questions</Label>
             <div className="space-y-3">
               {issues.map((issue, idx) => (
                 <div key={idx} className="flex flex-col sm:flex-row gap-2">
                   <Input
                     value={issue.title}
                     onChange={(e) => updateIssue(idx, "title", e.target.value)}
-                    placeholder={`Issue ${idx + 1} title`}
+                    placeholder={`Question ${idx + 1}`}
                     className="flex-1"
                   />
                   <Input
@@ -173,7 +173,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
                 </div>
               ))}
               <button type="button" onClick={addIssue} className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center">
-                + Add another issue
+                + Add another question
               </button>
             </div>
           </div>
@@ -183,7 +183,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={submitting || !title.trim()}>
-              {submitting ? "Creating..." : "Create Event"}
+              {submitting ? "Creating..." : "Create Vote"}
             </Button>
           </div>
         </form>

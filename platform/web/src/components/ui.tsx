@@ -135,7 +135,7 @@ export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: "green" | "blue" | "yellow" | "gray" | "red"; label: string }> = {
     active: { color: "green", label: "Active" },
     voting: { color: "green", label: "Voting Open" },
-    deliberation: { color: "blue", label: "Deliberation" },
+    deliberation: { color: "blue", label: "Discussion" },
     upcoming: { color: "yellow", label: "Upcoming" },
     closed: { color: "gray", label: "Closed" },
     open: { color: "green", label: "Open" },

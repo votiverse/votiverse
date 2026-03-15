@@ -6,13 +6,26 @@ import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, StatusBadge, Badge } from "../components/ui.js";
 
 const PRESETS = [
-  { value: "TOWN_HALL", label: "Town Hall", desc: "Direct democracy, no delegation" },
-  { value: "SWISS_MODEL", label: "Swiss Model", desc: "Secret ballot, optional delegation" },
-  { value: "LIQUID_STANDARD", label: "Liquid Standard", desc: "Topic-specific liquid delegation" },
-  { value: "LIQUID_ACCOUNTABLE", label: "Liquid Accountable", desc: "Liquid delegation with predictions" },
-  { value: "BOARD_PROXY", label: "Board Proxy", desc: "Corporate proxy voting model" },
-  { value: "CIVIC_PARTICIPATORY", label: "Civic Participatory", desc: "Full participatory governance" },
+  { value: "TOWN_HALL", label: "Everyone votes directly", desc: "Every member votes on every question. Simple and equal." },
+  { value: "SWISS_MODEL", label: "Discuss, then vote", desc: "A structured discussion period, then a direct vote by all members." },
+  { value: "LIQUID_STANDARD", label: "Members choose trusted delegates", desc: "Members can delegate their vote to someone they trust, by topic." },
+  { value: "LIQUID_ACCOUNTABLE", label: "Delegates with full accountability", desc: "Delegate votes are visible and predictions are tracked over time." },
+  { value: "BOARD_PROXY", label: "Elected representatives", desc: "Members elect or appoint representatives who vote on their behalf." },
+  { value: "CIVIC_PARTICIPATORY", label: "Mixed approach", desc: "Some topics decided by direct vote, others through delegates." },
 ];
+
+const PRESET_SUBTITLES: Record<string, string> = {
+  "Town Hall": "Everyone votes directly",
+  "Swiss Model": "Discuss, then vote",
+  "Liquid Standard": "Flexible delegation",
+  "Liquid Accountable": "Delegates with accountability",
+  "Board Proxy": "Elected representatives",
+  "Civic Participatory": "Mixed — direct votes and delegates",
+};
+
+function presetSubtitle(presetName: string): string {
+  return PRESET_SUBTITLES[presetName] ?? presetName;
+}
 
 export function AssemblyList() {
   const { data: assemblies, loading, error, refetch } = useApi(() => api.listAssemblies());
@@ -26,19 +39,19 @@ export function AssemblyList() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Assemblies</h1>
-          <p className="mt-1 text-sm text-gray-500">Governance assemblies on this VCP instance</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">My Groups</h1>
+          <p className="mt-1 text-sm text-gray-500">Your communities and organizations</p>
         </div>
-        <Button onClick={() => setCreating(true)}>Create Assembly</Button>
+        <Button onClick={() => setCreating(true)}>New Group</Button>
       </div>
 
       {creating && <CreateAssemblyForm onClose={() => setCreating(false)} onCreated={refetch} />}
 
       {!assemblies || assemblies.length === 0 ? (
         <EmptyState
-          title="No assemblies yet"
-          description="Create your first assembly to start governing."
-          action={!creating ? <Button onClick={() => setCreating(true)}>Create Assembly</Button> : undefined}
+          title="No groups yet"
+          description="Create your first group to start making decisions together."
+          action={!creating ? <Button onClick={() => setCreating(true)}>New Group</Button> : undefined}
         />
       ) : (
         <div className="space-y-3">
@@ -49,12 +62,12 @@ export function AssemblyList() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium text-gray-900">{asm.name}</h3>
-                      <p className="text-sm text-gray-500 mt-0.5">{asm.config.name} preset</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{presetSubtitle(asm.config.name)}</p>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                       <StatusBadge status={asm.status} />
                       {(pendingByAssembly[asm.id] ?? 0) > 0 && (
-                        <Badge color="red">{pendingByAssembly[asm.id]} pending</Badge>
+                        <Badge color="red">{pendingByAssembly[asm.id]} vote{pendingByAssembly[asm.id] !== 1 ? "s" : ""} need you</Badge>
                       )}
                       <span className="text-xs text-gray-400 hidden sm:inline">
                         {new Date(asm.createdAt).toLocaleDateString()}
@@ -87,7 +100,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
       onCreated();
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create assembly");
+      setError(err instanceof Error ? err.message : "Failed to create group");
     } finally {
       setSubmitting(false);
     }
@@ -97,14 +110,14 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
     <Card className="mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">New Assembly</h3>
+          <h3 className="font-medium text-gray-900">New Group</h3>
           {error && <ErrorBox message={error} />}
           <div>
             <Label>Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Assembly name" autoFocus />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" autoFocus />
           </div>
           <div>
-            <Label>Governance Preset</Label>
+            <Label>How should your group make decisions?</Label>
             <Select value={preset} onChange={(e) => setPreset(e.target.value)}>
               {PRESETS.map((p) => (
                 <option key={p.value} value={p.value}>

@@ -56,7 +56,7 @@ export function Profile() {
   if (!participantId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">No identity selected. Go to the Dashboard to pick who you are.</p>
+        <p className="text-gray-500">No identity selected. Go to Home to pick who you are.</p>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Profile</h1>
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Me</h1>
 
       {/* Identity card */}
       <Card className="mb-6">
@@ -100,13 +100,13 @@ export function Profile() {
         <Card>
           <CardBody className="text-center py-4">
             <div className="text-2xl font-semibold text-gray-900">{totalDelegators}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Delegators</div>
+            <div className="text-xs text-gray-500 mt-0.5">Trust You</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody className="text-center py-4">
             <div className="text-2xl font-semibold text-gray-900">{totalOutbound}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Delegations</div>
+            <div className="text-xs text-gray-500 mt-0.5">My Delegates</div>
           </CardBody>
         </Card>
       </div>
@@ -127,7 +127,7 @@ export function Profile() {
                 {profile.delegatorsCount > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">
-                      {profile.delegatorsCount} participant{profile.delegatorsCount !== 1 ? "s" : ""} delegate to you
+                      {profile.delegatorsCount} member{profile.delegatorsCount !== 1 ? "s" : ""} trust you with their vote
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {profile.delegatorsIds.map((id) => (
@@ -140,17 +140,17 @@ export function Profile() {
                 )}
                 {profile.myDelegations.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Your outbound delegations</p>
+                    <p className="text-xs text-gray-500 mb-1">People you trust</p>
                     {profile.myDelegations.map((d, i) => (
                       <p key={i} className="text-sm text-gray-700">
-                        Delegates to {d.targetId.slice(0, 8)}
+                        Trusts {d.targetId.slice(0, 8)}
                         {d.topicScope.length === 0 ? " (global)" : ` (${d.topicScope.length} topics)`}
                       </p>
                     ))}
                   </div>
                 )}
                 {profile.delegatorsCount === 0 && profile.myDelegations.length === 0 && (
-                  <p className="text-sm text-gray-400">No delegations in this assembly.</p>
+                  <p className="text-sm text-gray-400">No delegates in this group.</p>
                 )}
               </div>
             )}
@@ -182,7 +182,7 @@ export function Profile() {
               </div>
             )}
             {history && history.history.length === 0 && (
-              <p className="text-sm text-gray-400">No votes recorded in this assembly.</p>
+              <p className="text-sm text-gray-400">No votes recorded in this group.</p>
             )}
           </CardBody>
         </Card>

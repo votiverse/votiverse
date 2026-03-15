@@ -31,8 +31,8 @@ export function Delegations() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Delegations</h1>
-        <Button onClick={() => setCreating(true)}>Set Delegation</Button>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Delegates</h1>
+        <Button onClick={() => setCreating(true)}>Trust someone with your vote</Button>
       </div>
 
       {creating && (
@@ -49,11 +49,11 @@ export function Delegations() {
         {/* Active delegations */}
         <Card>
           <CardHeader>
-            <h2 className="font-medium text-gray-900">Active Delegations</h2>
+            <h2 className="font-medium text-gray-900">Your Trusted Delegates</h2>
           </CardHeader>
           <CardBody>
             {delegations.length === 0 ? (
-              <EmptyState title="No delegations" description="No active delegations in this assembly." />
+              <EmptyState title="No delegates" description="You haven't trusted anyone with your vote yet." />
             ) : (
               <div className="space-y-2 sm:space-y-3">
                 {delegations.map((d) => (
@@ -128,7 +128,7 @@ function CreateDelegationForm({
       onCreated();
       onClose();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create delegation");
+      setFormError(err instanceof Error ? err.message : "Failed to set up delegation");
     } finally {
       setSubmitting(false);
     }
@@ -138,22 +138,22 @@ function CreateDelegationForm({
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">New Delegation</h3>
+          <h3 className="font-medium text-gray-900">Trust someone with your vote</h3>
           {formError && <ErrorBox message={formError} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label>From (Delegator)</Label>
+              <Label>From</Label>
               <Select value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
-                <option value="">Select participant...</option>
+                <option value="">Select member...</option>
                 {participants.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </Select>
             </div>
             <div>
-              <Label>To (Delegate)</Label>
+              <Label>To (Trusted delegate)</Label>
               <Select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-                <option value="">Select participant...</option>
+                <option value="">Select member...</option>
                 {participants.filter((p) => p.id !== sourceId).map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -172,7 +172,7 @@ function CreateDelegationForm({
                     onChange={() => setScopeMode("global")}
                     className="text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-gray-700">All topics (global delegation)</span>
+                  <span className="text-sm text-gray-700">All topics (trust on everything)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -247,15 +247,15 @@ function ChainResolver({
   return (
     <Card>
       <CardHeader>
-        <h2 className="font-medium text-gray-900">Delegation Chain</h2>
+        <h2 className="font-medium text-gray-900">How your vote flows</h2>
       </CardHeader>
       <CardBody className="space-y-4">
         <p className="text-sm text-gray-500">
-          Trace how a participant's vote flows through the delegation chain.
+          Trace how a member's vote flows through their trusted delegates.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <Label>Participant</Label>
+            <Label>Member</Label>
             <Select value={selectedParticipant} onChange={(e) => setSelectedParticipant(e.target.value)}>
               <option value="">Select...</option>
               {participants.map((p) => (
@@ -264,7 +264,7 @@ function ChainResolver({
             </Select>
           </div>
           <div>
-            <Label>Issue</Label>
+            <Label>Question</Label>
             <Select value={selectedIssue} onChange={(e) => setSelectedIssue(e.target.value)}>
               <option value="">Select...</option>
               {allIssues.map((issue) => (
@@ -280,7 +280,7 @@ function ChainResolver({
           disabled={!selectedParticipant || !selectedIssue || chainLoading}
           className="w-full sm:w-auto"
         >
-          {chainLoading ? "Resolving..." : "Resolve Chain"}
+          {chainLoading ? "Tracing..." : "Trace vote path"}
         </Button>
 
         {chainError && <ErrorBox message={chainError} />}
@@ -369,7 +369,7 @@ function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: str
 
   return (
     <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700 shrink-0">
-      Revoke
+      Remove
     </Button>
   );
 }

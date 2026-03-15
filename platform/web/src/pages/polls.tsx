@@ -45,10 +45,10 @@ export function Polls() {
   if (!pollsEnabled && !loading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Polls</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Surveys</h1>
         <EmptyState
-          title="Polls not enabled"
-          description="This assembly's governance configuration does not include polls. Polls are available in assemblies using the Liquid Accountable or Civic Participatory presets."
+          title="Surveys not enabled"
+          description="This group's settings do not include surveys. Surveys are available in groups using the accountability or mixed approach models."
         />
       </div>
     );
@@ -57,8 +57,8 @@ export function Polls() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Polls</h1>
-        {pollsEnabled && <Button onClick={() => setCreating(true)}>Create Poll</Button>}
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Surveys</h1>
+        {pollsEnabled && <Button onClick={() => setCreating(true)}>New Survey</Button>}
       </div>
 
       {creating && (
@@ -79,8 +79,8 @@ export function Polls() {
         </div>
       ) : polls.length === 0 && !creating ? (
         <EmptyState
-          title="No polls yet"
-          description="Create a poll to gather participant sentiment on a topic."
+          title="No surveys yet"
+          description="Create a survey to gather member feedback on a topic."
         />
       ) : (
         <div className="space-y-4">
@@ -197,7 +197,7 @@ function CreatePollForm({
       });
       onCreated(poll);
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create poll");
+      setFormError(err instanceof Error ? err.message : "Failed to create survey");
     } finally {
       setSubmitting(false);
     }
@@ -207,12 +207,12 @@ function CreatePollForm({
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">New Poll</h3>
+          <h3 className="font-medium text-gray-900">New Survey</h3>
           {formError && <ErrorBox message={formError} />}
 
           <div>
             <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Poll title" autoFocus />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Survey title" autoFocus />
           </div>
 
           {questions.map((q, qIdx) => (
@@ -292,7 +292,7 @@ function CreatePollForm({
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={submitting || !isValid()}>
-              {submitting ? "Creating..." : "Create Poll"}
+              {submitting ? "Creating..." : "Create Survey"}
             </Button>
           </div>
         </form>

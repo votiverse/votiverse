@@ -119,7 +119,7 @@ function IdentityIndicator({ name }: { name: string | null }) {
             onClick={() => setOpen(false)}
             className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
           >
-            Profile
+            Me
           </Link>
           <button
             onClick={() => { clearIdentity(); setOpen(false); }}
@@ -141,9 +141,9 @@ export function BottomTabs() {
   const inAssembly = Boolean(assemblyId);
 
   const globalTabs = [
-    { to: "/", label: "Dashboard", icon: HomeIcon, exact: true },
-    { to: "/assemblies", label: "Assemblies", icon: GridIcon, exact: true },
-    { to: "/profile", label: "Profile", icon: UserIcon, exact: true },
+    { to: "/", label: "Home", icon: HomeIcon, exact: true },
+    { to: "/assemblies", label: "My Groups", icon: GridIcon, exact: true },
+    { to: "/profile", label: "Me", icon: UserIcon, exact: true },
   ];
 
   const config = assembly?.config;
@@ -151,13 +151,13 @@ export function BottomTabs() {
     if (!assemblyId) return [];
     const tabs = [
       { to: `/assembly/${assemblyId}`, label: "Overview", icon: HomeIcon, exact: true },
-      { to: `/assembly/${assemblyId}/events`, label: "Events", icon: CalendarIcon, exact: false },
+      { to: `/assembly/${assemblyId}/events`, label: "Votes", icon: CalendarIcon, exact: false },
     ];
     if (config?.delegation.enabled !== false) {
-      tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegate", icon: LinkIcon, exact: false });
+      tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates", icon: LinkIcon, exact: false });
     }
     if (config?.features.polls) {
-      tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Polls", icon: ChartIcon, exact: false });
+      tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys", icon: ChartIcon, exact: false });
     }
     tabs.push({ to: `/assembly/${assemblyId}/members`, label: "Members", icon: UsersIcon, exact: false });
     return tabs;
@@ -194,13 +194,13 @@ function GlobalNavLinks() {
   return (
     <>
       <Link to="/" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-        Dashboard
+        Home
       </Link>
       <Link to="/assemblies" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-        Assemblies
+        My Groups
       </Link>
       <Link to="/profile" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-        Profile
+        Me
       </Link>
     </>
   );
@@ -213,13 +213,13 @@ function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
   const links = useMemo(() => {
     const items = [
       { to: `/assembly/${assemblyId}`, label: "Overview" },
-      { to: `/assembly/${assemblyId}/events`, label: "Events" },
+      { to: `/assembly/${assemblyId}/events`, label: "Votes" },
     ];
     if (config?.delegation.enabled !== false) {
-      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegations" });
+      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
     }
     if (config?.features.polls) {
-      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Polls" });
+      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
     }
     items.push({ to: `/assembly/${assemblyId}/members`, label: "Members" });
     return items;
@@ -247,13 +247,13 @@ function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNav
   const links = useMemo(() => {
     const items = [
       { to: `/assembly/${assemblyId}`, label: "Overview" },
-      { to: `/assembly/${assemblyId}/events`, label: "Events" },
+      { to: `/assembly/${assemblyId}/events`, label: "Votes" },
     ];
     if (config?.delegation.enabled !== false) {
-      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegations" });
+      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
     }
     if (config?.features.polls) {
-      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Polls" });
+      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
     }
     items.push({ to: `/assembly/${assemblyId}/members`, label: "Members" });
     return items;

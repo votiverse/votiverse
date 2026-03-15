@@ -45,7 +45,7 @@ export function EventDetail() {
   );
 
   if (loading) return <Spinner />;
-  if (error || !event) return <ErrorBox message={error ?? "Event not found"} onRetry={refetch} />;
+  if (error || !event) return <ErrorBox message={error ?? "Vote not found"} onRetry={refetch} />;
 
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
@@ -117,7 +117,7 @@ export function EventDetail() {
 function EventStatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: "green" | "blue" | "yellow" | "gray"; label: string }> = {
     voting: { color: "green", label: "Voting Open" },
-    deliberation: { color: "blue", label: "Deliberation" },
+    deliberation: { color: "blue", label: "Discussion" },
     upcoming: { color: "yellow", label: "Upcoming" },
     closed: { color: "gray", label: "Closed" },
   };
@@ -130,9 +130,9 @@ function EventTimeline({ timeline, status }: {
   status: string;
 }) {
   const phases = [
-    { key: "deliberation", label: "Deliberation", date: timeline.deliberationStart },
+    { key: "deliberation", label: "Discussion", date: timeline.deliberationStart },
     { key: "voting", label: "Voting", date: timeline.votingStart },
-    { key: "closed", label: "Closed", date: timeline.votingEnd },
+    { key: "closed", label: "Ended", date: timeline.votingEnd },
   ];
 
   const activeIdx = status === "deliberation" ? 0 : status === "voting" ? 1 : status === "closed" ? 2 : -1;
@@ -190,7 +190,7 @@ function IssueSummary({ assemblyId, participantId, issues }: {
         <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span className="text-sm text-green-700 font-medium">You've voted on all {issues.length} issues</span>
+        <span className="text-sm text-green-700 font-medium">You've voted on all {issues.length} questions</span>
       </div>
     );
   }
@@ -201,7 +201,7 @@ function IssueSummary({ assemblyId, participantId, issues }: {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
       <span className="text-sm text-amber-700 font-medium">
-        {pendingCount} of {issues.length} issue{issues.length !== 1 ? "s" : ""} need{pendingCount === 1 ? "s" : ""} your vote
+        {pendingCount} of {issues.length} question{issues.length !== 1 ? "s" : ""} need{pendingCount === 1 ? "s" : ""} your vote
       </span>
     </div>
   );
@@ -290,7 +290,11 @@ function IssueVotingCard({
               </div>
             )}
           </div>
-          {tally?.winner && <Badge color="green">Winner: {tally.winner}</Badge>}
+          {tally?.winner && eventStatus === "closed" && (
+            <Badge color="green">
+              Result: {tally.winner === "for" ? "Approved" : tally.winner === "against" ? "Not approved" : tally.winner}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardBody className="space-y-4">
@@ -356,8 +360,8 @@ function IssueVotingCard({
                 })}
             </div>
             <div className="flex flex-col sm:flex-row sm:gap-4 mt-3 text-xs text-gray-400 gap-0.5">
-              <span>Total: {tally.totalVotes} weighted votes</span>
-              <span>Participating: {tally.participatingCount}/{tally.eligibleCount}</span>
+              <span>{tally.totalVotes} votes total (including delegated votes)</span>
+              <span>{tally.participatingCount} of {tally.eligibleCount} members voted</span>
               <span>
                 Quorum: {tally.quorumMet ? "Met" : "Not met"} ({(tally.quorumThreshold * 100).toFixed(0)}%)
               </span>
@@ -375,7 +379,7 @@ function IssueVotingCard({
               <svg className={`w-4 h-4 transition-transform ${showWeights ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </svg>
-              Weight Distribution
+              Vote breakdown
             </button>
             {showWeights && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
@@ -455,7 +459,7 @@ function VoteButtons({
   return (
     <div>
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        <span className="text-sm text-gray-500">Cast vote:</span>
+        <span className="text-sm text-gray-500">Your vote:</span>
         <div className="flex gap-2">
           <Button size="lg" variant="secondary" onClick={() => onVote("for")} disabled={voting} className="flex-1 sm:flex-none">
             For
@@ -551,7 +555,7 @@ function UserVoteStatus({
       return (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
           <div className="w-2 h-2 rounded-full bg-gray-400" />
-          <span className="text-sm text-gray-500">Voting has not started yet — review the issue during deliberation</span>
+          <span className="text-sm text-gray-500">Voting has not started yet — review during the discussion period</span>
         </div>
       );
     }
@@ -570,7 +574,7 @@ function UserVoteStatus({
   return (
     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
       <div className="w-2 h-2 rounded-full bg-amber-500" />
-      <span className="text-sm text-amber-700 font-medium">You haven't voted on this issue</span>
+      <span className="text-sm text-amber-700 font-medium">You haven't voted on this yet</span>
     </div>
   );
 }

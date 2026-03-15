@@ -31,7 +31,7 @@ export function Members() {
       )}
 
       {participants.length === 0 ? (
-        <EmptyState title="No members yet" description="Add members to start governing." />
+        <EmptyState title="No members yet" description="Add members to start making decisions together." />
       ) : (
         <Card>
           <div className="divide-y divide-gray-100">
@@ -98,7 +98,7 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
           {error && <ErrorBox message={error} />}
           <div>
             <Label>Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Participant name" autoFocus />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Member name" autoFocus />
           </div>
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
