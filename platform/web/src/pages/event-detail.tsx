@@ -8,6 +8,18 @@ import type { Tally, WeightDist } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 
+/** Neutral color rotation for tally bars — first place gets the strongest color, no choice is privileged. */
+const TALLY_COLORS = [
+  "bg-blue-500",
+  "bg-amber-500",
+  "bg-emerald-500",
+  "bg-purple-500",
+  "bg-rose-500",
+  "bg-cyan-500",
+  "bg-orange-500",
+  "bg-indigo-500",
+];
+
 export function EventDetail() {
   const { assemblyId, eventId } = useParams();
   const { participantId } = useIdentity();
@@ -275,13 +287,13 @@ function IssueVotingCard({
             <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
               <span className="text-sm text-gray-500">Cast vote:</span>
               <div className="flex gap-2">
-                <Button size="lg" onClick={() => handleVote("for")} disabled={voting} className="flex-1 sm:flex-none">
+                <Button size="lg" variant="secondary" onClick={() => handleVote("for")} disabled={voting} className="flex-1 sm:flex-none">
                   For
                 </Button>
                 <Button size="lg" variant="secondary" onClick={() => handleVote("against")} disabled={voting} className="flex-1 sm:flex-none">
                   Against
                 </Button>
-                <Button size="lg" variant="ghost" onClick={() => handleVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
+                <Button size="lg" variant="secondary" onClick={() => handleVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
                   Abstain
                 </Button>
               </div>
@@ -301,8 +313,9 @@ function IssueVotingCard({
             <div className="space-y-3">
               {Object.entries(tally.counts)
                 .sort(([, a], [, b]) => b - a)
-                .map(([choice, count]) => {
+                .map(([choice, count], idx) => {
                   const pct = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
+                  const barColor = TALLY_COLORS[idx % TALLY_COLORS.length];
                   return (
                     <div key={choice}>
                       <div className="flex items-center justify-between text-sm mb-1">
@@ -313,7 +326,7 @@ function IssueVotingCard({
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-4 sm:h-3">
                         <div
-                          className={`h-4 sm:h-3 rounded-full transition-all ${choice === "for" ? "bg-brand" : choice === "against" ? "bg-red-400" : "bg-gray-400"}`}
+                          className={`h-4 sm:h-3 rounded-full transition-all ${barColor}`}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
