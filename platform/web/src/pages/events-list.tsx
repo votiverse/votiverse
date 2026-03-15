@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
+import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
-import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
+import type { VotingEvent } from "../api/types.js";
+import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
+import { Countdown } from "../components/countdown.js";
 
 export function EventsList() {
   const { assemblyId } = useParams();
@@ -34,30 +37,62 @@ export function EventsList() {
       ) : (
         <div className="space-y-3">
           {events.map((evt) => (
-            <Link key={evt.id} to={`/assembly/${assemblyId}/events/${evt.id}`} className="block">
-              <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
-                <CardBody>
-                  <div className="flex items-start sm:items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-gray-900">{evt.title}</h3>
-                      {evt.description && (
-                        <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{evt.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge color="gray">{evt.issueIds?.length ?? 0} issues</Badge>
-                      <span className="text-xs text-gray-400 hidden sm:inline">
-                        {new Date(evt.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </Link>
+            <EventCard key={evt.id} assemblyId={assemblyId!} event={evt} />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function EventCard({ assemblyId, event: evt }: { assemblyId: string; event: VotingEvent }) {
+  const { participantId } = useIdentity();
+  // Fetch full event to get status/timeline
+  const { data: fullEvent } = useApi(() => api.getEvent(assemblyId, evt.id), [assemblyId, evt.id]);
+  // Fetch voting history if we have an identity
+  const { data: history } = useApi(
+    () => participantId ? api.getVotingHistory(assemblyId, participantId) : Promise.resolve(null),
+    [assemblyId, participantId],
+  );
+
+  const status = fullEvent?.status ?? evt.status;
+  const issueCount = evt.issueIds?.length ?? 0;
+  const votedCount = history
+    ? (evt.issueIds ?? []).filter((id) => history.history.some((h) => h.issueId === id)).length
+    : null;
+  const votingEnd = fullEvent?.timeline?.votingEnd;
+
+  return (
+    <Link to={`/assembly/${assemblyId}/events/${evt.id}`} className="block">
+      <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+        <CardBody>
+          <div className="flex items-start sm:items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-medium text-gray-900">{evt.title}</h3>
+                {status && <StatusBadge status={status} />}
+              </div>
+              {evt.description && (
+                <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{evt.description}</p>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <div className="flex items-center gap-2">
+                <Badge color="gray">{issueCount} issue{issueCount !== 1 ? "s" : ""}</Badge>
+              </div>
+              {votedCount !== null && issueCount > 0 && status === "voting" && (
+                <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-green-600" : "text-amber-600"}`}>
+                  Voted {votedCount}/{issueCount}
+                </span>
+              )}
+              {status === "voting" && votingEnd && (
+                <Countdown target={votingEnd} className="text-[10px]" />
+              )}
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    </Link>
   );
 }
 

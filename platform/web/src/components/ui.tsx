@@ -118,6 +118,19 @@ export function EmptyState({ title, description, action }: { title: string; desc
   );
 }
 
+export function BadgeDot({ count, className = "" }: { count: number; className?: string }) {
+  if (count <= 0) return null;
+  return (
+    <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none ${className}`}>
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 rounded ${className}`} />;
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: "green" | "blue" | "yellow" | "gray" | "red"; label: string }> = {
     active: { color: "green", label: "Active" },

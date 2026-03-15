@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
+import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
-import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, StatusBadge } from "../components/ui.js";
+import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, StatusBadge, Badge } from "../components/ui.js";
 
 const PRESETS = [
   { value: "TOWN_HALL", label: "Town Hall", desc: "Direct democracy, no delegation" },
@@ -15,6 +16,7 @@ const PRESETS = [
 
 export function AssemblyList() {
   const { data: assemblies, loading, error, refetch } = useApi(() => api.listAssemblies());
+  const { pendingByAssembly } = useAttention();
   const [creating, setCreating] = useState(false);
 
   if (loading) return <Spinner />;
@@ -49,9 +51,12 @@ export function AssemblyList() {
                       <h3 className="font-medium text-gray-900">{asm.name}</h3>
                       <p className="text-sm text-gray-500 mt-0.5">{asm.config.name} preset</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <StatusBadge status={asm.status} />
-                      <span className="text-xs text-gray-400">
+                      {(pendingByAssembly[asm.id] ?? 0) > 0 && (
+                        <Badge color="red">{pendingByAssembly[asm.id]} pending</Badge>
+                      )}
+                      <span className="text-xs text-gray-400 hidden sm:inline">
                         {new Date(asm.createdAt).toLocaleDateString()}
                       </span>
                     </div>

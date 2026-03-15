@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router";
 import { useApi } from "../hooks/use-api.js";
-import { useParticipant } from "../hooks/use-participant.js";
+import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { DelegationChain } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Select, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
@@ -95,7 +95,7 @@ function CreateDelegationForm({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const { participantId } = useParticipant();
+  const { participantId } = useIdentity();
   const [sourceId, setSourceId] = useState(participantId ?? "");
   const [targetId, setTargetId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -167,7 +167,8 @@ function ChainResolver({
   events: Array<{ id: string; title: string; issueIds?: string[] }>;
   nameMap: Map<string, string>;
 }) {
-  const [selectedParticipant, setSelectedParticipant] = useState("");
+  const { participantId: myId } = useIdentity();
+  const [selectedParticipant, setSelectedParticipant] = useState(myId ?? "");
   const [selectedIssue, setSelectedIssue] = useState("");
   const [chain, setChain] = useState<DelegationChain | null>(null);
   const [chainLoading, setChainLoading] = useState(false);

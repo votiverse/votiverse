@@ -1,14 +1,25 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
+import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import { Card, CardHeader, CardBody, Spinner, ErrorBox, StatusBadge, Badge } from "../components/ui.js";
 
 export function AssemblyDashboard() {
   const { assemblyId } = useParams();
+  const { participantId } = useIdentity();
   const { data: assembly, loading, error, refetch } = useApi(() => api.getAssembly(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
-  const { data: delegationsData } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
+  const { data: delegationsData } = useApi(
+    () => participantId ? api.listDelegations(assemblyId!, participantId) : api.listDelegations(assemblyId!),
+    [assemblyId, participantId],
+  );
+  const { data: historyData } = useApi(
+    () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
+    [assemblyId, participantId],
+  );
+  const [showConfig, setShowConfig] = useState(false);
 
   if (loading) return <Spinner />;
   if (error || !assembly) return <ErrorBox message={error ?? "Assembly not found"} onRetry={refetch} />;
@@ -29,51 +40,69 @@ export function AssemblyDashboard() {
         <p className="mt-1 text-sm text-gray-500">{config.description}</p>
       </div>
 
-      {/* Stats row — 2 cols on mobile, 4 on desktop */}
+      {/* Stats row — participant-centric */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <StatCard label="Members" value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
         <StatCard label="Events" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
-        <StatCard label="Delegations" value={delegations.length} linkTo={`/assembly/${assemblyId}/delegations`} />
         <StatCard
-          label="Quorum"
-          value={`${(config.ballot.quorum * 100).toFixed(0)}%`}
+          label="Your Delegations"
+          value={delegations.length}
+          linkTo={`/assembly/${assemblyId}/delegations`}
+        />
+        <StatCard
+          label="Your Votes"
+          value={historyData?.history.length ?? 0}
         />
       </div>
 
-      {/* Config summary — stacked on mobile, 2 cols on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <Card>
-          <CardHeader>
-            <h2 className="font-medium text-gray-900">Governance Configuration</h2>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            <ConfigRow label="Preset" value={config.name} />
-            <ConfigRow label="Voting Method" value={config.ballot.votingMethod} />
-            <ConfigRow label="Ballot Secrecy" value={config.ballot.secrecy} />
-            <ConfigRow label="Participation" value={config.ballot.participationMode} />
-            <ConfigRow label="Delegation" value={config.delegation.enabled ? "Enabled" : "Disabled"} />
-            {config.delegation.enabled && (
-              <>
-                <ConfigRow label="Topic-Scoped" value={config.delegation.topicScoped ? "Yes" : "No"} />
-                <ConfigRow label="Transitive" value={config.delegation.transitive ? "Yes" : "No"} />
-              </>
-            )}
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <h2 className="font-medium text-gray-900">Features</h2>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            <ConfigRow label="Predictions" value={config.features.predictions} />
-            <ConfigRow label="Polls" value={config.features.polls ? "Enabled" : "Disabled"} />
-            <ConfigRow label="Awareness" value={config.features.awarenessIntensity} />
-            <ConfigRow label="Community Notes" value={config.features.communityNotes ? "Enabled" : "Disabled"} />
-            <ConfigRow label="Blockchain" value={config.features.blockchainIntegrity ? "Enabled" : "Disabled"} />
-            <ConfigRow label="Concentration Alert" value={`${(config.thresholds.concentrationAlertThreshold * 100).toFixed(0)}%`} />
-          </CardBody>
-        </Card>
+      {/* Config summary — collapsible */}
+      <div className="mb-4 sm:mb-6">
+        <button
+          onClick={() => setShowConfig(!showConfig)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700"
+        >
+          <svg className={`w-4 h-4 transition-transform ${showConfig ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+          Governance Settings
+          <span className="text-gray-400 font-normal">({config.name})</span>
+        </button>
+        {showConfig && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-3">
+            <Card>
+              <CardHeader>
+                <h2 className="font-medium text-gray-900">Configuration</h2>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                <ConfigRow label="Preset" value={config.name} />
+                <ConfigRow label="Voting Method" value={config.ballot.votingMethod} />
+                <ConfigRow label="Ballot Secrecy" value={config.ballot.secrecy} />
+                <ConfigRow label="Participation" value={config.ballot.participationMode} />
+                <ConfigRow label="Quorum" value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
+                <ConfigRow label="Delegation" value={config.delegation.enabled ? "Enabled" : "Disabled"} />
+                {config.delegation.enabled && (
+                  <>
+                    <ConfigRow label="Topic-Scoped" value={config.delegation.topicScoped ? "Yes" : "No"} />
+                    <ConfigRow label="Transitive" value={config.delegation.transitive ? "Yes" : "No"} />
+                  </>
+                )}
+              </CardBody>
+            </Card>
+            <Card>
+              <CardHeader>
+                <h2 className="font-medium text-gray-900">Features</h2>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                <ConfigRow label="Predictions" value={config.features.predictions} />
+                <ConfigRow label="Polls" value={config.features.polls ? "Enabled" : "Disabled"} />
+                <ConfigRow label="Awareness" value={config.features.awarenessIntensity} />
+                <ConfigRow label="Community Notes" value={config.features.communityNotes ? "Enabled" : "Disabled"} />
+                <ConfigRow label="Blockchain" value={config.features.blockchainIntegrity ? "Enabled" : "Disabled"} />
+                <ConfigRow label="Concentration Alert" value={`${(config.thresholds.concentrationAlertThreshold * 100).toFixed(0)}%`} />
+              </CardBody>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Recent events */}
