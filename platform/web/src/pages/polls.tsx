@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router";
 import { useParticipant } from "../hooks/use-participant.js";
+import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
 import type { Poll, PollQuestion, PollResults } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
@@ -25,9 +26,12 @@ const RESULT_COLORS = [
 
 export function Polls() {
   const { assemblyId } = useParams();
+  const { assembly } = useAssembly(assemblyId);
   const [creating, setCreating] = useState(false);
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const pollsEnabled = assembly?.config.features.polls ?? false;
 
   useEffect(() => {
     if (!assemblyId) return;
@@ -38,11 +42,23 @@ export function Polls() {
       .finally(() => setLoading(false));
   }, [assemblyId]);
 
+  if (!pollsEnabled && !loading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Polls</h1>
+        <EmptyState
+          title="Polls not enabled"
+          description="This assembly's governance configuration does not include polls. Polls are available in assemblies using the Liquid Accountable or Civic Participatory presets."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Polls</h1>
-        <Button onClick={() => setCreating(true)}>Create Poll</Button>
+        {pollsEnabled && <Button onClick={() => setCreating(true)}>Create Poll</Button>}
       </div>
 
       {creating && (

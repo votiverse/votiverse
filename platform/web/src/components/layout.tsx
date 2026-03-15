@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Link, useParams, useLocation } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
+import { useAssembly } from "../hooks/use-assembly.js";
 import { Avatar } from "./avatar.js";
 
 export function Header() {
@@ -136,6 +137,7 @@ function IdentityIndicator({ name }: { name: string | null }) {
 export function BottomTabs() {
   const { assemblyId } = useParams();
   const location = useLocation();
+  const { assembly } = useAssembly(assemblyId);
   const inAssembly = Boolean(assemblyId);
 
   const globalTabs = [
@@ -144,15 +146,22 @@ export function BottomTabs() {
     { to: "/profile", label: "Profile", icon: UserIcon, exact: true },
   ];
 
-  const assemblyTabs = assemblyId
-    ? [
-        { to: `/assembly/${assemblyId}`, label: "Overview", icon: HomeIcon, exact: true },
-        { to: `/assembly/${assemblyId}/events`, label: "Events", icon: CalendarIcon, exact: false },
-        { to: `/assembly/${assemblyId}/delegations`, label: "Delegate", icon: LinkIcon, exact: false },
-        { to: `/assembly/${assemblyId}/polls`, label: "Polls", icon: ChartIcon, exact: false },
-        { to: `/assembly/${assemblyId}/members`, label: "Members", icon: UsersIcon, exact: false },
-      ]
-    : [];
+  const config = assembly?.config;
+  const assemblyTabs = useMemo(() => {
+    if (!assemblyId) return [];
+    const tabs = [
+      { to: `/assembly/${assemblyId}`, label: "Overview", icon: HomeIcon, exact: true },
+      { to: `/assembly/${assemblyId}/events`, label: "Events", icon: CalendarIcon, exact: false },
+    ];
+    if (config?.delegation.enabled !== false) {
+      tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegate", icon: LinkIcon, exact: false });
+    }
+    if (config?.features.polls) {
+      tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Polls", icon: ChartIcon, exact: false });
+    }
+    tabs.push({ to: `/assembly/${assemblyId}/members`, label: "Members", icon: UsersIcon, exact: false });
+    return tabs;
+  }, [assemblyId, config]);
 
   const tabs = inAssembly ? assemblyTabs : globalTabs;
 
@@ -198,13 +207,23 @@ function GlobalNavLinks() {
 }
 
 function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
-  const links = [
-    { to: `/assembly/${assemblyId}`, label: "Overview" },
-    { to: `/assembly/${assemblyId}/events`, label: "Events" },
-    { to: `/assembly/${assemblyId}/delegations`, label: "Delegations" },
-    { to: `/assembly/${assemblyId}/polls`, label: "Polls" },
-    { to: `/assembly/${assemblyId}/members`, label: "Members" },
-  ];
+  const { assembly } = useAssembly(assemblyId);
+  const config = assembly?.config;
+
+  const links = useMemo(() => {
+    const items = [
+      { to: `/assembly/${assemblyId}`, label: "Overview" },
+      { to: `/assembly/${assemblyId}/events`, label: "Events" },
+    ];
+    if (config?.delegation.enabled !== false) {
+      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegations" });
+    }
+    if (config?.features.polls) {
+      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Polls" });
+    }
+    items.push({ to: `/assembly/${assemblyId}/members`, label: "Members" });
+    return items;
+  }, [assemblyId, config]);
 
   return (
     <>
@@ -222,13 +241,24 @@ function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
 }
 
 function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNavigate: () => void }) {
-  const links = [
-    { to: `/assembly/${assemblyId}`, label: "Overview" },
-    { to: `/assembly/${assemblyId}/events`, label: "Events" },
-    { to: `/assembly/${assemblyId}/delegations`, label: "Delegations" },
-    { to: `/assembly/${assemblyId}/polls`, label: "Polls" },
-    { to: `/assembly/${assemblyId}/members`, label: "Members" },
-  ];
+  const { assembly } = useAssembly(assemblyId);
+  const config = assembly?.config;
+
+  const links = useMemo(() => {
+    const items = [
+      { to: `/assembly/${assemblyId}`, label: "Overview" },
+      { to: `/assembly/${assemblyId}/events`, label: "Events" },
+    ];
+    if (config?.delegation.enabled !== false) {
+      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegations" });
+    }
+    if (config?.features.polls) {
+      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Polls" });
+    }
+    items.push({ to: `/assembly/${assemblyId}/members`, label: "Members" });
+    return items;
+  }, [assemblyId, config]);
+
   return (
     <>
       {links.map((link) => (
