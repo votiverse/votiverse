@@ -77,6 +77,76 @@ describe("validateConfig", () => {
     });
   });
 
+  describe("maxAge validation", () => {
+    it("errors when maxAge is less than 1 day", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        delegation: { maxAge: 3_600_000 }, // 1 hour
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(
+        result.issues.some((i) => i.field === "delegation.maxAge" && i.severity === "error"),
+      ).toBe(true);
+    });
+
+    it("accepts maxAge of exactly 1 day", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        delegation: { maxAge: 86_400_000 },
+      });
+      const result = validateConfig(config);
+      const maxAgeErrors = result.issues.filter(
+        (i) => i.field === "delegation.maxAge" && i.severity === "error",
+      );
+      expect(maxAgeErrors).toHaveLength(0);
+    });
+
+    it("warns when maxAge set but delegation disabled", () => {
+      const config = deriveConfig(getPreset("TOWN_HALL"), {
+        delegation: { maxAge: 86_400_000 },
+      });
+      const result = validateConfig(config);
+      expect(
+        result.issues.some((i) => i.field === "delegation.maxAge" && i.severity === "warning"),
+      ).toBe(true);
+    });
+
+    it("accepts null maxAge", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        delegation: { maxAge: null },
+      });
+      const result = validateConfig(config);
+      const maxAgeIssues = result.issues.filter((i) => i.field === "delegation.maxAge");
+      expect(maxAgeIssues).toHaveLength(0);
+    });
+  });
+
+  describe("visibility validation", () => {
+    it("warns when public visibility but delegation disabled", () => {
+      const config = deriveConfig(getPreset("TOWN_HALL"), {
+        delegation: { visibility: { mode: "public" } },
+      });
+      const result = validateConfig(config);
+      expect(
+        result.issues.some(
+          (i) => i.field === "delegation.visibility.mode" && i.severity === "warning",
+        ),
+      ).toBe(true);
+    });
+
+    it("warns when chain incoming visibility but non-transitive", () => {
+      const config = deriveConfig(getPreset("BOARD_PROXY"), {
+        delegation: { visibility: { incomingVisibility: "chain" } },
+      });
+      const result = validateConfig(config);
+      expect(
+        result.issues.some(
+          (i) =>
+            i.field === "delegation.visibility.incomingVisibility" && i.severity === "warning",
+        ),
+      ).toBe(true);
+    });
+  });
+
   describe("ballot consistency", () => {
     it("warns when supermajority threshold set but method is not supermajority", () => {
       const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
