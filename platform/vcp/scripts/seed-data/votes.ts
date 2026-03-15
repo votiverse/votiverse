@@ -334,6 +334,34 @@ export const VOTES: VoteDef[] = [
   ...board("board-q1", 1, [
     ["William Thornton", "for"],
   ]),
+
+  // ── 2026 Board Officer Election (CLOSED — multi-option) ──────────
+  // Issue 0: "Elect Chairperson" — choices: Victoria, Robert, Catherine
+  ...board("board-election", 0, [
+    ["James Okafor", "Victoria Harrington"],
+    ["Victoria Harrington", "Victoria Harrington"],  // carries Margaret's weight
+    ["Robert Blackwell", "Robert Blackwell"],         // carries David's weight
+    ["Catherine Zhao", "Catherine Zhao"],              // carries Elizabeth's weight
+    ["William Thornton", "Victoria Harrington"],
+  ]),
+
+  // Issue 1: "Elect Vice-Chairperson" — choices: James, William, Margaret
+  ...board("board-election", 1, [
+    ["James Okafor", "James Okafor"],
+    ["Victoria Harrington", "James Okafor"],
+    ["Robert Blackwell", "William Thornton"],
+    ["Catherine Zhao", "James Okafor"],
+    ["William Thornton", "William Thornton"],
+  ]),
+
+  // Issue 2: "Elect Treasurer" — choices: Catherine, William, Elizabeth
+  ...board("board-election", 2, [
+    ["James Okafor", "Catherine Zhao"],
+    ["Victoria Harrington", "Catherine Zhao"],
+    ["Robert Blackwell", "William Thornton"],
+    ["Catherine Zhao", "Catherine Zhao"],
+    ["William Thornton", "William Thornton"],
+  ]),
 ];
 
 // ── Helper functions to reduce repetition ────────────────────────────────

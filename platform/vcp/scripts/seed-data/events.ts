@@ -10,6 +10,8 @@ import { DAY, HOUR } from "./helpers.js";
 export interface IssueDef {
   title: string;
   description: string;
+  /** Named choices for multi-option ballots. Omit for binary for/against. */
+  choices?: string[];
 }
 
 export interface EventDef {
@@ -349,6 +351,33 @@ export const EVENTS: EventDef[] = [
       {
         title: "Appoint Independent Audit Committee Chair",
         description: "Confirm the appointment of an independent director to chair the audit committee, replacing the outgoing chair whose term expired.",
+      },
+    ],
+  },
+
+  {
+    key: "board-election",
+    assemblyKey: "board",
+    title: "2026 Board Officer Election",
+    description: "Annual election for board officer positions. Members vote for their preferred candidates for Chairperson, Vice-Chairperson, and Treasurer.",
+    deliberationStart: -15 * DAY,
+    votingStart: -5 * DAY,
+    votingEnd: -1 * DAY,
+    issues: [
+      {
+        title: "Elect Chairperson",
+        description: "Select the next Chairperson of the Board of Directors for the 2026-2027 term. The Chairperson presides over board meetings and serves as the primary liaison with executive management.",
+        choices: ["Victoria Harrington", "Robert Blackwell", "Catherine Zhao"],
+      },
+      {
+        title: "Elect Vice-Chairperson",
+        description: "Select the Vice-Chairperson who will serve as acting Chair when the Chairperson is unavailable and lead the governance committee.",
+        choices: ["James Okafor", "William Thornton", "Margaret Ashworth"],
+      },
+      {
+        title: "Elect Treasurer",
+        description: "Select the Treasurer responsible for financial oversight, audit committee liaison, and quarterly financial report review.",
+        choices: ["Catherine Zhao", "William Thornton", "Elizabeth Fairfax"],
       },
     ],
   },

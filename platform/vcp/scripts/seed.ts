@@ -76,6 +76,7 @@ export async function main() {
         title: i.title,
         description: i.description,
         topicIds: [],
+        ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: eligibleIds,
       timeline: {
