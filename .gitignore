@@ -2,6 +2,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
 # Test temp files
 test/.tmp/
 stress-test/
