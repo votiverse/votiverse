@@ -74,6 +74,16 @@ export class SQLiteAdapter implements DatabaseAdapter {
         PRIMARY KEY (assembly_id, id)
       );
 
+      -- Topic taxonomy per assembly
+      CREATE TABLE IF NOT EXISTS topics (
+        id            TEXT NOT NULL,
+        assembly_id   TEXT NOT NULL,
+        name          TEXT NOT NULL,
+        parent_id     TEXT,
+        sort_order    INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (assembly_id, id)
+      );
+
       -- Webhook subscriptions
       CREATE TABLE IF NOT EXISTS webhook_subscriptions (
         id              TEXT PRIMARY KEY,
