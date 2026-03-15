@@ -79,4 +79,10 @@ export interface CastVoteParams {
   readonly participantId: ParticipantId;
   readonly issueId: IssueId;
   readonly choice: VoteChoice;
+  /**
+   * Declared choices for this issue, if any. When provided, the cast
+   * vote's choice is validated against this list. "abstain" is always
+   * accepted regardless of declared choices.
+   */
+  readonly issueChoices?: readonly string[];
 }

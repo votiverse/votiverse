@@ -4,8 +4,8 @@
  * High-level service for vote casting and tallying.
  */
 
-import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent } from "@votiverse/core";
-import { createEvent, generateEventId, now } from "@votiverse/core";
+import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteChoice } from "@votiverse/core";
+import { createEvent, generateEventId, now, ValidationError } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
   buildActiveDelegations,
@@ -29,8 +29,17 @@ export class VotingService {
    * Cast a vote on an issue. Records a VoteCast event.
    * If the participant has active delegations for this issue, the override
    * rule is applied automatically during tally computation.
+   *
+   * When the issue has declared choices, the vote is validated:
+   * - Single-select (simple-majority, supermajority): choice must be one of the declared options or "abstain".
+   * - Ranked-choice: every ranked item must be a declared option.
+   * - Approval: every approved item must be a declared option.
    */
   async cast(params: CastVoteParams): Promise<void> {
+    if (params.issueChoices) {
+      this.validateChoice(params.choice, params.issueChoices);
+    }
+
     const event = createEvent<VoteCastEvent>(
       "VoteCast",
       {
@@ -43,6 +52,34 @@ export class VotingService {
     );
 
     await this.eventStore.append(event);
+  }
+
+  /**
+   * Validates that a vote choice is compatible with the issue's declared choices.
+   * "abstain" is always accepted.
+   */
+  private validateChoice(choice: VoteChoice, declaredChoices: readonly string[]): void {
+    const allowed = new Set(declaredChoices);
+
+    if (typeof choice === "string") {
+      if (choice === "abstain") return;
+      if (!allowed.has(choice)) {
+        throw new ValidationError(
+          "choice",
+          `Invalid choice "${choice}". Must be one of: ${declaredChoices.join(", ")}`,
+        );
+      }
+    } else {
+      // Array form: ranked-choice or approval — every item must be a declared choice
+      for (const item of choice) {
+        if (!allowed.has(item)) {
+          throw new ValidationError(
+            "choice",
+            `Invalid choice "${item}" in ranking/approval list. Must be one of: ${declaredChoices.join(", ")}`,
+          );
+        }
+      }
+    }
   }
 
   /**
