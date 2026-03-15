@@ -106,8 +106,8 @@ export function delegationRoutes(manager: AssemblyManager) {
       sourceId ? (sourceId as ParticipantId) : undefined,
     );
 
-    // Visibility filtering
-    const visibility = info.config.delegation.visibility;
+    // Visibility filtering (default to public if not set for backward compat)
+    const visibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
     if (visibility.mode === "private") {
       const callerId = getParticipantId(c);
       if (!callerId) {
@@ -153,8 +153,8 @@ export function delegationRoutes(manager: AssemblyManager) {
     }
 
     // Visibility: in private mode, only resolve your own chain
-    const visibility = info.config.delegation.visibility;
-    if (visibility.mode === "private") {
+    const chainVisibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
+    if (chainVisibility.mode === "private") {
       const callerId = getParticipantId(c);
       if (callerId !== participantId) {
         return c.json(
@@ -220,9 +220,9 @@ export function delegationRoutes(manager: AssemblyManager) {
     const delegatorsToMe = allDelegations.filter((d) => d.targetId === callerId);
 
     // Filter delegators by incomingVisibility config
-    const visibility = info.config.delegation.visibility;
+    const weightVisibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
     let delegators: string[];
-    if (visibility.incomingVisibility === "direct") {
+    if (weightVisibility.incomingVisibility === "direct") {
       delegators = delegatorsToMe.map((d) => d.sourceId);
     } else {
       // chain: include all upstream delegators (transitive)

@@ -68,9 +68,8 @@ describe("Full governance lifecycle", () => {
     const votingEvent = (await eventRes.json()) as { id: string; issueIds: string[] };
     const issueId = votingEvent.issueIds[0]!;
 
-    // 4. Create delegation: Alice → Carol
-    const delRes = await vcp.request("POST", `/assemblies/${asmId}/delegations`, {
-      sourceId: alice!.id,
+    // 4. Create delegation: Alice → Carol (using Alice's identity)
+    const delRes = await vcp.requestAs(alice!.id, "POST", `/assemblies/${asmId}/delegations`, {
       targetId: carol!.id,
       topicScope: [],
     });
@@ -148,8 +147,7 @@ describe("Full governance lifecycle", () => {
     const issueId = votingEvent.issueIds[0]!;
 
     // Alice delegates to Bob
-    await vcp.request("POST", `/assemblies/${asmId}/delegations`, {
-      sourceId: alice!.id,
+    await vcp.requestAs(alice!.id, "POST", `/assemblies/${asmId}/delegations`, {
       targetId: bob!.id,
       topicScope: [],
     });
@@ -210,14 +208,14 @@ describe("Full governance lifecycle", () => {
     const issueId = votingEvent.issueIds[0]!;
 
     // Delegations: A→C, B→C, D→E
-    await vcp.request("POST", `/assemblies/${asmId}/delegations`, {
-      sourceId: ps[0]!.id, targetId: ps[2]!.id, topicScope: [],
+    await vcp.requestAs(ps[0]!.id, "POST", `/assemblies/${asmId}/delegations`, {
+      targetId: ps[2]!.id, topicScope: [],
     });
-    await vcp.request("POST", `/assemblies/${asmId}/delegations`, {
-      sourceId: ps[1]!.id, targetId: ps[2]!.id, topicScope: [],
+    await vcp.requestAs(ps[1]!.id, "POST", `/assemblies/${asmId}/delegations`, {
+      targetId: ps[2]!.id, topicScope: [],
     });
-    await vcp.request("POST", `/assemblies/${asmId}/delegations`, {
-      sourceId: ps[3]!.id, targetId: ps[4]!.id, topicScope: [],
+    await vcp.requestAs(ps[3]!.id, "POST", `/assemblies/${asmId}/delegations`, {
+      targetId: ps[4]!.id, topicScope: [],
     });
 
     // C and E vote (they carry delegations)

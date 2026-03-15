@@ -19,7 +19,8 @@ export interface TestVCP {
   manager: AssemblyManager;
   db: SQLiteAdapter;
   cleanup: () => void;
-  request: (method: string, path: string, body?: unknown) => Promise<{ status: number; json: () => Promise<unknown> }>;
+  request: (method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
+  requestAs: (participantId: string, method: string, path: string, body?: unknown) => Promise<{ status: number; json: () => Promise<unknown> }>;
 }
 
 export function createTestVCP(): TestVCP {
@@ -47,12 +48,13 @@ export function createTestVCP(): TestVCP {
     db.close();
   };
 
-  const request = async (method: string, path: string, body?: unknown) => {
+  const request = async (method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => {
     const init: RequestInit = {
       method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${TEST_API_KEY}`,
+        ...extraHeaders,
       },
     };
     if (body !== undefined) {
@@ -66,5 +68,10 @@ export function createTestVCP(): TestVCP {
     };
   };
 
-  return { app, manager, db, cleanup, request };
+  /** Make a request with X-Participant-Id header set. */
+  const requestAs = (participantId: string, method: string, path: string, body?: unknown) => {
+    return request(method, path, body, { "X-Participant-Id": participantId });
+  };
+
+  return { app, manager, db, cleanup, request, requestAs };
 }

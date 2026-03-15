@@ -78,7 +78,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
 
     const { engine } = await manager.getEngine(assemblyId);
     const callerId = getParticipantId(c);
-    const visibility = info.config.delegation.visibility;
+    const visibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
 
     // Build profile from delegations
     const allDelegations = await engine.delegation.listActive();
