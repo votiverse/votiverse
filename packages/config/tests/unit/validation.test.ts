@@ -254,6 +254,40 @@ describe("validateConfig", () => {
     });
   });
 
+  describe("resultsVisibility", () => {
+    it("warns when live results with secret ballot", () => {
+      const config = deriveConfig(getPreset("TOWN_HALL"), {
+        ballot: { resultsVisibility: "live" },
+      });
+      const result = validateConfig(config);
+      expect(
+        result.issues.some(
+          (i) => i.field === "ballot.resultsVisibility" && i.severity === "warning",
+        ),
+      ).toBe(true);
+    });
+
+    it("no issue when live results with public ballot", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        ballot: { resultsVisibility: "live" },
+      });
+      const result = validateConfig(config);
+      expect(
+        result.issues.some((i) => i.field === "ballot.resultsVisibility"),
+      ).toBe(false);
+    });
+
+    it("no issue when sealed results with any secrecy", () => {
+      const config = deriveConfig(getPreset("TOWN_HALL"), {
+        ballot: { resultsVisibility: "sealed" },
+      });
+      const result = validateConfig(config);
+      expect(
+        result.issues.some((i) => i.field === "ballot.resultsVisibility"),
+      ).toBe(false);
+    });
+  });
+
   describe("thresholds", () => {
     it("errors when concentration threshold is 0", () => {
       const config = deriveConfig(getPreset("LIQUID_STANDARD"), {

@@ -149,6 +149,20 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
     });
   }
 
+  // --- Results visibility + secrecy consistency ---
+
+  if (
+    config.ballot.secrecy !== "public" &&
+    config.ballot.resultsVisibility === "live"
+  ) {
+    issues.push({
+      field: "ballot.resultsVisibility",
+      message:
+        "Live results with non-public ballot secrecy may create a bandwagon effect and undermine secrecy",
+      severity: "warning",
+    });
+  }
+
   // --- Delegate vote visibility ---
 
   if (!config.delegation.enabled && config.ballot.delegateVoteVisibility !== "private") {

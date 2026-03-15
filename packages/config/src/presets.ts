@@ -33,6 +33,7 @@ const TOWN_HALL: GovernanceConfig = Object.freeze({
     supermajorityThreshold: 0.5,
     quorum: 0,
     participationMode: "voluntary" as const,
+    resultsVisibility: "sealed" as const,
   }),
   features: Object.freeze({
     predictions: "disabled" as const,
@@ -72,6 +73,7 @@ const SWISS_MODEL: GovernanceConfig = Object.freeze({
     supermajorityThreshold: 0.5,
     quorum: 0.2,
     participationMode: "voluntary" as const,
+    resultsVisibility: "sealed" as const,
   }),
   features: Object.freeze({
     predictions: "encouraged" as const,
@@ -111,6 +113,7 @@ const LIQUID_STANDARD: GovernanceConfig = Object.freeze({
     supermajorityThreshold: 0.5,
     quorum: 0.1,
     participationMode: "voluntary" as const,
+    resultsVisibility: "live" as const,
   }),
   features: Object.freeze({
     predictions: "optional" as const,
@@ -150,6 +153,7 @@ const LIQUID_ACCOUNTABLE: GovernanceConfig = Object.freeze({
     supermajorityThreshold: 0.5,
     quorum: 0.1,
     participationMode: "voluntary" as const,
+    resultsVisibility: "live" as const,
   }),
   features: Object.freeze({
     predictions: "mandatory" as const,
@@ -189,6 +193,7 @@ const BOARD_PROXY: GovernanceConfig = Object.freeze({
     supermajorityThreshold: 0.5,
     quorum: 0.5,
     participationMode: "voluntary" as const,
+    resultsVisibility: "sealed" as const,
   }),
   features: Object.freeze({
     predictions: "disabled" as const,
@@ -228,6 +233,7 @@ const CIVIC_PARTICIPATORY: GovernanceConfig = Object.freeze({
     supermajorityThreshold: 0.5,
     quorum: 0.1,
     participationMode: "voluntary" as const,
+    resultsVisibility: "sealed" as const,
   }),
   features: Object.freeze({
     predictions: "mandatory" as const,

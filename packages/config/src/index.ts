@@ -17,6 +17,7 @@ export type {
   DelegateVoteVisibility,
   VotingMethod,
   ParticipationMode,
+  ResultsVisibility,
   PredictionRequirement,
   AwarenessIntensity,
 } from "./types.js";

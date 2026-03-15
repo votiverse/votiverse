@@ -56,6 +56,9 @@ export type VotingMethod = "simple-majority" | "supermajority" | "ranked-choice"
 /** How participation is enforced. */
 export type ParticipationMode = "voluntary" | "mandatory" | "mandatory-with-delegation";
 
+/** When vote tallies become visible. */
+export type ResultsVisibility = "sealed" | "live";
+
 /** Controls the voting mechanism and ballot parameters. */
 export interface BallotConfig {
   /** How ballot secrecy is handled. */
@@ -70,6 +73,8 @@ export interface BallotConfig {
   readonly quorum: number;
   /** How participation is enforced. */
   readonly participationMode: ParticipationMode;
+  /** When tally results are visible: 'sealed' = after voting ends, 'live' = real-time. */
+  readonly resultsVisibility: ResultsVisibility;
 }
 
 // ---------------------------------------------------------------------------
