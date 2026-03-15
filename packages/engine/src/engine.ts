@@ -19,6 +19,7 @@ import type {
   EventTimeline,
   VoteChoice,
   VotingEventCreatedEvent,
+  VotingEventIssuePayload,
   TopicCreatedEvent,
 } from "@votiverse/core";
 import {
@@ -93,6 +94,8 @@ export interface CreateIssueParams {
   readonly title: string;
   readonly description: string;
   readonly topicIds: readonly TopicId[];
+  /** Declared choices for multi-option ballots. Omit for binary for/against. */
+  readonly choices?: readonly string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +161,7 @@ export class VotiverseEngine {
           votingEventId: VotingEventId;
           title: string;
           description: string;
+          issues?: readonly VotingEventIssuePayload[];
           issueIds: readonly IssueId[];
           eligibleParticipantIds: readonly ParticipantId[];
           timeline: EventTimeline;
@@ -173,19 +177,32 @@ export class VotiverseEngine {
         };
         this.votingEvents.set(payload.votingEventId, votingEvent);
 
-        // Rebuild issues (we need to reconstruct from the event payload)
-        // Issues aren't individually evented in Phase 1, they're part of VotingEventCreated
-        // We need the issue details from the event, but the event only stores IDs
-        // For rehydration, we reconstruct minimal issues
-        for (const issueId of payload.issueIds) {
-          if (!this.issues.has(issueId)) {
-            this.issues.set(issueId, {
-              id: issueId,
-              title: "",
-              description: "",
-              topicIds: [],
-              votingEventId: payload.votingEventId,
-            });
+        // Rebuild issues from the full metadata when available (new events),
+        // or fall back to minimal stubs for legacy events.
+        if (payload.issues) {
+          for (const issueMeta of payload.issues) {
+            if (!this.issues.has(issueMeta.id)) {
+              this.issues.set(issueMeta.id, {
+                id: issueMeta.id,
+                title: issueMeta.title,
+                description: issueMeta.description,
+                topicIds: issueMeta.topicIds,
+                votingEventId: payload.votingEventId,
+                ...(issueMeta.choices ? { choices: issueMeta.choices } : {}),
+              });
+            }
+          }
+        } else {
+          for (const issueId of payload.issueIds) {
+            if (!this.issues.has(issueId)) {
+              this.issues.set(issueId, {
+                id: issueId,
+                title: "",
+                description: "",
+                topicIds: [],
+                votingEventId: payload.votingEventId,
+              });
+            }
           }
         }
       }
@@ -271,6 +288,7 @@ export class VotiverseEngine {
     create: async (params: CreateVotingEventParams): Promise<VotingEvent> => {
       const votingEventId = generateVotingEventId();
       const issueIds: IssueId[] = [];
+      const issuePayloads: VotingEventIssuePayload[] = [];
 
       for (const issueParams of params.issues) {
         const issueId = generateIssueId();
@@ -281,8 +299,17 @@ export class VotiverseEngine {
           description: issueParams.description,
           topicIds: issueParams.topicIds,
           votingEventId,
+          ...(issueParams.choices ? { choices: issueParams.choices } : {}),
         };
         this.issues.set(issueId, issue);
+
+        issuePayloads.push({
+          id: issueId,
+          title: issueParams.title,
+          description: issueParams.description,
+          topicIds: issueParams.topicIds,
+          ...(issueParams.choices ? { choices: issueParams.choices } : {}),
+        });
       }
 
       const votingEvent: VotingEvent = {
@@ -301,6 +328,7 @@ export class VotiverseEngine {
           votingEventId,
           title: params.title,
           description: params.description,
+          issues: issuePayloads,
           issueIds,
           eligibleParticipantIds: params.eligibleParticipantIds,
           timeline: params.timeline,
@@ -399,8 +427,15 @@ export class VotiverseEngine {
 
   /** Voting operations. */
   readonly voting = {
-    cast: (participantId: ParticipantId, issueId: IssueId, choice: VoteChoice): Promise<void> =>
-      this.votingService.cast({ participantId, issueId, choice }),
+    cast: (participantId: ParticipantId, issueId: IssueId, choice: VoteChoice): Promise<void> => {
+      const issue = this.issues.get(issueId);
+      return this.votingService.cast({
+        participantId,
+        issueId,
+        choice,
+        issueChoices: issue?.choices,
+      });
+    },
 
     getVotes: (issueId: IssueId): Promise<readonly VoteRecord[]> =>
       this.votingService.getVotes(issueId),
