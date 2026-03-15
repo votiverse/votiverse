@@ -6,11 +6,16 @@ This file is the primary reference for AI-assisted development on Votiverse. Rea
 
 ## Project Summary
 
-Votiverse is a configurable governance engine — a headless TypeScript library that implements democratic decision-making with delegation, prediction tracking, participant polling, and a governance awareness layer. It is not a web app. It is a pure logic engine consumed by CLI tools and (separately) by a proprietary web UI.
+Votiverse is a configurable governance engine — a headless TypeScript library that implements democratic decision-making with delegation, prediction tracking, participant polling, and a governance awareness layer. The core engine is consumed by CLI tools and by the web platform.
+
+The repository has two major layers:
+- **`packages/`** — the engine: pure TypeScript library packages (`@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, etc.)
+- **`platform/`** — the platform: the VCP HTTP server (`platform/vcp/`) and the React web UI (`platform/web/`)
 
 **Read these documents for full context:**
 - `docs/architecture.md` — technical architecture, module specs, API design, development phases
 - `docs/whitepaper.md` — governance model, formal properties, design rationale
+- `platform/web/TESTING.md` — test identities, assembly-by-feature matrix, delegation graphs, seeded data reference
 
 ---
 
@@ -22,7 +27,8 @@ When context is compacted, you lose architectural reasoning. Before resuming any
 2. Re-read `docs/architecture.md`
 3. Re-read the `README.md` of the package you are currently working on
 4. Re-read the existing tests for that package
-5. Only then resume implementation
+5. If working on the web UI, re-read `platform/web/TESTING.md`
+6. Only then resume implementation
 
 This is not optional. Skipping this step leads to architectural drift that is expensive to fix.
 
@@ -45,18 +51,32 @@ These decisions are final. Do not reconsider them without explicit instruction f
 
 ## Technology Stack
 
+### Shared
 - **Language:** TypeScript (strict mode, ESM syntax)
 - **Package manager:** pnpm with workspaces
-- **Monorepo structure:** all packages under `packages/`
-- **npm scope:** `@votiverse`
-- **Runtime:** Node.js (keep runtime-agnostic where possible for future Bun/Deno compatibility)
-- **Build:** `tsup` for package compilation (ESM output). If tsup adds unnecessary complexity for a pure library package, plain `tsc` with project references is acceptable.
-- **Testing:** Vitest (latest stable, currently 4.x)
+- **Monorepo structure:** `packages/` (engine) and `platform/` (VCP server + web UI)
+- **npm scope:** `@votiverse` (engine packages only)
+- **Runtime:** Node.js 22.x+ (LTS)
 - **Linting:** eslint with TypeScript rules
 - **Formatting:** prettier
-- **Node version:** 22.x+ (LTS)
 
-**Note:** Vite is a frontend build tool and is NOT needed for the engine packages. The engine is a headless TypeScript library and CLI — there is no dev server, no HMR, no browser asset pipeline. Vite will be relevant for the separate proprietary web UI, not for this repo. Use `tsup` or `tsc` for compilation and Vitest for testing.
+### Engine (`packages/`)
+- **Build:** `tsup` for package compilation (ESM output). Plain `tsc` with project references is acceptable for pure library packages.
+- **Testing:** Vitest (latest stable, currently 4.x)
+- Keep runtime-agnostic where possible for future Bun/Deno compatibility.
+
+### VCP Server (`platform/vcp/`)
+- **Framework:** Hono (lightweight HTTP framework)
+- **Database:** better-sqlite3 (SQLite, file-based: `vcp-dev.db`)
+- **Dev runner:** `tsx` (TypeScript execution without build step)
+- **Port:** 3000
+
+### Web UI (`platform/web/`)
+- **Framework:** React 19 with React Router v7
+- **Build/Dev:** Vite (HMR dev server on port 5174)
+- **Styling:** Tailwind CSS
+
+**Note:** Vite is used for the web UI only. The engine packages do NOT use Vite — use `tsup` or `tsc` for compilation and Vitest for testing.
 
 Always use the latest stable versions of all dependencies. Check npm before installing to ensure you are not pinning to outdated versions.
 
@@ -130,6 +150,8 @@ cli → engine → [awareness, voting, polling, prediction, integrity]
 ## Development Phases
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
+
+**Current status:** Engine packages (Phases 1–2) are complete. The platform layer (`platform/vcp` and `platform/web`) implements a full working UI on top of the engine. Topics, delegations, polls, voting, predictions, and awareness are all functional in the web UI.
 
 ### Phase 1: Foundation
 1. `@votiverse/core` — base types, event definitions, EventStore interface, Result type, error base class
@@ -206,7 +228,9 @@ These properties must hold for ALL governance configurations. Write property-bas
 
 ---
 
-## File Structure Per Package
+## File Structure
+
+### Engine Packages
 
 ```
 packages/<name>/
@@ -221,6 +245,87 @@ packages/<name>/
     ├── unit/
     └── integration/       ← (if applicable)
 ```
+
+### Platform
+
+```
+platform/
+├── vcp/                         ← Votiverse Control Plane (HTTP API server)
+│   ├── src/
+│   │   ├── main.ts              ← entry point (starts Hono server)
+│   │   ├── adapters/
+│   │   │   ├── index.ts         ← VCPAdapters type, wiring
+│   │   │   ├── database/sqlite.ts ← SQLite schema + queries
+│   │   │   └── auth/            ← auth adapter (header-based identity)
+│   │   ├── engine/
+│   │   │   └── assembly-manager.ts ← manages assemblies, wraps engine API
+│   │   └── api/
+│   │       ├── server.ts        ← Hono app, middleware, route mounting
+│   │       ├── middleware/      ← auth, error-handler
+│   │       └── routes/          ← assemblies, participants, events, delegations,
+│   │                              voting, predictions, polls, topics, awareness
+│   └── scripts/
+│       ├── seed.ts              ← orchestrator: wipes + reseeds all data
+│       ├── reset.ts             ← wipes DB, starts server, runs seed, stops server
+│       └── seed-data/           ← data definitions (assemblies, participants,
+│                                  events, delegations, polls, topics, helpers)
+└── web/                         ← React web UI
+    ├── src/
+    │   ├── main.tsx             ← entry point
+    │   ├── api/
+    │   │   ├── client.ts        ← HTTP client functions (fetch wrappers)
+    │   │   └── types.ts         ← API response types
+    │   ├── hooks/               ← useApi, useIdentity, useAssembly
+    │   ├── components/          ← layout, avatar, topic-picker, UI primitives
+    │   └── pages/               ← dashboard, events, event-detail, delegations,
+    │                              polls, predictions, awareness
+    └── TESTING.md               ← test identity guide, assembly matrix
+```
+
+---
+
+## Platform Development Workflow
+
+### Starting Fresh
+
+```bash
+cd platform/vcp && pnpm reset    # wipes DB, starts server, seeds data, stops server
+```
+
+This runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 5 assemblies with participants, topics, events, delegations, and polls), then stops the server.
+
+### Running Dev Servers
+
+From the repo root:
+```bash
+# VCP API server (port 3000)
+cd platform/vcp && pnpm dev
+
+# Web UI (port 5174) — in a separate terminal
+cd platform/web && pnpm dev
+```
+
+Or use the `.claude/launch.json` configurations (`vcp` and `web`) with the preview tool.
+
+### Seed Data Overview
+
+The seed creates 5 assemblies using different governance presets:
+
+| Assembly   | Preset              | Delegation            | Polls | Predictions |
+|------------|---------------------|-----------------------|-------|-------------|
+| Greenfield | TOWN_HALL           | Disabled              | No    | Off         |
+| OSC        | LIQUID_STANDARD     | Transitive, topic-scoped | No | Mandatory   |
+| Municipal  | CIVIC_PARTICIPATORY | Transitive, depth=3   | Yes   | Opt-in      |
+| Youth      | LIQUID_ACCOUNTABLE  | Transitive, topic-scoped | Yes | Opt-in      |
+| Board      | BOARD_PROXY         | Non-transitive, 1 delegate | No | Off       |
+
+Each assembly has hierarchical topics (36 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and polls (Municipal + Youth only).
+
+See `platform/web/TESTING.md` for full details on test identities and delegation graphs.
+
+### Identity System
+
+The web UI uses a header-based identity system (no auth). The identity selector in the top bar sets `X-Participant-Id` on all API requests. Pick identities from `TESTING.md` based on what feature you're testing.
 
 ---
 
@@ -255,7 +360,7 @@ Keep commits atomic. One logical change per commit.
 
 If you encounter an architectural ambiguity not covered by this file or the architecture doc:
 1. Check the whitepaper for the conceptual intent.
-2. If still unclear, write a comment in the code with `// DECISION NEEDED:` and proceed with the simplest reasonable approach.
+2. If still unclear, write a comment in the code with `// DECISION NEEDED:` and proceed with a principled approach.
 3. Flag the decision in the phase status report.
 
-Do not spend tokens deliberating on decisions that can be easily changed later. Make the simple choice, document it, and move on.
+Do not spend tokens deliberating on decisions that can be easily changed later. Make the principled choice, document it, and move on.
