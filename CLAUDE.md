@@ -301,7 +301,7 @@ From the repo root:
 # VCP API server (port 3000)
 cd platform/vcp && pnpm dev
 
-# Web UI (port 5174) — in a separate terminal
+# Web UI (port 5173) — in a separate terminal
 cd platform/web && pnpm dev
 ```
 
@@ -364,3 +364,109 @@ If you encounter an architectural ambiguity not covered by this file or the arch
 3. Flag the decision in the phase status report.
 
 Do not spend tokens deliberating on decisions that can be easily changed later. Make the principled choice, document it, and move on.
+
+---
+
+## Troubleshooting — Known Gotchas
+
+These are recurring issues that waste debugging time. Read this section before investigating any runtime or build problem.
+
+### 1. Stale `dist/` builds (most common)
+
+**Symptom:** Runtime errors like `X is not a function`, `undefined` for fields that clearly exist in the source, or VCP returning 500 with method-not-found errors.
+
+**Cause:** Engine packages (`packages/*/dist/`) are compiled artifacts. When another agent or branch adds new methods, types, or config fields, the compiled `dist/` is stale. The VCP server imports from `dist/`, not from source.
+
+**Fix:** Rebuild all engine packages in dependency order, then restart the VCP server:
+
+```bash
+pnpm --filter @votiverse/core build && \
+pnpm --filter @votiverse/config build && \
+pnpm --filter @votiverse/identity build && \
+pnpm --filter @votiverse/delegation build && \
+pnpm --filter @votiverse/voting build && \
+pnpm --filter @votiverse/engine build
+```
+
+Then stop and restart the VCP server. A running VCP process holds the old modules in memory — rebuilding alone is not enough.
+
+**Prevention:** After pulling new code or merging another agent's work, always rebuild before starting servers.
+
+### 2. Vite dev server caching stale transforms
+
+**Symptom:** Vite HMR fails with parse errors (e.g., duplicate identifiers), even though the file on disk is correct. The page is blank with no visible error.
+
+**Cause:** Vite's OXC parser (stricter than `tsc`) caches module transforms in memory. If an intermediate edit introduced a parse error, HMR fails and the module gets stuck in a broken state. Even after fixing the file, the server may not re-transform it.
+
+**Fix:**
+1. Delete the Vite cache: `rm -rf platform/web/node_modules/.vite`
+2. If that doesn't work, restart the Vite dev server (kill the process and re-run `pnpm dev`)
+3. Touch the file to force re-transform: `touch platform/web/src/pages/the-file.tsx`
+
+**Note:** `tsc --noEmit` and `vite build` may pass while the dev server stays broken — they use separate module caches.
+
+### 3. React hooks after early returns
+
+**Symptom:** Component renders as blank/white. React DevTools shows "An error occurred in the \<Component\>". No visible error in the console (only a generic error boundary warning).
+
+**Cause:** React hooks (`useState`, `useEffect`, `useMemo`, `useCallback`, etc.) called AFTER an early `return` statement. On the first render, the early return fires before the hook is reached. On subsequent renders, the hook IS reached. React sees different hook counts between renders and crashes.
+
+**Rule:** All hooks must be placed BEFORE any conditional `return` statements. This includes `useMemo` — it's a hook, not just a utility.
+
+```tsx
+// WRONG — useMemo after early return
+function Component() {
+  const { data, loading } = useApi(...);
+  if (loading) return <Spinner />;        // early return
+  const derived = useMemo(() => ..., []); // 💥 hook after return
+}
+
+// CORRECT — useMemo before early return
+function Component() {
+  const { data, loading } = useApi(...);
+  const derived = useMemo(() => ..., []); // ✅ hook before return
+  if (loading) return <Spinner />;
+}
+```
+
+### 4. Multiple dev servers on different ports
+
+**Symptom:** Confusing behavior, stale pages, or "Bad Gateway" errors. Two Vite dev servers running on different ports (e.g., 5173 and 5174).
+
+**Cause:** Starting `pnpm dev` manually while the preview tool also starts its own server. Or starting a server before a previous instance was fully killed.
+
+**Fix:** Before starting servers, check what's running:
+
+```bash
+lsof -i :5173 -i :5174 -i :3000 -P | grep LISTEN
+```
+
+Kill everything and start fresh. Use either manual `pnpm dev` or the `.claude/launch.json` preview tool — not both.
+
+### 5. VCP server must be restarted after rebuild
+
+**Symptom:** Engine packages rebuild successfully but the VCP still returns old errors.
+
+**Cause:** The VCP server loads modules into memory at startup. Rebuilding `dist/` doesn't affect a running process.
+
+**Fix:** Always restart the VCP server after rebuilding packages:
+
+```bash
+# If using preview tool:
+preview_stop (vcp server)
+preview_start (vcp)
+
+# If running manually:
+# Kill the process and re-run: cd platform/vcp && pnpm dev
+```
+
+### Troubleshooting Routine
+
+When something breaks at runtime, follow this checklist in order:
+
+1. **Check VCP server logs** for 500 errors or `is not a function` — indicates stale `dist/`
+2. **Check Vite dev server logs** for transform/parse errors — indicates stale module cache
+3. **Check browser console** for React error boundary warnings — indicates hooks violation or component crash
+4. **Check network tab** for 500/502 responses — indicates VCP not running or stale
+5. **Verify ports** — ensure only one web server and one VCP server are running
+6. **Rebuild + restart** — when in doubt: rebuild all packages, restart all servers, reload the page
