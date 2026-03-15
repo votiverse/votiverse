@@ -22,14 +22,24 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
+    const info = manager.getAssemblyInfo(assemblyId);
+    if (!info) {
+      return c.json(
+        { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
+        404,
+      );
+    }
+
     const { engine } = await manager.getEngine(assemblyId);
     const metrics = await engine.delegation.concentration(issueId as IssueId);
+    const { secrecy } = info.config.ballot;
 
     return c.json({
       issueId: metrics.issueId,
       giniCoefficient: metrics.giniCoefficient,
       maxWeight: metrics.maxWeight,
-      maxWeightHolder: metrics.maxWeightHolder,
+      // maxWeightHolder identifies a specific voter — hide under secret ballot
+      maxWeightHolder: secrecy === "public" ? metrics.maxWeightHolder : null,
       chainLengthDistribution: Object.fromEntries(metrics.chainLengthDistribution),
       delegatingCount: metrics.delegatingCount,
       directVoterCount: metrics.directVoterCount,
@@ -40,9 +50,20 @@ export function awarenessRoutes(manager: AssemblyManager) {
   app.get("/assemblies/:id/awareness/history/:pid", async (c) => {
     const assemblyId = c.req.param("id");
     const pid = c.req.param("pid");
+    const callerId = getParticipantId(c);
+
+    const info = manager.getAssemblyInfo(assemblyId);
+    if (!info) {
+      return c.json(
+        { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
+        404,
+      );
+    }
 
     const { engine } = await manager.getEngine(assemblyId);
     const store = engine.getEventStore();
+    const { secrecy } = info.config.ballot;
+    const isOwnHistory = callerId === pid;
 
     // Query vote events for this participant
     const voteEvents = await store.query({ types: ["VoteCast"] });
@@ -53,9 +74,11 @@ export function awarenessRoutes(manager: AssemblyManager) {
       })
       .map((e) => {
         const payload = e.payload as { participantId: string; issueId: string; choice: string };
+        // Under secret/anonymous-auditable ballot, only the participant sees their own choices
+        const includeChoice = secrecy === "public" || isOwnHistory;
         return {
           issueId: payload.issueId,
-          choice: payload.choice,
+          ...(includeChoice ? { choice: payload.choice } : {}),
           votedAt: new Date(e.timestamp).toISOString(),
         };
       });

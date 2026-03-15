@@ -184,12 +184,30 @@ export function votingRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
 
+    const info = manager.getAssemblyInfo(assemblyId);
+    if (!info) {
+      return c.json(
+        { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
+        404,
+      );
+    }
+
     const { engine } = await manager.getEngine(assemblyId);
     const votingEvent = engine.events.get(eid as VotingEventId);
     if (!votingEvent) {
       return c.json(
         { error: { code: "NOT_FOUND", message: `Voting event "${eid}" not found` } },
         404,
+      );
+    }
+
+    const { secrecy } = info.config.ballot;
+
+    // Per-participant weights reveal who voted — forbidden under secret ballot
+    if (secrecy !== "public") {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Per-participant weight breakdown is not available under secret ballot" } },
+        403,
       );
     }
 
