@@ -139,12 +139,18 @@ export async function main() {
   console.log("═══ DELEGATIONS ═══\n");
   for (const def of DELEGATIONS) {
     const assemblyId = aid(def.assemblyKey);
+    const resolvedScope = def.topicKeys
+      ? def.topicKeys.map((tk) => tid(def.assemblyKey, tk))
+      : def.topicScope;
     await post(`/assemblies/${assemblyId}/delegations`, {
       sourceId: pid(def.assemblyKey, def.source),
       targetId: pid(def.assemblyKey, def.target),
-      topicScope: def.topicScope,
+      topicScope: resolvedScope,
     });
-    console.log(`  ✓ ${def.source} → ${def.target} (${def.assemblyKey})`);
+    const scopeLabel = resolvedScope.length > 0
+      ? `(${def.topicKeys?.join(", ") ?? resolvedScope.length + " topics"})`
+      : "(global)";
+    console.log(`  ✓ ${def.source} → ${def.target} ${scopeLabel} (${def.assemblyKey})`);
   }
   console.log(`\n  Created ${DELEGATIONS.length} delegations\n`);
 
@@ -177,9 +183,12 @@ export async function main() {
     const assemblyId = aid(def.assemblyKey);
     const creatorId = pid(def.assemblyKey, def.createdByName);
 
+    const resolvedPollScope = def.topicKeys
+      ? def.topicKeys.map((tk) => tid(def.assemblyKey, tk))
+      : def.topicScope;
     const poll = await post(`/assemblies/${assemblyId}/polls`, {
       title: def.title,
-      topicScope: def.topicScope,
+      topicScope: resolvedPollScope,
       questions: def.questions,
       schedule: Date.now() + def.scheduleOffset,
       closesAt: Date.now() + def.closesAtOffset,
