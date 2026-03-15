@@ -186,6 +186,12 @@ export function getDelegateProfile(
 
 // ---- Polls ----
 
+export function listPolls(
+  assemblyId: string,
+): Promise<{ polls: Poll[] }> {
+  return request("GET", `/assemblies/${assemblyId}/polls`);
+}
+
 export function createPoll(
   assemblyId: string,
   params: unknown,

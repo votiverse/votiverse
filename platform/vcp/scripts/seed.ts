@@ -1,160 +1,212 @@
 /**
- * Seed script — populates the VCP with sample data.
+ * Seed script — populates the VCP with rich, diverse sample data.
  *
- * Creates a sample Assembly with participants, topics, delegations,
- * voting events, and votes for immediate API exploration.
+ * Creates 4 organizations with 5 assemblies using different governance presets,
+ * ~63 participants, 13 voting events (varied states), ~42 issues, delegations,
+ * pre-cast votes, and polls.
+ *
+ * Usage: pnpm seed (with VCP server running on port 3000)
  */
 
-const BASE_URL = process.env["VCP_URL"] ?? "http://localhost:3000";
-const API_KEY = process.env["VCP_API_KEY"] ?? "vcp_dev_key_00000000";
+import {
+  post,
+  fromNow,
+  assemblyIds,
+  participantIds,
+  pKey,
+  pid,
+  aid,
+  eventRegistry,
+  iid,
+  BASE_URL,
+} from "./seed-data/helpers.js";
+import { ASSEMBLIES } from "./seed-data/organizations.js";
+import { PARTICIPANTS } from "./seed-data/participants.js";
+import { EVENTS } from "./seed-data/events.js";
+import { DELEGATIONS } from "./seed-data/delegations.js";
+import { VOTES } from "./seed-data/votes.js";
+import { POLLS, POLL_RESPONSES } from "./seed-data/polls.js";
 
-const headers = {
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${API_KEY}`,
-};
+export async function main() {
+  console.log(`\nSeeding VCP at ${BASE_URL}...\n`);
 
-async function post(path: string, body: unknown) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`POST ${path} failed (${res.status}): ${err}`);
+  // ── Step 1: Create assemblies ──────────────────────────────────────
+
+  console.log("═══ ASSEMBLIES ═══\n");
+  for (const def of ASSEMBLIES) {
+    const assembly = await post("/assemblies", {
+      name: def.name,
+      organizationId: def.organizationId,
+      preset: def.preset,
+    });
+    assemblyIds.set(def.key, assembly.id as string);
+    console.log(`  ✓ ${def.name} (${def.preset}) → ${(assembly.id as string).slice(0, 8)}...`);
   }
-  return res.json();
+  console.log(`\n  Created ${ASSEMBLIES.length} assemblies\n`);
+
+  // ── Step 2: Add participants ───────────────────────────────────────
+
+  console.log("═══ PARTICIPANTS ═══\n");
+  let totalParticipants = 0;
+  for (const [assemblyKey, names] of Object.entries(PARTICIPANTS)) {
+    const assemblyId = aid(assemblyKey);
+    for (const name of names) {
+      const p = await post(`/assemblies/${assemblyId}/participants`, { name });
+      participantIds.set(pKey(assemblyKey, name), p.id as string);
+      totalParticipants++;
+    }
+    console.log(`  ✓ ${assemblyKey}: ${names.length} participants`);
+  }
+  console.log(`\n  Added ${totalParticipants} participants total\n`);
+
+  // ── Step 3: Create voting events with issues ───────────────────────
+
+  console.log("═══ VOTING EVENTS ═══\n");
+  for (const def of EVENTS) {
+    const assemblyId = aid(def.assemblyKey);
+    const pNames = PARTICIPANTS[def.assemblyKey];
+    if (!pNames) throw new Error(`No participants for assembly ${def.assemblyKey}`);
+
+    const eligibleIds = pNames.map((n) => pid(def.assemblyKey, n));
+
+    const event = await post(`/assemblies/${assemblyId}/events`, {
+      title: def.title,
+      description: def.description,
+      issues: def.issues.map((i) => ({
+        title: i.title,
+        description: i.description,
+        topicIds: [],
+      })),
+      eligibleParticipantIds: eligibleIds,
+      timeline: {
+        deliberationStart: fromNow(def.deliberationStart),
+        votingStart: fromNow(def.votingStart),
+        votingEnd: fromNow(def.votingEnd),
+      },
+    });
+
+    const issueIds = event.issueIds as string[];
+    eventRegistry.set(def.key, { eventId: event.id as string, issueIds });
+
+    const status =
+      def.votingEnd < 0 ? "closed" :
+      def.votingStart < 0 ? "voting" :
+      def.deliberationStart < 0 ? "deliberation" : "upcoming";
+
+    console.log(`  ✓ [${status.padEnd(13)}] ${def.title} (${def.issues.length} issues)`);
+  }
+  console.log(`\n  Created ${EVENTS.length} events\n`);
+
+  // ── Step 4: Create delegations ─────────────────────────────────────
+
+  console.log("═══ DELEGATIONS ═══\n");
+  for (const def of DELEGATIONS) {
+    const assemblyId = aid(def.assemblyKey);
+    await post(`/assemblies/${assemblyId}/delegations`, {
+      sourceId: pid(def.assemblyKey, def.source),
+      targetId: pid(def.assemblyKey, def.target),
+      topicScope: def.topicScope,
+    });
+    console.log(`  ✓ ${def.source} → ${def.target} (${def.assemblyKey})`);
+  }
+  console.log(`\n  Created ${DELEGATIONS.length} delegations\n`);
+
+  // ── Step 5: Cast votes ─────────────────────────────────────────────
+
+  console.log("═══ VOTES ═══\n");
+  const votesByEvent = new Map<string, number>();
+  for (const def of VOTES) {
+    const assemblyId = aid(def.assemblyKey);
+    const issueId = iid(def.eventKey, def.issueIndex);
+    await post(`/assemblies/${assemblyId}/votes`, {
+      participantId: pid(def.assemblyKey, def.participant),
+      issueId,
+      choice: def.choice,
+    });
+    votesByEvent.set(def.eventKey, (votesByEvent.get(def.eventKey) ?? 0) + 1);
+  }
+  for (const [eventKey, count] of votesByEvent) {
+    console.log(`  ✓ ${eventKey}: ${count} votes`);
+  }
+  console.log(`\n  Cast ${VOTES.length} votes total\n`);
+
+  // ── Step 6: Create polls and responses ─────────────────────────────
+
+  console.log("═══ POLLS ═══\n");
+  const pollIds = new Map<string, string>();
+  const pollQuestionIds = new Map<string, string[]>();
+
+  for (const def of POLLS) {
+    const assemblyId = aid(def.assemblyKey);
+    const creatorId = pid(def.assemblyKey, def.createdByName);
+
+    const poll = await post(`/assemblies/${assemblyId}/polls`, {
+      title: def.title,
+      topicScope: def.topicScope,
+      questions: def.questions,
+      schedule: Date.now() + def.scheduleOffset,
+      closesAt: Date.now() + def.closesAtOffset,
+      createdBy: creatorId,
+    });
+
+    pollIds.set(def.key, poll.id as string);
+
+    // Extract question IDs from response
+    const questions = poll.questions as Array<{ id: string }>;
+    pollQuestionIds.set(def.key, questions.map((q) => q.id));
+
+    console.log(`  ✓ ${def.title} (${def.assemblyKey}, ${questions.length} questions)`);
+  }
+
+  // Submit poll responses
+  let responseCount = 0;
+  for (const def of POLL_RESPONSES) {
+    const assemblyId = aid(def.assemblyKey);
+    const pollId = pollIds.get(def.pollKey);
+    const qIds = pollQuestionIds.get(def.pollKey);
+    if (!pollId || !qIds) continue;
+
+    const answers = def.answers.map((value, i) => ({
+      questionId: qIds[i],
+      value,
+    }));
+
+    await post(`/assemblies/${assemblyId}/polls/${pollId}/respond`, {
+      pollId,
+      participantId: pid(def.assemblyKey, def.participantName),
+      answers,
+    });
+    responseCount++;
+  }
+  console.log(`\n  Created ${POLLS.length} polls with ${responseCount} responses\n`);
+
+  // ── Summary ────────────────────────────────────────────────────────
+
+  console.log("═══ SEED COMPLETE ═══\n");
+  console.log("  Assemblies:    ", ASSEMBLIES.length);
+  console.log("  Participants:  ", totalParticipants);
+  console.log("  Events:        ", EVENTS.length);
+  console.log("  Issues:        ", EVENTS.reduce((sum, e) => sum + e.issues.length, 0));
+  console.log("  Delegations:   ", DELEGATIONS.length);
+  console.log("  Votes:         ", VOTES.length);
+  console.log("  Polls:         ", POLLS.length);
+  console.log("  Poll Responses:", responseCount);
+  console.log();
+
+  // Cross-assembly participants for identity picker testing
+  console.log("  Cross-assembly participants (pick any of these to test dashboard):");
+  console.log("    Sofia Reyes   — OSC Governance Board, Youth Advisory Panel");
+  console.log("    Marcus Chen   — OSC Governance Board, Municipal Budget Committee");
+  console.log("    Priya Sharma  — Municipal Budget Committee, Youth Advisory Panel");
+  console.log("    James Okafor  — Municipal Budget Committee, Board of Directors");
+  console.log();
 }
 
-async function main() {
-  console.log(`Seeding VCP at ${BASE_URL}...\n`);
-
-  // 1. Create Assembly with Liquid Standard preset
-  const assembly = await post("/assemblies", {
-    name: "Sample Organization Assembly",
-    organizationId: "org-sample-001",
-    preset: "LIQUID_STANDARD",
+// Only self-execute when run directly (not when imported by reset.ts)
+const isDirectRun = process.argv[1]?.endsWith("seed.ts") || process.argv[1]?.endsWith("seed.js");
+if (isDirectRun) {
+  main().catch((err: unknown) => {
+    console.error("Seed failed:", err);
+    process.exit(1);
   });
-  const assemblyId = assembly.id;
-  console.log(`Created Assembly: ${assemblyId}`);
-  console.log(`  Name: ${assembly.name}`);
-  console.log(`  Preset: LIQUID_STANDARD\n`);
-
-  // 2. Add 5 participants
-  const participantNames = ["Alice", "Bob", "Carol", "Dave", "Eve"];
-  const participants: Array<{ id: string; name: string }> = [];
-  for (const name of participantNames) {
-    const p = await post(`/assemblies/${assemblyId}/participants`, { name });
-    participants.push(p);
-    console.log(`Added participant: ${name} (${p.id})`);
-  }
-  console.log();
-
-  // Convenience references
-  const [alice, bob, carol, dave, eve] = participants;
-
-  // 3. Create a voting event with 2 issues
-  const now = Date.now();
-  const votingEvent = await post(`/assemblies/${assemblyId}/events`, {
-    title: "Q1 2026 Budget & Policy Review",
-    description: "Quarterly review covering budget allocation and community guidelines.",
-    issues: [
-      {
-        title: "Approve Q1 Budget Allocation",
-        description: "Vote on the proposed budget allocation for Q1 2026. The proposal allocates 40% to operations, 30% to development, and 30% to community programs.",
-        topicIds: [],
-      },
-      {
-        title: "Update Community Guidelines",
-        description: "Vote on proposed changes to community participation guidelines, including new mentorship requirements.",
-        topicIds: [],
-      },
-    ],
-    eligibleParticipantIds: participants.map((p) => p.id),
-    timeline: {
-      deliberationStart: new Date(now - 86400000).toISOString(), // started yesterday
-      votingStart: new Date(now - 3600000).toISOString(), // voting started 1h ago
-      votingEnd: new Date(now + 86400000 * 7).toISOString(), // closes in 7 days
-    },
-  });
-  console.log(`Created Voting Event: ${votingEvent.id}`);
-  console.log(`  Title: ${votingEvent.title}`);
-  console.log(`  Issues: ${votingEvent.issues.map((i: { title: string }) => i.title).join(", ")}`);
-  console.log();
-
-  const issueIds = votingEvent.issueIds as string[];
-  const [budgetIssueId, guidelinesIssueId] = issueIds;
-
-  // 4. Create delegations
-  // Alice delegates to Carol (general delegation)
-  if (alice && carol) {
-    const d1 = await post(`/assemblies/${assemblyId}/delegations`, {
-      sourceId: alice.id,
-      targetId: carol.id,
-      topicScope: [],
-    });
-    console.log(`Delegation: Alice → Carol (general) [${d1.id}]`);
-  }
-
-  // Dave delegates to Bob (general delegation)
-  if (dave && bob) {
-    const d2 = await post(`/assemblies/${assemblyId}/delegations`, {
-      sourceId: dave.id,
-      targetId: bob.id,
-      topicScope: [],
-    });
-    console.log(`Delegation: Dave → Bob (general) [${d2.id}]`);
-  }
-  console.log();
-
-  // 5. Cast votes on the first issue (budget)
-  if (bob && budgetIssueId) {
-    await post(`/assemblies/${assemblyId}/votes`, {
-      participantId: bob.id,
-      issueId: budgetIssueId,
-      choice: "for",
-    });
-    console.log(`Vote: Bob voted "for" on Budget (carries Dave's weight via delegation)`);
-  }
-
-  if (carol && budgetIssueId) {
-    await post(`/assemblies/${assemblyId}/votes`, {
-      participantId: carol.id,
-      issueId: budgetIssueId,
-      choice: "for",
-    });
-    console.log(`Vote: Carol voted "for" on Budget (carries Alice's weight via delegation)`);
-  }
-
-  if (eve && budgetIssueId) {
-    await post(`/assemblies/${assemblyId}/votes`, {
-      participantId: eve.id,
-      issueId: budgetIssueId,
-      choice: "against",
-    });
-    console.log(`Vote: Eve voted "against" on Budget`);
-  }
-  console.log();
-
-  // 6. Summary
-  console.log("=== Seed Complete ===");
-  console.log();
-  console.log("Try these API calls:");
-  console.log();
-  console.log(`  # Get assembly`);
-  console.log(`  curl -H "Authorization: Bearer ${API_KEY}" ${BASE_URL}/assemblies/${assemblyId}`);
-  console.log();
-  console.log(`  # Get tally`);
-  console.log(`  curl -H "Authorization: Bearer ${API_KEY}" ${BASE_URL}/assemblies/${assemblyId}/events/${votingEvent.id}/tally`);
-  console.log();
-  console.log(`  # List delegations`);
-  console.log(`  curl -H "Authorization: Bearer ${API_KEY}" ${BASE_URL}/assemblies/${assemblyId}/delegations`);
-  console.log();
-  console.log(`  # List participants`);
-  console.log(`  curl -H "Authorization: Bearer ${API_KEY}" ${BASE_URL}/assemblies/${assemblyId}/participants`);
 }
-
-main().catch((err: unknown) => {
-  console.error("Seed failed:", err);
-  process.exit(1);
-});

@@ -1,14 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router";
 import { useParticipant } from "../hooks/use-participant.js";
 import * as api from "../api/client.js";
 import type { Poll, PollResults } from "../api/types.js";
-import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge } from "../components/ui.js";
+import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
 
 export function Polls() {
   const { assemblyId } = useParams();
   const [creating, setCreating] = useState(false);
   const [polls, setPolls] = useState<Poll[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!assemblyId) return;
+    setLoading(true);
+    api.listPolls(assemblyId)
+      .then((data) => setPolls(data.polls))
+      .catch(() => {/* ignore — falls back to empty list */})
+      .finally(() => setLoading(false));
+  }, [assemblyId]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -28,7 +38,12 @@ export function Polls() {
         />
       )}
 
-      {polls.length === 0 && !creating ? (
+      {loading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+      ) : polls.length === 0 && !creating ? (
         <EmptyState
           title="No polls yet"
           description="Create a poll to gather participant sentiment on a topic."
