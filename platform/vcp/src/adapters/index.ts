@@ -6,7 +6,7 @@ export type { DatabaseAdapter, RunResult } from "./database/interface.js";
 export type { QueueAdapter, WorkerTask, WorkerTaskType, TaskHandler } from "./queue/interface.js";
 export type { SchedulerAdapter, ScheduledJob } from "./scheduler/interface.js";
 export type { WebhookAdapter, WebhookPayload } from "./webhook/interface.js";
-export type { AuthAdapter, ClientInfo } from "./auth/interface.js";
+export type { AuthAdapter, AuthScope, ClientInfo } from "./auth/interface.js";
 
 export { SQLiteAdapter } from "./database/sqlite.js";
 export { MemoryQueueAdapter } from "./queue/memory.js";

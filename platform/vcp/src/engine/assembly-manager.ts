@@ -40,6 +40,7 @@ interface ParticipantRow {
   assembly_id: string;
   name: string;
   registered_at: string;
+  status: string;
 }
 
 interface TopicRow {
@@ -206,7 +207,7 @@ export class AssemblyManager {
   }
 
   /** List participants in an Assembly. */
-  listParticipants(assemblyId: string): Array<{ id: string; name: string; registeredAt: string }> {
+  listParticipants(assemblyId: string): Array<{ id: string; name: string; registeredAt: string; status: string }> {
     return this.db.query<ParticipantRow>(
       "SELECT * FROM participants WHERE assembly_id = ? ORDER BY registered_at ASC",
       [assemblyId],
@@ -214,7 +215,36 @@ export class AssemblyManager {
       id: r.id,
       name: r.name,
       registeredAt: r.registered_at,
+      status: r.status,
     }));
+  }
+
+  /** Update a participant's status. */
+  updateParticipantStatus(assemblyId: string, participantId: string, status: string): void {
+    const result = this.db.run(
+      "UPDATE participants SET status = ? WHERE assembly_id = ? AND id = ?",
+      [status, assemblyId, participantId],
+    );
+    if (result.changes === 0) {
+      throw new Error(`Participant "${participantId}" not found in assembly "${assemblyId}"`);
+    }
+    // Invalidate engine cache since participant state changed
+    this.engines.delete(assemblyId);
+  }
+
+  /** Get a single participant's data from the DB. */
+  getParticipant(assemblyId: string, participantId: string): { id: string; name: string; registeredAt: string; status: string } | undefined {
+    const row = this.db.queryOne<ParticipantRow>(
+      "SELECT * FROM participants WHERE assembly_id = ? AND id = ?",
+      [assemblyId, participantId],
+    );
+    if (!row) return undefined;
+    return {
+      id: row.id,
+      name: row.name,
+      registeredAt: row.registered_at,
+      status: row.status,
+    };
   }
 
   /** Persist issue details after creating a voting event. */

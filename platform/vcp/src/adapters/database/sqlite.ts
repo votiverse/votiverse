@@ -59,6 +59,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
         assembly_id     TEXT NOT NULL,
         name            TEXT NOT NULL,
         registered_at   TEXT NOT NULL,
+        status          TEXT NOT NULL DEFAULT 'active',
         PRIMARY KEY (assembly_id, id)
       );
 

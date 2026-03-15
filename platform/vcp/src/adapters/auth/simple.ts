@@ -12,12 +12,16 @@ export class SimpleAuthAdapter implements AuthAdapter {
   private readonly staticKeys: Map<string, ClientInfo>;
 
   constructor(
-    keys: Array<{ key: string; clientId: string; clientName: string }>,
+    keys: Array<{ key: string; clientId: string; clientName: string; scopes?: string[] }>,
     private readonly db?: DatabaseAdapter,
   ) {
     this.staticKeys = new Map();
     for (const k of keys) {
-      this.staticKeys.set(k.key, { id: k.clientId, name: k.clientName });
+      this.staticKeys.set(k.key, {
+        id: k.clientId,
+        name: k.clientName,
+        scopes: (k.scopes ?? ["participant", "operational"]) as ClientInfo["scopes"],
+      });
     }
   }
 
@@ -33,7 +37,7 @@ export class SimpleAuthAdapter implements AuthAdapter {
         "SELECT id, name FROM clients WHERE api_key_hash = ?",
         [hash],
       );
-      if (row) return { id: row.id, name: row.name };
+      if (row) return { id: row.id, name: row.name, scopes: ["participant", "operational"] };
     }
 
     return null;

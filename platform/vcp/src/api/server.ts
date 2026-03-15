@@ -28,7 +28,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono
   app.use("*", cors({
     origin: (origin) => origin,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Participant-Id"],
   }));
   app.use("*", logger());
   app.use("*", errorHandler);
