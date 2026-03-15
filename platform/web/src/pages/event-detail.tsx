@@ -526,6 +526,12 @@ function UserVoteStatus({
   showVoteButtons: boolean;
   onToggleVoteButtons: () => void;
 }) {
+  // For closed events, always show historical participation record
+  // (takes priority over live delegation/voting status)
+  if (eventStatus === "closed") {
+    return <ClosedEventParticipation participation={participation} nameMap={nameMap} />;
+  }
+
   // Already voted
   if (issueStatus.hasVoted) {
     return (
@@ -591,9 +597,6 @@ function UserVoteStatus({
         </div>
       );
     }
-    if (eventStatus === "closed") {
-      return <ClosedEventParticipation participation={participation} nameMap={nameMap} />;
-    }
     return null;
   }
 
@@ -624,7 +627,7 @@ function ClosedEventParticipation({
     );
   }
 
-  // Voted directly
+  // Voted directly — your own direct vote is always visible to you
   if (participation.status === "direct") {
     return (
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-200">
@@ -633,14 +636,14 @@ function ClosedEventParticipation({
         </svg>
         <span className="text-sm text-green-700">
           You voted{" "}
-          <span className="font-semibold capitalize">{participation.effectiveChoice}</span>
+          <span className="font-semibold capitalize">{participation.effectiveChoice ?? "—"}</span>
           {" "}directly
         </span>
       </div>
     );
   }
 
-  // Delegated — show chain
+  // Delegated — show chain. effectiveChoice may be null under secret ballot.
   if (participation.status === "delegated") {
     const chainDisplay = participation.chain
       .slice(1) // skip self
@@ -649,6 +652,7 @@ function ClosedEventParticipation({
     const terminalName = participation.terminalVoterId
       ? (nameMap.get(participation.terminalVoterId) ?? participation.terminalVoterId.slice(0, 8))
       : null;
+    const choiceHidden = participation.effectiveChoice === null;
 
     return (
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200">
@@ -656,16 +660,34 @@ function ClosedEventParticipation({
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
         </svg>
         <span className="text-sm text-blue-700">
-          Your vote counted as{" "}
-          <span className="font-semibold capitalize">{participation.effectiveChoice}</span>
-          {terminalName && (
+          {choiceHidden ? (
             <>
-              {" "}via{" "}
-              <span className="font-semibold">{terminalName}</span>
+              Your vote was cast
+              {terminalName && (
+                <>
+                  {" "}via{" "}
+                  <span className="font-semibold">{terminalName}</span>
+                </>
+              )}
+              {chainDisplay && (
+                <span className="text-blue-400 ml-1">({chainDisplay})</span>
+              )}
+              <span className="text-blue-400 ml-1">(secret ballot)</span>
             </>
-          )}
-          {chainDisplay && (
-            <span className="text-blue-400 ml-1">({chainDisplay})</span>
+          ) : (
+            <>
+              Your vote counted as{" "}
+              <span className="font-semibold capitalize">{participation.effectiveChoice}</span>
+              {terminalName && (
+                <>
+                  {" "}via{" "}
+                  <span className="font-semibold">{terminalName}</span>
+                </>
+              )}
+              {chainDisplay && (
+                <span className="text-blue-400 ml-1">({chainDisplay})</span>
+              )}
+            </>
           )}
         </span>
       </div>
