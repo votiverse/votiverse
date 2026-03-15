@@ -1,10 +1,11 @@
 /**
- * Awareness routes.
+ * Awareness routes — with delegation visibility filtering.
  */
 
 import { Hono } from "hono";
 import type { IssueId, ParticipantId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { getParticipantId } from "../middleware/auth.js";
 
 export function awarenessRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -62,14 +63,24 @@ export function awarenessRoutes(manager: AssemblyManager) {
     return c.json({ participantId: pid, history });
   });
 
-  /** GET /assemblies/:id/awareness/profile/:pid — delegate profile. */
+  /** GET /assemblies/:id/awareness/profile/:pid — delegate profile with visibility filtering. */
   app.get("/assemblies/:id/awareness/profile/:pid", async (c) => {
     const assemblyId = c.req.param("id");
     const pid = c.req.param("pid");
 
-    const { engine } = await manager.getEngine(assemblyId);
+    const info = manager.getAssemblyInfo(assemblyId);
+    if (!info) {
+      return c.json(
+        { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
+        404,
+      );
+    }
 
-    // Build profile from delegations where this participant is a target
+    const { engine } = await manager.getEngine(assemblyId);
+    const callerId = getParticipantId(c);
+    const visibility = info.config.delegation.visibility;
+
+    // Build profile from delegations
     const allDelegations = await engine.delegation.listActive();
     const delegatorsToMe = allDelegations.filter((d) => d.targetId === pid);
     const myDelegations = allDelegations.filter((d) => d.sourceId === pid);
@@ -77,11 +88,40 @@ export function awarenessRoutes(manager: AssemblyManager) {
     // Get participant info
     const participant = await engine.identity.getParticipant(pid as ParticipantId);
 
+    // Visibility filtering for delegator IDs
+    const isProfileSubject = callerId === pid;
+    let delegatorsIds: string[] | undefined;
+
+    if (visibility.mode === "private" && !isProfileSubject) {
+      // Not the profile subject in private mode: count only, no IDs
+      delegatorsIds = undefined;
+    } else if (isProfileSubject && visibility.incomingVisibility === "direct") {
+      // Profile subject sees direct delegators only
+      delegatorsIds = delegatorsToMe.map((d) => d.sourceId);
+    } else if (isProfileSubject && visibility.incomingVisibility === "chain") {
+      // Profile subject sees full upstream chain
+      const allUpstream = new Set<string>();
+      const findUpstream = (targetId: string) => {
+        const upstream = allDelegations.filter((d) => d.targetId === targetId);
+        for (const d of upstream) {
+          if (!allUpstream.has(d.sourceId)) {
+            allUpstream.add(d.sourceId);
+            findUpstream(d.sourceId);
+          }
+        }
+      };
+      findUpstream(pid);
+      delegatorsIds = [...allUpstream];
+    } else {
+      // Public mode, not the subject: show all
+      delegatorsIds = delegatorsToMe.map((d) => d.sourceId);
+    }
+
     return c.json({
       participantId: pid,
       name: participant?.name ?? null,
       delegatorsCount: delegatorsToMe.length,
-      delegatorsIds: delegatorsToMe.map((d) => d.sourceId),
+      ...(delegatorsIds !== undefined ? { delegatorsIds } : {}),
       myDelegations: myDelegations.map((d) => ({
         targetId: d.targetId,
         topicScope: d.topicScope,

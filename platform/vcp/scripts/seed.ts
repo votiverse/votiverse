@@ -10,6 +10,7 @@
 
 import {
   post,
+  postAs,
   fromNow,
   assemblyIds,
   participantIds,
@@ -139,14 +140,14 @@ export async function main() {
   console.log("═══ DELEGATIONS ═══\n");
   for (const def of DELEGATIONS) {
     const assemblyId = aid(def.assemblyKey);
+    const sourceParticipantId = pid(def.assemblyKey, def.source);
     const resolvedScope = def.topicKeys
       ? def.topicKeys.map((tk) => tid(def.assemblyKey, tk))
       : def.topicScope;
-    await post(`/assemblies/${assemblyId}/delegations`, {
-      sourceId: pid(def.assemblyKey, def.source),
+    await postAs(`/assemblies/${assemblyId}/delegations`, {
       targetId: pid(def.assemblyKey, def.target),
       topicScope: resolvedScope,
-    });
+    }, sourceParticipantId);
     const scopeLabel = resolvedScope.length > 0
       ? `(${def.topicKeys?.join(", ") ?? resolvedScope.length + " topics"})`
       : "(global)";

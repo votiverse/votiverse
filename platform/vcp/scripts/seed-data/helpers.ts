@@ -23,6 +23,32 @@ export async function post(path: string, body: unknown): Promise<Record<string, 
   return res.json() as Promise<Record<string, unknown>>;
 }
 
+/** POST with X-Participant-Id header for authenticated participant actions. */
+export async function postAs(path: string, body: unknown, participantId: string): Promise<Record<string, unknown>> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { ...headers, "X-Participant-Id": participantId },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`POST ${path} failed (${res.status}): ${err}`);
+  }
+  return res.json() as Promise<Record<string, unknown>>;
+}
+
+/** DELETE with X-Participant-Id header. */
+export async function deleteAs(path: string, participantId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: { ...headers, "X-Participant-Id": participantId },
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`DELETE ${path} failed (${res.status}): ${err}`);
+  }
+}
+
 export async function get(path: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${BASE_URL}${path}`, { headers });
   if (!res.ok) {
