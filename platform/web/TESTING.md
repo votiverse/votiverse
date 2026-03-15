@@ -99,6 +99,85 @@ Open `http://localhost:5174`. You'll be prompted to pick an identity (participan
 
 ---
 
+## Topics
+
+Each assembly (except Greenfield) has a hierarchical topic taxonomy. Topics are used for scoping delegations and categorizing issues.
+
+### OSC Governance Board (8 topics)
+
+```
+Technical
+├── Dependencies
+├── Security
+└── Infrastructure
+Community
+├── Governance
+└── Contributors
+Roadmap
+```
+
+### Municipal Budget Committee (10 topics)
+
+```
+Infrastructure
+├── Transit
+├── Buildings
+└── Roads
+Social Services
+├── Health
+└── Housing
+Environment
+├── Energy
+└── Parks
+```
+
+### Youth Advisory Panel (9 topics)
+
+```
+Education
+├── STEM Programs
+└── Digital Literacy
+Health & Wellness
+├── Mental Health
+└── Sports & Recreation
+Community
+├── Events
+└── Environment
+```
+
+### Board of Directors (9 topics)
+
+```
+Strategic
+├── Market Expansion
+└── Partnerships
+Finance
+├── Dividends
+└── Compensation
+Governance
+├── Board Officers
+└── Committees
+```
+
+### Greenfield Community Council
+
+```
+No topics — TOWN_HALL preset has no delegation.
+```
+
+### Topic-Scoped Delegations
+
+| From | To | Assembly | Scope |
+|---|---|---|---|
+| Kai Andersen | Leo Fernandez | OSC | Technical |
+| Rina Kurosawa | Sofia Reyes | OSC | Community |
+| Nkechi Adeyemi | Carmen Delgado | Municipal | Infrastructure |
+| Gabriela Santos | Priya Sharma | Municipal | Social Services |
+| Aisha Moyo | Sofia Reyes | Youth | Education |
+| Tariq Hassan | Liam Torres | Youth | Health & Wellness |
+
+---
+
 ## Delegation Graphs
 
 ### OSC Governance Board
@@ -115,7 +194,10 @@ Chiara Rossi ──────→ Mei-Ling Wu    (overrides with direct vote on
     ↑
 Nadia Boutros ─┘    (depth 2: Nadia → Chiara → Mei-Ling)
 
-Direct voters (no delegation): Sofia Reyes, Kai Andersen, Rina Kurosawa
+Kai Andersen ─────→ Leo Fernandez      (topic-scoped: Technical)
+Rina Kurosawa ────→ Sofia Reyes        (topic-scoped: Community)
+
+Direct voters (no global delegation): Sofia Reyes, Kai Andersen, Rina Kurosawa
 ```
 
 ### Municipal Budget Committee
@@ -129,7 +211,10 @@ Diego Morales ─────→ Ayesha Khan
 Omar Hadid ────────→ Kwame Mensah ──→ Marcus Chen    (depth 2)
 Lars Johansson ────→ Fiona MacLeod ─→ Isabel Cruz    (depth 2)
 
-Direct voters: James Okafor, Nkechi Adeyemi, Mikhail Petrov, Gabriela Santos
+Nkechi Adeyemi ───→ Carmen Delgado     (topic-scoped: Infrastructure)
+Gabriela Santos ──→ Priya Sharma       (topic-scoped: Social Services)
+
+Direct voters (no global delegation): James Okafor, Nkechi Adeyemi, Mikhail Petrov, Gabriela Santos
 ```
 
 ### Youth Advisory Panel
@@ -139,7 +224,10 @@ Jin Park ──────────→ Sofia Reyes
 Chloe Beaumont ────→ Priya Sharma
 Emilia Strand ─────→ Liam Torres
 
-Direct voters: Aisha Moyo, Tariq Hassan, Nina Kowalski, Ravi Gupta
+Aisha Moyo ───────→ Sofia Reyes        (topic-scoped: Education)
+Tariq Hassan ─────→ Liam Torres        (topic-scoped: Health & Wellness)
+
+Direct voters (no global delegation): Aisha Moyo, Tariq Hassan, Nina Kowalski, Ravi Gupta
 ```
 
 ### Board of Directors
