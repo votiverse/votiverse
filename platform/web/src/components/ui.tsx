@@ -137,7 +137,7 @@ export function StatusBadge({ status }: { status: string }) {
     voting: { color: "green", label: "Voting Open" },
     deliberation: { color: "blue", label: "Discussion" },
     upcoming: { color: "yellow", label: "Upcoming" },
-    closed: { color: "gray", label: "Closed" },
+    closed: { color: "gray", label: "Ended" },
     open: { color: "green", label: "Open" },
     scheduled: { color: "yellow", label: "Scheduled" },
   };

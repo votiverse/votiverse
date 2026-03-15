@@ -4,6 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import { Card, CardHeader, CardBody, Spinner, ErrorBox, StatusBadge, Badge } from "../components/ui.js";
+import { presetLabel } from "../lib/presets.js";
 
 export function AssemblyDashboard() {
   const { assemblyId } = useParams();
@@ -65,7 +66,7 @@ export function AssemblyDashboard() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
           Governance Settings
-          <span className="text-gray-400 font-normal">({config.name})</span>
+          <span className="text-gray-400 font-normal">({presetLabel(config.name)})</span>
         </button>
         {showConfig && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-3">

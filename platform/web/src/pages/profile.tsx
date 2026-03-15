@@ -4,6 +4,7 @@ import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Spinner, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
+import { presetLabel } from "../lib/presets.js";
 
 interface AssemblyProfileData {
   assembly: Assembly;
@@ -117,7 +118,7 @@ export function Profile() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-gray-900">{assembly.name}</h2>
-              <Badge color="gray">{assembly.config.name}</Badge>
+              <Badge color="gray">{presetLabel(assembly.config.name)}</Badge>
             </div>
           </CardHeader>
           <CardBody className="space-y-4">

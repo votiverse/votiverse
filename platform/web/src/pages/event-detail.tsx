@@ -119,7 +119,7 @@ function EventStatusBadge({ status }: { status: string }) {
     voting: { color: "green", label: "Voting Open" },
     deliberation: { color: "blue", label: "Discussion" },
     upcoming: { color: "yellow", label: "Upcoming" },
-    closed: { color: "gray", label: "Closed" },
+    closed: { color: "gray", label: "Ended" },
   };
   const entry = map[status] ?? { color: "gray" as const, label: status };
   return <Badge color={entry.color}>{entry.label}</Badge>;
@@ -363,7 +363,9 @@ function IssueVotingCard({
               <span>{tally.totalVotes} votes total (including delegated votes)</span>
               <span>{tally.participatingCount} of {tally.eligibleCount} members voted</span>
               <span>
-                Quorum: {tally.quorumMet ? "Met" : "Not met"} ({(tally.quorumThreshold * 100).toFixed(0)}%)
+                {tally.quorumMet
+                  ? "Enough members voted to count ✓"
+                  : `Not enough members voted yet (need ${(tally.quorumThreshold * 100).toFixed(0)}%)`}
               </span>
             </div>
           </div>

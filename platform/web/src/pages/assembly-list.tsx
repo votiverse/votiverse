@@ -4,6 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, StatusBadge, Badge } from "../components/ui.js";
+import { presetLabel } from "../lib/presets.js";
 
 const PRESETS = [
   { value: "TOWN_HALL", label: "Everyone votes directly", desc: "Every member votes on every question. Simple and equal." },
@@ -13,19 +14,6 @@ const PRESETS = [
   { value: "BOARD_PROXY", label: "Elected representatives", desc: "Members elect or appoint representatives who vote on their behalf." },
   { value: "CIVIC_PARTICIPATORY", label: "Mixed approach", desc: "Some topics decided by direct vote, others through delegates." },
 ];
-
-const PRESET_SUBTITLES: Record<string, string> = {
-  "Town Hall": "Everyone votes directly",
-  "Swiss Model": "Discuss, then vote",
-  "Liquid Standard": "Flexible delegation",
-  "Liquid Accountable": "Delegates with accountability",
-  "Board Proxy": "Elected representatives",
-  "Civic Participatory": "Mixed — direct votes and delegates",
-};
-
-function presetSubtitle(presetName: string): string {
-  return PRESET_SUBTITLES[presetName] ?? presetName;
-}
 
 export function AssemblyList() {
   const { data: assemblies, loading, error, refetch } = useApi(() => api.listAssemblies());
@@ -62,7 +50,7 @@ export function AssemblyList() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium text-gray-900">{asm.name}</h3>
-                      <p className="text-sm text-gray-500 mt-0.5">{presetSubtitle(asm.config.name)}</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{presetLabel(asm.config.name)}</p>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                       <StatusBadge status={asm.status} />
