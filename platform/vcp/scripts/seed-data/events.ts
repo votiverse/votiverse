@@ -356,6 +356,33 @@ export const EVENTS: EventDef[] = [
   },
 
   {
+    key: "osc-election",
+    assemblyKey: "osc",
+    title: "2026 Maintainer Elections",
+    description: "Annual election for project leadership roles. Vote for your preferred candidates for Lead Maintainer, Release Manager, and Community Liaison.",
+    deliberationStart: -10 * DAY,
+    votingStart: -2 * DAY,
+    votingEnd: 6 * DAY,
+    issues: [
+      {
+        title: "Elect Lead Maintainer",
+        description: "Select the Lead Maintainer responsible for merge authority, release scheduling, and technical direction for the next 12 months.",
+        choices: ["Anika Patel", "Leo Fernandez", "Marcus Chen", "Jordan Blake"],
+      },
+      {
+        title: "Elect Release Manager",
+        description: "Select the Release Manager who will own the release pipeline, changelog curation, and backward compatibility reviews.",
+        choices: ["Mei-Ling Wu", "Sofia Reyes", "Tyler Nguyen"],
+      },
+      {
+        title: "Elect Community Liaison",
+        description: "Select the Community Liaison who will represent the project at conferences, manage contributor onboarding, and coordinate with downstream users.",
+        choices: ["Chiara Rossi", "Nadia Boutros", "Oscar Lindgren", "Zara Ibrahim"],
+      },
+    ],
+  },
+
+  {
     key: "board-election",
     assemblyKey: "board",
     title: "2026 Board Officer Election",

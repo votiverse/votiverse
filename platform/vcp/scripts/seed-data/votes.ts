@@ -335,6 +335,28 @@ export const VOTES: VoteDef[] = [
     ["William Thornton", "for"],
   ]),
 
+  // ── 2026 Maintainer Elections (VOTING — multi-option, partial) ───
+  // Issue 0: "Elect Lead Maintainer" — choices: Anika, Leo, Marcus, Jordan
+  ...osc("osc-election", 0, [
+    ["Anika Patel", "Anika Patel"],
+    ["Leo Fernandez", "Leo Fernandez"],
+    ["Marcus Chen", "Marcus Chen"],
+    ["Mei-Ling Wu", "Anika Patel"],
+    ["Jordan Blake", "Jordan Blake"],
+    ["Sofia Reyes", "Leo Fernandez"],
+  ]),
+
+  // Issue 1: "Elect Release Manager" — choices: Mei-Ling, Sofia, Tyler
+  ...osc("osc-election", 1, [
+    ["Anika Patel", "Mei-Ling Wu"],
+    ["Leo Fernandez", "Sofia Reyes"],
+    ["Marcus Chen", "Mei-Ling Wu"],
+    ["Sofia Reyes", "Sofia Reyes"],
+  ]),
+
+  // Issue 2: "Elect Community Liaison" — choices: Chiara, Nadia, Oscar, Zara
+  // (no votes yet — test zero-vote state on open election)
+
   // ── 2026 Board Officer Election (CLOSED — multi-option) ──────────
   // Issue 0: "Elect Chairperson" — choices: Victoria, Robert, Catherine
   ...board("board-election", 0, [
