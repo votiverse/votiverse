@@ -70,6 +70,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
         description     TEXT NOT NULL DEFAULT '',
         topic_ids       TEXT NOT NULL DEFAULT '[]',
         voting_event_id TEXT NOT NULL,
+        choices         TEXT,
         PRIMARY KEY (assembly_id, id)
       );
 

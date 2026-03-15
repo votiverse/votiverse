@@ -32,6 +32,7 @@ interface IssueRow {
   description: string;
   topic_ids: string;
   voting_event_id: string;
+  choices: string | null;
 }
 
 interface ParticipantRow {
@@ -155,6 +156,7 @@ export class AssemblyManager {
         description: row.description,
         topicIds: JSON.parse(row.topic_ids) as TopicId[],
         votingEventId: row.voting_event_id as VotingEventId,
+        ...(row.choices ? { choices: JSON.parse(row.choices) as string[] } : {}),
       });
     }
 
@@ -211,8 +213,8 @@ export class AssemblyManager {
   persistIssues(assemblyId: string, issues: readonly Issue[]): void {
     for (const issue of issues) {
       this.db.run(
-        `INSERT OR REPLACE INTO issues (id, assembly_id, title, description, topic_ids, voting_event_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO issues (id, assembly_id, title, description, topic_ids, voting_event_id, choices)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           issue.id,
           assemblyId,
@@ -220,6 +222,7 @@ export class AssemblyManager {
           issue.description,
           JSON.stringify(issue.topicIds),
           issue.votingEventId,
+          issue.choices ? JSON.stringify(issue.choices) : null,
         ],
       );
     }

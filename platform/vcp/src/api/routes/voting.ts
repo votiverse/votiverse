@@ -4,6 +4,7 @@
 
 import { Hono } from "hono";
 import type { ParticipantId, IssueId, VotingEventId, VoteChoice } from "@votiverse/core";
+import { ValidationError } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 
 export function votingRoutes(manager: AssemblyManager) {
@@ -26,11 +27,21 @@ export function votingRoutes(manager: AssemblyManager) {
     }
 
     const { engine } = await manager.getEngine(assemblyId);
-    await engine.voting.cast(
-      body.participantId as ParticipantId,
-      body.issueId as IssueId,
-      body.choice as VoteChoice,
-    );
+    try {
+      await engine.voting.cast(
+        body.participantId as ParticipantId,
+        body.issueId as IssueId,
+        body.choice as VoteChoice,
+      );
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: err.message } },
+          400,
+        );
+      }
+      throw err;
+    }
 
     return c.json({ status: "ok", participantId: body.participantId, issueId: body.issueId });
   });

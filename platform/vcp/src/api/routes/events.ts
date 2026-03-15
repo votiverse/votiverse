@@ -14,6 +14,7 @@ interface CreateEventBody {
     title: string;
     description: string;
     topicIds: string[];
+    choices?: string[];
   }>;
   eligibleParticipantIds: string[];
   timeline: {
@@ -52,6 +53,7 @@ export function eventRoutes(manager: AssemblyManager) {
         title: i.title,
         description: i.description ?? "",
         topicIds: (i.topicIds ?? []) as TopicId[],
+        ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: body.eligibleParticipantIds as ParticipantId[],
       timeline: {
@@ -75,6 +77,7 @@ export function eventRoutes(manager: AssemblyManager) {
         title: i.title,
         description: i.description,
         topicIds: i.topicIds,
+        ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: votingEvent.eligibleParticipantIds,
       timeline: {
@@ -115,7 +118,14 @@ export function eventRoutes(manager: AssemblyManager) {
 
     const issues = votingEvent.issueIds.map((id) => {
       const issue = engine.events.getIssue(id as IssueId);
-      return issue ? { id: issue.id, title: issue.title, description: issue.description, topicIds: issue.topicIds } : { id };
+      if (!issue) return { id };
+      return {
+        id: issue.id,
+        title: issue.title,
+        description: issue.description,
+        topicIds: issue.topicIds,
+        ...(issue.choices ? { choices: issue.choices } : {}),
+      };
     });
 
     return c.json({
