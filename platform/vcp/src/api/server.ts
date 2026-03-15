@@ -18,6 +18,7 @@ import { votingRoutes } from "./routes/voting.js";
 import { predictionRoutes } from "./routes/predictions.js";
 import { pollRoutes } from "./routes/polls.js";
 import { awarenessRoutes } from "./routes/awareness.js";
+import { topicRoutes } from "./routes/topics.js";
 import { stubRoutes } from "./routes/stubs.js";
 
 export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono {
@@ -51,6 +52,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono
   app.route("/", votingRoutes(manager));
   app.route("/", predictionRoutes(manager));
   app.route("/", pollRoutes(manager));
+  app.route("/", topicRoutes(manager));
   app.route("/", awarenessRoutes(manager));
   app.route("/", stubRoutes());
 

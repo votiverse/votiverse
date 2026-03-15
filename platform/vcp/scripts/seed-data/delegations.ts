@@ -10,6 +10,8 @@ export interface DelegationDef {
   source: string;
   target: string;
   topicScope: string[];
+  /** Topic keys to resolve to IDs at seed time. Overrides topicScope when present. */
+  topicKeys?: string[];
 }
 
 export const DELEGATIONS: DelegationDef[] = [
@@ -50,6 +52,23 @@ export const DELEGATIONS: DelegationDef[] = [
   { assemblyKey: "youth", source: "Jin Park", target: "Sofia Reyes", topicScope: [] },
   { assemblyKey: "youth", source: "Chloe Beaumont", target: "Priya Sharma", topicScope: [] },
   { assemblyKey: "youth", source: "Emilia Strand", target: "Liam Torres", topicScope: [] },
+
+  // ── Topic-scoped delegations ──────────────────────────────────────────
+
+  // OSC: Kai delegates to Leo on technical topics only
+  { assemblyKey: "osc", source: "Kai Andersen", target: "Leo Fernandez", topicScope: [], topicKeys: ["technical"] },
+  // OSC: Rina delegates to Sofia on community topics only
+  { assemblyKey: "osc", source: "Rina Kurosawa", target: "Sofia Reyes", topicScope: [], topicKeys: ["community"] },
+
+  // Municipal: Nkechi delegates to Carmen on infrastructure topics
+  { assemblyKey: "municipal", source: "Nkechi Adeyemi", target: "Carmen Delgado", topicScope: [], topicKeys: ["infrastructure"] },
+  // Municipal: Gabriela delegates to Priya on social services topics
+  { assemblyKey: "municipal", source: "Gabriela Santos", target: "Priya Sharma", topicScope: [], topicKeys: ["social"] },
+
+  // Youth: Aisha delegates to Sofia on education topics
+  { assemblyKey: "youth", source: "Aisha Moyo", target: "Sofia Reyes", topicScope: [], topicKeys: ["education"] },
+  // Youth: Tariq delegates to Liam on wellness topics
+  { assemblyKey: "youth", source: "Tariq Hassan", target: "Liam Torres", topicScope: [], topicKeys: ["wellness"] },
 
   // ── Board of Directors (BOARD_PROXY — non-transitive, single delegate) ─
 

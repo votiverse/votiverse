@@ -42,6 +42,14 @@ interface ParticipantRow {
   registered_at: string;
 }
 
+interface TopicRow {
+  id: string;
+  assembly_id: string;
+  name: string;
+  parent_id: string | null;
+  sort_order: number;
+}
+
 export interface AssemblyInfo {
   id: string;
   organizationId: string | null;
@@ -226,6 +234,27 @@ export class AssemblyManager {
         ],
       );
     }
+  }
+
+  /** Create a topic in an assembly's taxonomy. */
+  createTopic(assemblyId: string, topic: { id: string; name: string; parentId: string | null; sortOrder?: number }): void {
+    this.db.run(
+      `INSERT INTO topics (id, assembly_id, name, parent_id, sort_order) VALUES (?, ?, ?, ?, ?)`,
+      [topic.id, assemblyId, topic.name, topic.parentId, topic.sortOrder ?? 0],
+    );
+  }
+
+  /** List all topics for an assembly, ordered for tree rendering. */
+  listTopics(assemblyId: string): Array<{ id: string; name: string; parentId: string | null; sortOrder: number }> {
+    return this.db.query<TopicRow>(
+      "SELECT * FROM topics WHERE assembly_id = ? ORDER BY sort_order ASC, name ASC",
+      [assemblyId],
+    ).map((r) => ({
+      id: r.id,
+      name: r.name,
+      parentId: r.parent_id,
+      sortOrder: r.sort_order,
+    }));
   }
 
   /** Evict a cached engine (e.g., after config changes). */

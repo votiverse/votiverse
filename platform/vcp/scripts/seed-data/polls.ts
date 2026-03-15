@@ -18,6 +18,8 @@ export interface PollDef {
   assemblyKey: string;
   title: string;
   topicScope: string[];
+  /** Topic keys to resolve to IDs at seed time. Overrides topicScope when present. */
+  topicKeys?: string[];
   questions: PollQuestionDef[];
   /** ms offset from now for schedule (open time) */
   scheduleOffset: number;
@@ -44,6 +46,7 @@ export const POLLS: PollDef[] = [
     assemblyKey: "youth",
     title: "Youth Program Satisfaction Survey",
     topicScope: [],
+    topicKeys: ["education"],
     questions: [
       {
         text: "How satisfied are you with current after-school programs?",
@@ -68,6 +71,7 @@ export const POLLS: PollDef[] = [
     assemblyKey: "youth",
     title: "Preferred Community Event Type",
     topicScope: [],
+    topicKeys: ["events"],
     questions: [
       {
         text: "What type of community event would you most like to see this summer?",
@@ -89,6 +93,7 @@ export const POLLS: PollDef[] = [
     assemblyKey: "youth",
     title: "Study Space Survey",
     topicScope: [],
+    topicKeys: ["education"],
     questions: [
       {
         text: "How would you rate the quality of available study spaces?",
@@ -115,6 +120,7 @@ export const POLLS: PollDef[] = [
     assemblyKey: "municipal",
     title: "Transit Priority Sentiment",
     topicScope: [],
+    topicKeys: ["transit"],
     questions: [
       {
         text: "Do you support expanding public transit routes?",
@@ -139,6 +145,7 @@ export const POLLS: PollDef[] = [
     assemblyKey: "municipal",
     title: "Transit Improvement Priority",
     topicScope: [],
+    topicKeys: ["transit"],
     questions: [
       {
         text: "Which transit improvement should receive the highest priority?",
@@ -160,6 +167,7 @@ export const POLLS: PollDef[] = [
     assemblyKey: "municipal",
     title: "Neighborhood Priorities",
     topicScope: [],
+    topicKeys: ["infrastructure"],
     questions: [
       {
         text: "Should the city invest more in neighborhood parks and green spaces?",
