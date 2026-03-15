@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { VotiverseEngine, createEngine } from "../../src/engine.js";
-import { InMemoryEventStore, timestamp } from "@votiverse/core";
+import { InMemoryEventStore, timestamp, ValidationError } from "@votiverse/core";
 import type { ParticipantId, TopicId, Timestamp } from "@votiverse/core";
-import { getPreset } from "@votiverse/config";
+import { getPreset, deriveConfig } from "@votiverse/config";
 import { InvitationProvider } from "@votiverse/identity";
 import { isOk } from "@votiverse/core";
 
@@ -271,6 +271,178 @@ describe("VotiverseEngine — integration", () => {
         ballot: { quorum: 0.5 },
       });
       expect(derived.ballot.quorum).toBe(0.5);
+    });
+  });
+
+  describe("Multi-option election workflow", () => {
+    it("creates an election with named candidates and tallies correctly", async () => {
+      const [alice, bob, carol, dave, eve] = await inviteParticipants(
+        "Alice", "Bob", "Carol", "Dave", "Eve",
+      );
+
+      const candidates = ["Alice Johnson", "Bob Smith", "Carol Davis"];
+
+      const votingEvent = await engine.events.create({
+        title: "Board Officer Election",
+        description: "Elect the next chairperson",
+        issues: [
+          {
+            title: "Elect Chairperson",
+            description: "Choose the next chairperson",
+            topicIds: [],
+            choices: candidates,
+          },
+        ],
+        eligibleParticipantIds: [alice!, bob!, carol!, dave!, eve!],
+        timeline: {
+          deliberationStart: timestamp(Date.now()) as Timestamp,
+          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
+          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
+        },
+      });
+
+      const issueId = votingEvent.issueIds[0]!;
+
+      // Verify issue has choices
+      const issue = engine.events.getIssue(issueId);
+      expect(issue?.choices).toEqual(candidates);
+
+      // Cast valid votes
+      await engine.voting.cast(alice!, issueId, "Alice Johnson");
+      await engine.voting.cast(bob!, issueId, "Bob Smith");
+      await engine.voting.cast(carol!, issueId, "Alice Johnson");
+      await engine.voting.cast(dave!, issueId, "Carol Davis");
+      await engine.voting.cast(eve!, issueId, "Alice Johnson");
+
+      const tally = await engine.voting.tally(issueId);
+      expect(tally.winner).toBe("Alice Johnson");
+      expect(tally.counts.get("Alice Johnson")).toBe(3);
+      expect(tally.counts.get("Bob Smith")).toBe(1);
+      expect(tally.counts.get("Carol Davis")).toBe(1);
+    });
+
+    it("rejects invalid choices through the engine API", async () => {
+      const [alice] = await inviteParticipants("Alice");
+
+      const votingEvent = await engine.events.create({
+        title: "Election",
+        description: "Test",
+        issues: [
+          {
+            title: "Pick One",
+            description: "Choose a candidate",
+            topicIds: [],
+            choices: ["Option A", "Option B"],
+          },
+        ],
+        eligibleParticipantIds: [alice!],
+        timeline: {
+          deliberationStart: timestamp(Date.now()) as Timestamp,
+          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
+          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
+        },
+      });
+
+      const issueId = votingEvent.issueIds[0]!;
+
+      // Invalid choice should throw
+      await expect(
+        engine.voting.cast(alice!, issueId, "Option C"),
+      ).rejects.toThrow(ValidationError);
+
+      // Abstain should always work
+      await engine.voting.cast(alice!, issueId, "abstain");
+      const votes = await engine.voting.getVotes(issueId);
+      expect(votes).toHaveLength(1);
+      expect(votes[0]!.choice).toBe("abstain");
+    });
+
+    it("supports ranked-choice election through the engine", async () => {
+      const rankedStore = new InMemoryEventStore();
+      const rankedProvider = new InvitationProvider(rankedStore);
+      const rankedEngine = createEngine({
+        config: deriveConfig(getPreset("LIQUID_STANDARD"), {
+          ballot: { votingMethod: "ranked-choice" },
+        }),
+        eventStore: rankedStore,
+        identityProvider: rankedProvider,
+      });
+
+      const ids: ParticipantId[] = [];
+      for (const name of ["V1", "V2", "V3"]) {
+        const result = await rankedProvider.invite(name);
+        if (isOk(result)) ids.push(result.value.id);
+      }
+      const [v1, v2, v3] = ids;
+
+      const candidates = ["Alpha", "Beta", "Gamma"];
+      const event = await rankedEngine.events.create({
+        title: "Ranked Election",
+        description: "Test ranked choice",
+        issues: [{
+          title: "Pick Winner",
+          description: "Rank the candidates",
+          topicIds: [],
+          choices: candidates,
+        }],
+        eligibleParticipantIds: [v1!, v2!, v3!],
+        timeline: {
+          deliberationStart: timestamp(Date.now()) as Timestamp,
+          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
+          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
+        },
+      });
+
+      const issueId = event.issueIds[0]!;
+
+      // V1 ranks: Alpha > Gamma
+      await rankedEngine.voting.cast(v1!, issueId, ["Alpha", "Gamma"]);
+      // V2 ranks: Alpha > Beta
+      await rankedEngine.voting.cast(v2!, issueId, ["Alpha", "Beta"]);
+      // V3 ranks: Gamma > Beta (Gamma has fewer first-choice votes)
+      await rankedEngine.voting.cast(v3!, issueId, ["Gamma", "Beta"]);
+
+      // Invalid ranked choice should throw
+      await expect(
+        rankedEngine.voting.cast(v1!, issueId, ["Alpha", "InvalidCandidate"]),
+      ).rejects.toThrow(ValidationError);
+
+      const tally = await rankedEngine.voting.tally(issueId);
+      // Round 1: Alpha=2, Gamma=1, Beta=0. Alpha has 2 > 1.5 majority → Alpha wins.
+      expect(tally.winner).toBe("Alpha");
+    });
+
+    it("preserves choices through rehydration", async () => {
+      const [alice] = await inviteParticipants("Alice");
+
+      await engine.events.create({
+        title: "Election",
+        description: "Test rehydration",
+        issues: [{
+          title: "Pick Candidate",
+          description: "Choose one",
+          topicIds: [],
+          choices: ["Candidate A", "Candidate B"],
+        }],
+        eligibleParticipantIds: [alice!],
+        timeline: {
+          deliberationStart: timestamp(Date.now()) as Timestamp,
+          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
+          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
+        },
+      });
+
+      // Create a new engine from the same store and rehydrate
+      const engine2 = createEngine({
+        config: getPreset("LIQUID_STANDARD"),
+        eventStore: store,
+        identityProvider: provider,
+      });
+      await engine2.rehydrate();
+
+      const issues = engine2.events.listIssues();
+      const electionIssue = issues.find(i => i.title === "Pick Candidate");
+      expect(electionIssue?.choices).toEqual(["Candidate A", "Candidate B"]);
     });
   });
 
