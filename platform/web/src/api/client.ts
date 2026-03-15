@@ -7,6 +7,7 @@ import type {
   Topic,
   Delegation,
   DelegationChain,
+  MyWeight,
   Tally,
   WeightDist,
   ConcentrationMetrics,
@@ -18,6 +19,7 @@ import type {
 
 const BASE_URL = "/api";
 const API_KEY = "vcp_dev_key_00000000";
+const IDENTITY_KEY = "votiverse_identity";
 
 class ApiError extends Error {
   constructor(
@@ -30,13 +32,33 @@ class ApiError extends Error {
   }
 }
 
+/** Read the current participant ID from localStorage (shared with useIdentity). */
+function getStoredParticipantId(): string | null {
+  try {
+    const raw = localStorage.getItem(IDENTITY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.participantId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${API_KEY}`,
+  };
+
+  // Include participant identity when available (sovereignty enforcement)
+  const pid = getStoredParticipantId();
+  if (pid) {
+    headers["X-Participant-Id"] = pid;
+  }
+
   const init: RequestInit = {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${API_KEY}`,
-    },
+    headers,
   };
   if (body !== undefined) {
     init.body = JSON.stringify(body);
@@ -140,13 +162,20 @@ export function listDelegations(
 
 export function createDelegation(
   assemblyId: string,
-  params: { sourceId: string; targetId: string; topicScope?: string[] },
+  params: { targetId: string; topicScope?: string[] },
 ): Promise<Delegation> {
   return request("POST", `/assemblies/${assemblyId}/delegations`, params);
 }
 
 export function revokeDelegation(assemblyId: string, delegationId: string): Promise<void> {
   return request("DELETE", `/assemblies/${assemblyId}/delegations/${delegationId}`);
+}
+
+export function getMyWeight(
+  assemblyId: string,
+  issueId: string,
+): Promise<MyWeight> {
+  return request("GET", `/assemblies/${assemblyId}/delegations/my-weight?issueId=${issueId}`);
 }
 
 export function resolveChain(

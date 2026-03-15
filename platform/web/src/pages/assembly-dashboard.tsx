@@ -42,14 +42,16 @@ export function AssemblyDashboard() {
       </div>
 
       {/* Stats row — participant-centric */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
+      <div className={`grid grid-cols-2 ${config.delegation.enabled ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
         <StatCard label="Members" value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
         <StatCard label="Votes" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
-        <StatCard
-          label="Your Delegates"
-          value={delegations.length}
-          linkTo={`/assembly/${assemblyId}/delegations`}
-        />
+        {config.delegation.enabled && (
+          <StatCard
+            label="Your Delegates"
+            value={delegations.length}
+            linkTo={`/assembly/${assemblyId}/delegations`}
+          />
+        )}
         <StatCard
           label="Your Votes"
           value={historyData?.history.length ?? 0}

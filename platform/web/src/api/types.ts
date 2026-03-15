@@ -9,6 +9,13 @@ export interface Assembly {
   createdAt: string;
 }
 
+export interface DelegationVisibilityConfig {
+  mode: "public" | "private";
+  incomingVisibility: "direct" | "chain";
+}
+
+export type ParticipantStatus = "active" | "inactive" | "sunset";
+
 export interface GovernanceConfig {
   name: string;
   description: string;
@@ -19,6 +26,8 @@ export interface GovernanceConfig {
     revocableAnytime: boolean;
     maxChainDepth: number | null;
     maxDelegatesPerParticipant: number | null;
+    maxAge: number | null;
+    visibility: DelegationVisibilityConfig;
   };
   ballot: {
     secrecy: string;
@@ -43,6 +52,7 @@ export interface GovernanceConfig {
 export interface Participant {
   id: string;
   name: string;
+  status?: ParticipantStatus;
   registeredAt?: string;
 }
 
@@ -92,6 +102,16 @@ export interface DelegationChain {
   chain: string[];
   terminalVoter: string | null;
   votedDirectly: boolean;
+}
+
+export interface MyWeight {
+  participantId: string;
+  issueId: string;
+  directWeight: number;
+  delegatedWeight: number;
+  totalWeight: number;
+  delegatorsCount: number;
+  delegators: string[];
 }
 
 export interface Tally {
