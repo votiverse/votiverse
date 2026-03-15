@@ -47,7 +47,7 @@ import type {
   ConcentrationMetrics,
 } from "@votiverse/delegation";
 import { VotingService } from "@votiverse/voting";
-import type { TallyResult, VoteRecord } from "@votiverse/voting";
+import type { TallyResult, VoteRecord, ParticipationRecord } from "@votiverse/voting";
 import { PredictionService } from "@votiverse/prediction";
 import type {
   CommitPredictionParams,
@@ -450,6 +450,24 @@ export class VotiverseEngine {
         throw new NotFoundError("VotingEvent", issue.votingEventId);
       }
       return this.votingService.tally(
+        issueId,
+        issue.topicIds,
+        new Set(votingEvent.eligibleParticipantIds),
+        this.topicAncestors,
+      );
+    },
+
+    /** Compute participation records for all eligible participants on an issue. */
+    participation: (issueId: IssueId): Promise<readonly ParticipationRecord[]> => {
+      const issue = this.issues.get(issueId);
+      if (!issue) {
+        throw new NotFoundError("Issue", issueId);
+      }
+      const votingEvent = this.votingEvents.get(issue.votingEventId);
+      if (!votingEvent) {
+        throw new NotFoundError("VotingEvent", issue.votingEventId);
+      }
+      return this.votingService.participation(
         issueId,
         issue.topicIds,
         new Set(votingEvent.eligibleParticipantIds),

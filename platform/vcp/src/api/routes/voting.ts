@@ -76,7 +76,45 @@ export function votingRoutes(manager: AssemblyManager) {
       });
     }
 
+    // Materialize participation records for closed events (lazy, idempotent)
+    const now = Date.now();
+    if (votingEvent.timeline.votingEnd <= now) {
+      for (const issueId of votingEvent.issueIds) {
+        await manager.materializeParticipation(assemblyId, issueId);
+      }
+    }
+
     return c.json({ eventId: eid, tallies });
+  });
+
+  /** GET /assemblies/:id/events/:eid/participation — participation records. */
+  app.get("/assemblies/:id/events/:eid/participation", async (c) => {
+    const assemblyId = c.req.param("id");
+    const eid = c.req.param("eid");
+    const participantId = c.req.query("participantId");
+
+    const { engine } = await manager.getEngine(assemblyId);
+    const votingEvent = engine.events.get(eid as VotingEventId);
+    if (!votingEvent) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: `Voting event "${eid}" not found` } },
+        404,
+      );
+    }
+
+    // Materialize if not yet done (idempotent)
+    for (const issueId of votingEvent.issueIds) {
+      await manager.materializeParticipation(assemblyId, issueId);
+    }
+
+    // Collect participation records for all issues in the event
+    const participation = [];
+    for (const issueId of votingEvent.issueIds) {
+      const records = manager.getParticipation(assemblyId, issueId, participantId);
+      participation.push(...records);
+    }
+
+    return c.json({ eventId: eid, participation });
   });
 
   /** GET /assemblies/:id/events/:eid/weights — get weight distribution. */

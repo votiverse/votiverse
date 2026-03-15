@@ -287,6 +287,132 @@ export class AssemblyManager {
     }));
   }
 
+  // -----------------------------------------------------------------------
+  // Participation records (materialized read-side projection)
+  // -----------------------------------------------------------------------
+
+  /** Check whether participation records have been materialized for an issue. */
+  hasParticipation(assemblyId: string, issueId: string): boolean {
+    const row = this.db.queryOne<{ cnt: number }>(
+      "SELECT COUNT(*) as cnt FROM issue_participation WHERE assembly_id = ? AND issue_id = ?",
+      [assemblyId, issueId],
+    );
+    return (row?.cnt ?? 0) > 0;
+  }
+
+  /** Materialize participation records for an issue (idempotent — skips if already materialized). */
+  async materializeParticipation(assemblyId: string, issueId: string): Promise<void> {
+    if (this.hasParticipation(assemblyId, issueId)) return;
+
+    const { engine } = await this.getEngine(assemblyId);
+    const records = await engine.voting.participation(issueId as IssueId);
+    const computedAt = new Date().toISOString();
+
+    this.db.transaction(() => {
+      for (const record of records) {
+        this.db.run(
+          `INSERT OR IGNORE INTO issue_participation
+           (assembly_id, issue_id, participant_id, status, effective_choice, delegate_id, terminal_voter_id, chain, computed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            assemblyId,
+            record.issueId,
+            record.participantId,
+            record.status,
+            record.effectiveChoice !== null ? JSON.stringify(record.effectiveChoice) : null,
+            record.delegateId,
+            record.terminalVoterId,
+            JSON.stringify(record.chain),
+            computedAt,
+          ],
+        );
+      }
+    });
+  }
+
+  /** Query participation records for an issue, optionally filtered by participant. */
+  getParticipation(
+    assemblyId: string,
+    issueId: string,
+    participantId?: string,
+  ): Array<{
+    participantId: string;
+    issueId: string;
+    status: string;
+    effectiveChoice: unknown;
+    delegateId: string | null;
+    terminalVoterId: string | null;
+    chain: string[];
+  }> {
+    const sql = participantId
+      ? "SELECT * FROM issue_participation WHERE assembly_id = ? AND issue_id = ? AND participant_id = ?"
+      : "SELECT * FROM issue_participation WHERE assembly_id = ? AND issue_id = ?";
+    const params = participantId
+      ? [assemblyId, issueId, participantId]
+      : [assemblyId, issueId];
+
+    interface ParticipationRow {
+      assembly_id: string;
+      issue_id: string;
+      participant_id: string;
+      status: string;
+      effective_choice: string | null;
+      delegate_id: string | null;
+      terminal_voter_id: string | null;
+      chain: string;
+      computed_at: string;
+    }
+
+    return this.db.query<ParticipationRow>(sql, params).map((row) => ({
+      participantId: row.participant_id,
+      issueId: row.issue_id,
+      status: row.status,
+      effectiveChoice: row.effective_choice !== null ? JSON.parse(row.effective_choice) : null,
+      delegateId: row.delegate_id,
+      terminalVoterId: row.terminal_voter_id,
+      chain: JSON.parse(row.chain) as string[],
+    }));
+  }
+
+  /** Query participation records for a participant across all issues in an assembly. */
+  getParticipationByParticipant(
+    assemblyId: string,
+    participantId: string,
+  ): Array<{
+    participantId: string;
+    issueId: string;
+    status: string;
+    effectiveChoice: unknown;
+    delegateId: string | null;
+    terminalVoterId: string | null;
+    chain: string[];
+  }> {
+    interface ParticipationRow {
+      assembly_id: string;
+      issue_id: string;
+      participant_id: string;
+      status: string;
+      effective_choice: string | null;
+      delegate_id: string | null;
+      terminal_voter_id: string | null;
+      chain: string;
+      computed_at: string;
+    }
+
+    return this.db.query<ParticipationRow>(
+      "SELECT * FROM issue_participation WHERE assembly_id = ? AND participant_id = ?",
+      [assemblyId, participantId],
+    ).map((row) => ({
+      participantId: row.participant_id,
+      issueId: row.issue_id,
+      status: row.status,
+      effectiveChoice: row.effective_choice !== null ? JSON.parse(row.effective_choice) : null,
+      delegateId: row.delegate_id,
+      terminalVoterId: row.terminal_voter_id,
+      chain: JSON.parse(row.chain) as string[],
+    }));
+  }
+
   /** Evict a cached engine (e.g., after config changes). */
   evictEngine(assemblyId: string): void {
     this.engines.delete(assemblyId);

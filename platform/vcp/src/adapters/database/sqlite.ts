@@ -97,6 +97,22 @@ export class SQLiteAdapter implements DatabaseAdapter {
         created_at      TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
+      -- Materialized participation records (computed at tally time)
+      CREATE TABLE IF NOT EXISTS issue_participation (
+        assembly_id       TEXT NOT NULL,
+        issue_id          TEXT NOT NULL,
+        participant_id    TEXT NOT NULL,
+        status            TEXT NOT NULL,
+        effective_choice  TEXT,
+        delegate_id       TEXT,
+        terminal_voter_id TEXT,
+        chain             TEXT NOT NULL DEFAULT '[]',
+        computed_at       TEXT NOT NULL,
+        PRIMARY KEY (assembly_id, issue_id, participant_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_participation_participant
+        ON issue_participation(assembly_id, participant_id);
+
       -- Auto-increment trigger for sequence numbers
       CREATE TRIGGER IF NOT EXISTS events_sequence_num
         AFTER INSERT ON events

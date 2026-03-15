@@ -72,6 +72,32 @@ export interface BallotMethod {
 }
 
 // ---------------------------------------------------------------------------
+// Participation records
+// ---------------------------------------------------------------------------
+
+/** How a participant participated in an issue's vote. */
+export type ParticipationStatus = "direct" | "delegated" | "absent";
+
+/**
+ * A materialized record of how a participant participated in a vote.
+ * Computed from the delegation graph and direct votes at tally time.
+ */
+export interface ParticipationRecord {
+  readonly participantId: ParticipantId;
+  readonly issueId: IssueId;
+  /** Whether the participant voted directly, via delegation, or did not participate. */
+  readonly status: ParticipationStatus;
+  /** The effective choice applied to this participant (their own or their delegate's). Null if absent. */
+  readonly effectiveChoice: VoteChoice | null;
+  /** The immediate delegate (first hop). Null if direct or absent. */
+  readonly delegateId: ParticipantId | null;
+  /** The participant who actually cast the vote. Null if absent. */
+  readonly terminalVoterId: ParticipantId | null;
+  /** The full delegation path from this participant to the terminal voter. Empty if direct or absent. */
+  readonly chain: readonly ParticipantId[];
+}
+
+// ---------------------------------------------------------------------------
 // Cast vote params
 // ---------------------------------------------------------------------------
 

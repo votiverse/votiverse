@@ -238,4 +238,140 @@ describe("VotingService", () => {
       expect(result.winner).toBeNull(); // 60% < 67%
     });
   });
+
+  describe("participation()", () => {
+    it("marks direct voters correctly", async () => {
+      await service.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
+      await service.cast({ participantId: pid("bob"), issueId: iid("issue-1"), choice: "against" });
+
+      const records = await service.participation(
+        iid("issue-1"),
+        [],
+        new Set([pid("alice"), pid("bob")]),
+      );
+
+      const alice = records.find((r) => r.participantId === "alice")!;
+      expect(alice.status).toBe("direct");
+      expect(alice.effectiveChoice).toBe("for");
+      expect(alice.delegateId).toBeNull();
+      expect(alice.terminalVoterId).toBe("alice");
+      expect(alice.chain).toEqual([]);
+
+      const bob = records.find((r) => r.participantId === "bob")!;
+      expect(bob.status).toBe("direct");
+      expect(bob.effectiveChoice).toBe("against");
+    });
+
+    it("marks delegated participants with chain and effective choice", async () => {
+      // Alice → Bob delegation, Bob votes
+      await store.append(delegationEvent("alice", "bob"));
+      await service.cast({ participantId: pid("bob"), issueId: iid("issue-1"), choice: "for" });
+
+      const records = await service.participation(
+        iid("issue-1"),
+        [],
+        new Set([pid("alice"), pid("bob")]),
+      );
+
+      const alice = records.find((r) => r.participantId === "alice")!;
+      expect(alice.status).toBe("delegated");
+      expect(alice.effectiveChoice).toBe("for"); // Bob's choice
+      expect(alice.delegateId).toBe("bob");
+      expect(alice.terminalVoterId).toBe("bob");
+      expect(alice.chain).toEqual(["bob"]);
+
+      const bob = records.find((r) => r.participantId === "bob")!;
+      expect(bob.status).toBe("direct");
+    });
+
+    it("resolves transitive delegation chains", async () => {
+      // Alice → Bob → Carol, Carol votes
+      await store.append(delegationEvent("alice", "bob"));
+      await store.append(delegationEvent("bob", "carol"));
+      await service.cast({ participantId: pid("carol"), issueId: iid("issue-1"), choice: "against" });
+
+      const records = await service.participation(
+        iid("issue-1"),
+        [],
+        new Set([pid("alice"), pid("bob"), pid("carol")]),
+      );
+
+      const alice = records.find((r) => r.participantId === "alice")!;
+      expect(alice.status).toBe("delegated");
+      expect(alice.effectiveChoice).toBe("against");
+      expect(alice.delegateId).toBe("bob");
+      expect(alice.terminalVoterId).toBe("carol");
+      expect(alice.chain).toEqual(["bob", "carol"]);
+
+      const bob = records.find((r) => r.participantId === "bob")!;
+      expect(bob.status).toBe("delegated");
+      expect(bob.delegateId).toBe("carol");
+      expect(bob.terminalVoterId).toBe("carol");
+      expect(bob.chain).toEqual(["carol"]);
+    });
+
+    it("marks absent participants", async () => {
+      await service.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
+
+      const records = await service.participation(
+        iid("issue-1"),
+        [],
+        new Set([pid("alice"), pid("bob")]),
+      );
+
+      const bob = records.find((r) => r.participantId === "bob")!;
+      expect(bob.status).toBe("absent");
+      expect(bob.effectiveChoice).toBeNull();
+      expect(bob.delegateId).toBeNull();
+      expect(bob.terminalVoterId).toBeNull();
+      expect(bob.chain).toEqual([]);
+    });
+
+    it("applies override rule: direct vote makes status 'direct'", async () => {
+      // Alice delegates to Bob, but also votes directly
+      await store.append(delegationEvent("alice", "bob"));
+      await service.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "against" });
+      await service.cast({ participantId: pid("bob"), issueId: iid("issue-1"), choice: "for" });
+
+      const records = await service.participation(
+        iid("issue-1"),
+        [],
+        new Set([pid("alice"), pid("bob")]),
+      );
+
+      const alice = records.find((r) => r.participantId === "alice")!;
+      expect(alice.status).toBe("direct");
+      expect(alice.effectiveChoice).toBe("against"); // her own choice
+      expect(alice.delegateId).toBeNull();
+    });
+
+    it("marks delegation to non-voter as absent", async () => {
+      // Alice delegates to Bob, but Bob doesn't vote
+      await store.append(delegationEvent("alice", "bob"));
+
+      const records = await service.participation(
+        iid("issue-1"),
+        [],
+        new Set([pid("alice"), pid("bob")]),
+      );
+
+      const alice = records.find((r) => r.participantId === "alice")!;
+      expect(alice.status).toBe("absent");
+      expect(alice.effectiveChoice).toBeNull();
+      expect(alice.terminalVoterId).toBeNull();
+
+      const bob = records.find((r) => r.participantId === "bob")!;
+      expect(bob.status).toBe("absent");
+    });
+
+    it("returns one record per eligible participant", async () => {
+      const eligible = new Set([pid("a"), pid("b"), pid("c"), pid("d"), pid("e")]);
+      await service.cast({ participantId: pid("a"), issueId: iid("issue-1"), choice: "for" });
+
+      const records = await service.participation(iid("issue-1"), [], eligible);
+      expect(records).toHaveLength(5);
+      const pids = records.map((r) => r.participantId).sort();
+      expect(pids).toEqual(["a", "b", "c", "d", "e"]);
+    });
+  });
 });

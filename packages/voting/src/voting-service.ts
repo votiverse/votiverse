@@ -12,8 +12,9 @@ import {
   getDirectVoters,
   buildDelegationGraph,
   computeWeights,
+  resolveChain,
 } from "@votiverse/delegation";
-import type { CastVoteParams, TallyResult, VoteRecord, WeightedVote } from "./types.js";
+import type { CastVoteParams, TallyResult, VoteRecord, WeightedVote, ParticipationRecord } from "./types.js";
 import { createBallotMethod } from "./ballot-methods.js";
 
 /**
@@ -153,5 +154,87 @@ export class VotingService {
       eligibleParticipantIds.size,
       this.config.ballot.quorum,
     );
+  }
+
+  /**
+   * Compute participation records for all eligible participants on an issue.
+   *
+   * For each participant, determines whether they voted directly, participated
+   * via delegation, or were absent. Includes the effective choice, delegate
+   * chain, and terminal voter.
+   *
+   * @param issueId - The issue to compute participation for.
+   * @param issueTopics - The topics of the issue (for delegation scope resolution).
+   * @param eligibleParticipantIds - All eligible participants.
+   * @param topicAncestors - Topic hierarchy for scope resolution.
+   */
+  async participation(
+    issueId: IssueId,
+    issueTopics: readonly TopicId[],
+    eligibleParticipantIds: ReadonlySet<ParticipantId>,
+    topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
+  ): Promise<readonly ParticipationRecord[]> {
+    // Get direct votes and build a choice lookup
+    const votes = await this.getVotes(issueId);
+    const choiceByParticipant = new Map<ParticipantId, VoteChoice>();
+    for (const vote of votes) {
+      choiceByParticipant.set(vote.participantId, vote.choice);
+    }
+
+    const directVoters = await getDirectVoters(this.eventStore, issueId);
+
+    // Build delegation graph (same as tally)
+    const delegations = await buildActiveDelegations(this.eventStore);
+    const graph = buildDelegationGraph(
+      issueId,
+      issueTopics,
+      delegations,
+      topicAncestors ?? new Map(),
+    );
+
+    // Resolve each participant's participation
+    const records: ParticipationRecord[] = [];
+
+    for (const pid of eligibleParticipantIds) {
+      const resolved = resolveChain(pid, graph, directVoters);
+
+      if (resolved.votedDirectly) {
+        records.push({
+          participantId: pid,
+          issueId,
+          status: "direct",
+          effectiveChoice: choiceByParticipant.get(pid) ?? null,
+          delegateId: null,
+          terminalVoterId: pid,
+          chain: [],
+        });
+      } else if (resolved.terminalVoter !== null) {
+        // Delegated — chain includes [self, ..., terminalVoter]
+        // delegateId is the first hop (chain[1]), chain stored without self
+        const chainWithoutSelf = resolved.chain.slice(1);
+        records.push({
+          participantId: pid,
+          issueId,
+          status: "delegated",
+          effectiveChoice: choiceByParticipant.get(resolved.terminalVoter) ?? null,
+          delegateId: chainWithoutSelf[0] ?? null,
+          terminalVoterId: resolved.terminalVoter,
+          chain: chainWithoutSelf,
+        });
+      } else {
+        // Absent — no vote, no delegation reaching a voter
+        records.push({
+          participantId: pid,
+          issueId,
+          status: "absent",
+          effectiveChoice: null,
+          delegateId: null,
+          terminalVoterId: null,
+          chain: [],
+        });
+      }
+    }
+
+    return records;
   }
 }

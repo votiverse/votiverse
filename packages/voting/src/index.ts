@@ -11,6 +11,8 @@ export type {
   TallyResult,
   BallotMethod,
   CastVoteParams,
+  ParticipationStatus,
+  ParticipationRecord,
 } from "./types.js";
 
 // Ballot methods
