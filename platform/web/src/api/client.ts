@@ -280,4 +280,27 @@ export function getPollResults(
   return request("GET", `/assemblies/${assemblyId}/polls/${pollId}/results${qs}`);
 }
 
+// ---- Predictions ----
+
+export function listPredictions(
+  assemblyId: string,
+  participantId: string,
+): Promise<{ predictions: import("./types.js").Prediction[] }> {
+  return request("GET", `/assemblies/${assemblyId}/predictions?participantId=${participantId}`);
+}
+
+export function getTrackRecord(
+  assemblyId: string,
+  participantId: string,
+): Promise<import("./types.js").TrackRecord> {
+  return request("GET", `/assemblies/${assemblyId}/track-record/${participantId}`);
+}
+
+export function evaluatePrediction(
+  assemblyId: string,
+  predictionId: string,
+): Promise<import("./types.js").PredictionEvaluation> {
+  return request("GET", `/assemblies/${assemblyId}/predictions/${predictionId}/eval`);
+}
+
 export { ApiError };

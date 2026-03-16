@@ -10,6 +10,33 @@ import type { AssemblyManager } from "../../engine/assembly-manager.js";
 export function predictionRoutes(manager: AssemblyManager) {
   const app = new Hono();
 
+  /** GET /assemblies/:id/predictions — list predictions for a participant. */
+  app.get("/assemblies/:id/predictions", async (c) => {
+    const assemblyId = c.req.param("id");
+    const participantId = c.req.query("participantId");
+
+    if (!participantId) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "participantId query parameter is required" } },
+        400,
+      );
+    }
+
+    const { engine } = await manager.getEngine(assemblyId);
+    const predictions = await engine.prediction.getPredictionsByParticipant(participantId as ParticipantId);
+
+    return c.json({
+      predictions: predictions.map((p) => ({
+        id: p.id,
+        proposalId: p.proposalId,
+        participantId: p.participantId,
+        claim: p.claim,
+        commitmentHash: p.commitmentHash,
+        committedAt: new Date(p.committedAt).toISOString(),
+      })),
+    });
+  });
+
   /** POST /assemblies/:id/predictions — commit prediction. */
   app.post("/assemblies/:id/predictions", async (c) => {
     const assemblyId = c.req.param("id");

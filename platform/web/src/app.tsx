@@ -10,6 +10,7 @@ import { EventsList } from "./pages/events-list.js";
 import { EventDetail } from "./pages/event-detail.js";
 import { Delegations } from "./pages/delegations.js";
 import { Polls } from "./pages/polls.js";
+import { Predictions } from "./pages/predictions.js";
 import { Profile } from "./pages/profile.js";
 
 function Layout() {
@@ -43,6 +44,7 @@ export function App() {
               <Route path="assembly/:assemblyId/events/:eventId" element={<EventDetail />} />
               <Route path="assembly/:assemblyId/delegations" element={<Delegations />} />
               <Route path="assembly/:assemblyId/polls" element={<Polls />} />
+              <Route path="assembly/:assemblyId/predictions" element={<Predictions />} />
             </Route>
           </Routes>
         </BrowserRouter>

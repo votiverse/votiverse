@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useParams, useLocation } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
+import { useAssemblyTabs } from "../hooks/use-assembly-tabs.js";
 import { Avatar } from "./avatar.js";
 
 export function Header() {
@@ -146,22 +147,12 @@ export function BottomTabs() {
     { to: "/profile", label: "Me", icon: UserIcon, exact: true },
   ];
 
-  const config = assembly?.config;
-  const assemblyTabs = useMemo(() => {
-    if (!assemblyId) return [];
-    const tabs = [
-      { to: `/assembly/${assemblyId}`, label: "Overview", icon: HomeIcon, exact: true },
-      { to: `/assembly/${assemblyId}/events`, label: "Votes", icon: CalendarIcon, exact: false },
-    ];
-    if (config?.delegation.enabled !== false) {
-      tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates", icon: LinkIcon, exact: false });
-    }
-    if (config?.features.polls) {
-      tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys", icon: ChartIcon, exact: false });
-    }
-    tabs.push({ to: `/assembly/${assemblyId}/members`, label: "Members", icon: UsersIcon, exact: false });
-    return tabs;
-  }, [assemblyId, config]);
+  const assemblyTabDefs = useAssemblyTabs(assemblyId, assembly?.config);
+  const assemblyTabs = assemblyTabDefs.map((tab) => ({
+    ...tab,
+    icon: TAB_ICONS[tab.label] ?? HomeIcon,
+    exact: tab.label === "Overview",
+  }));
 
   const tabs = inAssembly ? assemblyTabs : globalTabs;
 
@@ -208,32 +199,17 @@ function GlobalNavLinks() {
 
 function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
   const { assembly } = useAssembly(assemblyId);
-  const config = assembly?.config;
-
-  const links = useMemo(() => {
-    const items = [
-      { to: `/assembly/${assemblyId}`, label: "Overview" },
-      { to: `/assembly/${assemblyId}/events`, label: "Votes" },
-    ];
-    if (config?.delegation.enabled !== false) {
-      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
-    }
-    if (config?.features.polls) {
-      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
-    }
-    items.push({ to: `/assembly/${assemblyId}/members`, label: "Members" });
-    return items;
-  }, [assemblyId, config]);
+  const tabs = useAssemblyTabs(assemblyId, assembly?.config);
 
   return (
     <>
-      {links.map((link) => (
+      {tabs.map((tab) => (
         <Link
-          key={link.to}
-          to={link.to}
+          key={tab.to}
+          to={tab.to}
           className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
         >
-          {link.label}
+          {tab.label}
         </Link>
       ))}
     </>
@@ -242,38 +218,34 @@ function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
 
 function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNavigate: () => void }) {
   const { assembly } = useAssembly(assemblyId);
-  const config = assembly?.config;
-
-  const links = useMemo(() => {
-    const items = [
-      { to: `/assembly/${assemblyId}`, label: "Overview" },
-      { to: `/assembly/${assemblyId}/events`, label: "Votes" },
-    ];
-    if (config?.delegation.enabled !== false) {
-      items.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
-    }
-    if (config?.features.polls) {
-      items.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
-    }
-    items.push({ to: `/assembly/${assemblyId}/members`, label: "Members" });
-    return items;
-  }, [assemblyId, config]);
+  const tabs = useAssemblyTabs(assemblyId, assembly?.config);
 
   return (
     <>
-      {links.map((link) => (
+      {tabs.map((tab) => (
         <Link
-          key={link.to}
-          to={link.to}
+          key={tab.to}
+          to={tab.to}
           onClick={onNavigate}
           className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md min-h-[44px] flex items-center"
         >
-          {link.label}
+          {tab.label}
         </Link>
       ))}
     </>
   );
 }
+
+// ---------- Tab label → icon mapping ----------
+
+const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Element> = {
+  Overview: HomeIcon,
+  Votes: CalendarIcon,
+  Delegates: LinkIcon,
+  Surveys: ChartIcon,
+  Predictions: TrendIcon,
+  Members: UsersIcon,
+};
 
 // ---------- Tab bar icons (inline SVGs, 20x20) ----------
 
@@ -329,6 +301,14 @@ function UsersIcon({ active }: { active: boolean }) {
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+    </svg>
+  );
+}
+
+function TrendIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941" />
     </svg>
   );
 }

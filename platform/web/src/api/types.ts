@@ -210,3 +210,40 @@ export interface PollResults {
     distribution: Record<string, number>;
   }>;
 }
+
+// ---- Predictions ----
+
+export interface PredictionClaim {
+  variable: string;
+  baselineValue?: number;
+  timeframe: { unit: string; value: number; anchor?: string };
+  methodology?: string;
+  pattern: Record<string, unknown>;
+}
+
+export interface Prediction {
+  id: string;
+  proposalId: string;
+  participantId: string;
+  claim: PredictionClaim;
+  commitmentHash: string;
+  committedAt: string;
+}
+
+export interface PredictionEvaluation {
+  predictionId: string;
+  status: string;
+  accuracy: number;
+  confidence: string;
+  evaluatedAt: number;
+  outcomeCount: number;
+  trajectory: string;
+}
+
+export interface TrackRecord {
+  participantId: string;
+  totalPredictions: number;
+  evaluatedPredictions: number;
+  averageAccuracy: number;
+  byStatus: Record<string, number>;
+}
