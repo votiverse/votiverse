@@ -16,6 +16,7 @@ import { Profile } from "./pages/profile.js";
 import { ProfileDelegators } from "./pages/profile-delegators.js";
 import { ProfileDelegates } from "./pages/profile-delegates.js";
 import { ProfileVotes } from "./pages/profile-votes.js";
+import { DevClock } from "./components/dev-clock.js";
 
 function Layout() {
   return (
@@ -58,6 +59,7 @@ export function App() {
           </Routes>
         </BrowserRouter>
       </AttentionContext>
+      {import.meta.env.DEV && <DevClock />}
     </IdentityContext>
   );
 }
