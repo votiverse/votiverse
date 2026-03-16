@@ -353,6 +353,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
 
   const selectAnswer = (questionId: string, value: unknown) => {
     setSelected((prev) => ({ ...prev, [questionId]: value }));
+    setResults(null);
   };
 
   const clearAnswers = () => setSelected({});
@@ -432,7 +433,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
         ))}
 
         {/* Actions row: submit/clear on the left, view results on the right */}
-        {(!results && !isClosed) && (
+        {!results && !isClosed && (
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-3">
               {showButtons && answeredCount > 0 && (
