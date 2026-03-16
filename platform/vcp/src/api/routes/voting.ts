@@ -145,7 +145,7 @@ export function votingRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
     const rawPid = c.req.query("participantId");
-    const participantId = rawPid ? manager.resolveId(assemblyId, rawPid) : undefined;
+    const participantId = rawPid ?? undefined;
     const callerId = getParticipantId(c);
 
     const info = manager.getAssemblyInfo(assemblyId);

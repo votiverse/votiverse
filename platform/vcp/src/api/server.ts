@@ -4,9 +4,10 @@
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 import type { VCPAdapters } from "../adapters/index.js";
 import type { VCPConfig } from "../config/schema.js";
+import { logger } from "../lib/logger.js";
+import { createRequestLogger } from "./middleware/request-logger.js";
 import type { AssemblyManager } from "../engine/assembly-manager.js";
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/error-handler.js";
@@ -31,7 +32,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "X-Participant-Id"],
   }));
-  app.use("*", logger());
+  app.use("*", createRequestLogger(logger));
   app.use("*", errorHandler);
   app.use("*", createAuthMiddleware(adapters.auth));
 
@@ -45,7 +46,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
         404,
       );
     }
-    console.error("[error] unhandled:", error.message, error.stack);
+    logger.error("Unhandled error", { message: error.message, stack: error.stack });
     return c.json(
       { error: { code: "INTERNAL_ERROR", message: error.message } },
       500,

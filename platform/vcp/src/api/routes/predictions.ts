@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId } from "@votiverse/core";
 import type { PredictionId, CommitPredictionParams, RecordOutcomeParams } from "@votiverse/prediction";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { requireParticipant } from "../middleware/auth.js";
+import { requireParticipant, requireScope } from "../middleware/auth.js";
 
 export function predictionRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -23,7 +23,7 @@ export function predictionRoutes(manager: AssemblyManager) {
       );
     }
 
-    const participantId = manager.resolveId(assemblyId, rawParticipantId);
+    const participantId = rawParticipantId;
     const { engine } = await manager.getEngine(assemblyId);
     const predictions = await engine.prediction.getByParticipant(participantId as ParticipantId);
 
@@ -66,8 +66,11 @@ export function predictionRoutes(manager: AssemblyManager) {
     },
   );
 
-  /** POST /assemblies/:id/outcomes — record outcome. */
+  /** POST /assemblies/:id/outcomes — record outcome. Requires operational scope. */
   app.post("/assemblies/:id/outcomes", async (c) => {
+    const scopeError = requireScope(c, "operational");
+    if (scopeError) return scopeError;
+
     const assemblyId = c.req.param("id");
     const body = await c.req.json<RecordOutcomeParams>();
 
@@ -91,7 +94,7 @@ export function predictionRoutes(manager: AssemblyManager) {
   /** GET /assemblies/:id/track-record/:pid — participant track record. */
   app.get("/assemblies/:id/track-record/:pid", async (c) => {
     const assemblyId = c.req.param("id");
-    const pid = manager.resolveId(assemblyId, c.req.param("pid"));
+    const pid = c.req.param("pid");
 
     const { engine } = await manager.getEngine(assemblyId);
     const trackRecord = await engine.prediction.trackRecord(pid as ParticipantId);

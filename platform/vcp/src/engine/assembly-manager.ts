@@ -247,20 +247,6 @@ export class AssemblyManager {
     };
   }
 
-  /**
-   * Resolve an ID that may be either a participant ID or a user ID
-   * to the assembly-specific participant ID. Returns the input unchanged
-   * if it's already a valid participant ID in the assembly.
-   */
-  /**
-   * Pass-through ID resolver. After the users table removal, participant IDs
-   * are always direct — no cross-assembly resolution needed. This method is
-   * kept as a validation point for callsites that previously needed resolution.
-   */
-  resolveId(_assemblyId: string, participantId: string): string {
-    return participantId;
-  }
-
   /** Persist issue details after creating a voting event. */
   persistIssues(assemblyId: string, issues: readonly Issue[]): void {
     for (const issue of issues) {

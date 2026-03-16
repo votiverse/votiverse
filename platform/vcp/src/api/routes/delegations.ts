@@ -93,7 +93,7 @@ export function delegationRoutes(manager: AssemblyManager) {
   app.get("/assemblies/:id/delegations", async (c) => {
     const assemblyId = c.req.param("id");
     const rawSourceId = c.req.query("sourceId");
-    const sourceId = rawSourceId ? manager.resolveId(assemblyId, rawSourceId) : undefined;
+    const sourceId = rawSourceId ?? undefined;
 
     const info = manager.getAssemblyInfo(assemblyId);
     if (!info) {
@@ -115,7 +115,7 @@ export function delegationRoutes(manager: AssemblyManager) {
       if (!rawCallerId) {
         return c.json({ delegations: [] });
       }
-      const callerId = manager.resolveId(assemblyId, rawCallerId);
+      const callerId = rawCallerId;
       // Show only delegations where caller is source or target
       delegations = delegations.filter(
         (d) => d.sourceId === callerId || d.targetId === callerId,
@@ -155,13 +155,13 @@ export function delegationRoutes(manager: AssemblyManager) {
       );
     }
 
-    const participantId = manager.resolveId(assemblyId, rawParticipantId);
+    const participantId = rawParticipantId;
 
     // Visibility: in private mode, only resolve your own chain
     const chainVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
     if (chainVisibility.mode === "private") {
       const rawCallerId = getParticipantId(c);
-      const callerId = rawCallerId ? manager.resolveId(assemblyId, rawCallerId) : undefined;
+      const callerId = rawCallerId ?? undefined;
       if (callerId !== participantId) {
         return c.json(
           { error: { code: "FORBIDDEN", message: "Cannot resolve another participant's chain in private visibility mode" } },
@@ -213,7 +213,7 @@ export function delegationRoutes(manager: AssemblyManager) {
       );
     }
 
-    const callerId = manager.resolveId(assemblyId, rawCallerId);
+    const callerId = rawCallerId;
     const { engine } = await manager.getEngine(assemblyId);
 
     const weights = await engine.delegation.weights(issueId as IssueId);

@@ -3,7 +3,8 @@
  */
 
 import { serve } from "@hono/node-server";
-import { loadConfig } from "./config/schema.js";
+import { loadConfig, validateProductionConfig } from "./config/schema.js";
+import { configureLogger, logger } from "./lib/logger.js";
 import { SQLiteAdapter } from "./adapters/database/sqlite.js";
 import { MemoryQueueAdapter } from "./adapters/queue/memory.js";
 import { LocalSchedulerAdapter } from "./adapters/scheduler/local.js";
@@ -14,6 +15,11 @@ import { AssemblyManager } from "./engine/assembly-manager.js";
 import { createApp } from "./api/server.js";
 
 const config = loadConfig();
+configureLogger(config.logLevel);
+
+if (process.env["NODE_ENV"] === "production") {
+  validateProductionConfig(config);
+}
 
 // Wire adapters
 const database = new SQLiteAdapter(config.dbPath);
@@ -41,13 +47,13 @@ const server = serve({
   port: config.port,
 });
 
-console.log(`[vcp] Votiverse Cloud Platform started on http://localhost:${config.port}`);
-console.log(`[vcp] Database: ${config.dbPath}`);
-console.log(`[vcp] API key: ${config.apiKeys[0]?.key ?? "(none)"}`);
+logger.info(`Votiverse Cloud Platform started on http://localhost:${config.port}`);
+logger.info(`Database: ${config.dbPath}`);
+logger.info(`API key: ${config.apiKeys[0]?.key.slice(0, 12) ?? "(none)"}...`);
 
 // Graceful shutdown
 function shutdown() {
-  console.log("\n[vcp] Shutting down...");
+  logger.info("Shutting down...");
   queue.stop();
   scheduler.stopAll();
   database.close();

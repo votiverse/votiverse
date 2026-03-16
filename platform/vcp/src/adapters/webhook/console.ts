@@ -4,9 +4,10 @@
  */
 
 import type { WebhookAdapter, WebhookPayload } from "./interface.js";
+import { logger } from "../../lib/logger.js";
 
 export class ConsoleWebhookAdapter implements WebhookAdapter {
   async deliver(payload: WebhookPayload): Promise<void> {
-    console.log(`[webhook] ${payload.type} for assembly ${payload.assemblyId}:`, JSON.stringify(payload.data));
+    logger.debug(`Webhook ${payload.type}`, { assemblyId: payload.assemblyId, data: payload.data });
   }
 }

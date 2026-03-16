@@ -18,8 +18,8 @@ import type {
   PollResults,
 } from "./types.js";
 
-const BASE_URL = "/api";
-const API_KEY = "vcp_dev_key_00000000";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+const API_KEY = import.meta.env.VITE_API_KEY || "vcp_dev_key_00000000";
 const IDENTITY_KEY = "votiverse_identity";
 
 class ApiError extends Error {

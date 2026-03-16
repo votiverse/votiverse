@@ -49,3 +49,29 @@ function parseCorsOrigins(envValue: string | undefined): string[] {
   if (!envValue) return DEFAULT_CORS_ORIGINS;
   return envValue.split(",").map((s) => s.trim()).filter(Boolean);
 }
+
+/**
+ * Validate config for production safety.
+ * Throws if critical settings are missing or insecure.
+ */
+export function validateProductionConfig(config: VCPConfig): void {
+  const errors: string[] = [];
+
+  if (!process.env["VCP_CORS_ORIGINS"]) {
+    errors.push("VCP_CORS_ORIGINS must be explicitly set in production");
+  }
+
+  if (!process.env["VCP_API_KEYS"]) {
+    errors.push("VCP_API_KEYS must be explicitly set in production (default dev key is not allowed)");
+  }
+
+  if (config.dbPath === "./vcp-dev.db") {
+    console.warn("[vcp] WARNING: VCP_DB_PATH is the default './vcp-dev.db' in production mode");
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `Production configuration errors:\n${errors.map((e) => `  - ${e}`).join("\n")}`,
+    );
+  }
+}

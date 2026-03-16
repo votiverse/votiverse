@@ -3,6 +3,7 @@
  */
 
 import type { SchedulerAdapter, ScheduledJob } from "./interface.js";
+import { logger } from "../../lib/logger.js";
 
 export class LocalSchedulerAdapter implements SchedulerAdapter {
   private readonly timers = new Map<string, ReturnType<typeof setInterval>>();
@@ -13,7 +14,7 @@ export class LocalSchedulerAdapter implements SchedulerAdapter {
     }
     const timer = setInterval(() => {
       job.handler().catch((err: unknown) => {
-        console.error(`[scheduler] Job "${job.name}" failed:`, err);
+        logger.error(`Scheduler job "${job.name}" failed`, { error: String(err) });
       });
     }, job.intervalMs);
     this.timers.set(job.id, timer);

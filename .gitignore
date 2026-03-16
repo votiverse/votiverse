@@ -19,6 +19,11 @@ stress-test/
 .vscode/
 .sandbox/
 
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.production
+
 # Generated identity file (produced by seed script, contains runtime UUIDs)
 platform/web/public/identity.json
 

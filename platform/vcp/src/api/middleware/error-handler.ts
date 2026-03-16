@@ -5,6 +5,7 @@
 import type { Context, Next } from "hono";
 import { VotiverseError, NotFoundError, ValidationError, GovernanceRuleViolation } from "@votiverse/core";
 import { AssemblyNotFoundError } from "../../engine/assembly-manager.js";
+import { logger } from "../../lib/logger.js";
 
 export async function errorHandler(c: Context, next: Next) {
   try {
@@ -60,14 +61,14 @@ export async function errorHandler(c: Context, next: Next) {
         );
       }
 
-      console.error("[error]", error.message, error.stack);
+      logger.error("Internal error", { message: error.message, stack: error.stack });
       return c.json(
         { error: { code: "INTERNAL_ERROR", message: error.message } },
         500,
       );
     }
 
-    console.error("[error] Unknown error:", error);
+    logger.error("Unknown error", { error: String(error) });
     return c.json(
       { error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" } },
       500,
