@@ -2,6 +2,23 @@
 
 All notable changes to the Votiverse project.
 
+## Time-Based Lifecycle Management — March 2026
+
+### Added
+- `TimeProvider` interface in `@votiverse/core` — injectable time source for all time-dependent operations
+- `TestClock` class — controllable clock with `advance(ms)`, `set(ms)`, `reset()` for testing
+- `systemTime` default provider — uses `Date.now()` for production
+- Timeline enforcement in engine's `voting.cast()` — rejects votes outside `votingStart`–`votingEnd` window
+- Dev test clock API in VCP (`GET/POST /dev/clock/*`) — Stripe-style time control for lifecycle testing
+- Double-gated safety: dev routes not mounted in production + middleware guard as fallback
+- Smart datetime display in web UI — shows time component when not midnight
+
+### Changed
+- `VotiverseEngine` accepts optional `timeProvider` in `EngineOptions`
+- VCP `AssemblyManager` exposes `timeProvider` field, passed to engine instances
+- VCP event status and tally routes use `manager.timeProvider.now()` instead of `Date.now()`
+- All VCP and engine tests updated to use `TestClock` with proper timeline windows
+
 ## Client Backend (Phases 1–6) — March 2026
 
 ### Added

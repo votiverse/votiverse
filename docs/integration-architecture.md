@@ -268,11 +268,13 @@ GET    /assemblies/:id/events/:eid                  # get event status
 **Voting:**
 
 ```
-POST   /assemblies/:id/votes                        # cast vote
+POST   /assemblies/:id/votes                        # cast vote (timeline-enforced)
 GET    /assemblies/:id/events/:eid/tally            # get tally results
 GET    /assemblies/:id/events/:eid/participation    # get participation data
 GET    /assemblies/:id/events/:eid/weights          # get weight distribution
 ```
+
+Vote casting is enforced by the engine's timeline validation. Votes are only accepted when the server's clock is between `votingStart` and `votingEnd`. Attempting to vote outside this window returns a 409 `GOVERNANCE_RULE_VIOLATION` with rule `VOTING_NOT_OPEN` or `VOTING_CLOSED`.
 
 **Delegations:**
 
@@ -318,6 +320,17 @@ GET    /assemblies/:id/awareness/profile/:pid       # delegate profile and track
 GET    /assemblies/:id/topics                       # list topics
 POST   /assemblies/:id/topics                       # create topic
 ```
+
+**Dev-only (not available in production):**
+
+```
+GET    /dev/clock                                    # current clock time + mode (system or test)
+POST   /dev/clock/advance                            # advance test clock by {ms} milliseconds
+POST   /dev/clock/set                                # set test clock to {time} (epoch ms)
+POST   /dev/clock/reset                              # reset to system time
+```
+
+Dev clock endpoints enable Stripe-style test clock scenarios: advance time to trigger voting window transitions, test vote rejection after deadline, verify auto-materialization. Double-gated: not mounted when `NODE_ENV=production`, and a middleware guard blocks even if misconfigured. No authentication required (dev-only).
 
 **Stubs (not yet implemented):**
 

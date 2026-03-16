@@ -46,6 +46,8 @@ These decisions are final. Do not reconsider them without explicit instruction f
 - **The engine exposes a programmatic TypeScript API, not HTTP.** An HTTP layer is a consumer concern built on top of the engine.
 - **Configuration is data.** Governance rules come from `GovernanceConfig` objects. The engine interprets configs — it never hard-codes governance logic.
 - **No circular dependencies between packages.** Dependencies flow strictly downward. See the dependency graph in `docs/architecture.md`.
+- **Time is injectable via TimeProvider.** All time-dependent operations (vote acceptance, event status, poll windows, delegation maxAge) use a `TimeProvider` interface from `@votiverse/core`. Default is `systemTime` (real clock). Tests use `TestClock` which can be advanced programmatically. The VCP exposes dev-only `/dev/clock` endpoints for Stripe-style test clock control. Never use `Date.now()` directly in engine or VCP code — use `timeProvider.now()`.
+- **Voting windows are enforced by the engine.** The engine's `voting.cast()` rejects votes outside the `votingStart`–`votingEnd` window with `GovernanceRuleViolation`. This is not just a UI concern — it's enforced at the engine level.
 
 ---
 
@@ -491,6 +493,31 @@ preview_start (vcp)
 # Kill the process and re-run: cd platform/vcp && pnpm dev
 ```
 
+### 6. Vote rejected with VOTING_NOT_OPEN or VOTING_CLOSED
+
+**Symptom:** `GovernanceRuleViolation: Voting has not started yet` or `Voting has closed` when casting a vote.
+
+**Cause:** The engine now enforces timeline windows. Votes are only accepted when `timeProvider.now()` is between `votingStart` and `votingEnd`.
+
+**Fix for tests:** Use a `TestClock` and either:
+- Create events with `votingStart` in the past and `votingEnd` in the future
+- Use `clock.advance(ms)` to move time into the voting window
+
+**Fix for dev:** Use the VCP's dev clock API:
+```bash
+# Check current server time
+curl http://localhost:3000/dev/clock
+
+# Advance 1 day
+curl -X POST http://localhost:3000/dev/clock/advance \
+  -H 'Content-Type: application/json' -d '{"ms": 86400000}'
+
+# Reset to real time
+curl -X POST http://localhost:3000/dev/clock/reset
+```
+
+**Note:** Dev clock endpoints are only available when `NODE_ENV !== "production"`. They are double-gated: not mounted in production AND a middleware guard blocks even if misconfigured.
+
 ### Troubleshooting Routine
 
 When something breaks at runtime, follow this checklist in order:
@@ -499,5 +526,5 @@ When something breaks at runtime, follow this checklist in order:
 2. **Check Vite dev server logs** for transform/parse errors — indicates stale module cache
 3. **Check browser console** for React error boundary warnings — indicates hooks violation or component crash
 4. **Check network tab** for 500/502 responses — indicates VCP not running or stale
-5. **Verify ports** — ensure only one web server and one VCP server are running
+5. **Verify ports** — ensure only one web server, one backend, and one VCP are running
 6. **Rebuild + restart** — when in doubt: rebuild all packages, restart all servers, reload the page

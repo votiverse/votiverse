@@ -111,6 +111,7 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
 - `Result<T, E>` type with `ok()`, `err()`, `isOk()`, `isErr()`, `unwrap()` helpers.
 - Error hierarchy: `VotiverseError` base class, `NotFoundError`, `ValidationError`, `InvalidStateError`, `GovernanceRuleViolation`.
 - Utilities: ID generators (`generateEventId()`, etc.), timestamp helpers (`now()`, `timestamp()`, `timestampFromDate()`).
+- `TimeProvider` interface and `systemTime` default — injectable time source for all time-dependent operations. `TestClock` class enables controlled time in tests (advance, set, reset).
 
 **Dependencies:** None (leaf package).
 
