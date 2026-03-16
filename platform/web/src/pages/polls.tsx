@@ -452,9 +452,11 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
                 </>
               )}
             </div>
-            <Button variant="ghost" onClick={loadResults}>
-              View Results
-            </Button>
+            {!(showButtons && answeredCount > 0) && (
+              <Button variant="ghost" onClick={loadResults}>
+                View Results
+              </Button>
+            )}
           </div>
         )}
 
