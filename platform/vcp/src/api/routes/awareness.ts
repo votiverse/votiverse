@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { IssueId, ParticipantId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { getParticipantId } from "../middleware/auth.js";
+import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
 
 export function awarenessRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -124,7 +125,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
 
     const { engine } = await manager.getEngine(assemblyId);
     const callerId = getParticipantId(c);
-    const visibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
+    const visibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
 
     // Build profile from delegations
     const allDelegations = await engine.delegation.listActive();

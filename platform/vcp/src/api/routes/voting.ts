@@ -7,6 +7,7 @@ import type { ParticipantId, IssueId, VotingEventId, VoteChoice } from "@votiver
 import { ValidationError } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, getParticipantId } from "../middleware/auth.js";
+import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
 
 export function votingRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -147,7 +148,7 @@ export function votingRoutes(manager: AssemblyManager) {
     }
 
     const { secrecy, delegateVoteVisibility } = info.config.ballot;
-    const delegationVisibility = info.config.delegation.visibility ?? { mode: "public" as const };
+    const delegationVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
 
     // Access control: in private delegation mode, you can only query your own participation
     if (delegationVisibility.mode === "private" && participantId && participantId !== callerId) {

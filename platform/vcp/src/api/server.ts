@@ -37,6 +37,14 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
 
   // Fallback error handler — ensures all unhandled errors return JSON
   app.onError((error, c) => {
+    // Routes that skip explicit assembly checks throw errors from getEngine().
+    // Map them to 404 for consistency with routes that do explicit checks.
+    if (error.message?.includes("not found") && error.message?.includes("Assembly")) {
+      return c.json(
+        { error: { code: "ASSEMBLY_NOT_FOUND", message: error.message } },
+        404,
+      );
+    }
     console.error("[error] unhandled:", error.message, error.stack);
     return c.json(
       { error: { code: "INTERNAL_ERROR", message: error.message } },

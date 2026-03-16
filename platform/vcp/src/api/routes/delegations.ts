@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, getParticipantId } from "../middleware/auth.js";
+import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
 
 export function delegationRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -108,7 +109,7 @@ export function delegationRoutes(manager: AssemblyManager) {
     );
 
     // Visibility filtering (default to public if not set for backward compat)
-    const visibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
+    const visibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
     if (visibility.mode === "private") {
       const rawCallerId = getParticipantId(c);
       if (!rawCallerId) {
@@ -157,7 +158,7 @@ export function delegationRoutes(manager: AssemblyManager) {
     const participantId = manager.resolveId(assemblyId, rawParticipantId);
 
     // Visibility: in private mode, only resolve your own chain
-    const chainVisibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
+    const chainVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
     if (chainVisibility.mode === "private") {
       const rawCallerId = getParticipantId(c);
       const callerId = rawCallerId ? manager.resolveId(assemblyId, rawCallerId) : undefined;
@@ -226,7 +227,7 @@ export function delegationRoutes(manager: AssemblyManager) {
     const delegatorsToMe = allDelegations.filter((d) => d.targetId === callerId);
 
     // Filter delegators by incomingVisibility config
-    const weightVisibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
+    const weightVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
     let delegators: string[];
     if (weightVisibility.incomingVisibility === "direct") {
       delegators = delegatorsToMe.map((d) => d.sourceId);
