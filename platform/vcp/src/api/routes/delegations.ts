@@ -110,10 +110,11 @@ export function delegationRoutes(manager: AssemblyManager) {
     // Visibility filtering (default to public if not set for backward compat)
     const visibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
     if (visibility.mode === "private") {
-      const callerId = getParticipantId(c);
-      if (!callerId) {
+      const rawCallerId = getParticipantId(c);
+      if (!rawCallerId) {
         return c.json({ delegations: [] });
       }
+      const callerId = manager.resolveId(assemblyId, rawCallerId);
       // Show only delegations where caller is source or target
       delegations = delegations.filter(
         (d) => d.sourceId === callerId || d.targetId === callerId,
@@ -158,7 +159,8 @@ export function delegationRoutes(manager: AssemblyManager) {
     // Visibility: in private mode, only resolve your own chain
     const chainVisibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };
     if (chainVisibility.mode === "private") {
-      const callerId = getParticipantId(c);
+      const rawCallerId = getParticipantId(c);
+      const callerId = rawCallerId ? manager.resolveId(assemblyId, rawCallerId) : undefined;
       if (callerId !== participantId) {
         return c.json(
           { error: { code: "FORBIDDEN", message: "Cannot resolve another participant's chain in private visibility mode" } },
@@ -186,9 +188,9 @@ export function delegationRoutes(manager: AssemblyManager) {
   app.get("/assemblies/:id/delegations/my-weight", async (c) => {
     const assemblyId = c.req.param("id");
     const issueId = c.req.query("issueId");
-    const callerId = getParticipantId(c);
+    const rawCallerId = getParticipantId(c);
 
-    if (!callerId) {
+    if (!rawCallerId) {
       return c.json(
         { error: { code: "VALIDATION_ERROR", message: "X-Participant-Id header is required" } },
         400,
@@ -210,6 +212,7 @@ export function delegationRoutes(manager: AssemblyManager) {
       );
     }
 
+    const callerId = manager.resolveId(assemblyId, rawCallerId);
     const { engine } = await manager.getEngine(assemblyId);
 
     const weights = await engine.delegation.weights(issueId as IssueId);
