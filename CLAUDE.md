@@ -15,6 +15,7 @@ The repository has two major layers:
 **Read these documents for full context:**
 - `docs/architecture.md` — technical architecture, module specs, API design, development phases
 - `docs/whitepaper.md` — governance model, formal properties, design rationale
+- `docs/testing.md` — comprehensive testing guide: seed data, dev clock, unit tests, integration tests, manual scenarios
 - `platform/web/TESTING.md` — test identities, assembly-by-feature matrix, delegation graphs, seeded data reference
 
 ---
