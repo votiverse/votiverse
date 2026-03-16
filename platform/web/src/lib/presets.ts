@@ -36,6 +36,7 @@ const PARTICIPATION_LABELS: Record<string, string> = {
 const PREDICTIONS_LABELS: Record<string, string> = {
   "disabled": "Disabled",
   "voluntary": "Optional",
+  "optional": "Optional",
   "mandatory": "Required",
 };
 

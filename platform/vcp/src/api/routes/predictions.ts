@@ -23,7 +23,7 @@ export function predictionRoutes(manager: AssemblyManager) {
     }
 
     const { engine } = await manager.getEngine(assemblyId);
-    const predictions = await engine.prediction.getPredictionsByParticipant(participantId as ParticipantId);
+    const predictions = await engine.prediction.getByParticipant(participantId as ParticipantId);
 
     return c.json({
       predictions: predictions.map((p) => ({
