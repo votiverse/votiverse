@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
-import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, StatusBadge, Badge } from "../components/ui.js";
+import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { presetLabel } from "../lib/presets.js";
 
 const PRESETS = [
@@ -17,7 +17,8 @@ const PRESETS = [
 
 export function AssemblyList() {
   const { data: assemblies, loading, error, refetch } = useApi(() => api.listAssemblies());
-  const { pendingByAssembly } = useAttention();
+  const { pendingByAssembly, assemblySummaries } = useAttention();
+  const activeByAssembly = Object.fromEntries(assemblySummaries.map((s) => [s.assembly.id, s.activeEventCount]));
   const [creating, setCreating] = useState(false);
 
   if (loading) return <Spinner />;
@@ -56,13 +57,12 @@ export function AssemblyList() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <StatusBadge status={asm.status} />
-                      {(pendingByAssembly[asm.id] ?? 0) > 0 && (
-                        <Badge color="red">{pendingByAssembly[asm.id]} vote{pendingByAssembly[asm.id] !== 1 ? "s" : ""} need{pendingByAssembly[asm.id] === 1 ? "s" : ""} you</Badge>
+                      {(activeByAssembly[asm.id] ?? 0) > 0 && (
+                        <Badge color="gray">{activeByAssembly[asm.id]} open vote{activeByAssembly[asm.id] !== 1 ? "s" : ""}</Badge>
                       )}
-                      <span className="text-xs text-gray-400 hidden sm:inline">
-                        {new Date(asm.createdAt).toLocaleDateString()}
-                      </span>
+                      {(pendingByAssembly[asm.id] ?? 0) > 0 && (
+                        <Badge color="red">{pendingByAssembly[asm.id]} need{pendingByAssembly[asm.id] === 1 ? "s" : ""} you</Badge>
+                      )}
                     </div>
                   </div>
                 </CardBody>

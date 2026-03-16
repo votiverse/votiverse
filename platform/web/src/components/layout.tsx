@@ -41,7 +41,7 @@ export function Header() {
           {/* Left: logo / back + desktop nav */}
           <div className="flex items-center gap-4 sm:gap-6">
             {inAssembly ? (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={handleBack}
                   className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
@@ -50,8 +50,15 @@ export function Header() {
                   <ChevronLeft size={18} strokeWidth={2} />
                 </button>
                 <Link
+                  to="/"
+                  className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Go home"
+                >
+                  <Home size={16} strokeWidth={2} />
+                </Link>
+                <Link
                   to={`/assembly/${assemblyId}`}
-                  className="text-sm font-medium text-gray-900 hover:text-brand truncate max-w-[180px] sm:max-w-[240px]"
+                  className="text-sm font-medium text-gray-900 hover:text-brand truncate max-w-[180px] sm:max-w-[240px] ml-1"
                 >
                   {assembly?.name ?? "Loading..."}
                 </Link>
