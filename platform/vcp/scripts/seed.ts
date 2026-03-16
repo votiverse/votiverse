@@ -8,14 +8,13 @@
  * Usage: pnpm seed (with VCP server running on port 3000)
  */
 
-import { writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   post,
   postAs,
   get,
   fromNow,
+  setDevClock,
+  resetDevClock,
   assemblyIds,
   participantIds,
   topicIds,
@@ -75,23 +74,6 @@ export async function main() {
     console.log(`  ✓ ${assemblyKey}: ${names.length} participants`);
   }
   console.log(`\n  Added ${totalParticipants} participants total\n`);
-
-  // ── Step 2b: Build cross-assembly identity map ───────────────────
-
-  // Build the name → assembly memberships map (used later to generate identity.json)
-  const nameToLinks = new Map<string, Array<{ assemblyId: string; assemblyName: string; participantId: string }>>();
-  for (const [assemblyKey, names] of Object.entries(PARTICIPANTS)) {
-    const assemblyId = aid(assemblyKey);
-    const assemblyName = ASSEMBLIES.find((a) => a.key === assemblyKey)?.name ?? assemblyKey;
-    for (const name of names) {
-      if (!nameToLinks.has(name)) nameToLinks.set(name, []);
-      nameToLinks.get(name)!.push({
-        assemblyId,
-        assemblyName,
-        participantId: pid(assemblyKey, name),
-      });
-    }
-  }
 
   // ── Step 3: Create topics ─────────────────────────────────────────
 
@@ -185,22 +167,45 @@ export async function main() {
   console.log(`\n  Created ${DELEGATIONS.length} delegations\n`);
 
   // ── Step 6: Cast votes ─────────────────────────────────────────────
+  // The engine enforces voting timeline windows, so we use the dev clock
+  // to set the VCP's time to the midpoint of each event's voting window
+  // before casting votes for that event.
 
   console.log("═══ VOTES ═══\n");
-  const votesByEvent = new Map<string, number>();
+
+  // Group votes by event key
+  const voteGroups = new Map<string, typeof VOTES>();
   for (const def of VOTES) {
-    const assemblyId = aid(def.assemblyKey);
-    const issueId = iid(def.eventKey, def.issueIndex);
-    const voterPid = pid(def.assemblyKey, def.participant);
-    await postAs(`/assemblies/${assemblyId}/votes`, {
-      issueId,
-      choice: def.choice,
-    }, voterPid);
-    votesByEvent.set(def.eventKey, (votesByEvent.get(def.eventKey) ?? 0) + 1);
+    if (!voteGroups.has(def.eventKey)) voteGroups.set(def.eventKey, []);
+    voteGroups.get(def.eventKey)!.push(def);
   }
-  for (const [eventKey, count] of votesByEvent) {
-    console.log(`  ✓ ${eventKey}: ${count} votes`);
+
+  // Build event key → timeline lookup
+  const eventTimelines = new Map(EVENTS.map((e) => [e.key, { votingStart: e.votingStart, votingEnd: e.votingEnd }]));
+  const seedNow = Date.now();
+
+  for (const [eventKey, votes] of voteGroups) {
+    const timeline = eventTimelines.get(eventKey);
+    if (timeline) {
+      // Set clock to midpoint of voting window
+      const midpoint = seedNow + (timeline.votingStart + timeline.votingEnd) / 2;
+      await setDevClock(midpoint);
+    }
+
+    for (const def of votes) {
+      const assemblyId = aid(def.assemblyKey);
+      const issueId = iid(def.eventKey, def.issueIndex);
+      const voterPid = pid(def.assemblyKey, def.participant);
+      await postAs(`/assemblies/${assemblyId}/votes`, {
+        issueId,
+        choice: def.choice,
+      }, voterPid);
+    }
+    console.log(`  ✓ ${eventKey}: ${votes.length} votes`);
   }
+
+  // Reset clock to real time
+  await resetDevClock();
   console.log(`\n  Cast ${VOTES.length} votes total\n`);
 
   // ── Step 7: Create polls and responses ─────────────────────────────
@@ -256,29 +261,6 @@ export async function main() {
   }
   console.log(`\n  Created ${POLLS.length} polls with ${responseCount} responses\n`);
 
-  // ── Step 8: Generate client-side identity.json ────────────────────
-
-  console.log("═══ IDENTITY FILE ═══\n");
-
-  const identityUsers = [];
-  let crossAssemblyCount = 0;
-  for (const [name, links] of nameToLinks) {
-    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    identityUsers.push({
-      id: slug,
-      name,
-      memberships: links,
-    });
-    if (links.length > 1) crossAssemblyCount++;
-  }
-
-  const identityJson = JSON.stringify({ users: identityUsers }, null, 2);
-  const thisDir = dirname(fileURLToPath(import.meta.url));
-  const identityPath = resolve(thisDir, "../../web/public/identity.json");
-  writeFileSync(identityPath, identityJson, "utf-8");
-  console.log(`  Wrote ${identityUsers.length} users to ${identityPath}`);
-  console.log(`  (${crossAssemblyCount} cross-assembly)\n`);
-
   // ── Summary ────────────────────────────────────────────────────────
 
   console.log("═══ SEED COMPLETE ═══\n");
@@ -293,8 +275,8 @@ export async function main() {
   console.log("  Poll Responses:", responseCount);
   console.log();
 
-  // Cross-assembly participants for identity picker testing
-  console.log("  Cross-assembly participants (pick any of these to test dashboard):");
+  // Cross-assembly users for testing (login via backend with email: slug@example.com, password: password)
+  console.log("  Cross-assembly participants (login via backend to test dashboard):");
   console.log("    Sofia Reyes   — OSC Governance Board, Youth Advisory Panel");
   console.log("    Marcus Chen   — OSC Governance Board, Municipal Budget Committee");
   console.log("    Priya Sharma  — Municipal Budget Committee, Youth Advisory Panel");

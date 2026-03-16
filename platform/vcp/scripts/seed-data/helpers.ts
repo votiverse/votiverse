@@ -5,6 +5,20 @@
 export const BASE_URL = process.env["VCP_URL"] ?? "http://localhost:3000";
 export const API_KEY = process.env["VCP_API_KEY"] ?? "vcp_dev_key_00000000";
 
+/** Set the VCP dev clock to a specific epoch timestamp. */
+export async function setDevClock(timeMs: number): Promise<void> {
+  await fetch(`${BASE_URL}/dev/clock/set`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ time: timeMs }),
+  });
+}
+
+/** Reset the VCP dev clock to system time. */
+export async function resetDevClock(): Promise<void> {
+  await fetch(`${BASE_URL}/dev/clock/reset`, { method: "POST" });
+}
+
 const headers = {
   "Content-Type": "application/json",
   Authorization: `Bearer ${API_KEY}`,
