@@ -5,8 +5,10 @@
 export interface VCPConfig {
   /** HTTP server port. */
   port: number;
-  /** SQLite database file path. */
+  /** SQLite database file path (used when databaseUrl is not set). */
   dbPath: string;
+  /** PostgreSQL connection URL. If set, PostgreSQL is used instead of SQLite. */
+  databaseUrl: string | null;
   /** API keys: array of { key, clientId, clientName }. */
   apiKeys: Array<{ key: string; clientId: string; clientName: string }>;
   /** Log level. */
@@ -23,6 +25,7 @@ export function loadConfig(): VCPConfig {
   return {
     port: parseInt(process.env["VCP_PORT"] ?? "3000", 10),
     dbPath: process.env["VCP_DB_PATH"] ?? "./vcp-dev.db",
+    databaseUrl: process.env["VCP_DATABASE_URL"] ?? null,
     apiKeys: parseApiKeys(process.env["VCP_API_KEYS"]),
     logLevel: (process.env["VCP_LOG_LEVEL"] as VCPConfig["logLevel"]) ?? "info",
     corsOrigins: parseCorsOrigins(process.env["VCP_CORS_ORIGINS"]),

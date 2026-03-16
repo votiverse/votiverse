@@ -9,6 +9,7 @@ export type { WebhookAdapter, WebhookPayload } from "./webhook/interface.js";
 export type { AuthAdapter, AuthScope, ClientInfo } from "./auth/interface.js";
 
 export { SQLiteAdapter } from "./database/sqlite.js";
+export { PostgresAdapter } from "./database/postgres.js";
 export { MemoryQueueAdapter } from "./queue/memory.js";
 export { LocalSchedulerAdapter } from "./scheduler/local.js";
 export { ConsoleWebhookAdapter } from "./webhook/console.js";

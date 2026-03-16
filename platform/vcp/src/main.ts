@@ -5,6 +5,7 @@
 import { serve } from "@hono/node-server";
 import { loadConfig, validateProductionConfig } from "./config/schema.js";
 import { configureLogger, logger } from "./lib/logger.js";
+import type { DatabaseAdapter } from "./adapters/database/interface.js";
 import { SQLiteAdapter } from "./adapters/database/sqlite.js";
 import { MemoryQueueAdapter } from "./adapters/queue/memory.js";
 import { LocalSchedulerAdapter } from "./adapters/scheduler/local.js";
@@ -22,8 +23,16 @@ async function main() {
     validateProductionConfig(config);
   }
 
-  // Wire adapters
-  const database = new SQLiteAdapter(config.dbPath);
+  // Wire database adapter — PostgreSQL if configured, SQLite otherwise
+  let database: DatabaseAdapter;
+  if (config.databaseUrl) {
+    const { PostgresAdapter } = await import("./adapters/database/postgres.js");
+    database = new PostgresAdapter(config.databaseUrl);
+    logger.info("Using PostgreSQL database");
+  } else {
+    database = new SQLiteAdapter(config.dbPath);
+    logger.info(`Using SQLite database: ${config.dbPath}`);
+  }
   await database.initialize();
 
   const queue = new MemoryQueueAdapter();
@@ -49,7 +58,6 @@ async function main() {
   });
 
   logger.info(`Votiverse Cloud Platform started on http://localhost:${config.port}`);
-  logger.info(`Database: ${config.dbPath}`);
   logger.info(`API key: ${config.apiKeys[0]?.key.slice(0, 12) ?? "(none)"}...`);
 
   // Graceful shutdown
