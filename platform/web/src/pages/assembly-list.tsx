@@ -48,9 +48,12 @@ export function AssemblyList() {
               <Card className="hover:border-brand-200 hover:shadow transition-all">
                 <CardBody>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{asm.name}</h3>
-                      <p className="text-sm text-gray-500 mt-0.5">{presetLabel(asm.config.name)}</p>
+                    <div className="flex items-center gap-3">
+                      <AssemblyInitial name={asm.name} />
+                      <div>
+                        <h3 className="font-medium text-gray-900">{asm.name}</h3>
+                        <p className="text-sm text-gray-500 mt-0.5">{presetLabel(asm.config.name)}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                       <StatusBadge status={asm.status} />
@@ -125,5 +128,19 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
         </form>
       </CardBody>
     </Card>
+  );
+}
+
+const INITIAL_COLORS = [
+  "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-amber-500",
+  "bg-rose-500", "bg-cyan-500", "bg-indigo-500", "bg-teal-500",
+];
+
+function AssemblyInitial({ name }: { name: string }) {
+  const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return (
+    <div className={`w-9 h-9 ${INITIAL_COLORS[hash % INITIAL_COLORS.length]} rounded-lg flex items-center justify-center shrink-0`}>
+      <span className="text-white font-semibold text-sm">{name.charAt(0).toUpperCase()}</span>
+    </div>
   );
 }
