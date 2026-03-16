@@ -33,7 +33,7 @@ function Layout() {
 
 export function App() {
   const identity = useIdentityProvider();
-  const attention = useAttentionProvider(identity.participantId);
+  const attention = useAttentionProvider(identity.userId);
 
   return (
     <IdentityContext value={identity}>

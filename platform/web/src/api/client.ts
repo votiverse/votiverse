@@ -315,4 +315,10 @@ export function listUsers(): Promise<{ users: import("./types.js").User[] }> {
   return request("GET", "/users");
 }
 
+export function getUserAssemblies(
+  userId: string,
+): Promise<{ userId: string; memberships: import("./types.js").Membership[] }> {
+  return request("GET", `/users/${userId}/assemblies`);
+}
+
 export { ApiError };

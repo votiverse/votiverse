@@ -50,13 +50,13 @@ export function useAttention() {
 const POLL_INTERVAL_ACTIVE = 60_000;
 const POLL_INTERVAL_BACKGROUND = 300_000;
 
-export function useAttentionProvider(participantId: string | null): AttentionState {
+export function useAttentionProvider(userId: string | null): AttentionState {
   const [state, setState] = useState<AttentionState>(defaultState);
   const versionRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!participantId) {
+    if (!userId) {
       setState({ ...defaultState, loading: false });
       return;
     }
@@ -64,14 +64,25 @@ export function useAttentionProvider(participantId: string | null): AttentionSta
     const version = ++versionRef.current;
 
     try {
-      const assemblies = await api.listAssemblies();
+      const [membershipRes, allAssemblies] = await Promise.all([
+        api.getUserAssemblies(userId),
+        api.listAssemblies(),
+      ]);
       if (versionRef.current !== version) return;
+
+      // Build a map of assemblyId → assembly-specific participantId
+      const membershipMap = new Map(
+        membershipRes.memberships.map((m) => [m.assemblyId, m.participantId]),
+      );
+      // Only process assemblies where the user is a member
+      const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
 
       const summaries: AttentionState["assemblySummaries"] = [];
       const allPending: PendingVote[] = [];
 
       await Promise.allSettled(
         assemblies.map(async (asm) => {
+          const participantId = membershipMap.get(asm.id)!;
           const [eventsRes, historyRes, delegRes] = await Promise.allSettled([
             api.listEvents(asm.id),
             api.getVotingHistory(asm.id, participantId),
@@ -169,7 +180,7 @@ export function useAttentionProvider(participantId: string | null): AttentionSta
       if (versionRef.current !== version) return;
       setState((prev) => ({ ...prev, loading: false, refresh: fetchData }));
     }
-  }, [participantId]);
+  }, [userId]);
 
   // Initial fetch + polling
   useEffect(() => {

@@ -45,7 +45,7 @@ export function AssemblyList() {
       ) : (
         <div className="space-y-3">
           {assemblies.map((asm) => (
-            <Link key={asm.id} to={`/assembly/${asm.id}`} className="block">
+            <Link key={asm.id} to={`/assembly/${asm.id}/events`} className="block">
               <Card className="hover:border-brand-200 hover:shadow transition-all">
                 <CardBody>
                   <div className="flex items-center justify-between">

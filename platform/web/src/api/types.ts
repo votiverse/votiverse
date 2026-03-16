@@ -7,6 +7,12 @@ export interface User {
   createdAt: string;
 }
 
+export interface Membership {
+  assemblyId: string;
+  assemblyName: string;
+  participantId: string;
+}
+
 export interface Assembly {
   id: string;
   organizationId: string | null;

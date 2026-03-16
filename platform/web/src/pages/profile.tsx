@@ -3,9 +3,8 @@ import { Link } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
-import { Card, CardHeader, CardBody, Spinner, Badge, ErrorBox } from "../components/ui.js";
+import { Card, CardHeader, CardBody, Spinner, ErrorBox } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { presetLabel } from "../lib/presets.js";
 
 interface AssemblyProfileData {
   assembly: Assembly;
@@ -14,13 +13,13 @@ interface AssemblyProfileData {
 }
 
 export function Profile() {
-  const { participantId, participantName, clearIdentity } = useIdentity();
+  const { userId, participantId, participantName, clearIdentity } = useIdentity();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!participantId) {
+    if (!userId) {
       setLoading(false);
       return;
     }
@@ -28,14 +27,24 @@ export function Profile() {
     let cancelled = false;
     (async () => {
       try {
-        const assemblies = await api.listAssemblies();
+        const [membershipRes, allAssemblies] = await Promise.all([
+          api.getUserAssemblies(userId),
+          api.listAssemblies(),
+        ]);
+
+        // Build map of assemblyId → assembly-specific participantId
+        const membershipMap = new Map(
+          membershipRes.memberships.map((m) => [m.assemblyId, m.participantId]),
+        );
+        const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
         const results: AssemblyProfileData[] = [];
 
         await Promise.allSettled(
           assemblies.map(async (asm) => {
+            const pid = membershipMap.get(asm.id)!;
             const [profileRes, historyRes] = await Promise.allSettled([
-              api.getDelegateProfile(asm.id, participantId),
-              api.getVotingHistory(asm.id, participantId),
+              api.getDelegateProfile(asm.id, pid),
+              api.getVotingHistory(asm.id, pid),
             ]);
 
             results.push({
@@ -54,9 +63,9 @@ export function Profile() {
       }
     })();
     return () => { cancelled = true; };
-  }, [participantId]);
+  }, [userId]);
 
-  if (!participantId) {
+  if (!userId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
         <p className="text-gray-500">No identity selected. Go to Home to pick who you are.</p>
@@ -123,10 +132,9 @@ export function Profile() {
       {data.map(({ assembly, profile, history }) => (
         <Card key={assembly.id} className="mb-4">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="font-medium text-gray-900">{assembly.name}</h2>
-              <Badge color="gray">{presetLabel(assembly.config.name)}</Badge>
-            </div>
+            <Link to={`/assembly/${assembly.id}`} className="font-medium text-gray-900 hover:text-brand transition-colors">
+              {assembly.name}
+            </Link>
           </CardHeader>
           <CardBody className="space-y-4">
             {/* Delegation info */}
