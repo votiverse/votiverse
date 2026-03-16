@@ -1,18 +1,5 @@
 /** Types mirroring VCP API response shapes. */
 
-export interface User {
-  id: string;
-  name: string;
-  email: string | null;
-  createdAt: string;
-}
-
-export interface Membership {
-  assemblyId: string;
-  assemblyName: string;
-  participantId: string;
-}
-
 export interface Assembly {
   id: string;
   organizationId: string | null;

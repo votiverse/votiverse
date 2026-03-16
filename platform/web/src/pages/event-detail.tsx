@@ -29,7 +29,8 @@ interface DelegationConfig {
 
 export function EventDetail() {
   const { assemblyId, eventId } = useParams();
-  const { participantId } = useIdentity();
+  const { getParticipantId } = useIdentity();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const { assembly } = useAssembly(assemblyId);
   const { data: event, loading, error, refetch } = useApi(
     () => api.getEvent(assemblyId!, eventId!),
@@ -294,7 +295,8 @@ function IssueVotingCard({
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
   onVoted: () => void;
 }) {
-  const { participantId } = useIdentity();
+  const { getParticipantId } = useIdentity();
+  const participantId = getParticipantId(assemblyId);
   const issueStatus = useIssueStatus(assemblyId, participantId, issueId);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);

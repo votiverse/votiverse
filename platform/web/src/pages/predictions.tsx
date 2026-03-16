@@ -7,7 +7,8 @@ import { Card, CardHeader, CardBody, Spinner, ErrorBox, EmptyState, Badge } from
 
 export function Predictions() {
   const { assemblyId } = useParams();
-  const { participantId } = useIdentity();
+  const { getParticipantId } = useIdentity();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
 
   const { data: predictionsData, loading: loadingPred, error: errorPred } = useApi(
     () => participantId ? api.listPredictions(assemblyId!, participantId) : Promise.resolve({ predictions: [] }),

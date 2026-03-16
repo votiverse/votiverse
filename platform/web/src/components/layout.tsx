@@ -20,7 +20,7 @@ import {
 
 export function Header() {
   const { assemblyId } = useParams();
-  const { participantName, participantId } = useIdentity();
+  const { participantName, storeUserId } = useIdentity();
   const { assembly } = useAssembly(assemblyId);
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -83,7 +83,7 @@ export function Header() {
 
           {/* Right: identity indicator + menu */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {participantId && <IdentityIndicator name={participantName} />}
+            {storeUserId && <IdentityIndicator name={participantName} />}
             {/* Mobile hamburger for secondary items */}
             {inAssembly && (
               <button

@@ -2,19 +2,25 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 
 const STORAGE_KEY = "votiverse_identity";
 
-export interface Identity {
-  userId: string;
+export interface IdentityMembership {
+  assemblyId: string;
+  assemblyName: string;
   participantId: string;
+}
+
+export interface Identity {
+  storeUserId: string;
   participantName: string;
+  memberships: IdentityMembership[];
 }
 
 export interface IdentityCtx {
-  userId: string | null;
-  participantId: string | null;
+  storeUserId: string | null;
   participantName: string | null;
-  setUser: (userId: string, participantId: string, name: string) => void;
-  /** @deprecated Use setUser instead */
-  setParticipant: (id: string | null, name: string | null) => void;
+  memberships: IdentityMembership[];
+  /** Get the assembly-specific participant ID for the current user. */
+  getParticipantId: (assemblyId: string) => string | null;
+  setUser: (storeUserId: string, name: string, memberships: IdentityMembership[]) => void;
   clearIdentity: () => void;
 }
 
@@ -23,9 +29,9 @@ function loadIdentity(): Identity | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    // Support both old format (participantId+participantName) and new (userId+...)
-    if (parsed.userId && parsed.participantName) return parsed;
-    if (parsed.participantId && parsed.participantName) return parsed;
+    // New format: storeUserId + memberships
+    if (parsed.storeUserId && parsed.participantName && parsed.memberships) return parsed;
+    // Old format detected — clear it
     return null;
   } catch {
     return null;
@@ -41,39 +47,32 @@ function saveIdentity(identity: Identity | null) {
 }
 
 export const IdentityContext = createContext<IdentityCtx>({
-  userId: null,
-  participantId: null,
+  storeUserId: null,
   participantName: null,
+  memberships: [],
+  getParticipantId: () => null,
   setUser: () => {},
-  setParticipant: () => {},
   clearIdentity: () => {},
 });
 
 export function useIdentityProvider(): IdentityCtx {
   const [identity, setIdentityState] = useState<Identity | null>(loadIdentity);
 
-  const setUser = useCallback((userId: string, participantId: string, name: string) => {
-    const next: Identity = { userId, participantId, participantName: name };
+  const setUser = useCallback((storeUserId: string, name: string, memberships: IdentityMembership[]) => {
+    const next: Identity = { storeUserId, participantName: name, memberships };
     setIdentityState(next);
     saveIdentity(next);
-  }, []);
-
-  const setParticipant = useCallback((id: string | null, name: string | null) => {
-    if (id && name) {
-      // Legacy path — use participantId as userId fallback
-      const next: Identity = { userId: id, participantId: id, participantName: name };
-      setIdentityState(next);
-      saveIdentity(next);
-    } else {
-      setIdentityState(null);
-      saveIdentity(null);
-    }
   }, []);
 
   const clearIdentity = useCallback(() => {
     setIdentityState(null);
     saveIdentity(null);
   }, []);
+
+  const getParticipantId = useCallback((assemblyId: string): string | null => {
+    if (!identity) return null;
+    return identity.memberships.find((m) => m.assemblyId === assemblyId)?.participantId ?? null;
+  }, [identity]);
 
   // Sync across tabs
   useEffect(() => {
@@ -87,16 +86,15 @@ export function useIdentityProvider(): IdentityCtx {
   }, []);
 
   return {
-    userId: identity?.userId ?? null,
-    participantId: identity?.participantId ?? null,
+    storeUserId: identity?.storeUserId ?? null,
     participantName: identity?.participantName ?? null,
+    memberships: identity?.memberships ?? [],
+    getParticipantId,
     setUser,
-    setParticipant,
     clearIdentity,
   };
 }
 
-/** Backward-compatible hook — same shape as the old useParticipant */
 export function useParticipant() {
   return useContext(IdentityContext);
 }

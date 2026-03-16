@@ -17,7 +17,7 @@ type SortField = "date" | "choice" | "group";
 type SortDir = "asc" | "desc";
 
 export function ProfileVotes() {
-  const { participantId } = useIdentity();
+  const { storeUserId, memberships } = useIdentity();
   const [entries, setEntries] = useState<VoteEntry[]>([]);
   const [assemblies, setAssemblies] = useState<Assembly[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,19 +28,24 @@ export function ProfileVotes() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
-    if (!participantId) { setLoading(false); return; }
+    if (!storeUserId || memberships.length === 0) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
-        const asmList = await api.listAssemblies();
+        const membershipMap = new Map(
+          memberships.map((m) => [m.assemblyId, m.participantId]),
+        );
+        const allAssemblies = await api.listAssemblies();
         if (cancelled) return;
+        const asmList = allAssemblies.filter((a) => membershipMap.has(a.id));
         setAssemblies(asmList);
 
         const allEntries: VoteEntry[] = [];
         await Promise.allSettled(
           asmList.map(async (asm) => {
+            const pid = membershipMap.get(asm.id)!;
             try {
-              const history: VotingHistory = await api.getVotingHistory(asm.id, participantId);
+              const history: VotingHistory = await api.getVotingHistory(asm.id, pid);
               for (const h of history.history) {
                 allEntries.push({
                   assemblyId: asm.id,
@@ -62,7 +67,7 @@ export function ProfileVotes() {
       }
     })();
     return () => { cancelled = true; };
-  }, [participantId]);
+  }, [storeUserId, memberships]);
 
   const choices = useMemo(() => {
     const set = new Set(entries.map((e) => e.choice));
@@ -86,7 +91,7 @@ export function ProfileVotes() {
       });
   }, [entries, selectedAssembly, selectedChoice, sortField, sortDir]);
 
-  if (!participantId) {
+  if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
         <p className="text-gray-500">No identity selected.</p>

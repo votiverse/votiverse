@@ -13,13 +13,13 @@ interface AssemblyProfileData {
 }
 
 export function Profile() {
-  const { userId, participantId, participantName, clearIdentity } = useIdentity();
+  const { storeUserId, participantName, memberships, clearIdentity } = useIdentity();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) {
+    if (!storeUserId || memberships.length === 0) {
       setLoading(false);
       return;
     }
@@ -27,15 +27,11 @@ export function Profile() {
     let cancelled = false;
     (async () => {
       try {
-        const [membershipRes, allAssemblies] = await Promise.all([
-          api.getUserAssemblies(userId),
-          api.listAssemblies(),
-        ]);
-
-        // Build map of assemblyId → assembly-specific participantId
+        // Build membership map from local identity data (no API call needed)
         const membershipMap = new Map(
-          membershipRes.memberships.map((m) => [m.assemblyId, m.participantId]),
+          memberships.map((m) => [m.assemblyId, m.participantId]),
         );
+        const allAssemblies = await api.listAssemblies();
         const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
         const results: AssemblyProfileData[] = [];
 
@@ -63,9 +59,9 @@ export function Profile() {
       }
     })();
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [storeUserId, memberships]);
 
-  if (!userId) {
+  if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
         <p className="text-gray-500">No identity selected. Go to Home to pick who you are.</p>
@@ -91,7 +87,7 @@ export function Profile() {
             <Avatar name={participantName ?? "?"} size="lg" />
             <div>
               <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
-              <p className="text-xs text-gray-400 font-mono">{participantId.slice(0, 16)}...</p>
+              <p className="text-xs text-gray-400 font-mono">{storeUserId}</p>
             </div>
           </div>
         </CardBody>

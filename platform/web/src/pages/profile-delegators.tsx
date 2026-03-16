@@ -11,7 +11,7 @@ interface AssemblyDelegatorData {
 }
 
 export function ProfileDelegators() {
-  const { participantId } = useIdentity();
+  const { storeUserId, memberships } = useIdentity();
   const [data, setData] = useState<AssemblyDelegatorData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,16 +19,21 @@ export function ProfileDelegators() {
   const [selectedAssembly, setSelectedAssembly] = useState<string>("all");
 
   useEffect(() => {
-    if (!participantId) { setLoading(false); return; }
+    if (!storeUserId || memberships.length === 0) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
-        const assemblies = await api.listAssemblies();
+        const membershipMap = new Map(
+          memberships.map((m) => [m.assemblyId, m.participantId]),
+        );
+        const allAssemblies = await api.listAssemblies();
+        const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
         const results: AssemblyDelegatorData[] = [];
         await Promise.allSettled(
           assemblies.map(async (asm) => {
+            const pid = membershipMap.get(asm.id)!;
             try {
-              const profile = await api.getDelegateProfile(asm.id, participantId);
+              const profile = await api.getDelegateProfile(asm.id, pid);
               results.push({ assembly: asm, profile });
             } catch {
               results.push({ assembly: asm, profile: null });
@@ -43,7 +48,7 @@ export function ProfileDelegators() {
       }
     })();
     return () => { cancelled = true; };
-  }, [participantId]);
+  }, [storeUserId, memberships]);
 
   const filtered = useMemo(() => {
     const search = filter.toLowerCase();
@@ -58,7 +63,7 @@ export function ProfileDelegators() {
       .filter((d) => d.delegators.length > 0);
   }, [data, filter, selectedAssembly]);
 
-  if (!participantId) {
+  if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
         <p className="text-gray-500">No identity selected.</p>

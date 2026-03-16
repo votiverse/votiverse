@@ -8,6 +8,9 @@
  * Usage: pnpm seed (with VCP server running on port 3000)
  */
 
+import { writeFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   post,
   postAs,
@@ -16,7 +19,6 @@ import {
   assemblyIds,
   participantIds,
   topicIds,
-  userIds,
   pKey,
   tKey,
   pid,
@@ -74,29 +76,22 @@ export async function main() {
   }
   console.log(`\n  Added ${totalParticipants} participants total\n`);
 
-  // ── Step 2b: Create users and link participants ───────────────────
+  // ── Step 2b: Build cross-assembly identity map ───────────────────
 
-  console.log("═══ USERS ═══\n");
-  // Collect unique names across all assemblies and build links
-  const nameToLinks = new Map<string, Array<{ assemblyId: string; participantId: string }>>();
+  // Build the name → assembly memberships map (used later to generate identity.json)
+  const nameToLinks = new Map<string, Array<{ assemblyId: string; assemblyName: string; participantId: string }>>();
   for (const [assemblyKey, names] of Object.entries(PARTICIPANTS)) {
     const assemblyId = aid(assemblyKey);
+    const assemblyName = ASSEMBLIES.find((a) => a.key === assemblyKey)?.name ?? assemblyKey;
     for (const name of names) {
       if (!nameToLinks.has(name)) nameToLinks.set(name, []);
       nameToLinks.get(name)!.push({
         assemblyId,
+        assemblyName,
         participantId: pid(assemblyKey, name),
       });
     }
   }
-
-  let crossAssemblyCount = 0;
-  for (const [name, links] of nameToLinks) {
-    const user = await post("/users", { name, links });
-    userIds.set(name, user.id as string);
-    if (links.length > 1) crossAssemblyCount++;
-  }
-  console.log(`  Created ${nameToLinks.size} users (${crossAssemblyCount} cross-assembly)\n`);
 
   // ── Step 3: Create topics ─────────────────────────────────────────
 
@@ -261,11 +256,33 @@ export async function main() {
   }
   console.log(`\n  Created ${POLLS.length} polls with ${responseCount} responses\n`);
 
+  // ── Step 8: Generate client-side identity.json ────────────────────
+
+  console.log("═══ IDENTITY FILE ═══\n");
+
+  const identityUsers = [];
+  let crossAssemblyCount = 0;
+  for (const [name, links] of nameToLinks) {
+    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    identityUsers.push({
+      id: slug,
+      name,
+      memberships: links,
+    });
+    if (links.length > 1) crossAssemblyCount++;
+  }
+
+  const identityJson = JSON.stringify({ users: identityUsers }, null, 2);
+  const thisDir = dirname(fileURLToPath(import.meta.url));
+  const identityPath = resolve(thisDir, "../../web/public/identity.json");
+  writeFileSync(identityPath, identityJson, "utf-8");
+  console.log(`  Wrote ${identityUsers.length} users to ${identityPath}`);
+  console.log(`  (${crossAssemblyCount} cross-assembly)\n`);
+
   // ── Summary ────────────────────────────────────────────────────────
 
   console.log("═══ SEED COMPLETE ═══\n");
   console.log("  Assemblies:    ", ASSEMBLIES.length);
-  console.log("  Users:         ", nameToLinks.size);
   console.log("  Participants:  ", totalParticipants);
   console.log("  Topics:        ", TOPICS.length);
   console.log("  Events:        ", EVENTS.length);

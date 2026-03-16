@@ -50,13 +50,18 @@ export function useAttention() {
 const POLL_INTERVAL_ACTIVE = 60_000;
 const POLL_INTERVAL_BACKGROUND = 300_000;
 
-export function useAttentionProvider(userId: string | null): AttentionState {
+export interface MembershipEntry {
+  assemblyId: string;
+  participantId: string;
+}
+
+export function useAttentionProvider(memberships: MembershipEntry[] | null): AttentionState {
   const [state, setState] = useState<AttentionState>(defaultState);
   const versionRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!userId) {
+    if (!memberships || memberships.length === 0) {
       setState({ ...defaultState, loading: false });
       return;
     }
@@ -64,16 +69,14 @@ export function useAttentionProvider(userId: string | null): AttentionState {
     const version = ++versionRef.current;
 
     try {
-      const [membershipRes, allAssemblies] = await Promise.all([
-        api.getUserAssemblies(userId),
-        api.listAssemblies(),
-      ]);
+      // Build membership map from the local identity data (no API call needed)
+      const membershipMap = new Map(
+        memberships.map((m) => [m.assemblyId, m.participantId]),
+      );
+
+      const allAssemblies = await api.listAssemblies();
       if (versionRef.current !== version) return;
 
-      // Build a map of assemblyId → assembly-specific participantId
-      const membershipMap = new Map(
-        membershipRes.memberships.map((m) => [m.assemblyId, m.participantId]),
-      );
       // Only process assemblies where the user is a member
       const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
 
@@ -180,7 +183,7 @@ export function useAttentionProvider(userId: string | null): AttentionState {
       if (versionRef.current !== version) return;
       setState((prev) => ({ ...prev, loading: false, refresh: fetchData }));
     }
-  }, [userId]);
+  }, [memberships]);
 
   // Initial fetch + polling
   useEffect(() => {

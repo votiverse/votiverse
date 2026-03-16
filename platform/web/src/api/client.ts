@@ -34,13 +34,12 @@ class ApiError extends Error {
 }
 
 /** Read the current identity from localStorage (shared with useIdentity). */
-function getStoredIdentity(): { userId?: string; participantId: string } | null {
+function getStoredIdentity(): { memberships: Array<{ assemblyId: string; participantId: string }> } | null {
   try {
     const raw = localStorage.getItem(IDENTITY_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed?.userId) return { userId: parsed.userId, participantId: parsed.participantId };
-    if (parsed?.participantId) return { participantId: parsed.participantId };
+    if (parsed?.memberships) return { memberships: parsed.memberships };
     return null;
   } catch {
     return null;
@@ -53,14 +52,17 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     Authorization: `Bearer ${API_KEY}`,
   };
 
-  // Include identity headers — X-User-Id for cross-assembly resolution,
-  // X-Participant-Id as fallback for direct participant access
+  // Resolve the assembly-specific participant ID from the URL path
   const identity = getStoredIdentity();
   if (identity) {
-    if (identity.userId) {
-      headers["X-User-Id"] = identity.userId;
+    const assemblyMatch = path.match(/^\/assemblies\/([^/]+)/);
+    if (assemblyMatch) {
+      const assemblyId = assemblyMatch[1];
+      const membership = identity.memberships.find((m) => m.assemblyId === assemblyId);
+      if (membership) {
+        headers["X-Participant-Id"] = membership.participantId;
+      }
     }
-    headers["X-Participant-Id"] = identity.participantId;
   }
 
   const init: RequestInit = {
@@ -309,18 +311,6 @@ export function evaluatePrediction(
   predictionId: string,
 ): Promise<import("./types.js").PredictionEvaluation> {
   return request("GET", `/assemblies/${assemblyId}/predictions/${predictionId}/eval`);
-}
-
-// ---- Users ----
-
-export function listUsers(): Promise<{ users: import("./types.js").User[] }> {
-  return request("GET", "/users");
-}
-
-export function getUserAssemblies(
-  userId: string,
-): Promise<{ userId: string; memberships: import("./types.js").Membership[] }> {
-  return request("GET", `/users/${userId}/assemblies`);
 }
 
 export { ApiError };

@@ -29,7 +29,8 @@ const RESULT_COLORS = [
 export function Polls() {
   const { assemblyId } = useParams();
   const { assembly } = useAssembly(assemblyId);
-  const { participantId } = useParticipant();
+  const { getParticipantId } = useParticipant();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const [creating, setCreating] = useState(false);
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +153,8 @@ function CreatePollForm({
   onClose: () => void;
   onCreated: (poll: Poll) => void;
 }) {
-  const { participantId } = useParticipant();
+  const { getParticipantId } = useParticipant();
+  const participantId = getParticipantId(assemblyId);
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion()]);
   const [submitting, setSubmitting] = useState(false);
@@ -353,7 +355,8 @@ function buildQuestionType(type: string, options: string[]): { type: string; [ke
 // ---------------------------------------------------------------------------
 
 function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
-  const { participantId } = useParticipant();
+  const { getParticipantId } = useParticipant();
+  const participantId = getParticipantId(assemblyId);
   const [results, setResults] = useState<PollResults | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);

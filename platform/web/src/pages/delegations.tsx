@@ -11,7 +11,8 @@ import { TopicPicker } from "../components/topic-picker.js";
 
 export function Delegations() {
   const { assemblyId } = useParams();
-  const { participantId, participantName } = useIdentity();
+  const { getParticipantId, participantName } = useIdentity();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const { assembly } = useAssembly(assemblyId);
   const { data, loading, error, refetch } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);

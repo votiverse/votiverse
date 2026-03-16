@@ -108,15 +108,6 @@ export function tid(assemblyKey: string, topicKey: string): string {
   return id;
 }
 
-/** participantName → userId */
-export const userIds = new Map<string, string>();
-
-export function uid(name: string): string {
-  const id = userIds.get(name);
-  if (!id) throw new Error(`User not found: ${name}`);
-  return id;
-}
-
 /** eventKey → { eventId, issueIds } */
 export const eventRegistry = new Map<string, { eventId: string; issueIds: string[] }>();
 

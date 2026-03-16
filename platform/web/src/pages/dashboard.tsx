@@ -42,9 +42,9 @@ function groupByEvent(votes: PendingVote[]): VoteGroup[] {
 }
 
 export function Dashboard() {
-  const { participantId, participantName } = useIdentity();
+  const { storeUserId, participantName } = useIdentity();
 
-  if (!participantId) {
+  if (!storeUserId) {
     return <IdentityPicker />;
   }
 

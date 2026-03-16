@@ -37,7 +37,8 @@ export function EventsList() {
   const { data, loading, error, refetch } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
   const [creating, setCreating] = useState(false);
 
-  const { participantId } = useIdentity();
+  const { getParticipantId } = useIdentity();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const { data: historyData } = useApi(
     () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
     [assemblyId, participantId],

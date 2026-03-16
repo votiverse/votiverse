@@ -20,7 +20,6 @@ import { pollRoutes } from "./routes/polls.js";
 import { awarenessRoutes } from "./routes/awareness.js";
 import { topicRoutes } from "./routes/topics.js";
 import { stubRoutes } from "./routes/stubs.js";
-import { userRoutes } from "./routes/users.js";
 
 export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono {
   const app = new Hono();
@@ -29,7 +28,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono
   app.use("*", cors({
     origin: (origin) => origin,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Participant-Id", "X-User-Id"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Participant-Id"],
   }));
   app.use("*", logger());
   app.use("*", errorHandler);
@@ -55,7 +54,6 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono
   app.route("/", pollRoutes(manager));
   app.route("/", topicRoutes(manager));
   app.route("/", awarenessRoutes(manager));
-  app.route("/", userRoutes(manager));
   app.route("/", stubRoutes());
 
   return app;

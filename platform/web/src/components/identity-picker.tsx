@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useIdentity } from "../hooks/use-identity.js";
-import * as api from "../api/client.js";
-import type { User } from "../api/types.js";
+import { loadIdentityStore, type IdentityUser } from "../identity-store.js";
 import { Spinner, ErrorBox } from "./ui.js";
 import { Avatar } from "./avatar.js";
 
 export function IdentityPicker() {
   const { setUser } = useIdentity();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<IdentityUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,10 +14,10 @@ export function IdentityPicker() {
     let cancelled = false;
     (async () => {
       try {
-        const { users: list } = await api.listUsers();
-        if (!cancelled) setUsers(list);
+        const store = await loadIdentityStore();
+        if (!cancelled) setUsers(store.listUsers());
       } catch (err: unknown) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load users");
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load identity data");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -56,12 +55,15 @@ export function IdentityPicker() {
         {users.map((user) => (
           <button
             key={user.id}
-            onClick={() => setUser(user.id, user.id, user.name)}
+            onClick={() => setUser(user.id, user.name, user.memberships)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 bg-white hover:border-brand-200 hover:shadow transition-all min-h-[52px] text-left"
           >
             <Avatar name={user.name} size="md" />
             <div>
               <p className="font-medium text-gray-900">{user.name}</p>
+              {user.memberships.length > 1 && (
+                <p className="text-xs text-gray-400">{user.memberships.length} groups</p>
+              )}
             </div>
           </button>
         ))}

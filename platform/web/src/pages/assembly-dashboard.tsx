@@ -18,7 +18,8 @@ import {
 
 export function AssemblyDashboard() {
   const { assemblyId } = useParams();
-  const { participantId } = useIdentity();
+  const { getParticipantId } = useIdentity();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const { data: assembly, loading, error, refetch } = useApi(() => api.getAssembly(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
