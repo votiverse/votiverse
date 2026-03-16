@@ -13,7 +13,7 @@ import type { AuthAdapter, AuthScope, ClientInfo } from "../../adapters/auth/int
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { verifyToken } from "../../lib/jwt.js";
 
-const PUBLIC_PATHS = new Set(["/health"]);
+const PUBLIC_PATHS = new Set(["/health", "/metrics"]);
 
 export function createAuthMiddleware(auth: AuthAdapter, jwtSecret?: string | null) {
   return async (c: Context, next: Next) => {

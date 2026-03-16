@@ -19,6 +19,10 @@ export interface VCPConfig {
   jwtSecret: string | null;
   /** JWT token expiry duration (e.g., "24h", "7d"). */
   jwtExpiry: string;
+  /** Rate limit: requests per minute per client. 0 = disabled. */
+  rateLimitRpm: number;
+  /** Max request body size in bytes. */
+  maxBodySize: number;
 }
 
 const DEFAULT_API_KEY = "vcp_dev_key_00000000";
@@ -35,6 +39,8 @@ export function loadConfig(): VCPConfig {
     corsOrigins: parseCorsOrigins(process.env["VCP_CORS_ORIGINS"]),
     jwtSecret: process.env["VCP_JWT_SECRET"] ?? null,
     jwtExpiry: process.env["VCP_JWT_EXPIRY"] ?? "24h",
+    rateLimitRpm: parseInt(process.env["VCP_RATE_LIMIT_RPM"] ?? "0", 10),
+    maxBodySize: parseInt(process.env["VCP_MAX_BODY_SIZE"] ?? String(1024 * 1024), 10),
   };
 }
 
