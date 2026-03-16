@@ -4,6 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import { Card, CardHeader, CardBody, Spinner, ErrorBox, StatusBadge, Badge } from "../components/ui.js";
+import { Avatar } from "../components/avatar.js";
 import {
   presetLabel,
   humanizeVotingMethod,
@@ -29,7 +30,7 @@ export function AssemblyDashboard() {
     () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
     [assemblyId, participantId],
   );
-  const [showConfig, setShowConfig] = useState(false);
+  const [showConfig, setShowConfig] = useState(true);
 
   if (loading) return <Spinner />;
   if (error || !assembly) return <ErrorBox message={error ?? "Assembly not found"} onRetry={refetch} />;
@@ -143,6 +144,33 @@ export function AssemblyDashboard() {
                   <Badge color="gray">{evt.issueIds?.length ?? 0} questions</Badge>
                 </Link>
               ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Members */}
+      {members.length > 0 && (
+        <Card className="mt-4 sm:mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium text-gray-900">Members</h2>
+              <Link to={`/assembly/${assemblyId}/members`} className="text-sm text-brand hover:text-brand-light">
+                View all {members.length}
+              </Link>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <div className="flex flex-wrap gap-3">
+              {members.slice(0, 12).map((m) => (
+                <div key={m.id} className="flex items-center gap-2">
+                  <Avatar name={m.name} size="xs" />
+                  <span className="text-sm text-gray-700">{m.name}</span>
+                </div>
+              ))}
+              {members.length > 12 && (
+                <span className="text-sm text-gray-400 self-center">+{members.length - 12} more</span>
+              )}
             </div>
           </CardBody>
         </Card>
