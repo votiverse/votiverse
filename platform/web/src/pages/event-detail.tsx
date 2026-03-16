@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { useParams } from "react-router";
+import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
+import { useAssembly } from "../hooks/use-assembly.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord } from "../api/types.js";
-import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
+import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 
 /** Neutral color rotation for tally bars — first place gets the strongest color, no choice is privileged. */
@@ -20,9 +21,15 @@ const TALLY_COLORS = [
   "bg-indigo-500",
 ];
 
+interface DelegationConfig {
+  enabled: boolean;
+  topicScoped: boolean;
+}
+
 export function EventDetail() {
   const { assemblyId, eventId } = useParams();
   const { participantId } = useIdentity();
+  const { assembly } = useAssembly(assemblyId);
   const { data: event, loading, error, refetch } = useApi(
     () => api.getEvent(assemblyId!, eventId!),
     [assemblyId, eventId],
@@ -69,6 +76,14 @@ export function EventDetail() {
     }
     return map;
   }, [participationData]);
+
+  // Extract config from assembly (must be before early returns — rules of hooks)
+  const delegationConfig: DelegationConfig = useMemo(() => ({
+    enabled: assembly?.config.delegation.enabled ?? false,
+    topicScoped: assembly?.config.delegation.topicScoped ?? false,
+  }), [assembly]);
+
+  const resultsVisibility = assembly?.config.ballot.resultsVisibility ?? "sealed";
 
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? "Vote not found"} onRetry={refetch} />;
@@ -131,6 +146,8 @@ export function EventDetail() {
               nameMap={nameMap}
               eventStatus={status}
               participation={participationByIssue.get(issue.id) ?? null}
+              delegationConfig={delegationConfig}
+              resultsVisibility={resultsVisibility}
               onVoted={refreshAll}
             />
           );
@@ -233,6 +250,10 @@ function IssueSummary({ assemblyId, participantId, issues }: {
   );
 }
 
+// ---------------------------------------------------------------------------
+// IssueVotingCard — one card per issue
+// ---------------------------------------------------------------------------
+
 function IssueVotingCard({
   assemblyId,
   issueId,
@@ -246,6 +267,8 @@ function IssueVotingCard({
   nameMap,
   eventStatus,
   participation,
+  delegationConfig,
+  resultsVisibility,
   onVoted,
 }: {
   assemblyId: string;
@@ -260,14 +283,14 @@ function IssueVotingCard({
   nameMap: Map<string, string>;
   eventStatus: string;
   participation: ParticipationRecord | null;
+  delegationConfig: DelegationConfig;
+  resultsVisibility: string;
   onVoted: () => void;
 }) {
   const { participantId } = useIdentity();
   const issueStatus = useIssueStatus(assemblyId, participantId, issueId);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
-  const [showVoteButtons, setShowVoteButtons] = useState(false);
-  const [showWeights, setShowWeights] = useState(false);
 
   const votingOpen = eventStatus === "voting";
 
@@ -277,7 +300,6 @@ function IssueVotingCard({
     setVoteError(null);
     try {
       await api.castVote(assemblyId, { participantId, issueId, choice });
-      setShowVoteButtons(false);
       onVoted();
     } catch (err: unknown) {
       setVoteError(err instanceof Error ? err.message : "Vote failed");
@@ -285,8 +307,6 @@ function IssueVotingCard({
       setVoting(false);
     }
   };
-
-  const totalVotes = tally?.totalVotes ?? 0;
 
   // Build delegation chain display
   const chainNames = useMemo(() => {
@@ -296,298 +316,272 @@ function IssueVotingCard({
       .map((id) => nameMap.get(id) ?? id.slice(0, 8));
   }, [issueStatus.delegateChain, nameMap]);
 
+  // Determine if the "needs your vote" indicator should show
+  const needsVote = votingOpen && !!participantId && !issueStatus.hasVoted && !issueStatus.isDelegated && !issueStatus.loading;
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-medium text-gray-900">{title}</h2>
-              {choices && choices.length > 0 && (
-                <Badge color="blue">{choices.length} candidates</Badge>
-              )}
-            </div>
-            {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
-            {topicIds && topicIds.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {topicIds.map((tid) => (
-                  <span key={tid} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                    {topicNameMap.get(tid) ?? tid.slice(0, 8)}
-                  </span>
-                ))}
-              </div>
+        {/* Title row — indicator stays pinned to the right */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="font-medium text-gray-900 truncate">{title}</h2>
+            {choices && choices.length > 0 && (
+              <Badge color="blue">{choices.length} candidates</Badge>
             )}
           </div>
-          {tally?.winner && eventStatus === "closed" && (
-            <Badge color="green">
-              Result: {tally.winner === "for" ? "Approved" : tally.winner === "against" ? "Not approved" : tally.winner}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {needsVote && (
+              <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                Needs your vote
+              </span>
+            )}
+            {tally?.winner && eventStatus === "closed" && (
+              <Badge color="green">
+                Result: {tally.winner === "for" ? "Approved" : tally.winner === "against" ? "Not approved" : tally.winner}
+              </Badge>
+            )}
+          </div>
         </div>
+        {/* Description and topic tags below the title row */}
+        {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
+        {topicIds && topicIds.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {topicIds.map((tid) => (
+              <span key={tid} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                {topicNameMap.get(tid) ?? tid.slice(0, 8)}
+              </span>
+            ))}
+          </div>
+        )}
       </CardHeader>
       <CardBody className="space-y-4">
-        {/* User voting status section */}
-        {participantId && !issueStatus.loading && (
-          <UserVoteStatus
-            issueStatus={issueStatus}
-            chainNames={chainNames}
-            terminalVoterName={issueStatus.terminalVoterId ? (nameMap.get(issueStatus.terminalVoterId) ?? null) : null}
-            votingOpen={votingOpen}
-            eventStatus={eventStatus}
-            participation={participation}
-            nameMap={nameMap}
-            showVoteButtons={showVoteButtons}
-            onToggleVoteButtons={() => setShowVoteButtons(!showVoteButtons)}
-          />
+        {/* Closed event: historical participation record */}
+        {eventStatus === "closed" && participantId && (
+          <ClosedEventParticipation participation={participation} nameMap={nameMap} />
         )}
 
-        {/* Vote buttons */}
-        {votingOpen && participantId && (
-          (!issueStatus.hasVoted && !issueStatus.isDelegated && !issueStatus.loading) || showVoteButtons
-        ) && (
-          <VoteButtons
+        {/* Open voting: unified voting section (delegation card + vote buttons) */}
+        {votingOpen && participantId && !issueStatus.loading && (
+          <VotingSection
+            assemblyId={assemblyId}
+            issueId={issueId}
             choices={choices}
+            issueStatus={issueStatus}
+            delegationConfig={delegationConfig}
+            chainNames={chainNames}
+            terminalVoterName={issueStatus.terminalVoterId ? (nameMap.get(issueStatus.terminalVoterId) ?? null) : null}
             voting={voting}
             voteError={voteError}
             onVote={handleVote}
           />
         )}
 
+        {/* Deliberation phase message */}
+        {eventStatus === "deliberation" && participantId && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+            <div className="w-2 h-2 rounded-full bg-gray-400" />
+            <span className="text-sm text-gray-500">Voting has not started yet — review during the discussion period</span>
+          </div>
+        )}
+
+        {/* No identity selected */}
         {!participantId && votingOpen && (
           <p className="text-sm text-gray-400">Select an identity to vote.</p>
         )}
 
-        {/* Sealed results indicator during open voting */}
-        {tally && tally.sealed && (
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-            </svg>
-            <span className="text-sm text-gray-500">
-              Results are sealed until voting ends
-              {tally.participatingCount > 0 && (
-                <span className="ml-1">
-                  · {tally.participatingCount} of {tally.eligibleCount} members have voted
-                </span>
-              )}
-            </span>
-          </div>
-        )}
-
-        {/* Tally visualization — hidden when sealed */}
-        {tally && !tally.sealed && totalVotes > 0 && (
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Results</h3>
-            <div className="space-y-3">
-              {Object.entries(
-                  choices && choices.length > 0
-                    ? { ...Object.fromEntries(choices.map((c) => [c, 0])), ...tally.counts }
-                    : tally.counts,
-                )
-                .sort(([, a], [, b]) => b - a)
-                .map(([choice, count], idx) => {
-                  const pct = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
-                  const barColor = TALLY_COLORS[idx % TALLY_COLORS.length];
-                  return (
-                    <div key={choice}>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="font-medium text-gray-900 capitalize">{choice}</span>
-                        <span className="text-gray-500">
-                          {count} vote{count !== 1 ? "s" : ""} ({pct.toFixed(0)}%)
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-4 sm:h-3">
-                        <div
-                          className={`h-4 sm:h-3 rounded-full transition-all ${barColor}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-            <div className="flex flex-col sm:flex-row sm:gap-4 mt-3 text-xs text-gray-400 gap-0.5">
-              <span>{tally.totalVotes} votes total (including delegated votes)</span>
-              <span>{tally.participatingCount} of {tally.eligibleCount} members voted</span>
-              <span>
-                {tally.quorumMet
-                  ? "Enough members voted to count ✓"
-                  : `Not enough members voted yet (need ${(tally.quorumThreshold * 100).toFixed(0)}%)`}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Weight breakdown — collapsible */}
-        {weightDist && Object.keys(weightDist.weights).length > 0 && (
-          <div>
-            <button
-              onClick={() => setShowWeights(!showWeights)}
-              className="text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center gap-1"
-            >
-              <svg className={`w-4 h-4 transition-transform ${showWeights ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-              Vote breakdown
-            </button>
-            {showWeights && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                {Object.entries(weightDist.weights)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([pid, weight]) => (
-                    <div key={pid} className="flex items-center justify-between text-sm bg-gray-50 rounded-md px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2">
-                      <span className="flex items-center gap-2 text-gray-700">
-                        <Avatar name={nameMap.get(pid) ?? pid} size="xs" />
-                        {nameMap.get(pid) ?? pid.slice(0, 8)}
-                      </span>
-                      <span className="font-semibold text-gray-900">
-                        {weight === 1 ? "1" : weight.toFixed(0)}
-                        {weight > 1 && (
-                          <span className="text-xs text-gray-400 ml-1">
-                            (1+{(weight - 1).toFixed(0)})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tally && !tally.sealed && totalVotes === 0 && (
-          <p className="text-sm text-gray-400">No votes cast yet.</p>
-        )}
+        {/* Results section (sealed, live toggle, or final results) */}
+        <ResultsSection
+          tally={tally}
+          weightDist={weightDist}
+          choices={choices}
+          nameMap={nameMap}
+          eventStatus={eventStatus}
+          resultsVisibility={resultsVisibility}
+        />
       </CardBody>
     </Card>
   );
 }
 
-/** Renders either binary For/Against/Abstain buttons or multi-option candidate buttons. */
-function VoteButtons({
+// ---------------------------------------------------------------------------
+// VotingSection — delegation card + direct vote buttons
+// ---------------------------------------------------------------------------
+
+function VotingSection({
+  assemblyId,
+  issueId,
   choices,
+  issueStatus,
+  delegationConfig,
+  chainNames,
+  terminalVoterName,
   voting,
   voteError,
   onVote,
 }: {
+  assemblyId: string;
+  issueId: string;
   choices?: string[];
+  issueStatus: ReturnType<typeof useIssueStatus>;
+  delegationConfig: DelegationConfig;
+  chainNames: string[];
+  terminalVoterName: string | null;
   voting: boolean;
   voteError: string | null;
   onVote: (choice: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(!issueStatus.hasVoted);
+
   const isMultiOption = choices && choices.length > 0;
 
-  if (isMultiOption) {
+  // Collapsed state: user has already voted, show compact summary
+  if (issueStatus.hasVoted && !expanded) {
     return (
       <div>
-        <span className="text-sm text-gray-500 mb-2 block">Select your choice:</span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {choices.map((choice) => (
-            <Button
-              key={choice}
-              size="lg"
-              variant="secondary"
-              onClick={() => onVote(choice)}
-              disabled={voting}
-              className="w-full justify-center"
-            >
-              {choice}
-            </Button>
-          ))}
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">Your vote</span>
+        <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-200">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-green-700">
+              You voted <span className="font-semibold capitalize">{issueStatus.myVoteChoice}</span>
+              {issueStatus.myVoteDate && (
+                <span className="text-green-500 ml-1">
+                  on {new Date(issueStatus.myVoteDate).toLocaleDateString()}
+                </span>
+              )}
+            </span>
+          </div>
+          <button
+            onClick={() => setExpanded(true)}
+            className="text-xs text-green-600 hover:text-green-800 underline min-h-[32px] flex items-center"
+          >
+            Change vote
+          </button>
         </div>
-        <div className="mt-2">
-          <Button size="sm" variant="ghost" onClick={() => onVote("abstain")} disabled={voting}>
-            Abstain
-          </Button>
-        </div>
-        {voteError && <p className="text-sm text-red-600 mt-1">{voteError}</p>}
       </div>
     );
   }
 
+  // Expanded state: show delegation card + vote buttons
   return (
     <div>
-      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        <span className="text-sm text-gray-500">Your vote:</span>
-        <div className="flex gap-2">
-          <Button size="lg" variant="secondary" onClick={() => onVote("for")} disabled={voting} className="flex-1 sm:flex-none">
-            For
-          </Button>
-          <Button size="lg" variant="secondary" onClick={() => onVote("against")} disabled={voting} className="flex-1 sm:flex-none">
-            Against
-          </Button>
-          <Button size="lg" variant="secondary" onClick={() => onVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
-            Abstain
-          </Button>
-        </div>
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">Your vote</span>
+
+      {/* Delegation card */}
+      <DelegationCard
+        assemblyId={assemblyId}
+        delegationConfig={delegationConfig}
+        isDelegated={issueStatus.isDelegated}
+        hasVoted={issueStatus.hasVoted}
+        chainNames={chainNames}
+        terminalVoterName={terminalVoterName}
+      />
+
+      {/* Direct vote buttons */}
+      <div className="mt-3">
+        {issueStatus.isDelegated && !issueStatus.hasVoted ? (
+          <span className="text-xs text-gray-500 mb-2 block">Or vote directly:</span>
+        ) : issueStatus.hasVoted ? (
+          <span className="text-xs text-gray-500 mb-2 block">Change your vote:</span>
+        ) : null}
+
+        {isMultiOption ? (
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {choices.map((choice) => (
+                <Button
+                  key={choice}
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => onVote(choice)}
+                  disabled={voting}
+                  className="w-full justify-center"
+                >
+                  {choice}
+                </Button>
+              ))}
+            </div>
+            <div className="mt-2">
+              <button
+                onClick={() => onVote("abstain")}
+                disabled={voting}
+                className="text-sm text-gray-500 hover:text-gray-700 underline disabled:opacity-50 min-h-[36px] flex items-center"
+              >
+                Abstain
+                {delegationConfig.enabled && (
+                  <span className="text-xs text-gray-400 ml-1 no-underline">— won't count and won't be delegated</span>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button size="lg" variant="secondary" onClick={() => onVote("for")} disabled={voting} className="flex-1 sm:flex-none">
+                For
+              </Button>
+              <Button size="lg" variant="secondary" onClick={() => onVote("against")} disabled={voting} className="flex-1 sm:flex-none">
+                Against
+              </Button>
+              <Button size="lg" variant="secondary" onClick={() => onVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
+                Abstain
+              </Button>
+            </div>
+            {delegationConfig.enabled && (
+              <p className="text-xs text-gray-400 mt-1.5">Abstain means your vote won't count and won't be delegated</p>
+            )}
+          </div>
+        )}
+
+        {voteError && <p className="text-sm text-red-600 mt-2">{voteError}</p>}
+
+        {/* Cancel button when changing an existing vote */}
+        {issueStatus.hasVoted && (
+          <button
+            onClick={() => setExpanded(false)}
+            className="text-xs text-gray-500 hover:text-gray-700 underline mt-2 min-h-[32px] flex items-center"
+          >
+            Cancel
+          </button>
+        )}
       </div>
-      {voteError && <p className="text-sm text-red-600 mt-1">{voteError}</p>}
     </div>
   );
 }
 
-function UserVoteStatus({
-  issueStatus,
+// ---------------------------------------------------------------------------
+// DelegationCard — shown at the top of VotingSection
+// ---------------------------------------------------------------------------
+
+function DelegationCard({
+  assemblyId,
+  delegationConfig,
+  isDelegated,
+  hasVoted,
   chainNames,
   terminalVoterName,
-  votingOpen,
-  eventStatus,
-  participation,
-  nameMap,
-  showVoteButtons,
-  onToggleVoteButtons,
 }: {
-  issueStatus: ReturnType<typeof useIssueStatus>;
+  assemblyId: string;
+  delegationConfig: DelegationConfig;
+  isDelegated: boolean;
+  hasVoted: boolean;
   chainNames: string[];
   terminalVoterName: string | null;
-  votingOpen: boolean;
-  eventStatus: string;
-  participation: ParticipationRecord | null;
-  nameMap: Map<string, string>;
-  showVoteButtons: boolean;
-  onToggleVoteButtons: () => void;
 }) {
-  // For closed events, always show historical participation record
-  // (takes priority over live delegation/voting status)
-  if (eventStatus === "closed") {
-    return <ClosedEventParticipation participation={participation} nameMap={nameMap} />;
-  }
-
-  // Already voted
-  if (issueStatus.hasVoted) {
-    return (
-      <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-200">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500" />
-          <span className="text-sm text-green-700">
-            You voted <span className="font-semibold capitalize">{issueStatus.myVoteChoice}</span>
-            {issueStatus.myVoteDate && (
-              <span className="text-green-500 ml-1">
-                on {new Date(issueStatus.myVoteDate).toLocaleDateString()}
-              </span>
-            )}
-          </span>
-        </div>
-        {votingOpen && (
-          <button
-            onClick={onToggleVoteButtons}
-            className="text-xs text-green-600 hover:text-green-800 underline min-h-[32px] flex items-center"
-          >
-            {showVoteButtons ? "Cancel" : "Change vote"}
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  // Delegated
-  if (issueStatus.isDelegated) {
-    const chainDisplay = chainNames.join(" → ");
+  // State 1: Active delegation (and no direct vote override)
+  if (isDelegated && !hasVoted) {
     const delegateName = terminalVoterName ?? chainNames[chainNames.length - 1];
+    const chainDisplay = chainNames.join(" → ");
     return (
       <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+          <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           {delegateName && <Avatar name={delegateName} size="xs" />}
           <span className="text-sm text-blue-700 truncate">
             Delegated to <span className="font-semibold">{delegateName}</span>
@@ -596,39 +590,316 @@ function UserVoteStatus({
             )}
           </span>
         </div>
-        {votingOpen && (
+        <Link
+          to={`/assembly/${assemblyId}/delegations`}
+          className="text-xs text-blue-600 hover:text-blue-800 underline min-h-[32px] flex items-center shrink-0"
+        >
+          Manage
+        </Link>
+      </div>
+    );
+  }
+
+  // State 2: Delegation enabled but not set up (or user voted directly, overriding delegation)
+  if (delegationConfig.enabled) {
+    return (
+      <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 border-dashed">
+        <div className="flex items-center gap-2 min-w-0">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+          </svg>
+          <span className="text-sm text-gray-500">No delegation set up for this topic</span>
+        </div>
+        <Link
+          to={`/assembly/${assemblyId}/delegations`}
+          className="text-xs text-brand hover:text-brand-dark underline min-h-[32px] flex items-center shrink-0"
+        >
+          Set up
+        </Link>
+      </div>
+    );
+  }
+
+  // State 3: Delegation not available for this assembly
+  return (
+    <Tooltip text="This group's governance rules don't include delegation">
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-100 w-full opacity-60">
+        <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+        </svg>
+        <span className="text-xs text-gray-400">Delegation is not available in this group</span>
+      </div>
+    </Tooltip>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ResultsSection — sealed, live toggle, or final results
+// ---------------------------------------------------------------------------
+
+function ResultsSection({
+  tally,
+  weightDist,
+  choices,
+  nameMap,
+  eventStatus,
+  resultsVisibility,
+}: {
+  tally: Tally | null;
+  weightDist: WeightDist | null;
+  choices?: string[];
+  nameMap: Map<string, string>;
+  eventStatus: string;
+  resultsVisibility: string;
+}) {
+  const [showLiveResults, setShowLiveResults] = useState(false);
+  const [showLiveWeights, setShowLiveWeights] = useState(false);
+  const [showWeights, setShowWeights] = useState(false);
+
+  const totalVotes = tally?.totalVotes ?? 0;
+  const votingOpen = eventStatus === "voting";
+  const isSealed = tally?.sealed === true;
+  const isLive = resultsVisibility === "live" && votingOpen && !isSealed;
+
+  // Sealed results — show lock icon + participation count
+  if (isSealed) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
+        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <span className="text-sm text-gray-500">
+          Results are sealed until voting ends
+          {tally && tally.participatingCount > 0 && (
+            <span className="ml-1">
+              · {tally.participatingCount} of {tally.eligibleCount} members have voted
+            </span>
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  // Live results during open voting — behind a click
+  if (isLive) {
+    return (
+      <div className="space-y-2">
+        {/* Toggle buttons */}
+        {!showLiveResults && totalVotes > 0 && (
           <button
-            onClick={onToggleVoteButtons}
-            className="text-xs text-blue-600 hover:text-blue-800 underline min-h-[32px] flex items-center shrink-0"
+            onClick={() => setShowLiveResults(true)}
+            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1.5"
           >
-            {showVoteButtons ? "Cancel" : "Vote directly"}
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+            View live results
           </button>
+        )}
+
+        {!showLiveWeights && weightDist && Object.keys(weightDist.weights).length > 0 && !showLiveResults && (
+          <button
+            onClick={() => { setShowLiveWeights(true); setShowLiveResults(true); }}
+            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1.5"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+            View live breakdown
+          </button>
+        )}
+
+        {/* Live results (revealed) */}
+        {showLiveResults && tally && totalVotes > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+                <span className="text-sm font-medium text-amber-700">Live Results</span>
+                <Badge color="yellow">Voting open</Badge>
+              </div>
+              <button
+                onClick={() => { setShowLiveResults(false); setShowLiveWeights(false); }}
+                className="text-xs text-amber-600 hover:text-amber-800 underline"
+              >
+                Hide
+              </button>
+            </div>
+            <TallyBars tally={tally} choices={choices} totalVotes={totalVotes} />
+          </div>
+        )}
+
+        {/* Live weights (revealed) */}
+        {showLiveResults && weightDist && Object.keys(weightDist.weights).length > 0 && (
+          <div className={showLiveWeights ? "" : "mt-1"}>
+            {!showLiveWeights ? (
+              <button
+                onClick={() => setShowLiveWeights(true)}
+                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1.5"
+              >
+                <svg className={`w-4 h-4`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+                View live breakdown
+              </button>
+            ) : (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                    <span className="text-sm font-medium text-amber-700">Live Breakdown</span>
+                  </div>
+                  <button
+                    onClick={() => setShowLiveWeights(false)}
+                    className="text-xs text-amber-600 hover:text-amber-800 underline"
+                  >
+                    Hide
+                  </button>
+                </div>
+                <WeightBreakdown weightDist={weightDist} nameMap={nameMap} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {totalVotes === 0 && (
+          <p className="text-sm text-gray-400">No votes cast yet.</p>
         )}
       </div>
     );
   }
 
-  // Voting not open
-  if (!votingOpen) {
-    if (eventStatus === "deliberation") {
-      return (
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
-          <div className="w-2 h-2 rounded-full bg-gray-400" />
-          <span className="text-sm text-gray-500">Voting has not started yet — review during the discussion period</span>
-        </div>
-      );
-    }
-    return null;
-  }
-
-  // Needs vote (default state during voting)
+  // Final results (closed events) or non-live open voting — show automatically
   return (
-    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
-      <div className="w-2 h-2 rounded-full bg-amber-500" />
-      <span className="text-sm text-amber-700 font-medium">You haven't voted on this yet</span>
+    <div className="space-y-3">
+      {tally && totalVotes > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Results</h3>
+          <TallyBars tally={tally} choices={choices} totalVotes={totalVotes} />
+        </div>
+      )}
+
+      {/* Weight breakdown — collapsible */}
+      {weightDist && Object.keys(weightDist.weights).length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowWeights(!showWeights)}
+            className="text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center gap-1"
+          >
+            <svg className={`w-4 h-4 transition-transform ${showWeights ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+            Vote breakdown
+          </button>
+          {showWeights && <WeightBreakdown weightDist={weightDist} nameMap={nameMap} />}
+        </div>
+      )}
+
+      {tally && totalVotes === 0 && (
+        <p className="text-sm text-gray-400">No votes cast yet.</p>
+      )}
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// TallyBars — vote count bars (reused for live and final)
+// ---------------------------------------------------------------------------
+
+function TallyBars({
+  tally,
+  choices,
+  totalVotes,
+}: {
+  tally: Tally;
+  choices?: string[];
+  totalVotes: number;
+}) {
+  return (
+    <div>
+      <div className="space-y-3">
+        {Object.entries(
+            choices && choices.length > 0
+              ? { ...Object.fromEntries(choices.map((c) => [c, 0])), ...tally.counts }
+              : tally.counts,
+          )
+          .sort(([, a], [, b]) => b - a)
+          .map(([choice, count], idx) => {
+            const pct = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
+            const barColor = TALLY_COLORS[idx % TALLY_COLORS.length];
+            return (
+              <div key={choice}>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="font-medium text-gray-900 capitalize">{choice}</span>
+                  <span className="text-gray-500">
+                    {count} vote{count !== 1 ? "s" : ""} ({pct.toFixed(0)}%)
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-4 sm:h-3">
+                  <div
+                    className={`h-4 sm:h-3 rounded-full transition-all ${barColor}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+      </div>
+      <div className="flex flex-col sm:flex-row sm:gap-4 mt-3 text-xs text-gray-400 gap-0.5">
+        <span>{tally.totalVotes} votes total (including delegated votes)</span>
+        <span>{tally.participatingCount} of {tally.eligibleCount} members voted</span>
+        <span>
+          {tally.quorumMet
+            ? "Enough members voted to count ✓"
+            : `Not enough members voted yet (need ${(tally.quorumThreshold * 100).toFixed(0)}%)`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WeightBreakdown — per-participant weight grid (reused for live and final)
+// ---------------------------------------------------------------------------
+
+function WeightBreakdown({
+  weightDist,
+  nameMap,
+}: {
+  weightDist: WeightDist;
+  nameMap: Map<string, string>;
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+      {Object.entries(weightDist.weights)
+        .sort(([, a], [, b]) => b - a)
+        .map(([pid, weight]) => (
+          <div key={pid} className="flex items-center justify-between text-sm bg-gray-50 rounded-md px-3 py-2.5 min-h-[44px] sm:min-h-0 sm:py-2">
+            <span className="flex items-center gap-2 text-gray-700">
+              <Avatar name={nameMap.get(pid) ?? pid} size="xs" />
+              {nameMap.get(pid) ?? pid.slice(0, 8)}
+            </span>
+            <span className="font-semibold text-gray-900">
+              {weight === 1 ? "1" : weight.toFixed(0)}
+              {weight > 1 && (
+                <span className="text-xs text-gray-400 ml-1">
+                  (1+{(weight - 1).toFixed(0)})
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ClosedEventParticipation — historical record for closed events (unchanged)
+// ---------------------------------------------------------------------------
 
 /** Shows what happened with your vote on a closed event, using materialized participation records. */
 function ClosedEventParticipation({

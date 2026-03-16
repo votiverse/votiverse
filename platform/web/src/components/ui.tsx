@@ -131,6 +131,19 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse bg-gray-200 rounded ${className}`} />;
 }
 
+/** CSS-only tooltip using Tailwind group hover. Wraps children and shows text on hover. */
+export function Tooltip({ text, children }: { text: string; children: ReactNode }) {
+  return (
+    <span className="relative group inline-flex">
+      {children}
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 text-xs text-white bg-gray-800 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        {text}
+        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+      </span>
+    </span>
+  );
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: "green" | "blue" | "yellow" | "gray" | "red"; label: string }> = {
     active: { color: "green", label: "Active" },
