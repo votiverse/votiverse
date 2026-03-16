@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
@@ -7,25 +7,61 @@ import type { VotingEvent } from "../api/types.js";
 import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
 import { Countdown } from "../components/countdown.js";
 
+/** Fetch full event details (status, timeline) for all events in a list. */
+function useFullEvents(assemblyId: string | undefined, eventIds: string[]) {
+  const [fullEvents, setFullEvents] = useState<Record<string, VotingEvent>>({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!assemblyId || eventIds.length === 0) return;
+    let cancelled = false;
+    setLoading(true);
+    Promise.all(eventIds.map((id) => api.getEvent(assemblyId, id).catch(() => null)))
+      .then((results) => {
+        if (cancelled) return;
+        const map: Record<string, VotingEvent> = {};
+        for (const evt of results) {
+          if (evt) map[evt.id] = evt;
+        }
+        setFullEvents(map);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [assemblyId, eventIds.join(",")]);
+
+  return { fullEvents, loading };
+}
+
 export function EventsList() {
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
   const [creating, setCreating] = useState(false);
 
-  if (loading) return <Spinner />;
-  if (error) return <ErrorBox message={error} onRetry={refetch} />;
+  const { participantId } = useIdentity();
+  const { data: historyData } = useApi(
+    () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
+    [assemblyId, participantId],
+  );
 
   const events = data?.events ?? [];
+  const eventIds = useMemo(() => events.map((e) => e.id), [events]);
+  const { fullEvents, loading: loadingFull } = useFullEvents(assemblyId, eventIds);
 
   const STATUS_ORDER: Record<string, number> = { voting: 0, deliberation: 1 };
-  const sortedEvents = useMemo(() => [...events].sort((a, b) => {
-    const aO = STATUS_ORDER[a.status ?? ""] ?? 2;
-    const bO = STATUS_ORDER[b.status ?? ""] ?? 2;
-    if (aO !== bO) return aO - bO;
-    if (aO === 0) return new Date(a.timeline.votingEnd).getTime() - new Date(b.timeline.votingEnd).getTime();
-    if (aO === 1) return new Date(a.timeline.votingStart).getTime() - new Date(b.timeline.votingStart).getTime();
-    return new Date(b.timeline.votingEnd).getTime() - new Date(a.timeline.votingEnd).getTime();
-  }), [events]);
+  const sortedEvents = useMemo(() => {
+    const enriched = events.map((e) => fullEvents[e.id] ?? e);
+    return enriched.sort((a, b) => {
+      const aO = STATUS_ORDER[a.status ?? ""] ?? 2;
+      const bO = STATUS_ORDER[b.status ?? ""] ?? 2;
+      if (aO !== bO) return aO - bO;
+      if (aO === 0) return new Date(a.timeline?.votingEnd ?? 0).getTime() - new Date(b.timeline?.votingEnd ?? 0).getTime();
+      if (aO === 1) return new Date(a.timeline?.votingStart ?? 0).getTime() - new Date(b.timeline?.votingStart ?? 0).getTime();
+      return new Date(b.timeline?.votingEnd ?? 0).getTime() - new Date(a.timeline?.votingEnd ?? 0).getTime();
+    });
+  }, [events, fullEvents]);
+
+  if (loading || loadingFull) return <Spinner />;
+  if (error) return <ErrorBox message={error} onRetry={refetch} />;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -47,7 +83,7 @@ export function EventsList() {
       ) : (
         <div className="space-y-3">
           {sortedEvents.map((evt) => (
-            <EventCard key={evt.id} assemblyId={assemblyId!} event={evt} />
+            <EventCard key={evt.id} assemblyId={assemblyId!} event={evt} history={historyData ?? null} />
           ))}
         </div>
       )}
@@ -55,22 +91,14 @@ export function EventsList() {
   );
 }
 
-function EventCard({ assemblyId, event: evt }: { assemblyId: string; event: VotingEvent }) {
-  const { participantId } = useIdentity();
-  // Fetch full event to get status/timeline
-  const { data: fullEvent } = useApi(() => api.getEvent(assemblyId, evt.id), [assemblyId, evt.id]);
-  // Fetch voting history if we have an identity
-  const { data: history } = useApi(
-    () => participantId ? api.getVotingHistory(assemblyId, participantId) : Promise.resolve(null),
-    [assemblyId, participantId],
-  );
-
-  const status = fullEvent?.status ?? evt.status;
-  const issueCount = evt.issueIds?.length ?? 0;
+function EventCard({ assemblyId, event: evt, history }: { assemblyId: string; event: VotingEvent; history: { history: Array<{ issueId: string }> } | null }) {
+  const status = evt.status;
+  const issueIds = evt.issueIds ?? evt.issues?.map((i) => i.id) ?? [];
+  const issueCount = issueIds.length;
   const votedCount = history
-    ? (evt.issueIds ?? []).filter((id) => history.history.some((h) => h.issueId === id)).length
+    ? issueIds.filter((id) => history.history.some((h) => h.issueId === id)).length
     : null;
-  const votingEnd = fullEvent?.timeline?.votingEnd;
+  const votingEnd = evt.timeline?.votingEnd;
 
   return (
     <Link to={`/assembly/${assemblyId}/events/${evt.id}`} className="block">
