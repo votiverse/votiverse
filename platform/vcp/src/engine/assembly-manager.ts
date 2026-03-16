@@ -41,6 +41,21 @@ interface ParticipantRow {
   name: string;
   registered_at: string;
   status: string;
+  user_id: string | null;
+}
+
+interface UserRow {
+  id: string;
+  name: string;
+  email: string | null;
+  created_at: string;
+}
+
+export interface UserInfo {
+  id: string;
+  name: string;
+  email: string | null;
+  createdAt: string;
 }
 
 interface TopicRow {
@@ -247,19 +262,83 @@ export class AssemblyManager {
     };
   }
 
-  /** Find a participant by name in a specific assembly. */
-  getParticipantByName(assemblyId: string, name: string): { id: string; name: string; registeredAt: string; status: string } | undefined {
+  /**
+   * Resolve an ID that may be either a participant ID or a user ID
+   * to the assembly-specific participant ID. Returns the input unchanged
+   * if it's already a valid participant ID in the assembly.
+   */
+  resolveId(assemblyId: string, idOrUserId: string): string {
+    // Direct participant lookup
+    if (this.getParticipant(assemblyId, idOrUserId)) return idOrUserId;
+    // Try as user ID
+    const resolved = this.resolveParticipant(assemblyId, idOrUserId);
+    if (resolved) return resolved.id;
+    // Return as-is (callers handle missing participants)
+    return idOrUserId;
+  }
+
+  // -----------------------------------------------------------------------
+  // User identity (cross-assembly)
+  // -----------------------------------------------------------------------
+
+  /** Create a user record. */
+  createUser(id: string, name: string, email?: string): UserInfo {
+    this.db.run(
+      "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)",
+      [id, name, email ?? null, new Date().toISOString()],
+    );
+    return { id, name, email: email ?? null, createdAt: new Date().toISOString() };
+  }
+
+  /** Get a user by ID. */
+  getUser(userId: string): UserInfo | undefined {
+    const row = this.db.queryOne<UserRow>("SELECT * FROM users WHERE id = ?", [userId]);
+    if (!row) return undefined;
+    return { id: row.id, name: row.name, email: row.email, createdAt: row.created_at };
+  }
+
+  /** List all users. */
+  listUsers(): UserInfo[] {
+    return this.db.query<UserRow>("SELECT * FROM users ORDER BY name ASC").map((r) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      createdAt: r.created_at,
+    }));
+  }
+
+  /** Link a participant to a user. */
+  linkParticipantToUser(assemblyId: string, participantId: string, userId: string): void {
+    this.db.run(
+      "UPDATE participants SET user_id = ? WHERE assembly_id = ? AND id = ?",
+      [userId, assemblyId, participantId],
+    );
+  }
+
+  /** Resolve a user's participant identity in a specific assembly. */
+  resolveParticipant(assemblyId: string, userId: string): { id: string; name: string; registeredAt: string; status: string } | undefined {
     const row = this.db.queryOne<ParticipantRow>(
-      "SELECT * FROM participants WHERE assembly_id = ? AND name = ?",
-      [assemblyId, name],
+      "SELECT * FROM participants WHERE assembly_id = ? AND user_id = ?",
+      [assemblyId, userId],
     );
     if (!row) return undefined;
-    return {
-      id: row.id,
-      name: row.name,
-      registeredAt: row.registered_at,
-      status: row.status,
-    };
+    return { id: row.id, name: row.name, registeredAt: row.registered_at, status: row.status };
+  }
+
+  /** List all assemblies a user belongs to, with their assembly-specific participant IDs. */
+  listUserAssemblies(userId: string): Array<{ assemblyId: string; assemblyName: string; participantId: string }> {
+    interface JoinRow { assembly_id: string; assembly_name: string; participant_id: string }
+    return this.db.query<JoinRow>(
+      `SELECT p.assembly_id, a.name as assembly_name, p.id as participant_id
+       FROM participants p JOIN assemblies a ON a.id = p.assembly_id
+       WHERE p.user_id = ?
+       ORDER BY a.name ASC`,
+      [userId],
+    ).map((r) => ({
+      assemblyId: r.assembly_id,
+      assemblyName: r.assembly_name,
+      participantId: r.participant_id,
+    }));
   }
 
   /** Persist issue details after creating a voting event. */

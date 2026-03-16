@@ -91,7 +91,8 @@ export function delegationRoutes(manager: AssemblyManager) {
   /** GET /assemblies/:id/delegations — list delegations with visibility filtering. */
   app.get("/assemblies/:id/delegations", async (c) => {
     const assemblyId = c.req.param("id");
-    const sourceId = c.req.query("sourceId");
+    const rawSourceId = c.req.query("sourceId");
+    const sourceId = rawSourceId ? manager.resolveId(assemblyId, rawSourceId) : undefined;
 
     const info = manager.getAssemblyInfo(assemblyId);
     if (!info) {
@@ -134,10 +135,10 @@ export function delegationRoutes(manager: AssemblyManager) {
   /** GET /assemblies/:id/delegations/chain — resolve chain for participant. */
   app.get("/assemblies/:id/delegations/chain", async (c) => {
     const assemblyId = c.req.param("id");
-    const participantId = c.req.query("participantId");
+    const rawParticipantId = c.req.query("participantId");
     const issueId = c.req.query("issueId");
 
-    if (!participantId || !issueId) {
+    if (!rawParticipantId || !issueId) {
       return c.json(
         { error: { code: "VALIDATION_ERROR", message: "participantId and issueId query parameters are required" } },
         400,
@@ -151,6 +152,8 @@ export function delegationRoutes(manager: AssemblyManager) {
         404,
       );
     }
+
+    const participantId = manager.resolveId(assemblyId, rawParticipantId);
 
     // Visibility: in private mode, only resolve your own chain
     const chainVisibility = info.config.delegation.visibility ?? { mode: "public" as const, incomingVisibility: "direct" as const };

@@ -16,6 +16,7 @@ import {
   assemblyIds,
   participantIds,
   topicIds,
+  userIds,
   pKey,
   tKey,
   pid,
@@ -72,6 +73,30 @@ export async function main() {
     console.log(`  ✓ ${assemblyKey}: ${names.length} participants`);
   }
   console.log(`\n  Added ${totalParticipants} participants total\n`);
+
+  // ── Step 2b: Create users and link participants ───────────────────
+
+  console.log("═══ USERS ═══\n");
+  // Collect unique names across all assemblies and build links
+  const nameToLinks = new Map<string, Array<{ assemblyId: string; participantId: string }>>();
+  for (const [assemblyKey, names] of Object.entries(PARTICIPANTS)) {
+    const assemblyId = aid(assemblyKey);
+    for (const name of names) {
+      if (!nameToLinks.has(name)) nameToLinks.set(name, []);
+      nameToLinks.get(name)!.push({
+        assemblyId,
+        participantId: pid(assemblyKey, name),
+      });
+    }
+  }
+
+  let crossAssemblyCount = 0;
+  for (const [name, links] of nameToLinks) {
+    const user = await post("/users", { name, links });
+    userIds.set(name, user.id as string);
+    if (links.length > 1) crossAssemblyCount++;
+  }
+  console.log(`  Created ${nameToLinks.size} users (${crossAssemblyCount} cross-assembly)\n`);
 
   // ── Step 3: Create topics ─────────────────────────────────────────
 
@@ -240,6 +265,7 @@ export async function main() {
 
   console.log("═══ SEED COMPLETE ═══\n");
   console.log("  Assemblies:    ", ASSEMBLIES.length);
+  console.log("  Users:         ", nameToLinks.size);
   console.log("  Participants:  ", totalParticipants);
   console.log("  Topics:        ", TOPICS.length);
   console.log("  Events:        ", EVENTS.length);

@@ -13,15 +13,16 @@ export function predictionRoutes(manager: AssemblyManager) {
   /** GET /assemblies/:id/predictions — list predictions for a participant. */
   app.get("/assemblies/:id/predictions", async (c) => {
     const assemblyId = c.req.param("id");
-    const participantId = c.req.query("participantId");
+    const rawParticipantId = c.req.query("participantId");
 
-    if (!participantId) {
+    if (!rawParticipantId) {
       return c.json(
         { error: { code: "VALIDATION_ERROR", message: "participantId query parameter is required" } },
         400,
       );
     }
 
+    const participantId = manager.resolveId(assemblyId, rawParticipantId);
     const { engine } = await manager.getEngine(assemblyId);
     const predictions = await engine.prediction.getByParticipant(participantId as ParticipantId);
 
@@ -81,7 +82,7 @@ export function predictionRoutes(manager: AssemblyManager) {
   /** GET /assemblies/:id/track-record/:pid — participant track record. */
   app.get("/assemblies/:id/track-record/:pid", async (c) => {
     const assemblyId = c.req.param("id");
-    const pid = c.req.param("pid");
+    const pid = manager.resolveId(assemblyId, c.req.param("pid"));
 
     const { engine } = await manager.getEngine(assemblyId);
     const trackRecord = await engine.prediction.trackRecord(pid as ParticipantId);

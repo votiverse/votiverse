@@ -49,7 +49,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
   /** GET /assemblies/:id/awareness/history/:pid — voting history. */
   app.get("/assemblies/:id/awareness/history/:pid", async (c) => {
     const assemblyId = c.req.param("id");
-    const pid = c.req.param("pid");
+    const pid = manager.resolveId(assemblyId, c.req.param("pid"));
     const callerId = getParticipantId(c);
 
     const info = manager.getAssemblyInfo(assemblyId);
@@ -112,7 +112,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
   /** GET /assemblies/:id/awareness/profile/:pid — delegate profile with visibility filtering. */
   app.get("/assemblies/:id/awareness/profile/:pid", async (c) => {
     const assemblyId = c.req.param("id");
-    const pid = c.req.param("pid");
+    const pid = manager.resolveId(assemblyId, c.req.param("pid"));
 
     const info = manager.getAssemblyInfo(assemblyId);
     if (!info) {

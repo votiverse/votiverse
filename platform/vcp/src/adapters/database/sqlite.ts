@@ -53,6 +53,14 @@ export class SQLiteAdapter implements DatabaseAdapter {
         created_at      TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
+      -- Users — stable cross-assembly identity
+      CREATE TABLE IF NOT EXISTS users (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL,
+        email      TEXT UNIQUE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
       -- Participants per assembly
       CREATE TABLE IF NOT EXISTS participants (
         id              TEXT NOT NULL,
@@ -60,8 +68,11 @@ export class SQLiteAdapter implements DatabaseAdapter {
         name            TEXT NOT NULL,
         registered_at   TEXT NOT NULL,
         status          TEXT NOT NULL DEFAULT 'active',
+        user_id         TEXT,
         PRIMARY KEY (assembly_id, id)
       );
+      CREATE INDEX IF NOT EXISTS idx_participants_user
+        ON participants(user_id);
 
       -- Issues (stored separately from events — engine limitation)
       CREATE TABLE IF NOT EXISTS issues (

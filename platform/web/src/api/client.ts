@@ -33,13 +33,14 @@ class ApiError extends Error {
   }
 }
 
-/** Read the current participant identity from localStorage (shared with useIdentity). */
-function getStoredIdentity(): { id: string; name: string } | null {
+/** Read the current identity from localStorage (shared with useIdentity). */
+function getStoredIdentity(): { userId?: string; participantId: string } | null {
   try {
     const raw = localStorage.getItem(IDENTITY_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed?.participantId) return { id: parsed.participantId, name: parsed.participantName ?? "" };
+    if (parsed?.userId) return { userId: parsed.userId, participantId: parsed.participantId };
+    if (parsed?.participantId) return { participantId: parsed.participantId };
     return null;
   } catch {
     return null;
@@ -52,13 +53,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     Authorization: `Bearer ${API_KEY}`,
   };
 
-  // Include participant identity when available (sovereignty enforcement)
+  // Include identity headers — X-User-Id for cross-assembly resolution,
+  // X-Participant-Id as fallback for direct participant access
   const identity = getStoredIdentity();
   if (identity) {
-    headers["X-Participant-Id"] = identity.id;
-    if (identity.name) {
-      headers["X-Participant-Name"] = identity.name;
+    if (identity.userId) {
+      headers["X-User-Id"] = identity.userId;
     }
+    headers["X-Participant-Id"] = identity.participantId;
   }
 
   const init: RequestInit = {
@@ -305,6 +307,12 @@ export function evaluatePrediction(
   predictionId: string,
 ): Promise<import("./types.js").PredictionEvaluation> {
   return request("GET", `/assemblies/${assemblyId}/predictions/${predictionId}/eval`);
+}
+
+// ---- Users ----
+
+export function listUsers(): Promise<{ users: import("./types.js").User[] }> {
+  return request("GET", "/users");
 }
 
 export { ApiError };

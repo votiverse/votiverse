@@ -121,7 +121,8 @@ export function votingRoutes(manager: AssemblyManager) {
   app.get("/assemblies/:id/events/:eid/participation", async (c) => {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
-    const participantId = c.req.query("participantId");
+    const rawPid = c.req.query("participantId");
+    const participantId = rawPid ? manager.resolveId(assemblyId, rawPid) : undefined;
     const callerId = getParticipantId(c);
 
     const info = manager.getAssemblyInfo(assemblyId);

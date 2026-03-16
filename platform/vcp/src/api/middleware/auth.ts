@@ -50,25 +50,32 @@ export function getClient(c: Context): ClientInfo {
 }
 
 /**
- * Extract participant ID from X-Participant-Id header.
- * Returns undefined if not present.
+ * Extract the resolved participant ID.
+ * Prefers the context value set by requireParticipant middleware,
+ * falls back to raw X-Participant-Id or X-User-Id header.
  */
 export function getParticipantId(c: Context): string | undefined {
-  return c.req.header("X-Participant-Id") ?? undefined;
+  return (c.get("participantId") as string | undefined) ?? c.req.header("X-Participant-Id") ?? c.req.header("X-User-Id") ?? undefined;
 }
 
 /**
- * Middleware factory that requires a valid X-Participant-Id header
- * and validates the participant exists in the given assembly.
+ * Middleware factory that requires a valid identity header and validates
+ * the participant exists in the given assembly.
+ *
+ * Resolution order:
+ * 1. X-User-Id → resolve via users table (cross-assembly safe)
+ * 2. X-Participant-Id → direct participant lookup (single-assembly)
  *
  * Sets `participantId` on the context for downstream use.
  */
 export function requireParticipant(manager: AssemblyManager) {
   return async (c: Context, next: Next) => {
+    const userId = c.req.header("X-User-Id");
     const participantId = c.req.header("X-Participant-Id");
-    if (!participantId) {
+
+    if (!userId && !participantId) {
       return c.json(
-        { error: { code: "FORBIDDEN", message: "X-Participant-Id header is required" } },
+        { error: { code: "FORBIDDEN", message: "X-User-Id or X-Participant-Id header is required" } },
         403,
       );
     }
@@ -76,21 +83,21 @@ export function requireParticipant(manager: AssemblyManager) {
     // Extract assembly ID from route params
     const assemblyId = c.req.param("id");
     if (assemblyId) {
-      let participant = manager.getParticipant(assemblyId, participantId);
+      let participant: { id: string; name: string; registeredAt: string; status: string } | undefined;
 
-      // Cross-assembly identity resolution: the client stores a single participant ID
-      // but each assembly assigns different UUIDs to the same person.
-      // Fall back to name-based lookup using X-Participant-Name header.
-      if (!participant) {
-        const participantName = c.req.header("X-Participant-Name");
-        if (participantName) {
-          participant = manager.getParticipantByName(assemblyId, participantName);
-        }
+      // Try user-based resolution first (cross-assembly safe)
+      if (userId) {
+        participant = manager.resolveParticipant(assemblyId, userId);
+      }
+
+      // Fall back to direct participant ID lookup
+      if (!participant && participantId) {
+        participant = manager.getParticipant(assemblyId, participantId);
       }
 
       if (!participant) {
         return c.json(
-          { error: { code: "FORBIDDEN", message: `Participant "${participantId}" not found in assembly` } },
+          { error: { code: "FORBIDDEN", message: `Participant not found in assembly` } },
           403,
         );
       }
@@ -106,7 +113,8 @@ export function requireParticipant(manager: AssemblyManager) {
       return next();
     }
 
-    c.set("participantId", participantId);
+    // No assembly context — pass through raw participant ID
+    c.set("participantId", participantId ?? userId);
     return next();
   };
 }
