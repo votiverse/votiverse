@@ -327,9 +327,11 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
   const [responding, setResponding] = useState(false);
   const [responded, setResponded] = useState(false);
   const [responseError, setResponseError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Record<string, unknown>>({});
 
   const isClosed = poll.status === "closed";
   const showButtons = !isClosed && !responded && participantId;
+  const allAnswered = poll.questions.every((q) => q.id in selected);
 
   // Auto-load results for closed polls
   useEffect(() => {
@@ -349,14 +351,24 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
     }
   }, [assemblyId, poll.id]);
 
-  const submitResponse = async (questionId: string, value: unknown) => {
-    if (!participantId) return;
+  const selectAnswer = (questionId: string, value: unknown) => {
+    setSelected((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const clearAnswers = () => setSelected({});
+
+  const submitAll = async () => {
+    if (!participantId || !allAnswered) return;
     setResponding(true);
     setResponseError(null);
     try {
+      const answers = poll.questions.map((q) => ({
+        questionId: q.id,
+        value: selected[q.id],
+      }));
       await api.submitPollResponse(assemblyId, poll.id, {
         participantId,
-        answers: [{ questionId, value }],
+        answers,
       });
       setResponded(true);
       await loadResults();
@@ -377,6 +389,8 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
   const closesLabel = closesIn > 0
     ? `Closes in ${Math.ceil(closesIn / 86400000)}d`
     : undefined;
+
+  const answeredCount = Object.keys(selected).length;
 
   return (
     <Card>
@@ -406,7 +420,8 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
               <QuestionButtons
                 question={q}
                 responding={responding}
-                onSubmit={(value) => submitResponse(q.id, value)}
+                selectedValue={selected[q.id]}
+                onSelect={(value) => selectAnswer(q.id, value)}
               />
             )}
 
@@ -415,6 +430,23 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
             )}
           </div>
         ))}
+
+        {/* Submit / clear actions */}
+        {showButtons && answeredCount > 0 && (
+          <div className="flex items-center gap-3 pt-1">
+            <Button onClick={submitAll} disabled={responding || !allAnswered}>
+              {responding ? "Submitting..." : `Submit Response${poll.questions.length > 1 ? `s (${answeredCount}/${poll.questions.length})` : ""}`}
+            </Button>
+            <button
+              type="button"
+              onClick={clearAnswers}
+              disabled={responding}
+              className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {/* Results section */}
         {!results && !isClosed && (
@@ -438,21 +470,27 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
 function QuestionButtons({
   question,
   responding,
-  onSubmit,
+  selectedValue,
+  onSelect,
 }: {
   question: PollQuestion;
   responding: boolean;
-  onSubmit: (value: unknown) => void;
+  selectedValue: unknown;
+  onSelect: (value: unknown) => void;
 }) {
   const { type } = question.questionType;
+
+  /** Return variant based on whether the value is currently selected. */
+  const variant = (value: unknown) =>
+    selectedValue === value ? "primary" as const : "secondary" as const;
 
   if (type === "yes-no") {
     return (
       <div className="flex flex-wrap gap-2">
-        <Button size="lg" onClick={() => onSubmit(true)} disabled={responding} className="flex-1 sm:flex-none">
+        <Button size="lg" variant={variant(true)} onClick={() => onSelect(true)} disabled={responding} className="flex-1 sm:flex-none">
           Yes
         </Button>
-        <Button size="lg" variant="secondary" onClick={() => onSubmit(false)} disabled={responding} className="flex-1 sm:flex-none">
+        <Button size="lg" variant={variant(false)} onClick={() => onSelect(false)} disabled={responding} className="flex-1 sm:flex-none">
           No
         </Button>
       </div>
@@ -466,7 +504,7 @@ function QuestionButtons({
       <div>
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: scale }, (_, i) => i + 1).map((v) => (
-            <Button key={v} variant="secondary" onClick={() => onSubmit(v)} disabled={responding} className="flex-1 min-w-[48px] min-h-[48px]">
+            <Button key={v} variant={variant(v)} onClick={() => onSelect(v)} disabled={responding} className="flex-1 min-w-[48px] min-h-[48px]">
               {v}
             </Button>
           ))}
@@ -484,13 +522,13 @@ function QuestionButtons({
   if (type === "direction") {
     return (
       <div className="flex flex-wrap gap-2">
-        <Button size="lg" onClick={() => onSubmit("improved")} disabled={responding} className="flex-1 sm:flex-none">
+        <Button size="lg" variant={variant("improved")} onClick={() => onSelect("improved")} disabled={responding} className="flex-1 sm:flex-none">
           Improved
         </Button>
-        <Button size="lg" variant="secondary" onClick={() => onSubmit("same")} disabled={responding} className="flex-1 sm:flex-none">
+        <Button size="lg" variant={variant("same")} onClick={() => onSelect("same")} disabled={responding} className="flex-1 sm:flex-none">
           Same
         </Button>
-        <Button size="lg" variant="secondary" onClick={() => onSubmit("worsened")} disabled={responding} className="flex-1 sm:flex-none">
+        <Button size="lg" variant={variant("worsened")} onClick={() => onSelect("worsened")} disabled={responding} className="flex-1 sm:flex-none">
           Worsened
         </Button>
       </div>
@@ -505,8 +543,8 @@ function QuestionButtons({
           <Button
             key={opt}
             size="lg"
-            variant="secondary"
-            onClick={() => onSubmit(opt)}
+            variant={variant(opt)}
+            onClick={() => onSelect(opt)}
             disabled={responding}
             className="w-full justify-center"
           >
