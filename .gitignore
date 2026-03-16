@@ -19,6 +19,9 @@ stress-test/
 .vscode/
 .sandbox/
 
+# Generated identity file (produced by seed script, contains runtime UUIDs)
+platform/web/public/identity.json
+
 # Claude Code local/ephemeral files
 .claude/settings.local.json
 .claude/launch.json
