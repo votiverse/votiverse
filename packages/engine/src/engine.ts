@@ -21,6 +21,7 @@ import type {
   VotingEventCreatedEvent,
   VotingEventIssuePayload,
   TopicCreatedEvent,
+  TimeProvider,
 } from "@votiverse/core";
 import {
   InMemoryEventStore,
@@ -30,7 +31,9 @@ import {
   generateIssueId,
   generateTopicId,
   now,
+  systemTime,
   NotFoundError,
+  GovernanceRuleViolation,
 } from "@votiverse/core";
 import type { GovernanceConfig, PresetName, ValidationResult } from "@votiverse/config";
 import { getPreset, getPresetNames, validateConfig, deriveConfig } from "@votiverse/config";
@@ -76,6 +79,8 @@ export interface EngineOptions {
   readonly eventStore?: EventStore;
   /** Identity provider. Defaults to InvitationProvider. */
   readonly identityProvider?: IdentityProvider;
+  /** Time provider for mockable time. Defaults to systemTime (Date.now). */
+  readonly timeProvider?: TimeProvider;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +122,9 @@ export class VotiverseEngine {
   private readonly predictionService: PredictionService;
   private readonly pollingService: PollingService;
 
+  /** Injectable time source for testing. */
+  readonly timeProvider: TimeProvider;
+
   /** In-memory state derived from events. */
   private readonly topics = new Map<TopicId, Topic>();
   private readonly topicAncestors = new Map<TopicId, TopicId[]>();
@@ -126,6 +134,7 @@ export class VotiverseEngine {
   constructor(options: EngineOptions) {
     this.governanceConfig = options.config;
     this.eventStore = options.eventStore ?? new InMemoryEventStore();
+    this.timeProvider = options.timeProvider ?? systemTime;
 
     this.identityProvider = options.identityProvider ?? new InvitationProvider(this.eventStore);
 
@@ -427,8 +436,27 @@ export class VotiverseEngine {
 
   /** Voting operations. */
   readonly voting = {
-    cast: (participantId: ParticipantId, issueId: IssueId, choice: VoteChoice): Promise<void> => {
+    cast: async (participantId: ParticipantId, issueId: IssueId, choice: VoteChoice): Promise<void> => {
       const issue = this.issues.get(issueId);
+      // Timeline enforcement: reject votes outside the voting window
+      if (issue) {
+        const votingEvent = this.votingEvents.get(issue.votingEventId);
+        if (votingEvent) {
+          const currentTime = this.timeProvider.now();
+          if (currentTime < votingEvent.timeline.votingStart) {
+            throw new GovernanceRuleViolation(
+              "Voting has not started yet",
+              "VOTING_NOT_OPEN",
+            );
+          }
+          if (currentTime >= votingEvent.timeline.votingEnd) {
+            throw new GovernanceRuleViolation(
+              "Voting has closed",
+              "VOTING_CLOSED",
+            );
+          }
+        }
+      }
       return this.votingService.cast({
         participantId,
         issueId,

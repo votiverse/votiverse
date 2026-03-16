@@ -11,7 +11,8 @@ import type { VotiverseEngine } from "@votiverse/engine";
 import { createEngine } from "@votiverse/engine";
 import { InvitationProvider } from "@votiverse/identity";
 import type { ParticipantId, TopicId, IssueId, VotingEventId, Issue } from "@votiverse/core";
-import { isOk } from "@votiverse/core";
+import { isOk, systemTime } from "@votiverse/core";
+import type { TimeProvider } from "@votiverse/core";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { QueueAdapter } from "../adapters/queue/interface.js";
 import { SQLiteEventStore } from "./sqlite-event-store.js";
@@ -73,6 +74,9 @@ export interface CreateAssemblyParams {
 
 export class AssemblyManager {
   private readonly engines = new Map<string, { engine: VotiverseEngine; provider: InvitationProvider; store: SQLiteEventStore }>();
+
+  /** Injectable time source. Shared with engine instances. */
+  timeProvider: TimeProvider = systemTime;
 
   constructor(
     private readonly db: DatabaseAdapter,
@@ -144,6 +148,7 @@ export class AssemblyManager {
       config: info.config,
       eventStore: store,
       identityProvider: provider,
+      timeProvider: this.timeProvider,
     });
 
     // Rehydrate from persisted events

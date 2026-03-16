@@ -39,7 +39,7 @@ describe("Participation records", () => {
     }
     [alice, bob, carol, dave] = participants as [{ id: string }, { id: string }, { id: string }, { id: string }];
 
-    // Create a voting event with voting already closed (votingEnd in the past)
+    // Create a voting event with voting window open (votingEnd in the future)
     const now = Date.now();
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Participation Test Event",
@@ -49,7 +49,7 @@ describe("Participation records", () => {
       timeline: {
         deliberationStart: now - 86400000 * 2,
         votingStart: now - 86400000,
-        votingEnd: now - 3600000, // closed 1 hour ago
+        votingEnd: now + 3600000, // voting window open for 1 hour
       },
     });
     const event = (await eventRes.json()) as { id: string; issueIds: string[] };
@@ -67,6 +67,9 @@ describe("Participation records", () => {
         issueId,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       // Carol asking about Alice — public secrecy + public delegation visibility = visible
       const res = await vcp.request(
@@ -106,6 +109,9 @@ describe("Participation records", () => {
         choice: "against",
       });
 
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
+
       const res = await vcp.request(
         "GET",
         `/assemblies/${asmId}/events/${eventId}/participation?participantId=${alice.id}`,
@@ -144,6 +150,9 @@ describe("Participation records", () => {
         choice: "for",
       });
 
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
+
       const res = await vcp.request(
         "GET",
         `/assemblies/${asmId}/events/${eventId}/participation?participantId=${alice.id}`,
@@ -174,6 +183,9 @@ describe("Participation records", () => {
         choice: "for",
       });
 
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
+
       const res = await vcp.request(
         "GET",
         `/assemblies/${asmId}/events/${eventId}/participation?participantId=${dave.id}`,
@@ -193,6 +205,9 @@ describe("Participation records", () => {
         issueId,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       const res = await vcp.request(
         "GET",
@@ -214,6 +229,9 @@ describe("Participation records", () => {
         choice: "for",
       });
 
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
+
       const res1 = await vcp.request("GET", `/assemblies/${asmId}/events/${eventId}/participation`);
       const data1 = (await res1.json()) as { participation: unknown[] };
 
@@ -228,6 +246,9 @@ describe("Participation records", () => {
         issueId,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       await vcp.request("GET", `/assemblies/${asmId}/events/${eventId}/tally`);
 
@@ -283,7 +304,7 @@ describe("Participation records", () => {
         timeline: {
           deliberationStart: now - 86400000 * 2,
           votingStart: now - 86400000,
-          votingEnd: now - 3600000,
+          votingEnd: now + 3600000,
         },
       });
       const event = (await eventRes.json()) as { id: string; issueIds: string[] };
@@ -296,6 +317,9 @@ describe("Participation records", () => {
         issueId: secretIssueId,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       const res = await vcp.request(
         "GET",
@@ -316,6 +340,9 @@ describe("Participation records", () => {
         issueId: secretIssueId,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       // Bob asks about Alice — secret ballot, choice should be hidden
       // (delegation visibility is public so structural info is visible)
@@ -342,6 +369,9 @@ describe("Participation records", () => {
         issueId: secretIssueId,
         choice: "against",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       // Alice asks about herself — delegated, but delegateVoteVisibility=private
       const res = await vcp.request(
@@ -370,6 +400,9 @@ describe("Participation records", () => {
         issueId: secretIssueId,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       // Carol checks her own participation — she delegated to Alice
       const res = await vcp.request(
@@ -425,7 +458,7 @@ describe("Participation records", () => {
         timeline: {
           deliberationStart: now - 86400000 * 2,
           votingStart: now - 86400000,
-          votingEnd: now - 3600000,
+          votingEnd: now + 3600000,
         },
       });
       const event = (await eventRes.json()) as { id: string; issueIds: string[] };
@@ -442,6 +475,9 @@ describe("Participation records", () => {
         issueId: civicIssueId,
         choice: "against",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       // Alice is the delegator — she CAN see the choice under "delegators-only"
       const res = await vcp.request(
@@ -464,6 +500,9 @@ describe("Participation records", () => {
         choice: "for",
       });
 
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
+
       // Carol asks about Bob — not her record, secret ballot
       const res = await vcp.request(
         "GET",
@@ -484,6 +523,9 @@ describe("Participation records", () => {
         issueId: civicIssueId,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       const res = await vcp.request(
         "GET",
@@ -525,7 +567,7 @@ describe("Participation records", () => {
         timeline: {
           deliberationStart: now - 86400000 * 2,
           votingStart: now - 86400000,
-          votingEnd: now - 3600000,
+          votingEnd: now + 3600000,
         },
       });
       const event = (await eventRes.json()) as { id: string; issueIds: string[] };
@@ -534,6 +576,9 @@ describe("Participation records", () => {
         issueId: event.issueIds[0]!,
         choice: "for",
       });
+
+      // Advance clock past votingEnd so event is closed
+      vcp.clock.advance(7200000);
 
       // Bob tries to query Alice's participation — should be 403
       const res = await vcp.request(

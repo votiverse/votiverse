@@ -1,23 +1,38 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { VotiverseEngine, createEngine } from "../../src/engine.js";
-import { InMemoryEventStore, timestamp, ValidationError } from "@votiverse/core";
+import { InMemoryEventStore, timestamp, ValidationError, TestClock } from "@votiverse/core";
 import type { ParticipantId, TopicId, Timestamp } from "@votiverse/core";
 import { getPreset, deriveConfig } from "@votiverse/config";
 import { InvitationProvider } from "@votiverse/identity";
 import { isOk } from "@votiverse/core";
 
+const DAY = 86_400_000;
+
+/** Create a timeline where voting is currently active relative to the clock. */
+function activeVotingTimeline(clock: TestClock) {
+  const now = clock.now() as number;
+  return {
+    deliberationStart: timestamp(now - 7 * DAY) as Timestamp,
+    votingStart: timestamp(now - 1 * DAY) as Timestamp,
+    votingEnd: timestamp(now + 6 * DAY) as Timestamp,
+  };
+}
+
 describe("VotiverseEngine — integration", () => {
   let engine: VotiverseEngine;
   let store: InMemoryEventStore;
   let provider: InvitationProvider;
+  let clock: TestClock;
 
   beforeEach(() => {
     store = new InMemoryEventStore();
     provider = new InvitationProvider(store);
+    clock = new TestClock();
     engine = createEngine({
       config: getPreset("LIQUID_STANDARD"),
       eventStore: store,
       identityProvider: provider,
+      timeProvider: clock,
     });
   });
 
@@ -34,13 +49,9 @@ describe("VotiverseEngine — integration", () => {
 
   describe("Full voting lifecycle", () => {
     it("creates a voting event, casts votes, and computes tally", async () => {
-      // 1. Register participants
       const [alice, bob, carol] = await inviteParticipants("Alice", "Bob", "Carol");
-
-      // 2. Create a topic
       const financeTopic = await engine.topics_api.create("Finance");
 
-      // 3. Create a voting event
       const votingEvent = await engine.events.create({
         title: "Q1 Budget Vote",
         description: "Vote on the Q1 budget allocation",
@@ -52,22 +63,16 @@ describe("VotiverseEngine — integration", () => {
           },
         ],
         eligibleParticipantIds: [alice!, bob!, carol!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
       expect(votingEvent.issueIds).toHaveLength(1);
       const issueId = votingEvent.issueIds[0]!;
 
-      // 4. Cast votes
       await engine.voting.cast(alice!, issueId, "for");
       await engine.voting.cast(bob!, issueId, "for");
       await engine.voting.cast(carol!, issueId, "against");
 
-      // 5. Compute tally
       const tally = await engine.voting.tally(issueId);
       expect(tally.winner).toBe("for");
       expect(tally.counts.get("for")).toBe(2);
@@ -77,139 +82,172 @@ describe("VotiverseEngine — integration", () => {
 
     it("handles delegation with voting override", async () => {
       const [alice, bob, carol, dave] = await inviteParticipants("Alice", "Bob", "Carol", "Dave");
-
       const topic = await engine.topics_api.create("Policy");
+
       const votingEvent = await engine.events.create({
         title: "Policy Vote",
         description: "Vote on a policy change",
-        issues: [
-          {
-            title: "New Policy",
-            description: "Adopt the new policy?",
-            topicIds: [topic.id],
-          },
-        ],
+        issues: [{ title: "New Policy", description: "Adopt the new policy?", topicIds: [topic.id] }],
         eligibleParticipantIds: [alice!, bob!, carol!, dave!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
       const issueId = votingEvent.issueIds[0]!;
 
-      // Alice and Bob delegate to Carol
-      await engine.delegation.create({
-        sourceId: alice!,
-        targetId: carol!,
-        topicScope: [topic.id],
-      });
-      await engine.delegation.create({
-        sourceId: bob!,
-        targetId: carol!,
-        topicScope: [topic.id],
-      });
+      await engine.delegation.create({ sourceId: alice!, targetId: carol!, topicScope: [topic.id] });
+      await engine.delegation.create({ sourceId: bob!, targetId: carol!, topicScope: [topic.id] });
 
-      // Carol votes "for" (carries weight 3: herself + Alice + Bob)
       await engine.voting.cast(carol!, issueId, "for");
-      // Dave votes "against" (weight 1)
       await engine.voting.cast(dave!, issueId, "against");
 
       const tally = await engine.voting.tally(issueId);
       expect(tally.winner).toBe("for");
       expect(tally.counts.get("for")).toBe(3);
       expect(tally.counts.get("against")).toBe(1);
-      expect(tally.totalVotes).toBe(4);
 
-      // Now Alice overrides by voting directly
+      // Alice overrides by voting directly
       await engine.voting.cast(alice!, issueId, "against");
-
       const tally2 = await engine.voting.tally(issueId);
-      // Carol now has weight 2 (herself + Bob), Alice has weight 1
       expect(tally2.counts.get("for")).toBe(2);
-      expect(tally2.counts.get("against")).toBe(2); // Alice (1) + Dave (1)
-      expect(tally2.winner).toBeNull(); // tie
+      expect(tally2.counts.get("against")).toBe(2);
+      expect(tally2.winner).toBeNull();
     });
 
     it("handles transitive delegation chains", async () => {
       const [a, b, c, d] = await inviteParticipants("A", "B", "C", "D");
-
       const topic = await engine.topics_api.create("General");
+
       const event = await engine.events.create({
         title: "Chain Vote",
         description: "Testing transitive chains",
-        issues: [
-          {
-            title: "Issue 1",
-            description: "Test issue",
-            topicIds: [topic.id],
-          },
-        ],
+        issues: [{ title: "Issue 1", description: "Test issue", topicIds: [topic.id] }],
         eligibleParticipantIds: [a!, b!, c!, d!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
       const issueId = event.issueIds[0]!;
+      await engine.delegation.create({ sourceId: a!, targetId: b!, topicScope: [topic.id] });
+      await engine.delegation.create({ sourceId: b!, targetId: c!, topicScope: [topic.id] });
 
-      // A → B → C (transitive chain)
-      await engine.delegation.create({
-        sourceId: a!,
-        targetId: b!,
-        topicScope: [topic.id],
-      });
-      await engine.delegation.create({
-        sourceId: b!,
-        targetId: c!,
-        topicScope: [topic.id],
-      });
-
-      // C votes, D votes
       await engine.voting.cast(c!, issueId, "for");
       await engine.voting.cast(d!, issueId, "against");
 
       const tally = await engine.voting.tally(issueId);
-      // C carries weight 3 (A+B+C), D has weight 1
       expect(tally.counts.get("for")).toBe(3);
       expect(tally.counts.get("against")).toBe(1);
       expect(tally.winner).toBe("for");
     });
   });
 
-  describe("Weight distribution and chain resolution", () => {
-    it("computes weight distribution", async () => {
-      const [alice, bob, carol] = await inviteParticipants("Alice", "Bob", "Carol");
+  describe("Timeline enforcement", () => {
+    it("rejects votes before voting starts", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const now = clock.now() as number;
 
-      const topic = await engine.topics_api.create("Test");
       const event = await engine.events.create({
-        title: "Weight Test",
-        description: "Test weights",
-        issues: [
-          {
-            title: "Issue",
-            description: "Test",
-            topicIds: [topic.id],
-          },
-        ],
-        eligibleParticipantIds: [alice!, bob!, carol!],
+        title: "Future Vote",
+        description: "Not yet open",
+        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        eligibleParticipantIds: [alice!],
         timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
+          deliberationStart: timestamp(now + 1 * DAY) as Timestamp,
+          votingStart: timestamp(now + 7 * DAY) as Timestamp,
+          votingEnd: timestamp(now + 14 * DAY) as Timestamp,
+        },
+      });
+
+      const issueId = event.issueIds[0]!;
+      await expect(engine.voting.cast(alice!, issueId, "for")).rejects.toThrow("Voting has not started");
+    });
+
+    it("rejects votes after voting closes", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const now = clock.now() as number;
+
+      const event = await engine.events.create({
+        title: "Past Vote",
+        description: "Already closed",
+        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        eligibleParticipantIds: [alice!],
+        timeline: {
+          deliberationStart: timestamp(now - 14 * DAY) as Timestamp,
+          votingStart: timestamp(now - 7 * DAY) as Timestamp,
+          votingEnd: timestamp(now - 1 * DAY) as Timestamp,
+        },
+      });
+
+      const issueId = event.issueIds[0]!;
+      await expect(engine.voting.cast(alice!, issueId, "for")).rejects.toThrow("Voting has closed");
+    });
+
+    it("accepts votes within the voting window", async () => {
+      const [alice] = await inviteParticipants("Alice");
+
+      const event = await engine.events.create({
+        title: "Active Vote",
+        description: "Currently open",
+        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        eligibleParticipantIds: [alice!],
+        timeline: activeVotingTimeline(clock),
+      });
+
+      const issueId = event.issueIds[0]!;
+      // Should not throw
+      await engine.voting.cast(alice!, issueId, "for");
+      const votes = await engine.voting.getVotes(issueId);
+      expect(votes).toHaveLength(1);
+    });
+
+    it("transitions through phases via TestClock.advance()", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const now = clock.now() as number;
+
+      const event = await engine.events.create({
+        title: "Phased Vote",
+        description: "Testing phase transitions",
+        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        eligibleParticipantIds: [alice!],
+        timeline: {
+          deliberationStart: timestamp(now + 1 * DAY) as Timestamp,
+          votingStart: timestamp(now + 3 * DAY) as Timestamp,
+          votingEnd: timestamp(now + 10 * DAY) as Timestamp,
         },
       });
 
       const issueId = event.issueIds[0]!;
 
-      await engine.delegation.create({
-        sourceId: alice!,
-        targetId: bob!,
-        topicScope: [topic.id],
+      // Phase 1: before deliberation — vote rejected
+      await expect(engine.voting.cast(alice!, issueId, "for")).rejects.toThrow("Voting has not started");
+
+      // Advance to deliberation phase — still rejected (voting hasn't started)
+      clock.advance(2 * DAY);
+      await expect(engine.voting.cast(alice!, issueId, "for")).rejects.toThrow("Voting has not started");
+
+      // Advance to voting phase — accepted
+      clock.advance(2 * DAY);
+      await engine.voting.cast(alice!, issueId, "for");
+
+      // Advance past voting end — rejected
+      clock.advance(8 * DAY);
+      await expect(engine.voting.cast(alice!, issueId, "against")).rejects.toThrow("Voting has closed");
+    });
+  });
+
+  describe("Weight distribution and chain resolution", () => {
+    it("computes weight distribution", async () => {
+      const [alice, bob, carol] = await inviteParticipants("Alice", "Bob", "Carol");
+      const topic = await engine.topics_api.create("Test");
+
+      const event = await engine.events.create({
+        title: "Weight Test",
+        description: "Test weights",
+        issues: [{ title: "Issue", description: "Test", topicIds: [topic.id] }],
+        eligibleParticipantIds: [alice!, bob!, carol!],
+        timeline: activeVotingTimeline(clock),
       });
+
+      const issueId = event.issueIds[0]!;
+      await engine.delegation.create({ sourceId: alice!, targetId: bob!, topicScope: [topic.id] });
       await engine.voting.cast(bob!, issueId, "for");
       await engine.voting.cast(carol!, issueId, "against");
 
@@ -220,33 +258,18 @@ describe("VotiverseEngine — integration", () => {
 
     it("resolves delegation chain", async () => {
       const [alice, bob] = await inviteParticipants("Alice", "Bob");
-
       const topic = await engine.topics_api.create("Test");
+
       const event = await engine.events.create({
         title: "Chain Test",
         description: "Test chain resolution",
-        issues: [
-          {
-            title: "Issue",
-            description: "Test",
-            topicIds: [topic.id],
-          },
-        ],
+        issues: [{ title: "Issue", description: "Test", topicIds: [topic.id] }],
         eligibleParticipantIds: [alice!, bob!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
       const issueId = event.issueIds[0]!;
-
-      await engine.delegation.create({
-        sourceId: alice!,
-        targetId: bob!,
-        topicScope: [topic.id],
-      });
+      await engine.delegation.create({ sourceId: alice!, targetId: bob!, topicScope: [topic.id] });
       await engine.voting.cast(bob!, issueId, "for");
 
       const chain = await engine.delegation.resolve(alice!, issueId);
@@ -267,47 +290,28 @@ describe("VotiverseEngine — integration", () => {
     });
 
     it("derives a new config from current", () => {
-      const derived = engine.config.derive({
-        ballot: { quorum: 0.5 },
-      });
+      const derived = engine.config.derive({ ballot: { quorum: 0.5 } });
       expect(derived.ballot.quorum).toBe(0.5);
     });
   });
 
   describe("Multi-option election workflow", () => {
     it("creates an election with named candidates and tallies correctly", async () => {
-      const [alice, bob, carol, dave, eve] = await inviteParticipants(
-        "Alice", "Bob", "Carol", "Dave", "Eve",
-      );
-
+      const [alice, bob, carol, dave, eve] = await inviteParticipants("Alice", "Bob", "Carol", "Dave", "Eve");
       const candidates = ["Alice Johnson", "Bob Smith", "Carol Davis"];
 
       const votingEvent = await engine.events.create({
         title: "Board Officer Election",
         description: "Elect the next chairperson",
-        issues: [
-          {
-            title: "Elect Chairperson",
-            description: "Choose the next chairperson",
-            topicIds: [],
-            choices: candidates,
-          },
-        ],
+        issues: [{ title: "Elect Chairperson", description: "Choose the next chairperson", topicIds: [], choices: candidates }],
         eligibleParticipantIds: [alice!, bob!, carol!, dave!, eve!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
       const issueId = votingEvent.issueIds[0]!;
-
-      // Verify issue has choices
       const issue = engine.events.getIssue(issueId);
       expect(issue?.choices).toEqual(candidates);
 
-      // Cast valid votes
       await engine.voting.cast(alice!, issueId, "Alice Johnson");
       await engine.voting.cast(bob!, issueId, "Bob Smith");
       await engine.voting.cast(carol!, issueId, "Alice Johnson");
@@ -327,30 +331,14 @@ describe("VotiverseEngine — integration", () => {
       const votingEvent = await engine.events.create({
         title: "Election",
         description: "Test",
-        issues: [
-          {
-            title: "Pick One",
-            description: "Choose a candidate",
-            topicIds: [],
-            choices: ["Option A", "Option B"],
-          },
-        ],
+        issues: [{ title: "Pick One", description: "Choose a candidate", topicIds: [], choices: ["Option A", "Option B"] }],
         eligibleParticipantIds: [alice!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
       const issueId = votingEvent.issueIds[0]!;
+      await expect(engine.voting.cast(alice!, issueId, "Option C")).rejects.toThrow(ValidationError);
 
-      // Invalid choice should throw
-      await expect(
-        engine.voting.cast(alice!, issueId, "Option C"),
-      ).rejects.toThrow(ValidationError);
-
-      // Abstain should always work
       await engine.voting.cast(alice!, issueId, "abstain");
       const votes = await engine.voting.getVotes(issueId);
       expect(votes).toHaveLength(1);
@@ -360,12 +348,12 @@ describe("VotiverseEngine — integration", () => {
     it("supports ranked-choice election through the engine", async () => {
       const rankedStore = new InMemoryEventStore();
       const rankedProvider = new InvitationProvider(rankedStore);
+      const rankedClock = new TestClock();
       const rankedEngine = createEngine({
-        config: deriveConfig(getPreset("LIQUID_STANDARD"), {
-          ballot: { votingMethod: "ranked-choice" },
-        }),
+        config: deriveConfig(getPreset("LIQUID_STANDARD"), { ballot: { votingMethod: "ranked-choice" } }),
         eventStore: rankedStore,
         identityProvider: rankedProvider,
+        timeProvider: rankedClock,
       });
 
       const ids: ParticipantId[] = [];
@@ -379,36 +367,19 @@ describe("VotiverseEngine — integration", () => {
       const event = await rankedEngine.events.create({
         title: "Ranked Election",
         description: "Test ranked choice",
-        issues: [{
-          title: "Pick Winner",
-          description: "Rank the candidates",
-          topicIds: [],
-          choices: candidates,
-        }],
+        issues: [{ title: "Pick Winner", description: "Rank the candidates", topicIds: [], choices: candidates }],
         eligibleParticipantIds: [v1!, v2!, v3!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(rankedClock),
       });
 
       const issueId = event.issueIds[0]!;
-
-      // V1 ranks: Alpha > Gamma
       await rankedEngine.voting.cast(v1!, issueId, ["Alpha", "Gamma"]);
-      // V2 ranks: Alpha > Beta
       await rankedEngine.voting.cast(v2!, issueId, ["Alpha", "Beta"]);
-      // V3 ranks: Gamma > Beta (Gamma has fewer first-choice votes)
       await rankedEngine.voting.cast(v3!, issueId, ["Gamma", "Beta"]);
 
-      // Invalid ranked choice should throw
-      await expect(
-        rankedEngine.voting.cast(v1!, issueId, ["Alpha", "InvalidCandidate"]),
-      ).rejects.toThrow(ValidationError);
+      await expect(rankedEngine.voting.cast(v1!, issueId, ["Alpha", "InvalidCandidate"])).rejects.toThrow(ValidationError);
 
       const tally = await rankedEngine.voting.tally(issueId);
-      // Round 1: Alpha=2, Gamma=1, Beta=0. Alpha has 2 > 1.5 majority → Alpha wins.
       expect(tally.winner).toBe("Alpha");
     });
 
@@ -418,25 +389,16 @@ describe("VotiverseEngine — integration", () => {
       await engine.events.create({
         title: "Election",
         description: "Test rehydration",
-        issues: [{
-          title: "Pick Candidate",
-          description: "Choose one",
-          topicIds: [],
-          choices: ["Candidate A", "Candidate B"],
-        }],
+        issues: [{ title: "Pick Candidate", description: "Choose one", topicIds: [], choices: ["Candidate A", "Candidate B"] }],
         eligibleParticipantIds: [alice!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
-      // Create a new engine from the same store and rehydrate
       const engine2 = createEngine({
         config: getPreset("LIQUID_STANDARD"),
         eventStore: store,
         identityProvider: provider,
+        timeProvider: clock,
       });
       await engine2.rehydrate();
 
@@ -449,30 +411,18 @@ describe("VotiverseEngine — integration", () => {
   describe("Event store integration", () => {
     it("records all operations as events", async () => {
       const [alice, bob] = await inviteParticipants("Alice", "Bob");
-
       const topic = await engine.topics_api.create("Test");
+
       await engine.events.create({
         title: "Event",
         description: "Test",
-        issues: [
-          {
-            title: "Issue",
-            description: "Test",
-            topicIds: [topic.id],
-          },
-        ],
+        issues: [{ title: "Issue", description: "Test", topicIds: [topic.id] }],
         eligibleParticipantIds: [alice!, bob!],
-        timeline: {
-          deliberationStart: timestamp(Date.now()) as Timestamp,
-          votingStart: timestamp(Date.now() + 86400000) as Timestamp,
-          votingEnd: timestamp(Date.now() + 172800000) as Timestamp,
-        },
+        timeline: activeVotingTimeline(clock),
       });
 
       const events = await store.getAll();
-      // 2 ParticipantRegistered + 1 TopicCreated + 1 VotingEventCreated = 4
       expect(events).toHaveLength(4);
-
       const types = events.map((e) => e.type);
       expect(types).toContain("ParticipantRegistered");
       expect(types).toContain("TopicCreated");

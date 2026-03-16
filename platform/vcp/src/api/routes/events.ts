@@ -105,7 +105,7 @@ export function eventRoutes(manager: AssemblyManager) {
       );
     }
 
-    const now = Date.now();
+    const now = manager.timeProvider.now();
     let status: string;
     if (now < votingEvent.timeline.deliberationStart) {
       status = "upcoming";

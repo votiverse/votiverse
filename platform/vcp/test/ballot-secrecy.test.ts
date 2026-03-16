@@ -59,14 +59,14 @@ describe("Ballot secrecy enforcement", () => {
       timeline: {
         deliberationStart: now - 86400000 * 2,
         votingStart: now - 86400000,
-        votingEnd: now - 3600000,
+        votingEnd: now + 3600000,
       },
     });
     const secretEvent = (await secretEventRes.json()) as { id: string; issueIds: string[] };
     eventId = secretEvent.id;
     issueId = secretEvent.issueIds[0]!;
 
-    // Cast votes
+    // Cast votes (voting window is open)
     await vcp.requestAs(alice.id, "POST", `/assemblies/${secretAsmId}/votes`, {
       issueId, choice: "for",
     });
@@ -97,7 +97,7 @@ describe("Ballot secrecy enforcement", () => {
       timeline: {
         deliberationStart: now - 86400000 * 2,
         votingStart: now - 86400000,
-        votingEnd: now - 3600000,
+        votingEnd: now + 3600000,
       },
     });
     const publicEvent = (await publicEventRes.json()) as { id: string; issueIds: string[] };
@@ -107,6 +107,12 @@ describe("Ballot secrecy enforcement", () => {
     await vcp.requestAs(pAlice.id, "POST", `/assemblies/${publicAsmId}/votes`, {
       issueId: publicIssueId, choice: "for",
     });
+    await vcp.requestAs(pBob.id, "POST", `/assemblies/${publicAsmId}/votes`, {
+      issueId: publicIssueId, choice: "against",
+    });
+
+    // Advance clock past votingEnd so events appear closed for queries
+    vcp.clock.advance(7200000);
   });
 
   afterEach(() => {
@@ -203,10 +209,7 @@ describe("Ballot secrecy enforcement", () => {
     });
 
     it("public ballot: shows maxWeightHolder", async () => {
-      await vcp.requestAs(pBob.id, "POST", `/assemblies/${publicAsmId}/votes`, {
-        issueId: publicIssueId, choice: "against",
-      });
-
+      // pBob's vote is cast in beforeEach (before clock advance)
       const res = await vcp.request(
         "GET",
         `/assemblies/${publicAsmId}/awareness/concentration?issueId=${publicIssueId}`,

@@ -3,6 +3,7 @@
  */
 
 import { Hono } from "hono";
+import { TestClock } from "@votiverse/core";
 import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
 import { MemoryQueueAdapter } from "../src/adapters/queue/memory.js";
 import { LocalSchedulerAdapter } from "../src/adapters/scheduler/local.js";
@@ -17,6 +18,7 @@ const TEST_API_KEY = "test_key_12345";
 export interface TestVCP {
   app: Hono;
   manager: AssemblyManager;
+  clock: TestClock;
   db: SQLiteAdapter;
   cleanup: () => void;
   request: (method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
@@ -37,7 +39,9 @@ export async function createTestVCP(): Promise<TestVCP> {
   );
 
   const adapters: VCPAdapters = { database: db, queue, scheduler, webhook, auth };
+  const clock = new TestClock();
   const manager = new AssemblyManager(db, queue);
+  manager.timeProvider = clock;
   const app = createApp(adapters, manager);
 
   queue.start();
@@ -73,5 +77,5 @@ export async function createTestVCP(): Promise<TestVCP> {
     return request(method, path, body, { "X-Participant-Id": participantId });
   };
 
-  return { app, manager, db, cleanup, request, requestAs };
+  return { app, manager, clock, db, cleanup, request, requestAs };
 }

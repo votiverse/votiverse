@@ -75,7 +75,7 @@ export function votingRoutes(manager: AssemblyManager) {
     }
 
     const { resultsVisibility } = info.config.ballot;
-    const now = Date.now();
+    const now = manager.timeProvider.now();
     const votingEnded = votingEvent.timeline.votingEnd <= now;
     const isSealed = resultsVisibility === "sealed" && !votingEnded;
 
@@ -265,7 +265,7 @@ export function votingRoutes(manager: AssemblyManager) {
     }
 
     // Sealed results: weights not available until voting ends
-    const now = Date.now();
+    const now = manager.timeProvider.now();
     if (
       resultsVisibility === "sealed" &&
       votingEvent.timeline.votingEnd > now
