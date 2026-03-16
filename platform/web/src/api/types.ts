@@ -147,6 +147,7 @@ export interface VotingHistory {
   participantId: string;
   history: Array<{
     issueId: string;
+    issueTitle: string | null;
     choice: string;
     votedAt: string;
   }>;
@@ -168,9 +169,11 @@ export interface DelegateProfile {
   participantId: string;
   name: string | null;
   delegatorsCount: number;
+  delegators: Array<{ id: string; name: string | null }>;
   delegatorsIds: string[];
   myDelegations: Array<{
     targetId: string;
+    targetName: string | null;
     topicScope: string[];
   }>;
 }

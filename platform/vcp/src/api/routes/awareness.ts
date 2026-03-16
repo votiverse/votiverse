@@ -75,6 +75,18 @@ export function awarenessRoutes(manager: AssemblyManager) {
     const { engine } = await manager.getEngine(assemblyId);
     const store = engine.getEventStore();
 
+    // Build issueId → title map from VotingEventCreated events
+    const issueTitles = new Map<string, string>();
+    const eventCreatedEvents = await store.query({ types: ["VotingEventCreated"] });
+    for (const evt of eventCreatedEvents) {
+      const p = evt.payload as { issues?: Array<{ id: string; title: string }> };
+      if (p.issues) {
+        for (const issue of p.issues) {
+          issueTitles.set(issue.id, issue.title);
+        }
+      }
+    }
+
     // Query vote events for this participant
     const voteEvents = await store.query({ types: ["VoteCast"] });
     const history = voteEvents
@@ -88,6 +100,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
         const includeChoice = secrecy === "public" || isOwnHistory;
         return {
           issueId: payload.issueId,
+          issueTitle: issueTitles.get(payload.issueId) ?? null,
           ...(includeChoice ? { choice: payload.choice } : {}),
           votedAt: new Date(e.timestamp).toISOString(),
         };
@@ -150,15 +163,37 @@ export function awarenessRoutes(manager: AssemblyManager) {
       delegatorsIds = delegatorsToMe.map((d) => d.sourceId);
     }
 
+    // Resolve delegator names
+    let delegators: Array<{ id: string; name: string | null }> | undefined;
+    if (delegatorsIds !== undefined) {
+      delegators = await Promise.all(
+        delegatorsIds.map(async (id) => {
+          const p = await engine.identity.getParticipant(id as ParticipantId);
+          return { id, name: p?.name ?? null };
+        }),
+      );
+    }
+
+    // Resolve delegation target names
+    const myDelegationsWithNames = await Promise.all(
+      myDelegations.map(async (d) => {
+        const target = await engine.identity.getParticipant(d.targetId as ParticipantId);
+        return {
+          targetId: d.targetId,
+          targetName: target?.name ?? null,
+          topicScope: d.topicScope,
+        };
+      }),
+    );
+
     return c.json({
       participantId: pid,
       name: participant?.name ?? null,
       delegatorsCount: delegatorsToMe.length,
+      ...(delegators !== undefined ? { delegators } : {}),
+      // Keep delegatorsIds for backward compat
       ...(delegatorsIds !== undefined ? { delegatorsIds } : {}),
-      myDelegations: myDelegations.map((d) => ({
-        targetId: d.targetId,
-        topicScope: d.topicScope,
-      })),
+      myDelegations: myDelegationsWithNames,
     });
   });
 

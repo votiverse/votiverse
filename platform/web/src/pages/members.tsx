@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router";
+import { useParams } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
-import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
+import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 
 export function Members() {
@@ -41,22 +41,19 @@ export function Members() {
                   <Avatar name={p.name} size="md" />
                   <div className="min-w-0">
                     <div className="font-medium text-gray-900">{p.name}</div>
-                    <div className="text-xs text-gray-400 font-mono mt-0.5 truncate">{p.id}</div>
+                    {p.registeredAt && (
+                      <div className="text-xs text-gray-400 mt-0.5">
+                        Joined {new Date(p.registeredAt).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 sm:gap-2 shrink-0">
-                  <Link
-                    to={`/assembly/${assemblyId}/awareness/profile/${p.id}`}
-                    className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center"
-                  >
-                    Profile
-                  </Link>
-                  <Link
-                    to={`/assembly/${assemblyId}/awareness/history/${p.id}`}
-                    className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center"
-                  >
-                    History
-                  </Link>
+                  {p.status && (
+                    <Badge color={p.status === "active" ? "green" : "gray"}>
+                      {p.status}
+                    </Badge>
+                  )}
                   <RemoveButton assemblyId={assemblyId!} participantId={p.id} onRemoved={refetch} />
                 </div>
               </div>
@@ -114,13 +111,16 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
 
 function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: string; participantId: string; onRemoved: () => void }) {
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRemove = async () => {
+    setError(null);
     try {
       await api.removeParticipant(assemblyId, participantId);
       onRemoved();
-    } catch {
-      // silently ignore
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to remove member");
+      setConfirming(false);
     }
   };
 
@@ -134,8 +134,11 @@ function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: st
   }
 
   return (
-    <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700">
-      Remove
-    </Button>
+    <div className="flex items-center gap-1">
+      {error && <span className="text-xs text-red-500">{error}</span>}
+      <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700">
+        Remove
+      </Button>
+    </div>
   );
 }

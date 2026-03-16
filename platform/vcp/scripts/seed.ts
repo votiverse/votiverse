@@ -11,6 +11,7 @@
 import {
   post,
   postAs,
+  get,
   fromNow,
   assemblyIds,
   participantIds,
@@ -34,6 +35,14 @@ import { POLLS, POLL_RESPONSES } from "./seed-data/polls.js";
 
 export async function main() {
   console.log(`\nSeeding VCP at ${BASE_URL}...\n`);
+
+  // ── Guard: abort if assemblies already exist ─────────────────────────
+  const existing = await get("/assemblies") as { assemblies?: unknown[] };
+  if (existing.assemblies && existing.assemblies.length > 0) {
+    console.log(`  ⚠ Database already has ${existing.assemblies.length} assemblies — skipping seed.`);
+    console.log("  Run 'pnpm reset' to wipe and reseed from scratch.\n");
+    return;
+  }
 
   // ── Step 1: Create assemblies ──────────────────────────────────────
 

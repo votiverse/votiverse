@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
-import { Card, CardHeader, CardBody, Button, Spinner, Badge } from "../components/ui.js";
+import { Card, CardHeader, CardBody, Button, Spinner, Badge, ErrorBox } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { presetLabel } from "../lib/presets.js";
 
@@ -16,6 +16,7 @@ export function Profile() {
   const { participantId, participantName, clearIdentity } = useIdentity();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!participantId) {
@@ -45,8 +46,8 @@ export function Profile() {
         );
 
         if (!cancelled) setData(results);
-      } catch {
-        // ignore
+      } catch (err: unknown) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load profile data");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -63,6 +64,7 @@ export function Profile() {
   }
 
   if (loading) return <Spinner />;
+  if (error) return <div className="max-w-3xl mx-auto"><ErrorBox message={error} /></div>;
 
   const totalVotes = data.reduce((sum, d) => sum + (d.history?.history.length ?? 0), 0);
   const totalDelegators = data.reduce((sum, d) => sum + (d.profile?.delegatorsCount ?? 0), 0);
@@ -131,9 +133,10 @@ export function Profile() {
                       {profile.delegatorsCount} member{profile.delegatorsCount !== 1 ? "s" : ""} trust you with their vote
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      {profile.delegatorsIds.map((id) => (
-                        <span key={id} className="text-xs bg-brand/10 text-brand px-2 py-1 rounded">
-                          {id.slice(0, 8)}
+                      {profile.delegators.map((d) => (
+                        <span key={d.id} className="inline-flex items-center gap-1.5 text-xs bg-brand/10 text-brand px-2 py-1 rounded">
+                          <Avatar name={d.name ?? "?"} size="xs" className="!w-4 !h-4" />
+                          {d.name ?? d.id.slice(0, 8)}
                         </span>
                       ))}
                     </div>
@@ -143,10 +146,13 @@ export function Profile() {
                   <div>
                     <p className="text-xs text-gray-500 mb-1">People you trust</p>
                     {profile.myDelegations.map((d, i) => (
-                      <p key={i} className="text-sm text-gray-700">
-                        Trusts {d.targetId.slice(0, 8)}
-                        {d.topicScope.length === 0 ? " (global)" : ` (${d.topicScope.length} topics)`}
-                      </p>
+                      <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                        <Avatar name={d.targetName ?? "?"} size="xs" className="!w-4 !h-4" />
+                        <span>
+                          {d.targetName ?? d.targetId.slice(0, 8)}
+                          {d.topicScope.length === 0 ? " (global)" : ` (${d.topicScope.length} topics)`}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -165,9 +171,9 @@ export function Profile() {
                 <div className="space-y-1">
                   {history.history.slice(0, 5).map((entry, idx) => (
                     <div key={idx} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="capitalize font-medium text-gray-900">{entry.choice}</span>
-                        <span className="text-xs text-gray-400 font-mono">{entry.issueId.slice(0, 12)}...</span>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="capitalize font-medium text-gray-900 shrink-0">{entry.choice}</span>
+                        <span className="text-xs text-gray-500 truncate">{entry.issueTitle ?? entry.issueId.slice(0, 12)}</span>
                       </div>
                       <span className="text-xs text-gray-400">
                         {new Date(entry.votedAt).toLocaleDateString()}
