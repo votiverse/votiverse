@@ -53,6 +53,11 @@ export type QuestionId = string & { readonly __brand: "QuestionId" };
 /** Milliseconds since Unix epoch. Branded for type safety. */
 export type Timestamp = number & { readonly __brand: "Timestamp" };
 
+/** Provides the current time. Injectable for testing (test clocks). */
+export interface TimeProvider {
+  now(): Timestamp;
+}
+
 // ---------------------------------------------------------------------------
 // Participant status
 // ---------------------------------------------------------------------------

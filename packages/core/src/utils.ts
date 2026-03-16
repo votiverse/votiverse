@@ -16,6 +16,7 @@ import type {
   PredictionId,
   ProposalId,
   QuestionId,
+  TimeProvider,
   Timestamp,
   TopicId,
   VotingEventId,
@@ -93,6 +94,11 @@ export function generateQuestionId(): QuestionId {
 export function now(): Timestamp {
   return Date.now() as Timestamp;
 }
+
+/** Default TimeProvider using the system clock. */
+export const systemTime: TimeProvider = {
+  now: () => Date.now() as Timestamp,
+};
 
 /** Creates a Timestamp from a Date object. */
 export function timestampFromDate(date: Date): Timestamp {

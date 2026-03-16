@@ -32,6 +32,7 @@ export type {
   EventTimeline,
   VotingEvent,
   VoteChoice,
+  TimeProvider,
 } from "./types.js";
 
 // Events
@@ -106,4 +107,8 @@ export {
   timestampFromDate,
   dateFromTimestamp,
   timestamp,
+  systemTime,
 } from "./utils.js";
+
+// Test Clock
+export { TestClock } from "./test-clock.js";
