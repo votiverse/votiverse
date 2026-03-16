@@ -431,28 +431,30 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
           </div>
         ))}
 
-        {/* Submit / clear actions */}
-        {showButtons && answeredCount > 0 && (
-          <div className="flex items-center gap-3 pt-1">
-            <Button onClick={submitAll} disabled={responding || !allAnswered}>
-              {responding ? "Submitting..." : `Submit Response${poll.questions.length > 1 ? `s (${answeredCount}/${poll.questions.length})` : ""}`}
+        {/* Actions row: submit/clear on the left, view results on the right */}
+        {(!results && !isClosed) && (
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-3">
+              {showButtons && answeredCount > 0 && (
+                <>
+                  <Button onClick={submitAll} disabled={responding || !allAnswered}>
+                    {responding ? "Submitting..." : `Submit Response${poll.questions.length > 1 ? `s (${answeredCount}/${poll.questions.length})` : ""}`}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={clearAnswers}
+                    disabled={responding}
+                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                  >
+                    Clear
+                  </button>
+                </>
+              )}
+            </div>
+            <Button variant="ghost" onClick={loadResults}>
+              View Results
             </Button>
-            <button
-              type="button"
-              onClick={clearAnswers}
-              disabled={responding}
-              className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
-            >
-              Clear
-            </button>
           </div>
-        )}
-
-        {/* Results section */}
-        {!results && !isClosed && (
-          <Button variant="ghost" onClick={loadResults} className="w-full sm:w-auto">
-            View Results
-          </Button>
         )}
 
         {results && (
