@@ -1,4 +1,9 @@
-/** Typed VCP API client using fetch. */
+/**
+ * API client — all requests go through the client backend.
+ *
+ * The backend handles VCP communication, participant identity resolution,
+ * and API key management. The client just sends the user's access token.
+ */
 
 import type {
   Assembly,
@@ -17,11 +22,9 @@ import type {
   Poll,
   PollResults,
 } from "./types.js";
+import { getAccessToken, refreshSession } from "./auth.js";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
-const API_KEY = import.meta.env.VITE_API_KEY || "vcp_dev_key_00000000";
-const IDENTITY_KEY = "votiverse_identity";
-const JWT_STORAGE_KEY = "votiverse_jwt";
 
 class ApiError extends Error {
   constructor(
@@ -34,149 +37,34 @@ class ApiError extends Error {
   }
 }
 
-// ---- JWT Token Management ----
-
-interface StoredToken {
-  token: string;
-  assemblyId: string;
-  participantId: string;
-  expiresAt: number;
-}
-
-function getStoredTokens(): StoredToken[] {
-  try {
-    const raw = localStorage.getItem(JWT_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function storeToken(entry: StoredToken): void {
-  const tokens = getStoredTokens().filter(
-    (t) => !(t.assemblyId === entry.assemblyId && t.participantId === entry.participantId),
-  );
-  tokens.push(entry);
-  localStorage.setItem(JWT_STORAGE_KEY, JSON.stringify(tokens));
-}
-
-function getTokenForAssembly(assemblyId: string, participantId: string): string | null {
-  const tokens = getStoredTokens();
-  const entry = tokens.find(
-    (t) => t.assemblyId === assemblyId && t.participantId === participantId && t.expiresAt > Date.now(),
-  );
-  return entry?.token ?? null;
-}
-
-/** Clear all stored JWT tokens (called on identity change). */
-export function clearTokens(): void {
-  localStorage.removeItem(JWT_STORAGE_KEY);
-}
-
-/**
- * Fetch a JWT for a specific assembly+participant.
- * Requires a valid API key for the exchange.
- * No-op if server returns 501 (JWT not configured).
- */
-export async function fetchToken(assemblyId: string, participantId: string): Promise<void> {
-  try {
-    const res = await fetch(`${BASE_URL}/auth/token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({ assemblyId, participantId }),
-    });
-    if (!res.ok) return; // JWT not configured or other error — silently skip
-    const data = await res.json() as { token: string; expiresIn: string };
-    // Parse expiresIn to compute absolute expiry
-    const durationMs = parseDurationMs(data.expiresIn);
-    storeToken({
-      token: data.token,
-      assemblyId,
-      participantId,
-      expiresAt: Date.now() + durationMs,
-    });
-  } catch {
-    // Network error — silently skip
-  }
-}
-
-function parseDurationMs(dur: string): number {
-  const match = /^(\d+)(s|m|h|d)$/.exec(dur);
-  if (!match) return 86400_000;
-  const value = parseInt(match[1], 10);
-  switch (match[2]) {
-    case "s": return value * 1000;
-    case "m": return value * 60_000;
-    case "h": return value * 3_600_000;
-    case "d": return value * 86_400_000;
-    default: return 86_400_000;
-  }
-}
-
-// ---- Identity ----
-
-/** Read the current identity from localStorage (shared with useIdentity). */
-function getStoredIdentity(): { memberships: Array<{ assemblyId: string; participantId: string }> } | null {
-  try {
-    const raw = localStorage.getItem(IDENTITY_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed?.memberships) return { memberships: parsed.memberships };
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// ---- Request ----
-
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  // Resolve the assembly-specific participant ID from the URL path
-  const identity = getStoredIdentity();
-  let usedJwt = false;
-
-  if (identity) {
-    const assemblyMatch = path.match(/^\/assemblies\/([^/]+)/);
-    if (assemblyMatch) {
-      const assemblyId = assemblyMatch[1];
-      const membership = identity.memberships.find((m) => m.assemblyId === assemblyId);
-      if (membership) {
-        // Try JWT first
-        const jwt = getTokenForAssembly(assemblyId, membership.participantId);
-        if (jwt) {
-          headers["Authorization"] = `Bearer ${jwt}`;
-          usedJwt = true;
-        } else {
-          headers["X-Participant-Id"] = membership.participantId;
-        }
-      }
-    }
+  const token = getAccessToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
-  // Fall back to API key if no JWT was used
-  if (!usedJwt) {
-    headers["Authorization"] = `Bearer ${API_KEY}`;
-  }
-
-  const init: RequestInit = {
-    method,
-    headers,
-  };
+  const init: RequestInit = { method, headers };
   if (body !== undefined) {
     init.body = JSON.stringify(body);
   }
-  const res = await fetch(`${BASE_URL}${path}`, init);
+
+  let res = await fetch(`${BASE_URL}${path}`, init);
+
+  // Auto-refresh on 401
+  if (res.status === 401 && token) {
+    const newToken = await refreshSession();
+    if (newToken) {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      res = await fetch(`${BASE_URL}${path}`, { method, headers, body: init.body });
+    }
+  }
+
   if (res.status === 204) return undefined as T;
 
-  // Check res.ok BEFORE parsing JSON — the response body may not be JSON
-  // (e.g. Vite proxy returns HTML when VCP is unreachable).
   if (!res.ok) {
     let code = "UNKNOWN";
     let message = res.statusText;
@@ -186,7 +74,6 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       code = err.code ?? code;
       message = err.message ?? message;
     } catch {
-      // Response body wasn't JSON — use status text
       try {
         message = await res.text();
       } catch { /* ignore */ }

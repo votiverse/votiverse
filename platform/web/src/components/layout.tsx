@@ -118,7 +118,7 @@ export function Header() {
 function IdentityIndicator({ name }: { name: string | null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { clearIdentity } = useIdentity();
+  const { clearIdentity, email } = useIdentity();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -144,7 +144,7 @@ function IdentityIndicator({ name }: { name: string | null }) {
         <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
           <div className="px-3 py-2 border-b border-gray-100">
             <p className="text-sm font-medium text-gray-900">{name}</p>
-            <p className="text-xs text-gray-400">Current identity</p>
+            {email && <p className="text-xs text-gray-400 truncate">{email}</p>}
           </div>
           <Link
             to="/profile"
@@ -157,7 +157,7 @@ function IdentityIndicator({ name }: { name: string | null }) {
             onClick={() => { clearIdentity(); setOpen(false); }}
             className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
           >
-            Switch Identity
+            Log out
           </button>
         </div>
       )}

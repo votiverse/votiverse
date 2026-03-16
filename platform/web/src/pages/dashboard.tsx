@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAttention, type PendingVote } from "../hooks/use-attention.js";
-import { IdentityPicker } from "../components/identity-picker.js";
+import { LoginForm } from "../components/login-form.js";
 import { Countdown } from "../components/countdown.js";
 import { Card, CardBody, Badge, Skeleton } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
@@ -45,7 +45,7 @@ export function Dashboard() {
   const { storeUserId, participantName } = useIdentity();
 
   if (!storeUserId) {
-    return <IdentityPicker />;
+    return <LoginForm />;
   }
 
   return <DashboardContent participantName={participantName} />;

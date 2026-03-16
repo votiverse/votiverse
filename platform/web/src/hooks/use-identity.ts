@@ -1,7 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { fetchToken, clearTokens } from "../api/client.js";
+/**
+ * Identity hook — manages user authentication state.
+ *
+ * On mount, checks for an existing access token and fetches /me.
+ * Provides login/logout/register functions and membership lookup.
+ */
 
-const STORAGE_KEY = "votiverse_identity";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import * as auth from "../api/auth.js";
 
 export interface IdentityMembership {
   assemblyId: string;
@@ -9,96 +14,130 @@ export interface IdentityMembership {
   participantId: string;
 }
 
-export interface Identity {
-  storeUserId: string;
-  participantName: string;
-  memberships: IdentityMembership[];
-}
-
 export interface IdentityCtx {
+  /** User ID (null if not logged in). */
   storeUserId: string | null;
+  /** User display name. */
   participantName: string | null;
+  /** User email. */
+  email: string | null;
+  /** Assembly memberships. */
   memberships: IdentityMembership[];
   /** Get the assembly-specific participant ID for the current user. */
   getParticipantId: (assemblyId: string) => string | null;
-  setUser: (storeUserId: string, name: string, memberships: IdentityMembership[]) => void;
+  /** Whether the initial auth check is in progress. */
+  loading: boolean;
+  /** Login with email/password. */
+  login: (email: string, password: string) => Promise<void>;
+  /** Register a new account. */
+  register: (email: string, password: string, name: string) => Promise<void>;
+  /** Logout and clear tokens. */
+  logout: () => Promise<void>;
+  /** Legacy alias for logout. */
   clearIdentity: () => void;
-}
-
-function loadIdentity(): Identity | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    // New format: storeUserId + memberships
-    if (parsed.storeUserId && parsed.participantName && parsed.memberships) return parsed;
-    // Old format detected — clear it
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function saveIdentity(identity: Identity | null) {
-  if (identity) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
-  } else {
-    localStorage.removeItem(STORAGE_KEY);
-  }
+  /** Legacy alias — no-op in new auth system. */
+  setUser: (storeUserId: string, name: string, memberships: IdentityMembership[]) => void;
 }
 
 export const IdentityContext = createContext<IdentityCtx>({
   storeUserId: null,
   participantName: null,
+  email: null,
   memberships: [],
   getParticipantId: () => null,
-  setUser: () => {},
+  loading: true,
+  login: async () => {},
+  register: async () => {},
+  logout: async () => {},
   clearIdentity: () => {},
+  setUser: () => {},
 });
 
-export function useIdentityProvider(): IdentityCtx {
-  const [identity, setIdentityState] = useState<Identity | null>(loadIdentity);
+interface UserState {
+  id: string;
+  name: string;
+  email: string;
+  memberships: IdentityMembership[];
+}
 
-  const setUser = useCallback((storeUserId: string, name: string, memberships: IdentityMembership[]) => {
-    const next: Identity = { storeUserId, participantName: name, memberships };
-    setIdentityState(next);
-    saveIdentity(next);
-    // Opportunistically fetch JWT tokens for all memberships
-    clearTokens();
-    for (const m of memberships) {
-      void fetchToken(m.assemblyId, m.participantId);
+export function useIdentityProvider(): IdentityCtx {
+  const [user, setUser] = useState<UserState | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // On mount, check for existing session
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await auth.getMe();
+        if (!cancelled && me) {
+          setUser({
+            id: me.id,
+            name: me.name,
+            email: me.email,
+            memberships: me.memberships.map((m) => ({
+              assemblyId: m.assemblyId,
+              assemblyName: m.assemblyName,
+              participantId: m.participantId,
+            })),
+          });
+        }
+      } catch {
+        // No valid session
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const { user: authUser } = await auth.login(email, password);
+    // Fetch full profile with memberships
+    const me = await auth.getMe();
+    if (me) {
+      setUser({
+        id: me.id,
+        name: me.name,
+        email: me.email,
+        memberships: me.memberships.map((m) => ({
+          assemblyId: m.assemblyId,
+          assemblyName: m.assemblyName,
+          participantId: m.participantId,
+        })),
+      });
+    } else {
+      setUser({ id: authUser.id, name: authUser.name, email: authUser.email, memberships: [] });
     }
   }, []);
 
-  const clearIdentity = useCallback(() => {
-    setIdentityState(null);
-    saveIdentity(null);
-    clearTokens();
+  const register = useCallback(async (email: string, password: string, name: string) => {
+    const { user: authUser } = await auth.register(email, password, name);
+    setUser({ id: authUser.id, name: authUser.name, email: authUser.email, memberships: [] });
+  }, []);
+
+  const doLogout = useCallback(async () => {
+    await auth.logout();
+    setUser(null);
   }, []);
 
   const getParticipantId = useCallback((assemblyId: string): string | null => {
-    if (!identity) return null;
-    return identity.memberships.find((m) => m.assemblyId === assemblyId)?.participantId ?? null;
-  }, [identity]);
-
-  // Sync across tabs
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        setIdentityState(e.newValue ? JSON.parse(e.newValue) : null);
-      }
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, []);
+    if (!user) return null;
+    return user.memberships.find((m) => m.assemblyId === assemblyId)?.participantId ?? null;
+  }, [user]);
 
   return {
-    storeUserId: identity?.storeUserId ?? null,
-    participantName: identity?.participantName ?? null,
-    memberships: identity?.memberships ?? [],
+    storeUserId: user?.id ?? null,
+    participantName: user?.name ?? null,
+    email: user?.email ?? null,
+    memberships: user?.memberships ?? [],
     getParticipantId,
-    setUser,
-    clearIdentity,
+    loading,
+    login,
+    register,
+    logout: doLogout,
+    clearIdentity: () => { void doLogout(); },
+    setUser: () => {}, // Legacy no-op
   };
 }
 
