@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
@@ -17,6 +17,16 @@ export function EventsList() {
 
   const events = data?.events ?? [];
 
+  const STATUS_ORDER: Record<string, number> = { voting: 0, deliberation: 1 };
+  const sortedEvents = useMemo(() => [...events].sort((a, b) => {
+    const aO = STATUS_ORDER[a.status ?? ""] ?? 2;
+    const bO = STATUS_ORDER[b.status ?? ""] ?? 2;
+    if (aO !== bO) return aO - bO;
+    if (aO === 0) return new Date(a.timeline.votingEnd).getTime() - new Date(b.timeline.votingEnd).getTime();
+    if (aO === 1) return new Date(a.timeline.votingStart).getTime() - new Date(b.timeline.votingStart).getTime();
+    return new Date(b.timeline.votingEnd).getTime() - new Date(a.timeline.votingEnd).getTime();
+  }), [events]);
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -32,11 +42,11 @@ export function EventsList() {
         />
       )}
 
-      {events.length === 0 ? (
+      {sortedEvents.length === 0 ? (
         <EmptyState title="No votes yet" description="Create a vote to start making decisions." />
       ) : (
         <div className="space-y-3">
-          {events.map((evt) => (
+          {sortedEvents.map((evt) => (
             <EventCard key={evt.id} assemblyId={assemblyId!} event={evt} />
           ))}
         </div>
