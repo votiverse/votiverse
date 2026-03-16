@@ -247,6 +247,21 @@ export class AssemblyManager {
     };
   }
 
+  /** Find a participant by name in a specific assembly. */
+  getParticipantByName(assemblyId: string, name: string): { id: string; name: string; registeredAt: string; status: string } | undefined {
+    const row = this.db.queryOne<ParticipantRow>(
+      "SELECT * FROM participants WHERE assembly_id = ? AND name = ?",
+      [assemblyId, name],
+    );
+    if (!row) return undefined;
+    return {
+      id: row.id,
+      name: row.name,
+      registeredAt: row.registered_at,
+      status: row.status,
+    };
+  }
+
   /** Persist issue details after creating a voting event. */
   persistIssues(assemblyId: string, issues: readonly Issue[]): void {
     for (const issue of issues) {

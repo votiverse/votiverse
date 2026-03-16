@@ -33,13 +33,14 @@ class ApiError extends Error {
   }
 }
 
-/** Read the current participant ID from localStorage (shared with useIdentity). */
-function getStoredParticipantId(): string | null {
+/** Read the current participant identity from localStorage (shared with useIdentity). */
+function getStoredIdentity(): { id: string; name: string } | null {
   try {
     const raw = localStorage.getItem(IDENTITY_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed?.participantId ?? null;
+    if (parsed?.participantId) return { id: parsed.participantId, name: parsed.participantName ?? "" };
+    return null;
   } catch {
     return null;
   }
@@ -52,9 +53,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   };
 
   // Include participant identity when available (sovereignty enforcement)
-  const pid = getStoredParticipantId();
-  if (pid) {
-    headers["X-Participant-Id"] = pid;
+  const identity = getStoredIdentity();
+  if (identity) {
+    headers["X-Participant-Id"] = identity.id;
+    if (identity.name) {
+      headers["X-Participant-Name"] = identity.name;
+    }
   }
 
   const init: RequestInit = {

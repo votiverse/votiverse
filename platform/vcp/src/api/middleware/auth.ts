@@ -76,7 +76,18 @@ export function requireParticipant(manager: AssemblyManager) {
     // Extract assembly ID from route params
     const assemblyId = c.req.param("id");
     if (assemblyId) {
-      const participant = manager.getParticipant(assemblyId, participantId);
+      let participant = manager.getParticipant(assemblyId, participantId);
+
+      // Cross-assembly identity resolution: the client stores a single participant ID
+      // but each assembly assigns different UUIDs to the same person.
+      // Fall back to name-based lookup using X-Participant-Name header.
+      if (!participant) {
+        const participantName = c.req.header("X-Participant-Name");
+        if (participantName) {
+          participant = manager.getParticipantByName(assemblyId, participantName);
+        }
+      }
+
       if (!participant) {
         return c.json(
           { error: { code: "FORBIDDEN", message: `Participant "${participantId}" not found in assembly` } },
@@ -89,6 +100,10 @@ export function requireParticipant(manager: AssemblyManager) {
           403,
         );
       }
+
+      // Use the resolved assembly-specific participant ID
+      c.set("participantId", participant.id);
+      return next();
     }
 
     c.set("participantId", participantId);

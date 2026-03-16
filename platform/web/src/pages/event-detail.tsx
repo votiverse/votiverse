@@ -201,10 +201,10 @@ function EventTimeline({ timeline, status }: {
                 <div className={`flex-1 h-0.5 ${idx < activeIdx ? "bg-brand" : "bg-gray-200"}`} />
               )}
             </div>
-            <span className={`text-xs mt-1.5 ${idx === activeIdx ? "text-brand font-medium" : "text-gray-400"}`}>
+            <span className={`text-xs mt-1.5 ${idx === activeIdx ? "text-brand font-medium" : "text-gray-600"}`}>
               {phase.label}
             </span>
-            <span className="text-[10px] text-gray-300">
+            <span className="text-[10px] text-gray-500">
               {new Date(phase.date).toLocaleDateString()}
             </span>
           </div>
