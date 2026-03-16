@@ -10,6 +10,26 @@ import { getUser } from "../middleware/auth.js";
 export function meRoutes(userService: UserService, membershipService: MembershipService) {
   const app = new Hono();
 
+  /**
+   * POST /internal/memberships — create membership record directly (seed only).
+   * Does NOT call VCP — assumes participant already exists.
+   */
+  app.post("/internal/memberships", async (c) => {
+    const body = await c.req.json<{
+      userId: string;
+      assemblyId: string;
+      participantId: string;
+      assemblyName: string;
+    }>();
+    await membershipService.createMembership(
+      body.userId,
+      body.assemblyId,
+      body.participantId,
+      body.assemblyName,
+    );
+    return c.json({ status: "ok" }, 201);
+  });
+
   /** GET /me — current user profile with memberships. */
   app.get("/me", async (c) => {
     const { id } = getUser(c);
