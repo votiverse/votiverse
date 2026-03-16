@@ -15,6 +15,10 @@ export interface VCPConfig {
   logLevel: "debug" | "info" | "warn" | "error";
   /** Allowed CORS origins. */
   corsOrigins: string[];
+  /** JWT signing secret. If set, enables JWT authentication for participants. */
+  jwtSecret: string | null;
+  /** JWT token expiry duration (e.g., "24h", "7d"). */
+  jwtExpiry: string;
 }
 
 const DEFAULT_API_KEY = "vcp_dev_key_00000000";
@@ -29,6 +33,8 @@ export function loadConfig(): VCPConfig {
     apiKeys: parseApiKeys(process.env["VCP_API_KEYS"]),
     logLevel: (process.env["VCP_LOG_LEVEL"] as VCPConfig["logLevel"]) ?? "info",
     corsOrigins: parseCorsOrigins(process.env["VCP_CORS_ORIGINS"]),
+    jwtSecret: process.env["VCP_JWT_SECRET"] ?? null,
+    jwtExpiry: process.env["VCP_JWT_EXPIRY"] ?? "24h",
   };
 }
 
@@ -68,7 +74,11 @@ export function validateProductionConfig(config: VCPConfig): void {
     errors.push("VCP_API_KEYS must be explicitly set in production (default dev key is not allowed)");
   }
 
-  if (config.dbPath === "./vcp-dev.db") {
+  if (!config.jwtSecret) {
+    errors.push("VCP_JWT_SECRET must be set in production for participant authentication");
+  }
+
+  if (config.dbPath === "./vcp-dev.db" && !config.databaseUrl) {
     console.warn("[vcp] WARNING: VCP_DB_PATH is the default './vcp-dev.db' in production mode");
   }
 

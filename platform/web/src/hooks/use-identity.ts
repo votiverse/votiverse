@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { fetchToken, clearTokens } from "../api/client.js";
 
 const STORAGE_KEY = "votiverse_identity";
 
@@ -62,11 +63,17 @@ export function useIdentityProvider(): IdentityCtx {
     const next: Identity = { storeUserId, participantName: name, memberships };
     setIdentityState(next);
     saveIdentity(next);
+    // Opportunistically fetch JWT tokens for all memberships
+    clearTokens();
+    for (const m of memberships) {
+      void fetchToken(m.assemblyId, m.participantId);
+    }
   }, []);
 
   const clearIdentity = useCallback(() => {
     setIdentityState(null);
     saveIdentity(null);
+    clearTokens();
   }, []);
 
   const getParticipantId = useCallback((assemblyId: string): string | null => {

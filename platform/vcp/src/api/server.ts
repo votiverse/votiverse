@@ -21,6 +21,7 @@ import { predictionRoutes } from "./routes/predictions.js";
 import { pollRoutes } from "./routes/polls.js";
 import { awarenessRoutes } from "./routes/awareness.js";
 import { topicRoutes } from "./routes/topics.js";
+import { authRoutes } from "./routes/auth.js";
 import { stubRoutes } from "./routes/stubs.js";
 
 export function createApp(adapters: VCPAdapters, manager: AssemblyManager, config?: VCPConfig): Hono {
@@ -34,7 +35,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   }));
   app.use("*", createRequestLogger(logger));
   app.use("*", errorHandler);
-  app.use("*", createAuthMiddleware(adapters.auth));
+  app.use("*", createAuthMiddleware(adapters.auth, config?.jwtSecret));
 
   // Fallback error handler — ensures all unhandled errors return JSON
   app.onError((error, c) => {
@@ -55,6 +56,9 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
 
   // Routes
   app.route("/", healthRoutes(adapters.database));
+  if (config) {
+    app.route("/", authRoutes(manager, config));
+  }
   app.route("/", assemblyRoutes(manager));
   app.route("/", participantRoutes(manager));
   app.route("/", eventRoutes(manager));

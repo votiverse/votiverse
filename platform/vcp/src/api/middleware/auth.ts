@@ -1,15 +1,21 @@
 /**
- * Authentication middleware — validates API key in Authorization header.
- * Also provides participant identity and scope-based authorization helpers.
+ * Authentication middleware — dual-mode: JWT tokens and API keys.
+ *
+ * JWT mode: If VCP_JWT_SECRET is configured, Bearer tokens are first tried
+ * as JWTs. Valid JWTs set participantId and assemblyId on context directly.
+ *
+ * API key mode: Falls back to API key validation via the AuthAdapter.
+ * Participant identity comes from the X-Participant-Id header.
  */
 
 import type { Context, Next } from "hono";
 import type { AuthAdapter, AuthScope, ClientInfo } from "../../adapters/auth/interface.js";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { verifyToken } from "../../lib/jwt.js";
 
 const PUBLIC_PATHS = new Set(["/health"]);
 
-export function createAuthMiddleware(auth: AuthAdapter) {
+export function createAuthMiddleware(auth: AuthAdapter, jwtSecret?: string | null) {
   return async (c: Context, next: Next) => {
     if (PUBLIC_PATHS.has(c.req.path)) {
       return next();
@@ -31,15 +37,34 @@ export function createAuthMiddleware(auth: AuthAdapter) {
       );
     }
 
-    const client = await auth.validate(match[1]);
+    const token = match[1];
+
+    // Try JWT verification first (if configured)
+    if (jwtSecret) {
+      const payload = await verifyToken(token, jwtSecret);
+      if (payload) {
+        // JWT-authenticated request — participant identity is in the token
+        c.set("participantId", payload.sub);
+        c.set("jwtAssemblyId", payload.aud);
+        c.set("authMode", "jwt");
+        // Set a synthetic client for scope checks
+        c.set("client", { id: "jwt-participant", name: "JWT Participant", scopes: ["participant"] } satisfies ClientInfo);
+        return next();
+      }
+      // JWT verification failed — fall through to API key validation
+    }
+
+    // API key validation
+    const client = await auth.validate(token);
     if (!client) {
       return c.json(
-        { error: { code: "UNAUTHORIZED", message: "Invalid API key" } },
+        { error: { code: "UNAUTHORIZED", message: "Invalid credentials" } },
         401,
       );
     }
 
     c.set("client", client);
+    c.set("authMode", "apikey");
     return next();
   };
 }
@@ -51,7 +76,7 @@ export function getClient(c: Context): ClientInfo {
 
 /**
  * Extract the resolved participant ID.
- * Prefers the context value set by requireParticipant middleware,
+ * Prefers JWT-provided participantId, then context value set by requireParticipant,
  * falls back to raw X-Participant-Id header.
  */
 export function getParticipantId(c: Context): string | undefined {
@@ -59,13 +84,24 @@ export function getParticipantId(c: Context): string | undefined {
 }
 
 /**
- * Middleware factory that requires a valid X-Participant-Id header and validates
- * the participant exists in the given assembly.
+ * Middleware factory that requires a valid participant identity.
+ *
+ * In JWT mode: participantId is already set from the token claims.
+ * In API key mode: reads X-Participant-Id header and validates against assembly.
  *
  * Sets `participantId` on the context for downstream use.
  */
 export function requireParticipant(manager: AssemblyManager) {
   return async (c: Context, next: Next) => {
+    const authMode = c.get("authMode") as string | undefined;
+
+    if (authMode === "jwt") {
+      // JWT already carries participant identity — validated at token issuance time.
+      // The participantId is already on context from createAuthMiddleware.
+      return next();
+    }
+
+    // API key mode — require X-Participant-Id header
     const participantId = c.req.header("X-Participant-Id");
 
     if (!participantId) {
