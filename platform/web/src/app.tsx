@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
 import { Header, BottomTabs } from "./components/layout.js";
+import { ErrorBoundary } from "./components/error-boundary.js";
 import { Dashboard } from "./pages/dashboard.js";
 import { AssemblyList } from "./pages/assembly-list.js";
 import { AssemblyDashboard } from "./pages/assembly-dashboard.js";
@@ -18,7 +19,9 @@ function Layout() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="py-6 px-4 sm:py-8 sm:px-6 lg:px-8 pb-20 lg:pb-8">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <BottomTabs />
     </div>

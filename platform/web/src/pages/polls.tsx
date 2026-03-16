@@ -263,6 +263,7 @@ function CreatePollForm({
                           type="button"
                           onClick={() => removeOption(qIdx, oIdx)}
                           className="text-gray-400 hover:text-red-500 text-lg px-1"
+                          aria-label="Remove option"
                         >
                           ×
                         </button>
@@ -322,6 +323,7 @@ function buildQuestionType(type: string, options: string[]): { type: string; [ke
 function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
   const { participantId } = useParticipant();
   const [results, setResults] = useState<PollResults | null>(null);
+  const [resultsError, setResultsError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
   const [responded, setResponded] = useState(false);
   const [responseError, setResponseError] = useState<string | null>(null);
@@ -341,8 +343,9 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
     try {
       const r = await api.getPollResults(assemblyId, poll.id);
       setResults(r);
-    } catch {
-      // ignore
+      setResultsError(null);
+    } catch (err: unknown) {
+      setResultsError(err instanceof Error ? err.message : "Failed to load results");
     }
   }, [assemblyId, poll.id]);
 
@@ -393,6 +396,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
       </CardHeader>
       <CardBody className="space-y-3">
         {responseError && <ErrorBox message={responseError} />}
+        {resultsError && <ErrorBox message={resultsError} />}
 
         {poll.questions.map((q) => (
           <div key={q.id} className="bg-gray-50 rounded-md p-3 sm:p-4">

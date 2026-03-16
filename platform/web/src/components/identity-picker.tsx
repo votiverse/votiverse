@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
-import { Spinner } from "./ui.js";
+import { Spinner, ErrorBox } from "./ui.js";
 import { Avatar } from "./avatar.js";
 
 interface KnownParticipant {
@@ -15,6 +15,7 @@ export function IdentityPicker() {
   const { setParticipant } = useIdentity();
   const [participants, setParticipants] = useState<KnownParticipant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,8 +42,8 @@ export function IdentityPicker() {
           }),
         );
         if (!cancelled) setParticipants(results);
-      } catch {
-        // ignore
+      } catch (err: unknown) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load members");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -55,6 +56,14 @@ export function IdentityPicker() {
       <div className="max-w-md mx-auto py-16 text-center">
         <Spinner />
         <p className="mt-4 text-sm text-gray-500">Loading members...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-md mx-auto py-16">
+        <ErrorBox message={error} />
       </div>
     );
   }
