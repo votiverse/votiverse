@@ -8,6 +8,7 @@ import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
+import { QuickDelegateForm } from "../components/quick-delegate-form.js";
 
 /** Neutral color rotation for tally bars — first place gets the strongest color, no choice is privileged. */
 const TALLY_COLORS = [
@@ -148,6 +149,8 @@ export function EventDetail() {
               participation={participationByIssue.get(issue.id) ?? null}
               delegationConfig={delegationConfig}
               resultsVisibility={resultsVisibility}
+              participants={participants}
+              topics={topicsData?.topics ?? []}
               onVoted={refreshAll}
             />
           );
@@ -269,6 +272,8 @@ function IssueVotingCard({
   participation,
   delegationConfig,
   resultsVisibility,
+  participants,
+  topics,
   onVoted,
 }: {
   assemblyId: string;
@@ -285,6 +290,8 @@ function IssueVotingCard({
   participation: ParticipationRecord | null;
   delegationConfig: DelegationConfig;
   resultsVisibility: string;
+  participants: Array<{ id: string; name: string }>;
+  topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
   onVoted: () => void;
 }) {
   const { participantId } = useIdentity();
@@ -372,9 +379,14 @@ function IssueVotingCard({
             delegationConfig={delegationConfig}
             chainNames={chainNames}
             terminalVoterName={issueStatus.terminalVoterId ? (nameMap.get(issueStatus.terminalVoterId) ?? null) : null}
+            issueTopicIds={topicIds ?? []}
+            participants={participants}
+            topics={topics}
+            participantId={participantId!}
             voting={voting}
             voteError={voteError}
             onVote={handleVote}
+            onDelegationCreated={onVoted}
           />
         )}
 
@@ -417,9 +429,14 @@ function VotingSection({
   delegationConfig,
   chainNames,
   terminalVoterName,
+  issueTopicIds,
+  participants,
+  topics,
+  participantId,
   voting,
   voteError,
   onVote,
+  onDelegationCreated,
 }: {
   assemblyId: string;
   issueId: string;
@@ -428,9 +445,14 @@ function VotingSection({
   delegationConfig: DelegationConfig;
   chainNames: string[];
   terminalVoterName: string | null;
+  issueTopicIds: string[];
+  participants: Array<{ id: string; name: string }>;
+  topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
+  participantId: string;
   voting: boolean;
   voteError: string | null;
   onVote: (choice: string) => void;
+  onDelegationCreated: () => void;
 }) {
   const [expanded, setExpanded] = useState(!issueStatus.hasVoted);
 
@@ -479,6 +501,11 @@ function VotingSection({
         hasVoted={issueStatus.hasVoted}
         chainNames={chainNames}
         terminalVoterName={terminalVoterName}
+        issueTopicIds={issueTopicIds}
+        participants={participants}
+        topics={topics}
+        participantId={participantId}
+        onDelegationCreated={onDelegationCreated}
       />
 
       {/* Direct vote buttons */}
@@ -564,6 +591,11 @@ function DelegationCard({
   hasVoted,
   chainNames,
   terminalVoterName,
+  issueTopicIds,
+  participants,
+  topics,
+  participantId,
+  onDelegationCreated,
 }: {
   assemblyId: string;
   delegationConfig: DelegationConfig;
@@ -571,7 +603,14 @@ function DelegationCard({
   hasVoted: boolean;
   chainNames: string[];
   terminalVoterName: string | null;
+  issueTopicIds: string[];
+  participants: Array<{ id: string; name: string }>;
+  topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
+  participantId: string;
+  onDelegationCreated: () => void;
 }) {
+  const [showForm, setShowForm] = useState(false);
+
   // State 1: Active delegation (and no direct vote override)
   if (isDelegated && !hasVoted) {
     const delegateName = terminalVoterName ?? chainNames[chainNames.length - 1];
@@ -603,19 +642,33 @@ function DelegationCard({
   // State 2: Delegation enabled but not set up (or user voted directly, overriding delegation)
   if (delegationConfig.enabled) {
     return (
-      <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 border-dashed">
-        <div className="flex items-center gap-2 min-w-0">
-          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-          </svg>
-          <span className="text-sm text-gray-500">No delegation set up for this topic</span>
+      <div>
+        <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 border-dashed">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+            <span className="text-sm text-gray-500">No delegate for this topic</span>
+          </div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="text-xs text-brand hover:text-brand-dark font-medium min-h-[32px] flex items-center shrink-0"
+          >
+            Delegate
+          </button>
         </div>
-        <Link
-          to={`/assembly/${assemblyId}/delegations`}
-          className="text-xs text-brand hover:text-brand-dark underline min-h-[32px] flex items-center shrink-0"
-        >
-          Set up
-        </Link>
+        {showForm && (
+          <QuickDelegateForm
+            assemblyId={assemblyId}
+            participantId={participantId}
+            participants={participants}
+            preselectedTopicIds={issueTopicIds}
+            topics={topics}
+            isTopicScoped={delegationConfig.topicScoped}
+            onCreated={() => { setShowForm(false); onDelegationCreated(); }}
+            onClose={() => setShowForm(false)}
+          />
+        )}
       </div>
     );
   }

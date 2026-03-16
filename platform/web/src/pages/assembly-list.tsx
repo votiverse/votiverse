@@ -9,7 +9,7 @@ import { presetLabel } from "../lib/presets.js";
 const PRESETS = [
   { value: "TOWN_HALL", label: "Everyone votes directly", desc: "Every member votes on every question. Simple and equal." },
   { value: "SWISS_MODEL", label: "Discuss, then vote", desc: "A structured discussion period, then a direct vote by all members." },
-  { value: "LIQUID_STANDARD", label: "Members choose trusted delegates", desc: "Members can delegate their vote to someone they trust, by topic." },
+  { value: "LIQUID_STANDARD", label: "Members choose delegates", desc: "Members can delegate their vote to someone they choose, by topic." },
   { value: "LIQUID_ACCOUNTABLE", label: "Delegates with full accountability", desc: "Delegate votes are visible and predictions are tracked over time." },
   { value: "BOARD_PROXY", label: "Elected representatives", desc: "Members elect or appoint representatives who vote on their behalf." },
   { value: "CIVIC_PARTICIPATORY", label: "Mixed approach", desc: "Some topics decided by direct vote, others through delegates." },

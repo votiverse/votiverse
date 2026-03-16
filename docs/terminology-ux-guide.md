@@ -156,6 +156,28 @@ The concept of delegation weight is important but should be explained through th
 
 **Key principle:** The user picks based on "what will this feel like for my members?" not "which governance theory do I subscribe to?"
 
+### 2.12 "Trust" — Action Phrase Only, Never Describe Relationships
+
+**Problem:** The delegation UI uses "trust" to describe the relationship between people: "People who trust you," "X members trust you with their vote." This frames delegation as an emotional/interpersonal judgment. But delegation is functional — someone delegates because they believe the other person is better informed or more qualified on a topic, not because they "trust" them in a personal sense.
+
+**Fix:** "Trust someone with your vote" is a valid **action phrase** for the act of delegating — it describes what the user is doing, not the relationship. But never use "trust" to describe the relationship itself or to label other people's actions.
+
+| Wrong (never use) | Correct |
+|---|---|
+| "People who trust you" | "People who delegate to you" |
+| "X members trust you with their vote" | "X members delegate to you" |
+| "People you trust" | "Your delegates" |
+| "Trust You" (profile stat) | "Delegate to you" |
+| "When other members trust you..." | "When other members delegate to you..." |
+| "Trusted delegate" (form label) | "Delegate" |
+| "All topics (trust on everything)" | "All topics" |
+
+The action phrase remains valid:
+- "Trust someone with your vote" (CTA button) — OK
+- "Delegate your vote" (alternative CTA) — also OK
+
+The relationship is always described functionally, not emotionally.
+
 ---
 
 ## 3. UX Issues

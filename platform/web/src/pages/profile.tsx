@@ -103,7 +103,7 @@ export function Profile() {
         <Card>
           <CardBody className="text-center py-4">
             <div className="text-2xl font-semibold text-gray-900">{totalDelegators}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Trust You</div>
+            <div className="text-xs text-gray-500 mt-0.5">Delegate to You</div>
           </CardBody>
         </Card>
         <Card>
@@ -130,7 +130,7 @@ export function Profile() {
                 {profile.delegatorsCount > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">
-                      {profile.delegatorsCount} member{profile.delegatorsCount !== 1 ? "s" : ""} trust you with their vote
+                      {profile.delegatorsCount} member{profile.delegatorsCount !== 1 ? "s" : ""} delegate to you
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {profile.delegators.map((d) => (
@@ -144,7 +144,7 @@ export function Profile() {
                 )}
                 {profile.myDelegations.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">People you trust</p>
+                    <p className="text-xs text-gray-500 mb-1">Your delegates</p>
                     {profile.myDelegations.map((d, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
                         <Avatar name={d.targetName ?? "?"} size="xs" className="!w-4 !h-4" />

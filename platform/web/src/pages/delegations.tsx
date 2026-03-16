@@ -4,12 +4,10 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
-import type { Delegation, DelegationChain } from "../api/types.js";
-import { Card, CardHeader, CardBody, Button, Select, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
+import type { Delegation } from "../api/types.js";
+import { Card, CardBody, Button, Select, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { TopicPicker } from "../components/topic-picker.js";
-
-type Tab = "mine" | "assembly";
 
 export function Delegations() {
   const { assemblyId } = useParams();
@@ -17,140 +15,133 @@ export function Delegations() {
   const { assembly } = useAssembly(assemblyId);
   const { data, loading, error, refetch } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
-  const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
   const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
 
-  const visibilityMode = assembly?.config.delegation.visibility?.mode ?? "public";
-  const showAssemblyTab = visibilityMode === "public";
-  const [tab, setTab] = useState<Tab>("mine");
+  const isTopicScoped = assembly?.config.delegation.topicScoped ?? false;
 
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
 
+  if (!participantId) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Your Delegates</h1>
+        <EmptyState
+          title="No identity"
+          description="Go to Home and pick who you are to view your delegations."
+        />
+      </div>
+    );
+  }
+
   const allDelegations = data?.delegations ?? [];
   const participants = participantsData?.participants ?? [];
-  const events = eventsData?.events ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
   const topicNameMap = new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name]));
-  const isTopicScoped = assembly?.config.delegation.topicScoped ?? false;
 
-  // Split delegations into mine vs all
   const myOutgoing = allDelegations.filter((d) => d.sourceId === participantId);
   const myIncoming = allDelegations.filter((d) => d.targetId === participantId);
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Delegates</h1>
+    <div className="max-w-3xl mx-auto">
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Your Delegates</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          When you can't follow every topic, let someone you choose vote for you.
+          You can always override with a direct vote.
+        </p>
       </div>
 
-      {/* Tab bar */}
-      {showAssemblyTab && (
-        <div className="flex gap-1 border-b border-gray-200 mb-6">
-          <TabButton active={tab === "mine"} onClick={() => setTab("mine")}>
-            My Delegations
-          </TabButton>
-          <TabButton active={tab === "assembly"} onClick={() => setTab("assembly")}>
-            Assembly Delegations
-          </TabButton>
-        </div>
-      )}
+      {/* Outgoing delegations section */}
+      <DelegatesList
+        assemblyId={assemblyId!}
+        participantId={participantId}
+        participantName={participantName}
+        myOutgoing={myOutgoing}
+        participants={participants}
+        nameMap={nameMap}
+        topicNameMap={topicNameMap}
+        isTopicScoped={isTopicScoped}
+        refetch={refetch}
+      />
 
-      {tab === "mine" ? (
-        <MyDelegationsTab
-          assemblyId={assemblyId!}
-          participantId={participantId}
-          participantName={participantName}
-          myOutgoing={myOutgoing}
-          myIncoming={myIncoming}
-          participants={participants}
-          events={events}
-          nameMap={nameMap}
-          topicNameMap={topicNameMap}
-          isTopicScoped={isTopicScoped}
-          visibilityMode={visibilityMode}
-          refetch={refetch}
-        />
-      ) : (
-        <AssemblyDelegationsTab
-          assemblyId={assemblyId!}
-          allDelegations={allDelegations}
-          participants={participants}
-          events={events}
-          nameMap={nameMap}
-          topicNameMap={topicNameMap}
-        />
-      )}
+      {/* Incoming delegations — collapsed */}
+      <IncomingSection
+        myIncoming={myIncoming}
+        nameMap={nameMap}
+        topicNameMap={topicNameMap}
+      />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Tab button
+// Outgoing delegations list
 // ---------------------------------------------------------------------------
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors min-h-[44px] ${
-        active
-          ? "border-brand text-brand"
-          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tab 1: My Delegations — always visible
-// ---------------------------------------------------------------------------
-
-function MyDelegationsTab({
+function DelegatesList({
   assemblyId,
   participantId,
   participantName,
   myOutgoing,
-  myIncoming,
   participants,
-  events,
   nameMap,
   topicNameMap,
   isTopicScoped,
-  visibilityMode,
   refetch,
 }: {
   assemblyId: string;
-  participantId: string | null;
+  participantId: string;
   participantName: string | null;
   myOutgoing: Delegation[];
-  myIncoming: Delegation[];
   participants: Array<{ id: string; name: string }>;
-  events: Array<{ id: string; title: string; issueIds?: string[] }>;
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
   isTopicScoped: boolean;
-  visibilityMode: "public" | "private";
   refetch: () => void;
 }) {
   const [creating, setCreating] = useState(false);
 
-  if (!participantId) {
+  if (myOutgoing.length === 0 && !creating) {
     return (
-      <EmptyState
-        title="No identity"
-        description="Go to Home and pick who you are to view your delegations."
-      />
+      <div className="mb-8">
+        <Card>
+          <CardBody className="py-10 text-center">
+            <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+            <h3 className="font-medium text-gray-900 mb-1">No delegates yet</h3>
+            <p className="text-sm text-gray-500 max-w-sm mx-auto mb-5">
+              When you can't follow every topic, you can let someone you choose vote for you.
+              Your direct vote always overrides any delegation.
+            </p>
+            <Button onClick={() => setCreating(true)}>Delegate your vote</Button>
+          </CardBody>
+        </Card>
+
+        {creating && (
+          <CreateDelegationForm
+            assemblyId={assemblyId}
+            participantId={participantId}
+            participantName={participantName}
+            participants={participants}
+            isTopicScoped={isTopicScoped}
+            onClose={() => setCreating(false)}
+            onCreated={() => { refetch(); setCreating(false); }}
+          />
+        )}
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Create delegation button */}
+    <div className="mb-8 space-y-4">
+      {/* CTA + list */}
       <div className="flex justify-end">
-        <Button onClick={() => setCreating(true)}>Trust someone with your vote</Button>
+        <Button onClick={() => setCreating(true)} variant="secondary">
+          + Delegate your vote
+        </Button>
       </div>
 
       {creating && (
@@ -161,206 +152,124 @@ function MyDelegationsTab({
           participants={participants}
           isTopicScoped={isTopicScoped}
           onClose={() => setCreating(false)}
-          onCreated={refetch}
+          onCreated={() => { refetch(); setCreating(false); }}
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* My outgoing delegations */}
-        <Card>
-          <CardHeader>
-            <h2 className="font-medium text-gray-900">People you trust</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Your outgoing delegations</p>
-          </CardHeader>
-          <CardBody>
-            {myOutgoing.length === 0 ? (
-              <EmptyState
-                title="No delegates"
-                description="You haven't trusted anyone with your vote yet."
-              />
-            ) : (
-              <div className="space-y-2">
-                {myOutgoing.map((d) => (
-                  <DelegationRow
-                    key={d.id}
-                    delegation={d}
-                    nameMap={nameMap}
-                    topicNameMap={topicNameMap}
-                    showSource={false}
-                    revokeSlot={
-                      <RevokeButton
-                        assemblyId={assemblyId}
-                        delegationId={d.id}
-                        onRevoked={refetch}
-                      />
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* My incoming delegations */}
-        <Card>
-          <CardHeader>
-            <h2 className="font-medium text-gray-900">People who trust you</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {myIncoming.length > 0
-                ? `${myIncoming.length} member${myIncoming.length !== 1 ? "s" : ""} delegated to you`
-                : "No one has delegated to you yet"
-              }
-            </p>
-          </CardHeader>
-          <CardBody>
-            {myIncoming.length === 0 ? (
-              <EmptyState
-                title="No incoming delegations"
-                description="When other members trust you with their vote, they'll appear here."
-              />
-            ) : (
-              <div className="space-y-2">
-                {myIncoming.map((d) => (
-                  <DelegationRow
-                    key={d.id}
-                    delegation={d}
-                    nameMap={nameMap}
-                    topicNameMap={topicNameMap}
-                    showSource
-                    showTarget={false}
-                  />
-                ))}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Chain resolver — own chain only in private mode */}
-      <ChainResolver
-        assemblyId={assemblyId}
-        participants={participants}
-        events={events}
-        nameMap={nameMap}
-        restrictToSelf={visibilityMode === "private"}
-        selfId={participantId}
-      />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tab 2: Assembly Delegations — only when visibility.mode === 'public'
-// ---------------------------------------------------------------------------
-
-function AssemblyDelegationsTab({
-  assemblyId,
-  allDelegations,
-  participants,
-  events,
-  nameMap,
-  topicNameMap,
-}: {
-  assemblyId: string;
-  allDelegations: Delegation[];
-  participants: Array<{ id: string; name: string }>;
-  events: Array<{ id: string; title: string; issueIds?: string[] }>;
-  nameMap: Map<string, string>;
-  topicNameMap: Map<string, string>;
-}) {
-  return (
-    <div className="space-y-6">
-      {/* Read-only list of all delegations */}
       <Card>
-        <CardHeader>
-          <h2 className="font-medium text-gray-900">All Delegations</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {allDelegations.length} active delegation{allDelegations.length !== 1 ? "s" : ""} in this group
-          </p>
-        </CardHeader>
-        <CardBody>
-          {allDelegations.length === 0 ? (
-            <EmptyState
-              title="No delegations"
-              description="No one in this group has delegated their vote yet."
-            />
-          ) : (
-            <div className="space-y-2">
-              {allDelegations.map((d) => (
-                <DelegationRow
-                  key={d.id}
-                  delegation={d}
-                  nameMap={nameMap}
-                  topicNameMap={topicNameMap}
-                  showSource
+        <CardBody className="divide-y divide-gray-100">
+          {myOutgoing.map((d) => (
+            <DelegationRow
+              key={d.id}
+              delegation={d}
+              nameMap={nameMap}
+              topicNameMap={topicNameMap}
+              revokeSlot={
+                <RevokeButton
+                  assemblyId={assemblyId}
+                  delegationId={d.id}
+                  onRevoked={refetch}
                 />
-              ))}
-            </div>
-          )}
+              }
+            />
+          ))}
         </CardBody>
       </Card>
-
-      {/* Chain resolver — any participant */}
-      <ChainResolver
-        assemblyId={assemblyId}
-        participants={participants}
-        events={events}
-        nameMap={nameMap}
-        restrictToSelf={false}
-      />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Shared: Delegation row
+// Delegation row — shows delegate info, scope, and optional revoke
 // ---------------------------------------------------------------------------
 
 function DelegationRow({
   delegation: d,
   nameMap,
   topicNameMap,
-  showSource = true,
-  showTarget = true,
   revokeSlot,
 }: {
   delegation: Delegation;
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
-  showSource?: boolean;
-  showTarget?: boolean;
   revokeSlot?: React.ReactNode;
 }) {
-  const sourceName = nameMap.get(d.sourceId) ?? d.sourceId.slice(0, 8);
   const targetName = nameMap.get(d.targetId) ?? d.targetId.slice(0, 8);
   const scopeLabel =
     d.topicScope.length === 0
-      ? "all topics"
+      ? "All topics"
       : d.topicScope.map((id) => topicNameMap.get(id) ?? id.slice(0, 8)).join(", ");
+  const since = new Date(d.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
   return (
-    <div className="flex items-center justify-between bg-gray-50 rounded-md px-3 sm:px-4 py-3 gap-2 min-h-[52px]">
-      <div className="flex items-center gap-1.5 sm:gap-2 text-sm min-w-0 flex-wrap">
-        {showSource && (
-          <>
-            <Avatar name={sourceName} size="xs" />
-            <span className="font-medium text-gray-900 truncate">{sourceName}</span>
-          </>
-        )}
-        {showSource && showTarget && (
-          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        )}
-        {showTarget && (
-          <>
-            <Avatar name={targetName} size="xs" />
-            <span className="font-medium text-brand truncate">{targetName}</span>
-          </>
-        )}
-        <span className="text-xs text-gray-400">({scopeLabel})</span>
+    <div className="flex items-center justify-between py-3 gap-3 min-h-[56px]">
+      <div className="flex items-center gap-3 min-w-0">
+        <Avatar name={targetName} size="sm" />
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">{targetName}</p>
+          <p className="text-xs text-gray-400 truncate">{scopeLabel} · Since {since}</p>
+        </div>
       </div>
       {revokeSlot}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Incoming delegations — collapsed section
+// ---------------------------------------------------------------------------
+
+function IncomingSection({
+  myIncoming,
+  nameMap,
+  topicNameMap,
+}: {
+  myIncoming: Delegation[];
+  nameMap: Map<string, string>;
+  topicNameMap: Map<string, string>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (myIncoming.length === 0) return null;
+
+  return (
+    <div className="border-t border-gray-200 pt-6">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 w-full text-left min-h-[36px]"
+      >
+        <svg
+          className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+        <span>
+          {myIncoming.length} member{myIncoming.length !== 1 ? "s" : ""} delegate to you
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-1">
+          {myIncoming.map((d) => {
+            const sourceName = nameMap.get(d.sourceId) ?? d.sourceId.slice(0, 8);
+            const scopeLabel =
+              d.topicScope.length === 0
+                ? "all topics"
+                : d.topicScope.map((id) => topicNameMap.get(id) ?? id.slice(0, 8)).join(", ");
+            return (
+              <div key={d.id} className="flex items-center gap-2 text-sm text-gray-600 pl-6 py-1.5">
+                <Avatar name={sourceName} size="xs" />
+                <span className="truncate">{sourceName}</span>
+                <span className="text-xs text-gray-400">({scopeLabel})</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -401,12 +310,11 @@ function CreateDelegationForm({
       const resolvedScope = scopeMode === "topics" ? topicScope : [];
       await api.createDelegation(assemblyId, { targetId, topicScope: resolvedScope });
       onCreated();
-      onClose();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {
         setFormError(err.message || "You don't have permission to create this delegation.");
       } else {
-        setFormError(err instanceof Error ? err.message : "Failed to set up delegation");
+        setFormError(err instanceof Error ? err.message : "Failed to create delegation");
       }
     } finally {
       setSubmitting(false);
@@ -414,32 +322,24 @@ function CreateDelegationForm({
   };
 
   return (
-    <Card className="mb-4 sm:mb-6">
+    <Card>
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">Trust someone with your vote</h3>
+          <h3 className="font-medium text-gray-900">Delegate your vote</h3>
           {formError && <ErrorBox message={formError} />}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Source — read-only, always current identity */}
-            <div>
-              <Label>From (you)</Label>
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 py-2.5 min-h-[42px]">
-                <Avatar name={participantName ?? "?"} size="xs" />
-                <span className="text-sm font-medium text-gray-700">
-                  {participantName ?? participantId}
-                </span>
-              </div>
-            </div>
-            <div>
-              <Label>To (Trusted delegate)</Label>
-              <Select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-                <option value="">Select member...</option>
-                {participants.filter((p) => p.id !== participantId).map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </Select>
-            </div>
+
+          {/* Delegate picker */}
+          <div>
+            <Label>Who should vote for you?</Label>
+            <Select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+              <option value="">Select a member...</option>
+              {participants.filter((p) => p.id !== participantId).map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Select>
           </div>
+
+          {/* Scope selector */}
           {isTopicScoped && (
             <div>
               <Label>Scope</Label>
@@ -447,17 +347,17 @@ function CreateDelegationForm({
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="scope"
+                    name="page-scope"
                     checked={scopeMode === "global"}
                     onChange={() => setScopeMode("global")}
                     className="text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-gray-700">All topics (trust on everything)</span>
+                  <span className="text-sm text-gray-700">All topics</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="scope"
+                    name="page-scope"
                     checked={scopeMode === "topics"}
                     onChange={() => setScopeMode("topics")}
                     className="text-brand focus:ring-brand"
@@ -476,11 +376,19 @@ function CreateDelegationForm({
               </div>
             </div>
           )}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
             <Button type="submit" disabled={submitting || !targetId || (scopeMode === "topics" && topicScope.length === 0)}>
-              {submitting ? "Creating..." : "Delegate"}
+              {submitting ? "Delegating..." : "Delegate"}
             </Button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-gray-500 hover:text-gray-700 min-h-[36px] px-2"
+            >
+              Cancel
+            </button>
           </div>
         </form>
       </CardBody>
@@ -489,174 +397,7 @@ function CreateDelegationForm({
 }
 
 // ---------------------------------------------------------------------------
-// Chain resolver
-// ---------------------------------------------------------------------------
-
-function ChainResolver({
-  assemblyId,
-  participants,
-  events,
-  nameMap,
-  restrictToSelf,
-  selfId,
-}: {
-  assemblyId: string;
-  participants: Array<{ id: string; name: string }>;
-  events: Array<{ id: string; title: string; issueIds?: string[] }>;
-  nameMap: Map<string, string>;
-  restrictToSelf: boolean;
-  selfId?: string | null;
-}) {
-  const [selectedParticipant, setSelectedParticipant] = useState(selfId ?? "");
-  const [selectedIssue, setSelectedIssue] = useState("");
-  const [chain, setChain] = useState<DelegationChain | null>(null);
-  const [chainLoading, setChainLoading] = useState(false);
-  const [chainError, setChainError] = useState<string | null>(null);
-
-  const allIssues = events.flatMap((evt) =>
-    (evt.issueIds ?? []).map((id) => ({ id, eventTitle: evt.title })),
-  );
-
-  const handleResolve = async () => {
-    if (!selectedParticipant || !selectedIssue) return;
-    setChainLoading(true);
-    setChainError(null);
-    try {
-      const result = await api.resolveChain(assemblyId, selectedParticipant, selectedIssue);
-      setChain(result);
-    } catch (err: unknown) {
-      if (err instanceof api.ApiError && err.status === 403) {
-        setChainError("You can only trace your own vote chain in this group.");
-      } else {
-        setChainError(err instanceof Error ? err.message : "Failed to resolve chain");
-      }
-    } finally {
-      setChainLoading(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <h2 className="font-medium text-gray-900">
-          {restrictToSelf ? "How your vote flows" : "Trace any member's vote path"}
-        </h2>
-      </CardHeader>
-      <CardBody className="space-y-4">
-        <p className="text-sm text-gray-500">
-          {restrictToSelf
-            ? "See where your vote ends up through your trusted delegates."
-            : "Trace how a member's vote flows through their trusted delegates."
-          }
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <Label>Member</Label>
-            {restrictToSelf && selfId ? (
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 py-2.5 min-h-[42px]">
-                <Avatar name={nameMap.get(selfId) ?? "?"} size="xs" />
-                <span className="text-sm font-medium text-gray-700">
-                  {nameMap.get(selfId) ?? selfId.slice(0, 8)}
-                </span>
-              </div>
-            ) : (
-              <Select value={selectedParticipant} onChange={(e) => setSelectedParticipant(e.target.value)}>
-                <option value="">Select...</option>
-                {participants.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </Select>
-            )}
-          </div>
-          <div>
-            <Label>Question</Label>
-            <Select value={selectedIssue} onChange={(e) => setSelectedIssue(e.target.value)}>
-              <option value="">Select...</option>
-              {allIssues.map((issue) => (
-                <option key={issue.id} value={issue.id}>
-                  {issue.id.slice(0, 8)}... ({issue.eventTitle})
-                </option>
-              ))}
-            </Select>
-          </div>
-        </div>
-        <Button
-          onClick={handleResolve}
-          disabled={!selectedParticipant || !selectedIssue || chainLoading}
-          className="w-full sm:w-auto"
-        >
-          {chainLoading ? "Tracing..." : "Trace vote path"}
-        </Button>
-
-        {chainError && <ErrorBox message={chainError} />}
-
-        {chain && (
-          <div className="mt-4">
-            <ChainVisualization chain={chain} nameMap={nameMap} />
-          </div>
-        )}
-      </CardBody>
-    </Card>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Chain visualization (unchanged from previous)
-// ---------------------------------------------------------------------------
-
-function ChainVisualization({ chain, nameMap }: { chain: DelegationChain; nameMap: Map<string, string> }) {
-  return (
-    <div className="bg-gray-50 rounded-lg p-4">
-      {/* Vertical on mobile, horizontal on desktop */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap">
-        {chain.chain.map((pid, idx) => {
-          const isFirst = idx === 0;
-          const isTerminal = pid === chain.terminalVoter;
-
-          return (
-            <div key={`${pid}-${idx}`} className="flex flex-col sm:flex-row items-center gap-2">
-              {idx > 0 && (
-                <>
-                  {/* Vertical arrow on mobile */}
-                  <svg className="w-5 h-5 text-gray-400 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
-                  </svg>
-                  {/* Horizontal arrow on desktop */}
-                  <svg className="w-5 h-5 text-gray-400 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </>
-              )}
-              <div
-                className={`px-4 py-2.5 rounded-md text-sm font-medium w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-2 ${
-                  isTerminal
-                    ? "bg-brand text-white"
-                    : isFirst
-                      ? "bg-white border-2 border-brand text-brand"
-                      : "bg-white border border-gray-300 text-gray-700"
-                }`}
-              >
-                <Avatar name={nameMap.get(pid) ?? pid} size="xs" />
-                {nameMap.get(pid) ?? pid.slice(0, 8)}
-                {isTerminal && <span className="ml-1 text-xs opacity-75">(voter)</span>}
-                {isFirst && !isTerminal && <span className="ml-1 text-xs opacity-75">(source)</span>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      {chain.votedDirectly && (
-        <p className="text-xs text-gray-500 mt-3">Direct vote — delegation overridden.</p>
-      )}
-      {!chain.terminalVoter && (
-        <p className="text-xs text-red-500 mt-3">Chain unresolved (cycle or no terminal voter).</p>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Revoke button — with 403 handling
+// Revoke button — with confirmation and 403 handling
 // ---------------------------------------------------------------------------
 
 function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: string; delegationId: string; onRevoked: () => void }) {
@@ -679,9 +420,7 @@ function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: str
   };
 
   if (revokeError) {
-    return (
-      <span className="text-xs text-red-500 shrink-0">{revokeError}</span>
-    );
+    return <span className="text-xs text-red-500 shrink-0">{revokeError}</span>;
   }
 
   if (confirming) {
