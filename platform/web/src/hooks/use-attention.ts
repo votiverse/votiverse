@@ -15,14 +15,26 @@ export interface PendingVote {
   delegateTargetName: string | null;
 }
 
+export interface PendingSurvey {
+  assemblyId: string;
+  assemblyName: string;
+  pollId: string;
+  pollTitle: string;
+  questionCount: number;
+  closesAt: number;
+}
+
 export interface AttentionState {
   pendingVotes: PendingVote[];
+  pendingSurveys: PendingSurvey[];
   totalPending: number;
+  totalPendingSurveys: number;
   pendingByAssembly: Record<string, number>;
   assemblySummaries: Array<{
     assembly: Assembly;
     activeEventCount: number;
     pendingVoteCount: number;
+    pendingSurveyCount: number;
   }>;
   nearestDeadline: PendingVote | null;
   loading: boolean;
@@ -32,7 +44,9 @@ export interface AttentionState {
 
 const defaultState: AttentionState = {
   pendingVotes: [],
+  pendingSurveys: [],
   totalPending: 0,
+  totalPendingSurveys: 0,
   pendingByAssembly: {},
   assemblySummaries: [],
   nearestDeadline: null,
@@ -82,14 +96,16 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
 
       const summaries: AttentionState["assemblySummaries"] = [];
       const allPending: PendingVote[] = [];
+      const allPendingSurveys: PendingSurvey[] = [];
 
       await Promise.allSettled(
         assemblies.map(async (asm) => {
           const participantId = membershipMap.get(asm.id)!;
-          const [eventsRes, historyRes, delegRes] = await Promise.allSettled([
+          const [eventsRes, historyRes, delegRes, pollsRes] = await Promise.allSettled([
             api.listEvents(asm.id),
             api.getVotingHistory(asm.id, participantId),
             api.listDelegations(asm.id, participantId),
+            api.listPolls(asm.id, participantId),
           ]);
 
           const events: VotingEvent[] = eventsRes.status === "fulfilled" ? eventsRes.value.events : [];
@@ -150,10 +166,30 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
             }
           }
 
+          // Pending surveys: open polls the user hasn't responded to
+          let pendingSurveyCount = 0;
+          if (pollsRes.status === "fulfilled") {
+            const polls = pollsRes.value.polls ?? [];
+            for (const poll of polls) {
+              if (poll.status === "open" && poll.hasResponded === false) {
+                pendingSurveyCount++;
+                allPendingSurveys.push({
+                  assemblyId: asm.id,
+                  assemblyName: asm.name,
+                  pollId: poll.id,
+                  pollTitle: poll.title,
+                  questionCount: poll.questions?.length ?? 0,
+                  closesAt: poll.closesAt,
+                });
+              }
+            }
+          }
+
           summaries.push({
             assembly: asm,
             activeEventCount: activeCount,
             pendingVoteCount: pendingCount,
+            pendingSurveyCount,
           });
         }),
       );
@@ -169,9 +205,14 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
         pendingByAssembly[v.assemblyId] = (pendingByAssembly[v.assemblyId] ?? 0) + 1;
       }
 
+      // Sort surveys by closest deadline first
+      allPendingSurveys.sort((a, b) => a.closesAt - b.closesAt);
+
       setState({
         pendingVotes: allPending,
+        pendingSurveys: allPendingSurveys,
         totalPending: pendingOnly.length,
+        totalPendingSurveys: allPendingSurveys.length,
         pendingByAssembly,
         assemblySummaries: summaries,
         nearestDeadline: pendingOnly[0] ?? null,

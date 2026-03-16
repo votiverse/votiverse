@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
-import { useAttention, type PendingVote } from "../hooks/use-attention.js";
+import { useAttention, type PendingVote, type PendingSurvey } from "../hooks/use-attention.js";
 import { LoginForm } from "../components/login-form.js";
 import { Countdown } from "../components/countdown.js";
 import { Card, CardBody, Badge, Skeleton } from "../components/ui.js";
@@ -54,7 +54,9 @@ export function Dashboard() {
 function DashboardContent({ participantName }: { participantName: string | null }) {
   const {
     pendingVotes,
+    pendingSurveys,
     totalPending,
+    totalPendingSurveys,
     assemblySummaries,
     nearestDeadline,
     loading,
@@ -88,12 +90,15 @@ function DashboardContent({ participantName }: { participantName: string | null 
       </div>
 
       {/* Action banner */}
-      {totalPending > 0 ? (
+      {(totalPending > 0 || totalPendingSurveys > 0) ? (
         <div className="mb-6 rounded-xl bg-brand p-4 sm:p-5 text-white">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-lg sm:text-xl font-semibold">
-                {totalPending} vote{totalPending !== 1 ? "s" : ""} need{totalPending === 1 ? "s" : ""} you
+                {totalPending > 0 && <>{totalPending} vote{totalPending !== 1 ? "s" : ""}</>}
+                {totalPending > 0 && totalPendingSurveys > 0 && " and "}
+                {totalPendingSurveys > 0 && <>{totalPendingSurveys} survey{totalPendingSurveys !== 1 ? "s" : ""}</>}
+                {" "}need{(totalPending + totalPendingSurveys) === 1 ? "s" : ""} you
               </p>
               {nearestDeadline && (
                 <p className="text-brand-100 text-sm mt-0.5">
@@ -120,7 +125,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
             </svg>
             <div>
               <p className="font-medium text-green-800">You're all caught up!</p>
-              <p className="text-sm text-green-600 mt-0.5">No pending votes across your groups.</p>
+              <p className="text-sm text-green-600 mt-0.5">No pending votes or surveys across your groups.</p>
             </div>
           </div>
         </div>
@@ -187,12 +192,54 @@ function DashboardContent({ participantName }: { participantName: string | null 
         </div>
       )}
 
+      {/* Pending surveys */}
+      {pendingSurveys.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Pending Surveys</h2>
+          <div className="space-y-3">
+            {pendingSurveys.map((survey) => (
+              <Link
+                key={survey.pollId}
+                to={`/assembly/${survey.assemblyId}/polls`}
+                className="block"
+              >
+                <Card className="hover:border-brand-200 hover:shadow transition-all">
+                  <CardBody className="py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                            {survey.assemblyName}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">{survey.pollTitle}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{survey.questionCount} question{survey.questionCount !== 1 ? "s" : ""}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-[10px] font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
+                          Survey open
+                        </span>
+                        {survey.closesAt > 0 && (
+                          <span className="text-[10px] text-gray-400">
+                            <Countdown target={new Date(survey.closesAt).toISOString()} className="text-[10px]" />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Assembly cards */}
       {assemblySummaries.length > 0 && (
         <div>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Your Groups</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {assemblySummaries.map(({ assembly, activeEventCount, pendingVoteCount }) => (
+            {assemblySummaries.map(({ assembly, activeEventCount, pendingVoteCount, pendingSurveyCount }) => (
               <Link key={assembly.id} to={`/assembly/${assembly.id}/events`} className="block">
                 <Card className="hover:border-brand-200 hover:shadow transition-all h-full">
                   <CardBody>
@@ -205,6 +252,11 @@ function DashboardContent({ participantName }: { participantName: string | null 
                       {pendingVoteCount > 0 && (
                         <Badge color="red">
                           {pendingVoteCount} pending vote{pendingVoteCount !== 1 ? "s" : ""}
+                        </Badge>
+                      )}
+                      {pendingSurveyCount > 0 && (
+                        <Badge color="yellow">
+                          {pendingSurveyCount} survey{pendingSurveyCount !== 1 ? "s" : ""}
                         </Badge>
                       )}
                     </div>
