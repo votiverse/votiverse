@@ -113,6 +113,45 @@ export class SQLiteAdapter implements DatabaseAdapter {
       CREATE INDEX IF NOT EXISTS idx_participation_participant
         ON issue_participation(assembly_id, participant_id);
 
+      -- Materialized event tallies (computed when event closes)
+      CREATE TABLE IF NOT EXISTS issue_tallies (
+        assembly_id         TEXT NOT NULL,
+        issue_id            TEXT NOT NULL,
+        winner              TEXT,
+        counts              TEXT NOT NULL,
+        total_votes         INTEGER NOT NULL,
+        quorum_met          INTEGER NOT NULL,
+        quorum_threshold    REAL NOT NULL,
+        eligible_count      INTEGER NOT NULL,
+        participating_count INTEGER NOT NULL,
+        computed_at         TEXT NOT NULL,
+        PRIMARY KEY (assembly_id, issue_id)
+      );
+
+      -- Materialized delegation weights (computed per-issue when event closes)
+      CREATE TABLE IF NOT EXISTS issue_weights (
+        assembly_id   TEXT NOT NULL,
+        issue_id      TEXT NOT NULL,
+        weights       TEXT NOT NULL,
+        total_weight  REAL NOT NULL,
+        computed_at   TEXT NOT NULL,
+        PRIMARY KEY (assembly_id, issue_id)
+      );
+
+      -- Materialized concentration metrics (computed per-issue when event closes)
+      CREATE TABLE IF NOT EXISTS issue_concentration (
+        assembly_id              TEXT NOT NULL,
+        issue_id                 TEXT NOT NULL,
+        gini_coefficient         REAL NOT NULL,
+        max_weight               REAL NOT NULL,
+        max_weight_holder        TEXT,
+        chain_length_distribution TEXT NOT NULL,
+        delegating_count         INTEGER NOT NULL,
+        direct_voter_count       INTEGER NOT NULL,
+        computed_at              TEXT NOT NULL,
+        PRIMARY KEY (assembly_id, issue_id)
+      );
+
       -- Auto-increment trigger for sequence numbers
       CREATE TRIGGER IF NOT EXISTS events_sequence_num
         AFTER INSERT ON events

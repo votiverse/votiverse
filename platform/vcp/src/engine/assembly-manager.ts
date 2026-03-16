@@ -427,6 +427,169 @@ export class AssemblyManager {
     }));
   }
 
+  // -----------------------------------------------------------------------
+  // Materialization — tallies, weights, concentration for closed events
+  // -----------------------------------------------------------------------
+
+  /** Check if a tally is already materialized. */
+  hasTally(assemblyId: string, issueId: string): boolean {
+    const row = this.db.queryOne(
+      "SELECT 1 FROM issue_tallies WHERE assembly_id = ? AND issue_id = ?",
+      [assemblyId, issueId],
+    );
+    return row !== undefined;
+  }
+
+  /** Read a materialized tally. Returns null if not yet materialized. */
+  getTally(assemblyId: string, issueId: string): {
+    issueId: string; winner: string | null; counts: Record<string, number>;
+    totalVotes: number; quorumMet: boolean; quorumThreshold: number;
+    eligibleCount: number; participatingCount: number;
+  } | null {
+    interface TallyRow {
+      issue_id: string; winner: string | null; counts: string;
+      total_votes: number; quorum_met: number; quorum_threshold: number;
+      eligible_count: number; participating_count: number;
+    }
+    const row = this.db.queryOne<TallyRow>(
+      "SELECT * FROM issue_tallies WHERE assembly_id = ? AND issue_id = ?",
+      [assemblyId, issueId],
+    );
+    if (!row) return null;
+    return {
+      issueId: row.issue_id,
+      winner: row.winner,
+      counts: JSON.parse(row.counts) as Record<string, number>,
+      totalVotes: row.total_votes,
+      quorumMet: row.quorum_met === 1,
+      quorumThreshold: row.quorum_threshold,
+      eligibleCount: row.eligible_count,
+      participatingCount: row.participating_count,
+    };
+  }
+
+  /** Materialize a tally for a closed issue (idempotent). */
+  async materializeTally(assemblyId: string, issueId: string): Promise<void> {
+    if (this.hasTally(assemblyId, issueId)) return;
+    const { engine } = await this.getEngine(assemblyId);
+    const tally = await engine.voting.tally(issueId as IssueId);
+    this.db.run(
+      `INSERT OR IGNORE INTO issue_tallies
+       (assembly_id, issue_id, winner, counts, total_votes, quorum_met, quorum_threshold, eligible_count, participating_count, computed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        assemblyId, issueId, tally.winner,
+        JSON.stringify(Object.fromEntries(tally.counts)),
+        tally.totalVotes, tally.quorumMet ? 1 : 0, tally.quorumThreshold,
+        tally.eligibleCount, tally.participatingCount,
+        new Date().toISOString(),
+      ],
+    );
+  }
+
+  /** Read materialized weights. Returns null if not yet materialized. */
+  getWeights(assemblyId: string, issueId: string): {
+    issueId: string; weights: Record<string, number>; totalWeight: number;
+  } | null {
+    interface WeightRow { issue_id: string; weights: string; total_weight: number }
+    const row = this.db.queryOne<WeightRow>(
+      "SELECT * FROM issue_weights WHERE assembly_id = ? AND issue_id = ?",
+      [assemblyId, issueId],
+    );
+    if (!row) return null;
+    return {
+      issueId: row.issue_id,
+      weights: JSON.parse(row.weights) as Record<string, number>,
+      totalWeight: row.total_weight,
+    };
+  }
+
+  /** Materialize delegation weights for a closed issue (idempotent). */
+  async materializeWeights(assemblyId: string, issueId: string): Promise<void> {
+    const existing = this.db.queryOne(
+      "SELECT 1 FROM issue_weights WHERE assembly_id = ? AND issue_id = ?",
+      [assemblyId, issueId],
+    );
+    if (existing) return;
+    const { engine } = await this.getEngine(assemblyId);
+    const weights = await engine.delegation.weights(issueId as IssueId);
+    this.db.run(
+      `INSERT OR IGNORE INTO issue_weights
+       (assembly_id, issue_id, weights, total_weight, computed_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        assemblyId, issueId,
+        JSON.stringify(Object.fromEntries(weights.weights)),
+        weights.totalWeight,
+        new Date().toISOString(),
+      ],
+    );
+  }
+
+  /** Read materialized concentration metrics. Returns null if not yet materialized. */
+  getConcentration(assemblyId: string, issueId: string): {
+    issueId: string; giniCoefficient: number; maxWeight: number;
+    maxWeightHolder: string | null; chainLengthDistribution: Record<number, number>;
+    delegatingCount: number; directVoterCount: number;
+  } | null {
+    interface ConcRow {
+      issue_id: string; gini_coefficient: number; max_weight: number;
+      max_weight_holder: string | null; chain_length_distribution: string;
+      delegating_count: number; direct_voter_count: number;
+    }
+    const row = this.db.queryOne<ConcRow>(
+      "SELECT * FROM issue_concentration WHERE assembly_id = ? AND issue_id = ?",
+      [assemblyId, issueId],
+    );
+    if (!row) return null;
+    return {
+      issueId: row.issue_id,
+      giniCoefficient: row.gini_coefficient,
+      maxWeight: row.max_weight,
+      maxWeightHolder: row.max_weight_holder,
+      chainLengthDistribution: JSON.parse(row.chain_length_distribution) as Record<number, number>,
+      delegatingCount: row.delegating_count,
+      directVoterCount: row.direct_voter_count,
+    };
+  }
+
+  /** Materialize concentration metrics for a closed issue (idempotent). */
+  async materializeConcentration(assemblyId: string, issueId: string): Promise<void> {
+    const existing = this.db.queryOne(
+      "SELECT 1 FROM issue_concentration WHERE assembly_id = ? AND issue_id = ?",
+      [assemblyId, issueId],
+    );
+    if (existing) return;
+    const { engine } = await this.getEngine(assemblyId);
+    const metrics = await engine.delegation.concentration(issueId as IssueId);
+    this.db.run(
+      `INSERT OR IGNORE INTO issue_concentration
+       (assembly_id, issue_id, gini_coefficient, max_weight, max_weight_holder, chain_length_distribution, delegating_count, direct_voter_count, computed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        assemblyId, issueId,
+        metrics.giniCoefficient, metrics.maxWeight, metrics.maxWeightHolder,
+        JSON.stringify(Object.fromEntries(metrics.chainLengthDistribution)),
+        metrics.delegatingCount, metrics.directVoterCount,
+        new Date().toISOString(),
+      ],
+    );
+  }
+
+  /** Materialize all computed data for a closed event (tallies, weights, concentration, participation). */
+  async materializeClosedEvent(assemblyId: string, eventId: string): Promise<void> {
+    const { engine } = await this.getEngine(assemblyId);
+    const votingEvent = engine.events.get(eventId as VotingEventId);
+    if (!votingEvent) return;
+
+    for (const issueId of votingEvent.issueIds) {
+      await this.materializeTally(assemblyId, issueId);
+      await this.materializeWeights(assemblyId, issueId);
+      await this.materializeConcentration(assemblyId, issueId);
+      await this.materializeParticipation(assemblyId, issueId);
+    }
+  }
+
   /** Evict a cached engine (e.g., after config changes). */
   evictEngine(assemblyId: string): void {
     this.engines.delete(assemblyId);

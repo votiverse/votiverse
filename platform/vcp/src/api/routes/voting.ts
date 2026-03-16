@@ -79,13 +79,12 @@ export function votingRoutes(manager: AssemblyManager) {
     const votingEnded = votingEvent.timeline.votingEnd <= now;
     const isSealed = resultsVisibility === "sealed" && !votingEnded;
 
-    // Compute tallies for all issues in the event
+    // For closed events, try materialized data first; compute live for open events
     const tallies = [];
     for (const issueId of votingEvent.issueIds) {
-      const tally = await engine.voting.tally(issueId);
-
       if (isSealed) {
-        // Return participation metadata only — no choice distribution
+        // Sealed: compute live to get participation count, but hide choices
+        const tally = await engine.voting.tally(issueId);
         tallies.push({
           issueId: tally.issueId,
           sealed: true,
@@ -97,7 +96,28 @@ export function votingRoutes(manager: AssemblyManager) {
           eligibleCount: tally.eligibleCount,
           participatingCount: tally.participatingCount,
         });
+      } else if (votingEnded) {
+        // Closed: use materialized data if available
+        const cached = manager.getTally(assemblyId, issueId);
+        if (cached) {
+          tallies.push({ ...cached, sealed: false });
+        } else {
+          const tally = await engine.voting.tally(issueId);
+          tallies.push({
+            issueId: tally.issueId,
+            sealed: false,
+            winner: tally.winner,
+            counts: Object.fromEntries(tally.counts),
+            totalVotes: tally.totalVotes,
+            quorumMet: tally.quorumMet,
+            quorumThreshold: tally.quorumThreshold,
+            eligibleCount: tally.eligibleCount,
+            participatingCount: tally.participatingCount,
+          });
+        }
       } else {
+        // Open: always compute live
+        const tally = await engine.voting.tally(issueId);
         tallies.push({
           issueId: tally.issueId,
           sealed: false,
@@ -112,11 +132,9 @@ export function votingRoutes(manager: AssemblyManager) {
       }
     }
 
-    // Materialize participation records for closed events (lazy, idempotent)
+    // Materialize all data for closed events (lazy, idempotent)
     if (votingEnded) {
-      for (const issueId of votingEvent.issueIds) {
-        await manager.materializeParticipation(assemblyId, issueId);
-      }
+      await manager.materializeClosedEvent(assemblyId, eid);
     }
 
     return c.json({ eventId: eid, tallies });
@@ -258,8 +276,17 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
+    const votingEnded = votingEvent.timeline.votingEnd <= now;
     const weightDists = [];
     for (const issueId of votingEvent.issueIds) {
+      // Use materialized weights for closed events
+      if (votingEnded) {
+        const cached = manager.getWeights(assemblyId, issueId);
+        if (cached) {
+          weightDists.push(cached);
+          continue;
+        }
+      }
       const weights = await engine.delegation.weights(issueId);
       weightDists.push({
         issueId: weights.issueId,

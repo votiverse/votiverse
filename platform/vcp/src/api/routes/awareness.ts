@@ -31,15 +31,25 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
+    const { secrecy } = info.config.ballot;
+
+    // Try materialized data first
+    const cached = manager.getConcentration(assemblyId, issueId);
+    if (cached) {
+      return c.json({
+        ...cached,
+        maxWeightHolder: secrecy === "public" ? cached.maxWeightHolder : null,
+      });
+    }
+
+    // Compute live
     const { engine } = await manager.getEngine(assemblyId);
     const metrics = await engine.delegation.concentration(issueId as IssueId);
-    const { secrecy } = info.config.ballot;
 
     return c.json({
       issueId: metrics.issueId,
       giniCoefficient: metrics.giniCoefficient,
       maxWeight: metrics.maxWeight,
-      // maxWeightHolder identifies a specific voter — hide under secret ballot
       maxWeightHolder: secrecy === "public" ? metrics.maxWeightHolder : null,
       chainLengthDistribution: Object.fromEntries(metrics.chainLengthDistribution),
       delegatingCount: metrics.delegatingCount,
