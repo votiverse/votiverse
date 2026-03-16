@@ -14,10 +14,11 @@ import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { verifyToken } from "../../lib/jwt.js";
 
 const PUBLIC_PATHS = new Set(["/health", "/metrics"]);
+const PUBLIC_PREFIXES_LIST = ["/dev/"];
 
 export function createAuthMiddleware(auth: AuthAdapter, jwtSecret?: string | null) {
   return async (c: Context, next: Next) => {
-    if (PUBLIC_PATHS.has(c.req.path)) {
+    if (PUBLIC_PATHS.has(c.req.path) || PUBLIC_PREFIXES_LIST.some((p) => c.req.path.startsWith(p))) {
       return next();
     }
 

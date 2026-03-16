@@ -172,6 +172,18 @@ function EventStatusBadge({ status }: { status: string }) {
   return <Badge color={entry.color}>{entry.label}</Badge>;
 }
 
+/** Format a date, including time when it's not midnight. */
+function formatDateTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  const date = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  // Show time when hours/minutes are set (not midnight)
+  if (d.getHours() !== 0 || d.getMinutes() !== 0) {
+    const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return `${date}, ${time}`;
+  }
+  return date;
+}
+
 function EventTimeline({ timeline, status }: {
   timeline: { deliberationStart: string; votingStart: string; votingEnd: string };
   status: string;
@@ -206,7 +218,7 @@ function EventTimeline({ timeline, status }: {
               {phase.label}
             </span>
             <span className="text-[10px] text-gray-500">
-              {new Date(phase.date).toLocaleDateString()}
+              {formatDateTime(phase.date)}
             </span>
           </div>
         ))}

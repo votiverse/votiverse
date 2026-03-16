@@ -26,6 +26,7 @@ import { awarenessRoutes } from "./routes/awareness.js";
 import { topicRoutes } from "./routes/topics.js";
 import { authRoutes } from "./routes/auth.js";
 import { metricsRoutes } from "./routes/metrics.js";
+import { devRoutes } from "./routes/dev.js";
 import { stubRoutes } from "./routes/stubs.js";
 
 export function createApp(adapters: VCPAdapters, manager: AssemblyManager, config?: VCPConfig): Hono {
@@ -87,6 +88,10 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   app.route("/", topicRoutes(manager));
   app.route("/", awarenessRoutes(manager));
   app.route("/", metricsRoutes());
+  // Dev-only routes (test clock) — never in production
+  if (process.env["NODE_ENV"] !== "production") {
+    app.route("/", devRoutes(manager));
+  }
   app.route("/", stubRoutes());
 
   return app;
