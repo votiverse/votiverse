@@ -90,12 +90,14 @@ export function Profile() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-8">
-        <Card>
-          <CardBody className="text-center py-4">
-            <div className="text-2xl font-semibold text-gray-900">{totalVotes}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Votes Cast</div>
-          </CardBody>
-        </Card>
+        <Link to="/profile/votes">
+          <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+            <CardBody className="text-center py-4">
+              <div className="text-2xl font-semibold text-gray-900">{totalVotes}</div>
+              <div className="text-xs text-gray-500 mt-0.5">Votes Cast</div>
+            </CardBody>
+          </Card>
+        </Link>
         <Link to="/profile/delegators">
           <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
             <CardBody className="text-center py-4">
