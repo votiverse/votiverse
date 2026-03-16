@@ -37,6 +37,28 @@ The system is a working MVP. The engine (12 packages, 319 tests, zero circular d
 
 ---
 
+## 1.1 Implementation Status Update
+
+The action plan from Section 6 has been executed. Current status:
+
+| Phase | Scope | Status | Notes |
+|-------|-------|--------|-------|
+| **Phase A: Configuration** | Env vars, fail-fast, logging, dead code cleanup, outcomes auth | **COMPLETED** | `VITE_API_BASE_URL` supported; `resolveId()` removed; `POST /outcomes` requires operational scope |
+| **Phase B: PostgreSQL** | Async `DatabaseAdapter`, `ON CONFLICT` SQL, PostgreSQL adapter | **COMPLETED** | Connection pooling, `AsyncLocalStorage`, JSONB auto-parsing fix |
+| **Phase C: JWT Auth** | JWT authentication, identity resolution | **COMPLETED** | Implemented in client backend (`platform/backend/`), not in VCP directly. Backend authenticates users and injects participant identity into VCP requests. |
+| **Phase D: Operational Hardening** | Rate limiting, request IDs, body size limits, pagination, health, metrics | **COMPLETED** | Token-bucket rate limiter; `X-Request-Id` middleware; limit/offset on 6 endpoints; `GET /metrics` |
+| **Client Backend** | User auth service, VCP proxy, membership mapping | **IMPLEMENTED** | New `platform/backend/` service (Hono, SQLite, port 4000). Argon2 + JWT + refresh token rotation. 59 seeded users. |
+| **Web Client Migration** | Login form, backend proxy, remove static identity | **COMPLETED** | Removed `identity-store.ts`, `VITE_API_KEY`, client-side `X-Participant-Id` injection. Login replaces identity picker. |
+
+**Remaining items from the original audit:**
+- Phase E (Tauri Mobile Apps): Not started
+- Phase F (Documentation): Partially addressed
+- Background materialization: Still runs in request path
+- Cache eviction / LRU for engine instances: Not implemented
+- Web client tests: Still zero
+
+---
+
 ## 2. Engine Packages
 
 **Status: Production-ready.**

@@ -1,6 +1,6 @@
 # Votiverse Cloud Platform — Service Architecture
 
-**API and Integration Design — v0.1 Draft**
+**API and Integration Design — v0.2**
 
 ---
 
@@ -10,26 +10,37 @@ The Votiverse Cloud Platform (VCP) is a **governance-as-a-service** backend. It 
 
 The VCP is **open source**, like the engine it imports. Anyone can run their own VCP. Proximify operates one for its own customers, but it is not the only option. An organization with data sovereignty requirements, regulatory constraints, or a preference for self-hosting can run their own VCP on their own infrastructure.
 
-The VCP is also **client-agnostic**. It does not know or care what kind of application is calling its API. A client might be a web application, a mobile app, a CLI tool, a Slack bot, an enterprise integration, or anything else that can make HTTP requests and receive webhooks. The contract is the API. The VCP authenticates clients, not end users.
+The VCP is **client-agnostic**. It does not know or care what kind of application is calling its API. The contract is the API. The VCP authenticates backend clients via API keys and trusts the participant identity they inject — it never authenticates end users directly.
 
-**Each client connects to exactly one VCP.** This is a configuration setting — the VCP endpoint URL. There can be many VCPs in the world, operated by different parties.
+**Each client backend connects to exactly one VCP.** This is a configuration setting — the VCP endpoint URL. There can be many VCPs in the world, operated by different parties.
+
+**Web and native clients never talk to the VCP directly.** A client backend sits between end-user applications and the VCP. The client backend owns user authentication (JWT), maps authenticated users to VCP participant identifiers, and proxies governance requests to the VCP with the appropriate identity headers injected.
 
 ### Architecture Layers
 
 The Votiverse system has three layers:
 
 - **@votiverse/engine** — the open-source governance library (12 npm packages). Pure computation: delegation graphs, vote tallying, prediction evaluation, poll aggregation, awareness metrics. No HTTP, no scheduling, no infrastructure.
-- **Votiverse Cloud Platform (VCP)** — the open-source operational service that imports the engine library and wraps it in production infrastructure: an HTTP API, scheduled jobs, asynchronous workers, webhook dispatch, AI-assisted outcome gathering, database management, and blockchain anchoring. Runs as a single Node.js process.
-- **Client applications** — any application that consumes the VCP API. Proximify's Uniweb-based web application at votiverse.org is one such client. Others may exist.
+- **Votiverse Cloud Platform (VCP)** — the open-source operational service that imports the engine library and wraps it in production infrastructure: an HTTP API, scheduled jobs, asynchronous workers, webhook dispatch, AI-assisted outcome gathering, database management, and blockchain anchoring. Runs as a single Node.js process. Consumed by client backends, not directly by end-user applications.
+- **Client backends** — server-side applications that authenticate end users, manage user accounts, and proxy governance requests to the VCP. The client backend is the trust boundary between end users and the governance system.
+- **Client applications** — web apps, native apps (Tauri), mobile apps, CLI tools, or any end-user-facing application. These communicate exclusively with their client backend, never with the VCP directly.
 
 ### Deployment Model
 
 ```
-votiverse.org (Uniweb)  ──────→  Proximify's VCP
-vote.university.edu (Uniweb) ──→  Proximify's VCP   (or University's own VCP)
-participate.city.gov (Uniweb) ─→  City's own VCP
-internal.coop.org (Uniweb) ────→  Coop's own VCP    (Proximify-managed)
-custom-app.example.com  ───────→  Any VCP
+Web/Tauri Client ──→ Client Backend (port 4000) ──→ VCP (port 3000)
+   (browser)           (JWT auth, user mgmt,         (governance engine,
+                        proxy + identity injection)    event store, workers)
+```
+
+Concrete deployment examples:
+
+```
+votiverse.org (web)  ──→  Proximify backend ──→  Proximify's VCP
+vote.university.edu  ──→  University backend ──→  Proximify's VCP  (or University's own VCP)
+participate.city.gov ──→  City backend ──────→  City's own VCP
+internal.coop.org    ──→  Coop backend ──────→  Coop's own VCP   (Proximify-managed)
+custom-app.example   ──→  Custom backend ────→  Any VCP
 ```
 
 **Proximify's VCP** serves the global votiverse.org and any managed white-label instances. This is the default, turnkey option.
@@ -54,21 +65,41 @@ It complements:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Client Layer                         │
+│                  End-User Applications                   │
 │                                                         │
 │   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
-│   │  Web app     │ │  Mobile app  │ │  CLI / bot / │    │
-│   │  (any        │ │  (any        │ │  enterprise  │    │
-│   │   framework) │ │   platform)  │ │  integration │    │
+│   │  Web app     │ │  Tauri /     │ │  Mobile app  │    │
+│   │  (React)     │ │  Desktop     │ │              │    │
 │   └──────┬───────┘ └──────┬───────┘ └──────┬───────┘    │
 │          │                │                │            │
 └──────────┼────────────────┼────────────────┼────────────┘
            │                │                │
-  ════════════════  HTTP API + Webhooks  ════════════════
+  ════════════════  JWT Auth (user identity)  ═══════════
            │                │                │
 ┌──────────┼────────────────┼────────────────┼────────────┐
 │          ▼                ▼                ▼            │
-│         Votiverse Cloud Platform (VCP)                  │
+│        Client Backend (port 4000)                       │
+│        Authentication · User management · Proxy         │
+│                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │  Auth (JWT)  │  │  User/Org    │  │  Governance   │   │
+│  │  register    │  │  profiles    │  │  proxy (adds  │   │
+│  │  login       │  │  memberships │  │  X-Participant │   │
+│  │  refresh     │  │              │  │  -Id header)  │   │
+│  └──────────────┘  └──────────────┘  └──────┬───────┘   │
+│                                              │          │
+│  ┌──────────────────────────────────────┐    │          │
+│  │  Backend DB (users, refresh_tokens,  │    │          │
+│  │  memberships)                        │    │          │
+│  └──────────────────────────────────────┘    │          │
+│                                              │          │
+└──────────────────────────────────────────────┼──────────┘
+                                               │
+  ═══════  API Key + X-Participant-Id  ══════════════════
+                                               │
+┌──────────────────────────────────────────────┼──────────┐
+│                                              ▼          │
+│         Votiverse Cloud Platform (VCP) (port 3000)      │
 │         Single Node.js process · Open source            │
 │                                                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
@@ -98,6 +129,8 @@ It complements:
 
 ## 3. What the VCP Provides
 
+The VCP is consumed by client backends, not directly by end-user applications. All of the following capabilities are exposed through the VCP's REST API (see Section 5.2) and accessed by client backends on behalf of authenticated users.
+
 ### 3.1 Governance computation
 Everything the engine library provides: configurable governance presets, delegation graph resolution with transitive weight computation, vote tallying with multiple ballot methods, prediction lifecycle and accuracy evaluation, poll aggregation and topic-level trend computation, awareness metrics and alerts.
 
@@ -124,141 +157,176 @@ The VCP pushes events to registered client endpoints:
 - Prediction evaluation results
 - Poll results available
 
-The VCP does not deliver notifications to end users. It delivers events to client applications. How the client notifies the user (email, push, in-app, SMS) is the client's responsibility.
+The VCP does not deliver notifications to end users. It delivers events to client backends. How the client backend notifies the user (email, push, in-app, SMS) is the client's responsibility.
 
 ---
 
-## 4. What Clients Are Responsible For
+## 4. What Client Backends Are Responsible For
 
-The VCP handles governance computation. Everything else is the client's concern:
+The VCP handles governance computation. Everything else is the responsibility of the client backend and the end-user application.
 
 ### 4.1 User identity and authentication
-The VCP does not authenticate end users. Clients authenticate users through their own systems (passwords, SSO, OAuth, biometrics, whatever their context requires). When calling the VCP API, clients pass opaque `ParticipantId` values. The VCP trusts that the client has verified the user's identity according to the Assembly's requirements. The VCP holds no personally identifiable information.
+The VCP does not authenticate end users. The **client backend** authenticates users through its own system (JWT-based registration and login) and maps authenticated users to VCP participant identifiers. When calling the VCP API, the client backend injects the `X-Participant-Id` header with the appropriate participant ID. The VCP trusts that the client backend has verified the user's identity. The VCP holds no personally identifiable information — all PII (email, name) lives in the client backend's database.
 
-### 4.2 User interface
-All user-facing presentation — dashboards, booklet displays, delegation chain visualizations, poll response forms, trend charts, track record displays — is built by the client. The VCP provides data through API responses; how it's rendered is entirely up to the client.
+### 4.2 User-to-participant mapping
+The client backend maintains a mapping between its own user accounts and VCP participant IDs. When a user joins an Assembly, the client backend creates the participant in the VCP and stores the association. This mapping is the client backend's responsibility — the VCP only knows about opaque `ParticipantId` values.
 
-### 4.3 Content management
+### 4.3 User interface
+All user-facing presentation — dashboards, booklet displays, delegation chain visualizations, poll response forms, trend charts, track record displays — is built by the end-user application (web, Tauri, mobile). The client backend proxies governance data from the VCP; how it is rendered is entirely up to the front-end application.
+
+### 4.4 Content management
 Proposals, booklets, and arguments may contain rich content — formatted text, media, attachments. The VCP stores only the structured governance data it needs to compute (prediction claims, poll questions, issue identifiers, vote choices). Rich content management is the client's domain.
 
-### 4.4 Access control
-Who can create Assemblies, who can manage participants, who can submit proposals — these are access control decisions. The VCP trusts that the client has authorized the action before the API request arrives. The VCP enforces governance rules (non-delegable polls, override rule, quorum requirements) but not organizational RBAC.
+### 4.5 Access control
+Who can create Assemblies, who can manage participants, who can submit proposals — these are access control decisions. The client backend enforces RBAC before proxying requests to the VCP. The VCP enforces governance rules (non-delegable polls, override rule, quorum requirements) but not organizational RBAC.
 
-### 4.5 Communication delivery
-When the VCP emits a webhook event, the client receives it and decides how to deliver it to the user — or whether to deliver it at all.
+### 4.6 Communication delivery
+When the VCP emits a webhook event, the client backend receives it and decides how to deliver it to the user — or whether to deliver it at all (email, push notification, in-app alert, etc.).
 
 ---
 
 ## 5. API
 
-### 5.1 Authentication
+### 5.1 Two-Tier Authentication Model
 
-Every API request must include a valid API key in the `Authorization` header:
+Authentication is split across two boundaries:
+
+**Tier 1: End user to Client Backend (JWT)**
+
+End users authenticate with the client backend using JWT access tokens. The client backend issues tokens on login and validates them on every request.
+
+- **Token format:** JWT with claims `sub` (userId), `email`, `name`.
+- **Token lifecycle:** Short-lived access tokens (e.g., 15 minutes) + long-lived refresh tokens stored server-side.
+- **Client backend auth endpoints:**
+  - `POST /auth/register` — create a new user account
+  - `POST /auth/login` — authenticate and receive access + refresh tokens
+  - `POST /auth/refresh` — exchange a refresh token for a new access token
+  - `POST /auth/logout` — revoke the refresh token
+
+**Tier 2: Client Backend to VCP (API key + participant identity)**
+
+The client backend authenticates with the VCP using an API key and injects participant identity on each request:
 
 ```
 Authorization: Bearer vcp_key_xxxxxxxxxxxxxxxxxx
+X-Participant-Id: p_456
 ```
 
-API keys are issued when a client registers with the VCP. Each key is associated with:
+API keys are issued when a client backend registers with the VCP. Each key is associated with:
 - a client identity,
 - a set of Assemblies the client has access to,
 - a usage tier that determines rate limits and feature access.
 
+The `X-Participant-Id` header is set by the client backend after resolving the authenticated user's participant ID for the target Assembly. The VCP trusts this header — it does not verify end-user identity.
+
 A request to an Assembly the client doesn't have access to returns `403 Forbidden`.
 
-### 5.2 REST Endpoints
+The VCP also exposes `POST /auth/token` for JWT-based token exchange, allowing client backends to obtain short-lived VCP session tokens instead of passing the API key on every request.
 
-All governance endpoints are scoped to an Assembly. The Assembly ID appears in the URL path.
+### 5.2 VCP REST Endpoints
+
+These endpoints are consumed by client backends, not directly by end-user applications. All governance endpoints are scoped to an Assembly. The Assembly ID appears in the URL path.
+
+**Health and metrics:**
+
+```
+GET    /health                                      # health check
+GET    /metrics                                     # server metrics
+```
+
+**Authentication (backend-to-VCP):**
+
+```
+POST   /auth/token                                  # JWT token exchange
+```
 
 **Assembly management:**
 
 ```
-POST   /assemblies                          # register a new assembly
-GET    /assemblies/:id                      # get assembly state and config
+POST   /assemblies                                  # register a new assembly
+GET    /assemblies                                  # list assemblies
+GET    /assemblies/:id                              # get assembly state and config
 ```
 
 **Participants:**
 
 ```
-POST   /assemblies/:id/participants         # add participant
-DELETE /assemblies/:id/participants/:pid    # remove participant
-GET    /assemblies/:id/participants         # list participants
+POST   /assemblies/:id/participants                 # add participant
+GET    /assemblies/:id/participants                 # list participants
+DELETE /assemblies/:id/participants/:pid            # remove participant
+PATCH  /assemblies/:id/participants/:pid/status     # update participant status
 ```
 
 **Voting events:**
 
 ```
-POST   /assemblies/:id/events              # create voting event
-GET    /assemblies/:id/events              # list events
-GET    /assemblies/:id/events/:eid         # get event status
-```
-
-**Delegations:**
-
-```
-POST   /assemblies/:id/delegations         # create delegation
-DELETE /assemblies/:id/delegations/:did    # revoke delegation
-GET    /assemblies/:id/delegations         # list delegations for participant
-GET    /assemblies/:id/delegations/chain   # resolve full delegation chain
+POST   /assemblies/:id/events                       # create voting event
+GET    /assemblies/:id/events                       # list events
+GET    /assemblies/:id/events/:eid                  # get event status
 ```
 
 **Voting:**
 
 ```
-POST   /assemblies/:id/votes               # cast vote
-GET    /assemblies/:id/events/:eid/tally   # get tally results
-GET    /assemblies/:id/events/:eid/weights # get weight distribution
+POST   /assemblies/:id/votes                        # cast vote
+GET    /assemblies/:id/events/:eid/tally            # get tally results
+GET    /assemblies/:id/events/:eid/participation    # get participation data
+GET    /assemblies/:id/events/:eid/weights          # get weight distribution
 ```
 
-**Predictions:**
+**Delegations:**
 
 ```
-POST   /assemblies/:id/predictions            # commit prediction
-GET    /assemblies/:id/predictions/:pid       # get prediction state
-POST   /assemblies/:id/outcomes               # record outcome data
-GET    /assemblies/:id/predictions/:pid/eval  # evaluate prediction
-GET    /assemblies/:id/track-record/:pid      # participant's prediction track record
+POST   /assemblies/:id/delegations                  # create delegation
+DELETE /assemblies/:id/delegations/:did             # revoke delegation
+GET    /assemblies/:id/delegations                  # list delegations for participant
+GET    /assemblies/:id/delegations/chain            # resolve full delegation chain
+GET    /assemblies/:id/delegations/my-weight        # get current participant's weight
 ```
 
 **Polls:**
 
 ```
-POST   /assemblies/:id/polls               # create poll
-GET    /assemblies/:id/polls/:pid          # get poll state
-POST   /assemblies/:id/polls/:pid/respond  # submit poll response
-GET    /assemblies/:id/polls/:pid/results  # get poll results
-GET    /assemblies/:id/trends/:topic       # get topic trend data
+POST   /assemblies/:id/polls                        # create poll
+GET    /assemblies/:id/polls                        # list polls
+POST   /assemblies/:id/polls/:pid/respond           # submit poll response
+GET    /assemblies/:id/polls/:pid/results           # get poll results
+GET    /assemblies/:id/trends/:topic                # get topic trend data
+```
+
+**Predictions:**
+
+```
+POST   /assemblies/:id/predictions                  # commit prediction
+GET    /assemblies/:id/predictions                  # list predictions
+POST   /assemblies/:id/outcomes                     # record outcome data
+GET    /assemblies/:id/predictions/:pid/eval        # evaluate prediction
+GET    /assemblies/:id/track-record/:pid            # participant's prediction track record
 ```
 
 **Awareness:**
 
 ```
-GET    /assemblies/:id/awareness/concentration  # concentration metrics
-GET    /assemblies/:id/awareness/history/:pid   # personal voting history
-GET    /assemblies/:id/awareness/profile/:pid   # delegate profile and track record
-GET    /assemblies/:id/awareness/context/:eid   # historical context for an issue
-GET    /assemblies/:id/awareness/prompts/:pid   # engagement prompts for participant
+GET    /assemblies/:id/awareness/concentration      # concentration metrics
+GET    /assemblies/:id/awareness/history/:pid       # personal voting history
+GET    /assemblies/:id/awareness/profile/:pid       # delegate profile and track record
 ```
 
-**Integrity:**
+**Topics:**
 
 ```
-POST   /assemblies/:id/integrity/commit        # anchor artifacts to blockchain
-GET    /assemblies/:id/integrity/verify/:cid   # verify a commitment
+GET    /assemblies/:id/topics                       # list topics
+POST   /assemblies/:id/topics                       # create topic
 ```
 
-**Webhooks:**
+**Stubs (not yet implemented):**
 
 ```
-POST   /webhooks       # register webhook endpoint
-GET    /webhooks       # list registered webhooks
-DELETE /webhooks/:id   # unregister webhook
-```
-
-**System:**
-
-```
-GET    /health   # health check
+POST   /assemblies/:id/integrity/commit             # anchor artifacts to blockchain (501)
+GET    /assemblies/:id/integrity/verify/:cid        # verify a commitment (501)
+POST   /webhooks                                    # register webhook endpoint (501)
+GET    /webhooks                                    # list registered webhooks (501)
+DELETE /webhooks/:id                                # unregister webhook (501)
 ```
 
 ### 5.3 Request and Response Format
@@ -288,24 +356,28 @@ Error codes are stable identifiers that clients can programmatically handle. Mes
 
 A typical write request (e.g., casting a vote):
 
-1. Client sends `POST /assemblies/:id/votes` with API key and payload.
-2. VCP authenticates the client and validates the request payload.
-3. VCP loads the Assembly's governance configuration.
-4. VCP calls the engine: `engine.voting.cast({ participantId, issueId, choice })`.
-5. Engine validates governance rules (is voting open? is participant eligible? does this override a delegation?), appends a `VoteCast` event to the event store, and returns a result.
-6. VCP enqueues async tasks triggered by the event (awareness recomputation, webhook notifications) to the in-process worker queue.
-7. VCP returns `200 OK` to the client.
+1. End-user application sends `POST /assemblies/:id/votes` with JWT access token and payload to the **client backend**.
+2. Client backend validates the JWT, resolves the user's participant ID for the target Assembly.
+3. Client backend forwards `POST /assemblies/:id/votes` to the **VCP** with API key in `Authorization` and `X-Participant-Id` header injected.
+4. VCP authenticates the client backend and validates the request payload.
+5. VCP loads the Assembly's governance configuration.
+6. VCP calls the engine: `engine.voting.cast({ participantId, issueId, choice })`.
+7. Engine validates governance rules (is voting open? is participant eligible? does this override a delegation?), appends a `VoteCast` event to the event store, and returns a result.
+8. VCP enqueues async tasks triggered by the event (awareness recomputation, webhook notifications) to the in-process worker queue.
+9. VCP returns `200 OK` to the client backend, which forwards it to the end-user application.
 
 A typical read request (e.g., fetching a tally):
 
-1. Client sends `GET /assemblies/:id/events/:eid/tally` with API key.
-2. VCP authenticates the client.
-3. VCP queries the materialized tally view from the database.
-4. VCP returns the tally result.
+1. End-user application sends `GET /assemblies/:id/events/:eid/tally` with JWT to the **client backend**.
+2. Client backend validates the JWT.
+3. Client backend forwards the request to the **VCP** with API key and participant identity.
+4. VCP authenticates the client backend.
+5. VCP queries the materialized tally view from the database.
+6. VCP returns the tally result through the client backend to the end-user application.
 
 ### 5.5 Webhook Delivery
 
-When a governance event occurs that a client has subscribed to, the VCP delivers a webhook:
+When a governance event occurs that a client backend has subscribed to, the VCP delivers a webhook to the client backend's registered endpoint:
 
 ```json
 {
@@ -329,7 +401,85 @@ Delivery guarantees:
 
 ---
 
-## 6. Multi-Tenancy
+## 6. Client Backend
+
+The client backend is the server-side application that sits between end-user applications and the VCP. It is responsible for user authentication, user-to-participant mapping, and proxying governance requests to the VCP with identity injection.
+
+### 6.1 Auth Endpoints
+
+The client backend exposes authentication endpoints to end-user applications:
+
+```
+POST   /auth/register    # create user account (email, password, name)
+POST   /auth/login       # authenticate, returns { accessToken, refreshToken }
+POST   /auth/refresh     # exchange refresh token for new access token
+POST   /auth/logout      # revoke refresh token
+```
+
+Access tokens are short-lived JWTs. Refresh tokens are opaque strings stored server-side.
+
+**JWT access token claims:**
+
+```json
+{
+  "sub": "usr_abc123",
+  "email": "alice@example.com",
+  "name": "Alice Chen",
+  "iat": 1710600000,
+  "exp": 1710601800
+}
+```
+
+### 6.2 Profile Endpoints
+
+```
+GET    /me                           # get current user profile
+POST   /me/assemblies/:id/join      # join an Assembly (creates participant in VCP, stores mapping)
+```
+
+The `/me/assemblies/:id/join` endpoint is where the user-to-participant mapping is established. The client backend:
+1. Calls `POST /assemblies/:id/participants` on the VCP to create the participant.
+2. Stores the returned `participantId` in its own database, associated with the user's account.
+3. Returns the assembly membership to the end-user application.
+
+### 6.3 Governance Proxy
+
+All `/assemblies/*` routes are forwarded to the VCP with identity injection:
+
+```
+Client app request:
+  GET /assemblies/asm_xyz/events
+  Authorization: Bearer <JWT access token>
+
+Client backend forwards to VCP:
+  GET /assemblies/asm_xyz/events
+  Authorization: Bearer vcp_key_xxxxxxxxxxxxxxxxxx
+  X-Participant-Id: p_456
+```
+
+The proxy logic:
+1. Validates the JWT access token.
+2. Looks up the user's participant ID for the target Assembly.
+3. Forwards the request to the VCP, replacing the `Authorization` header with the VCP API key and adding the `X-Participant-Id` header.
+4. Returns the VCP response to the end-user application.
+
+If the user is not a member of the target Assembly, the proxy returns `403 Forbidden` without contacting the VCP.
+
+### 6.4 Client Backend Database
+
+The client backend maintains its own database (separate from the VCP's database) with these tables:
+
+| Table | Purpose |
+|---|---|
+| `users` | User accounts: id, email, password hash, name, created_at |
+| `refresh_tokens` | Active refresh tokens: token, user_id, expires_at |
+| `memberships` | User-to-Assembly mappings: user_id, assembly_id, participant_id |
+
+The client backend database contains PII (email, name). The VCP database does not — it only stores opaque participant IDs.
+
+---
+
+## 7. Multi-Tenancy
 
 The VCP is inherently multi-tenant. All clients, all Organizations, and all Assemblies share a single VCP deployment. The isolation boundary is the **Assembly**.
 
@@ -344,17 +494,17 @@ Different clients may manage different Assemblies on the same VCP. Client A's As
 
 ---
 
-## 7. Uniweb Integration (Proximify-Specific)
+## 8. Uniweb Integration (Proximify-Specific)
 
 This section describes how Proximify's own Uniweb-based web application integrates with the VCP. This is one specific client implementation — not a requirement for other clients.
 
-### 7.1 Uniweb as a VCP client
+### 8.1 Uniweb with a client backend
 
-The Uniweb instance at votiverse.org (and any managed white-label instances) is a VCP client. It authenticates with an API key, makes REST requests, and receives webhooks — exactly like any other client.
+The Uniweb instance at votiverse.org (and any managed white-label instances) communicates with the VCP through a client backend. The Uniweb front-end authenticates users via JWT, and the client backend proxies governance requests to the VCP with participant identity injection — exactly like any other client in the 3-tier architecture.
 
-Uniweb adds the application layer that the VCP doesn't provide: user authentication, UI rendering, content management, RBAC, and organizational structure.
+The client backend adds the application layer that the VCP does not provide: user authentication, user-to-participant mapping, RBAC enforcement, and organizational structure. The Uniweb front-end adds UI rendering and content management.
 
-### 7.2 Entity mapping
+### 8.2 Entity mapping
 
 Uniweb's data model maps to the VCP's domain types:
 
@@ -369,33 +519,33 @@ Uniweb's data model maps to the VCP's domain types:
 | RBAC roles | Organization/Assembly roles | Uniweb enforces access. VCP trusts the authorization. |
 | Entity views (profile, CV, etc.) | Not mapped | VCP doesn't need Uniweb's view system. |
 
-### 7.3 Data ownership boundary
+### 8.3 Data ownership boundary
 
 The VCP stores the minimum governance data it needs to compute: prediction claims, poll questions and responses, vote choices, delegation relationships, issue identifiers. Everything else — display names, formatted text, media, organizational structure — lives in Uniweb and is not duplicated in the VCP.
 
 The VCP is authoritative for governance state (tallies, delegation weights, prediction evaluations). Uniweb is authoritative for content (proposal text, booklet formatting, user profiles).
 
-### 7.4 Managed white-label instances
+### 8.4 Managed white-label instances
 
 Proximify may deploy additional managed Uniweb instances for organizations that want their own branded experience (vote.university.edu, participate.city.gov). Each managed instance connects to a VCP as a separate client with its own API key. By default, managed instances connect to Proximify's VCP. Organizations that require data sovereignty can have their Uniweb instance pointed at their own VCP — either self-operated or Proximify-managed on the organization's infrastructure.
 
 ---
 
-## 8. Open Questions
+## 9. Open Questions
 
-### 8.1 Event store isolation
+### 9.1 Event store isolation
 Should Assemblies from different clients share a single database, or should high-security clients receive isolated storage? For launch, a single database with Assembly-scoped queries is sufficient. Schema-level or database-level isolation can be offered as a premium tier if regulatory requirements demand it.
 
-### 8.2 Client state vs. VCP state
+### 9.2 Client state vs. VCP state
 A proposal's rich content lives in the client. The structured prediction claims live in the VCP. If these go out of sync, the VCP is authoritative for governance state and the client is authoritative for content. The practical rule: the VCP stores only what it needs to compute. Everything else stays in the client.
 
-### 8.3 Offline resilience
+### 9.3 Offline resilience
 If the VCP is temporarily unavailable, client applications should fail-fast with a clear error message ("governance service temporarily unavailable") rather than queuing commands. Queuing introduces consistency risks that are unacceptable for governance operations.
 
-### 8.4 Webhook reliability
+### 9.4 Webhook reliability
 At-least-once delivery with exponential backoff. After repeated failures, subscriptions are marked degraded and an alert is generated. Clients must implement idempotent event processing.
 
-### 8.5 API versioning
+### 9.5 API versioning
 As the VCP evolves, the API will need versioning. URL-prefix versioning (`/v1/assemblies/...`) is the simplest and most explicit approach. Breaking changes require a new version. Non-breaking additions (new fields, new endpoints) are added to the current version.
 
 ---

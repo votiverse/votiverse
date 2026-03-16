@@ -10,7 +10,7 @@ Votiverse is a configurable governance engine — a headless TypeScript library 
 
 The repository has two major layers:
 - **`packages/`** — the engine: pure TypeScript library packages (`@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, etc.)
-- **`platform/`** — the platform: the VCP HTTP server (`platform/vcp/`) and the React web UI (`platform/web/`)
+- **`platform/`** — the platform: the VCP HTTP server (`platform/vcp/`), the client backend (`platform/backend/`), and the React web UI (`platform/web/`)
 
 **Read these documents for full context:**
 - `docs/architecture.md` — technical architecture, module specs, API design, development phases
@@ -54,7 +54,7 @@ These decisions are final. Do not reconsider them without explicit instruction f
 ### Shared
 - **Language:** TypeScript (strict mode, ESM syntax)
 - **Package manager:** pnpm with workspaces
-- **Monorepo structure:** `packages/` (engine) and `platform/` (VCP server + web UI)
+- **Monorepo structure:** `packages/` (engine) and `platform/` (VCP server + client backend + web UI)
 - **npm scope:** `@votiverse` (engine packages only)
 - **Runtime:** Node.js 22.x+ (LTS)
 - **Linting:** eslint with TypeScript rules
@@ -70,6 +70,13 @@ These decisions are final. Do not reconsider them without explicit instruction f
 - **Database:** better-sqlite3 (SQLite, file-based: `vcp-dev.db`)
 - **Dev runner:** `tsx` (TypeScript execution without build step)
 - **Port:** 3000
+
+### Client Backend (`platform/backend/`)
+- **Framework:** Hono (same as VCP)
+- **Database:** better-sqlite3 (SQLite, file-based: `backend-dev.db`), PostgreSQL for production
+- **Auth:** JWT access tokens + Argon2 password hashing (`@node-rs/argon2`)
+- **Dev runner:** `tsx` (TypeScript execution without build step)
+- **Port:** 4000
 
 ### Web UI (`platform/web/`)
 - **Framework:** React 19 with React Router v7
@@ -269,6 +276,22 @@ platform/
 │       ├── reset.ts             ← wipes DB, starts server, runs seed, stops server
 │       └── seed-data/           ← data definitions (assemblies, participants,
 │                                  events, delegations, polls, topics, helpers)
+├── backend/                       ← Client backend (auth, identity, VCP proxy)
+│   ├── src/
+│   │   ├── main.ts              ← entry point
+│   │   ├── config/schema.ts     ← BackendConfig, env vars
+│   │   ├── lib/                 ← logger, metrics, jwt, password
+│   │   ├── adapters/            ← database (SQLite/PostgreSQL)
+│   │   ├── services/            ← user-service, session-service,
+│   │   │                          membership-service, vcp-client
+│   │   └── api/
+│   │       ├── server.ts        ← Hono app, middleware, route mounting
+│   │       ├── middleware/      ← auth (JWT), error-handler, request-id
+│   │       └── routes/          ← auth, me, proxy (to VCP)
+│   ├── test/                    ← integration tests (13 tests)
+│   └── scripts/
+│       ├── seed.ts              ← creates users + memberships from VCP data
+│       └── reset.ts             ← wipes backend DB, seeds from VCP
 └── web/                         ← React web UI
     ├── src/
     │   ├── main.tsx             ← entry point
@@ -289,10 +312,11 @@ platform/
 ### Starting Fresh
 
 ```bash
-cd platform/vcp && pnpm reset    # wipes DB, starts server, seeds data, stops server
+cd platform/vcp && pnpm reset    # wipes VCP DB, starts server, seeds data, stops server
+cd platform/backend && pnpm reset # wipes backend DB, starts backend, seeds users from VCP, stops (requires VCP running)
 ```
 
-This runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 5 assemblies with participants, topics, events, delegations, and polls), then stops the server.
+The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 5 assemblies with participants, topics, events, delegations, and polls), then stops the server. The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
 
 ### Running Dev Servers
 
@@ -301,11 +325,14 @@ From the repo root:
 # VCP API server (port 3000)
 cd platform/vcp && pnpm dev
 
-# Web UI (port 5173) — in a separate terminal
+# Client Backend (port 4000) — in a separate terminal
+cd platform/backend && pnpm dev
+
+# Web UI (port 5173) — in a third terminal
 cd platform/web && pnpm dev
 ```
 
-Or use the `.claude/launch.json` configurations (`vcp` and `web`) with the preview tool.
+Or use the `.claude/launch.json` configurations (`vcp`, `backend`, and `web`) with the preview tool.
 
 ### Seed Data Overview
 
@@ -321,11 +348,15 @@ The seed creates 5 assemblies using different governance presets:
 
 Each assembly has hierarchical topics (36 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and polls (Municipal + Youth only).
 
+The backend seed creates 59 user accounts mapped to VCP participants, with 4 cross-assembly users who have memberships in multiple assemblies.
+
 See `platform/web/TESTING.md` for full details on test identities and delegation graphs.
 
 ### Identity System
 
-The web UI uses a header-based identity system (no auth). The identity selector in the top bar sets `X-Participant-Id` on all API requests. Pick identities from `TESTING.md` based on what feature you're testing.
+The web UI uses JWT-based authentication through the client backend. Users log in with email/password, the backend issues JWT access tokens, and all API requests go through the backend which resolves user identity to assembly-specific participant IDs. The VCP never sees user credentials — it receives only opaque `X-Participant-Id` headers from the backend.
+
+For local development, the seed script creates test users with email format `{slug}@example.com` and password `password`. See `platform/web/TESTING.md` for the full list.
 
 ---
 
@@ -438,7 +469,7 @@ function Component() {
 **Fix:** Before starting servers, check what's running:
 
 ```bash
-lsof -i :5173 -i :5174 -i :3000 -P | grep LISTEN
+lsof -i :5173 -i :5174 -i :3000 -i :4000 -P | grep LISTEN
 ```
 
 Kill everything and start fresh. Use either manual `pnpm dev` or the `.claude/launch.json` preview tool — not both.

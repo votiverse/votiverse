@@ -6,7 +6,10 @@ A lightweight React SPA for interacting with the Votiverse Cloud Platform. This 
 
 ## Prerequisites
 
-The VCP server must be running at `http://localhost:3000` (the default). See the [VCP README](../vcp/README.md) for setup.
+Two backend services must be running:
+
+1. **VCP server** at `http://localhost:3000` — the governance engine HTTP API. See the [VCP README](../vcp/README.md) for setup.
+2. **Client backend** at `http://localhost:4000` — handles user authentication and proxies governance requests to VCP with participant identity injection. See the [Backend README](../backend/README.md) for setup.
 
 ## Quick Start
 
@@ -14,21 +17,21 @@ The VCP server must be running at `http://localhost:3000` (the default). See the
 # From monorepo root
 pnpm install
 
-# Start the VCP (Terminal 1)
+# Terminal 1 — VCP server (port 3000)
 cd platform/vcp
-pnpm dev
+pnpm reset && pnpm dev
 
-# Seed sample data (Terminal 2)
-cd platform/vcp
-pnpm seed
+# Terminal 2 — Client backend (port 4000)
+cd platform/backend
+pnpm seed && pnpm dev
 
-# Start the web client (Terminal 3)
+# Terminal 3 — Web client (port 5174)
 cd platform/web
 pnpm dev
 # → http://localhost:5174
 ```
 
-To reset the VCP database to fresh seed data at any time: `cd platform/vcp && pnpm reset`.
+To reset all data: `cd platform/vcp && pnpm reset`, then `cd platform/backend && pnpm seed`.
 
 ---
 
@@ -36,7 +39,7 @@ To reset the VCP database to fresh seed data at any time: `cd platform/vcp && pn
 
 The web client is designed as a **voter-centric experience**. The dashboard greets you by name, shows pending votes across all assemblies, and provides one-click access to vote. Key design principles:
 
-- **Identity picker** — On first visit, select who you are from a list of seeded participants. Each participant has a DiceBear avatar that stays consistent across all views.
+- **Login** — On first visit, log in with your email and password. Each participant has a DiceBear avatar that stays consistent across all views.
 - **Cross-assembly dashboard** — Aggregates pending votes, nearest deadlines, and assembly summaries across all assemblies where the selected participant is a member.
 - **Delegation visibility** — When your vote is delegated, the delegate's name and avatar appear inline. Delegation chains are visualized with arrows.
 - **Neutral vote buttons** — For/Against/Abstain are visually identical (no choice is privileged). Tally bars use a rank-based color palette.
@@ -57,22 +60,22 @@ The web client is designed as a **voter-centric experience**. The dashboard gree
 
 ---
 
-## Identity Switching
+## Identity & Authentication
 
 The header shows your current identity with a DiceBear avatar. Click to open the identity menu:
 
 - **Profile** — See your cross-assembly voting stats and delegation info
-- **Switch Identity** — Return to the identity picker to become a different participant
+- **Logout** — End your session and return to the login screen
 
-Cross-assembly participants (e.g. Sofia Reyes in OSC and Youth Advisory) are deduplicated in the picker by name. Selecting one shows data from all assemblies where that name appears.
+Authentication is handled by the client backend (port 4000). The web client sends JWT access tokens with each request. The backend resolves the authenticated user to the appropriate participant ID per assembly and injects it into VCP requests.
 
 ---
 
 ## Configuration
 
-The Vite dev server proxies `/api/*` requests to the VCP at `http://localhost:3000`. The proxy is configured in `vite.config.ts`. To change the VCP URL, edit the proxy target.
+The web client talks to the client backend at `http://localhost:4000`, not to VCP directly. The Vite dev server proxies `/api/*` requests to the backend. The proxy target is configured in `vite.config.ts`.
 
-The API key is configured in `src/api/client.ts` (default: `vcp_dev_key_00000000`). This matches the VCP's default dev key.
+To point at a different backend URL (e.g., in production or Tauri), set the `VITE_API_BASE_URL` environment variable.
 
 ---
 

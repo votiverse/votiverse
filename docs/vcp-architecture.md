@@ -6,7 +6,9 @@
 
 ## 1. Overview
 
-The Votiverse Cloud Platform (VCP) is the operational backend that turns the `@votiverse/engine` library into a production service. It imports the engine for governance computation and adds everything else: an HTTP API, scheduled jobs, asynchronous workers, webhook delivery, AI-assisted outcome gathering, database management, and blockchain anchoring.
+The Votiverse Cloud Platform (VCP) is the headless governance engine service that turns the `@votiverse/engine` library into an HTTP API. It handles governance computation, event sourcing, delegation graphs, voting, polls, predictions, and awareness. The VCP holds no PII — it receives only opaque participant IDs from upstream client backends.
+
+In the production architecture, the VCP sits behind a **client backend** (`platform/backend/`) that owns user authentication, session management, and user-to-participant identity mapping. The client backend proxies governance requests to the VCP with the correct `X-Participant-Id` header. Web and mobile clients never talk to the VCP directly.
 
 The VCP is a single codebase that runs in two modes:
 
@@ -347,87 +349,100 @@ CREATE TABLE webhook_subscriptions (
 );
 ```
 
-**Materialized view tables (rebuilt from events):**
+**Additional data tables:**
 
 ```sql
--- Current delegation graph (derived)
-CREATE TABLE delegation_graph (
-    assembly_id     UUID NOT NULL,
-    source_id       VARCHAR(100) NOT NULL,    -- ParticipantId
-    target_id       VARCHAR(100) NOT NULL,
-    topic_scope     JSONB NOT NULL,
-    created_at      TIMESTAMPTZ NOT NULL,
-    
-    PRIMARY KEY (assembly_id, source_id, topic_scope),
-    INDEX idx_delegation_target (assembly_id, target_id)
-);
-
--- Current voting event state (derived)
-CREATE TABLE voting_events (
-    id              UUID NOT NULL,
-    assembly_id     UUID NOT NULL,
-    title           VARCHAR(500) NOT NULL,
-    status          VARCHAR(50) NOT NULL,
-    config          JSONB NOT NULL,
-    opens_at        TIMESTAMPTZ,
-    closes_at       TIMESTAMPTZ,
-    
+-- Participants per assembly
+CREATE TABLE participants (
+    id              TEXT NOT NULL,
+    assembly_id     TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    registered_at   TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'active',
     PRIMARY KEY (assembly_id, id)
 );
 
--- Vote tallies (derived, recomputed on each vote)
-CREATE TABLE vote_tallies (
-    assembly_id     UUID NOT NULL,
-    issue_id        VARCHAR(100) NOT NULL,
-    results         JSONB NOT NULL,           -- tally results with weights
-    computed_at     TIMESTAMPTZ NOT NULL,
-    
+-- Issues (persisted from VotingEventCreated events)
+CREATE TABLE issues (
+    id              TEXT NOT NULL,
+    assembly_id     TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL DEFAULT '',
+    topic_ids       JSONB NOT NULL DEFAULT '[]',
+    voting_event_id TEXT NOT NULL,
+    choices         JSONB,
+    PRIMARY KEY (assembly_id, id)
+);
+
+-- Topic taxonomy per assembly
+CREATE TABLE topics (
+    id              TEXT NOT NULL,
+    assembly_id     TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    parent_id       TEXT,
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (assembly_id, id)
+);
+```
+
+**Materialized view tables (lazy, idempotent — computed on first query for closed events):**
+
+```sql
+-- Per-participant voting records (direct vote, delegated, chain)
+CREATE TABLE issue_participation (
+    assembly_id       TEXT NOT NULL,
+    issue_id          TEXT NOT NULL,
+    participant_id    TEXT NOT NULL,
+    status            TEXT NOT NULL,        -- 'direct', 'delegated', 'abstained'
+    effective_choice  TEXT,                  -- JSON, null if secret ballot
+    delegate_id       TEXT,
+    terminal_voter_id TEXT,
+    chain             JSONB NOT NULL DEFAULT '[]',
+    computed_at       TEXT NOT NULL,
+    PRIMARY KEY (assembly_id, issue_id, participant_id)
+);
+
+-- Vote count tallies (computed when event closes)
+CREATE TABLE issue_tallies (
+    assembly_id         TEXT NOT NULL,
+    issue_id            TEXT NOT NULL,
+    winner              TEXT,
+    counts              JSONB NOT NULL,     -- {"yes": 5, "no": 3}
+    total_votes         INTEGER NOT NULL,
+    quorum_met          BOOLEAN NOT NULL,
+    quorum_threshold    DOUBLE PRECISION NOT NULL,
+    eligible_count      INTEGER NOT NULL,
+    participating_count INTEGER NOT NULL,
+    computed_at         TEXT NOT NULL,
     PRIMARY KEY (assembly_id, issue_id)
 );
 
--- Prediction state (derived)
-CREATE TABLE predictions (
-    id              UUID NOT NULL,
-    assembly_id     UUID NOT NULL,
-    proposal_id     VARCHAR(100) NOT NULL,
-    participant_id  VARCHAR(100) NOT NULL,
-    claim           JSONB NOT NULL,
-    commitment_hash VARCHAR(64) NOT NULL,
-    status          VARCHAR(50) NOT NULL,
-    evaluation      JSONB,
-    
-    PRIMARY KEY (assembly_id, id)
+-- Delegation weight distribution per issue
+CREATE TABLE issue_weights (
+    assembly_id   TEXT NOT NULL,
+    issue_id      TEXT NOT NULL,
+    weights       JSONB NOT NULL,           -- {"pid1": 3.0, "pid2": 1.0}
+    total_weight  DOUBLE PRECISION NOT NULL,
+    computed_at   TEXT NOT NULL,
+    PRIMARY KEY (assembly_id, issue_id)
 );
 
--- Poll results and trends (derived)
-CREATE TABLE poll_results (
-    poll_id         UUID NOT NULL,
-    assembly_id     UUID NOT NULL,
-    results         JSONB NOT NULL,
-    computed_at     TIMESTAMPTZ NOT NULL,
-    
-    PRIMARY KEY (assembly_id, poll_id)
-);
-
-CREATE TABLE topic_trends (
-    assembly_id     UUID NOT NULL,
-    topic_id        VARCHAR(100) NOT NULL,
-    trend_data      JSONB NOT NULL,           -- TrendPoint[]
-    updated_at      TIMESTAMPTZ NOT NULL,
-    
-    PRIMARY KEY (assembly_id, topic_id)
-);
-
--- Awareness metrics (derived, recomputed periodically)
-CREATE TABLE awareness_metrics (
-    assembly_id     UUID NOT NULL,
-    metric_type     VARCHAR(100) NOT NULL,     -- 'concentration', 'participation', etc.
-    data            JSONB NOT NULL,
-    computed_at     TIMESTAMPTZ NOT NULL,
-    
-    PRIMARY KEY (assembly_id, metric_type)
+-- Concentration metrics (Gini, max weight, chain lengths)
+CREATE TABLE issue_concentration (
+    assembly_id              TEXT NOT NULL,
+    issue_id                 TEXT NOT NULL,
+    gini_coefficient         DOUBLE PRECISION NOT NULL,
+    max_weight               DOUBLE PRECISION NOT NULL,
+    max_weight_holder        TEXT,
+    chain_length_distribution JSONB NOT NULL,
+    delegating_count         INTEGER NOT NULL,
+    direct_voter_count       INTEGER NOT NULL,
+    computed_at              TEXT NOT NULL,
+    PRIMARY KEY (assembly_id, issue_id)
 );
 ```
+
+**Note:** Delegation graphs, voting event state, predictions, polls, and trends are computed live from the event store by the engine — they are NOT pre-materialized in separate tables. The four materialized tables above (`issue_participation`, `issue_tallies`, `issue_weights`, `issue_concentration`) are populated lazily on first query for closed events, using `INSERT ... ON CONFLICT DO NOTHING` for idempotency.
 
 ### 5.2 Event Store Principles
 
@@ -440,7 +455,7 @@ CREATE TABLE awareness_metrics (
 
 Materialized views are derived state — they can always be rebuilt by replaying events. They exist for read performance.
 
-**Synchronous refresh:** Some views must be updated immediately when events are appended. Vote tallies, delegation graphs, and voting event state are refreshed synchronously on write. The API request that triggers the event waits for the view to be updated before returning.
+**Lazy materialization:** Materialized views are computed on first read (not on write). When a client queries the tally for a closed event, the handler checks if materialized data exists. If not, it computes from the event store, writes to the materialized table, and returns the result. Subsequent queries are O(1). This avoids write-path latency and ensures materialization only happens for data that is actually read.
 
 **Asynchronous refresh:** Some views can tolerate staleness. Awareness metrics, poll trends, and prediction evaluations are refreshed by worker tasks. They may lag seconds behind the event stream.
 

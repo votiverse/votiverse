@@ -2,6 +2,45 @@
 
 All notable changes to the Votiverse project.
 
+## Client Backend (Phases 1–6) — March 2026
+
+### Added
+- `platform/backend/` service — Hono HTTP server on port 4000 with SQLite persistence
+- User authentication with Argon2 password hashing + JWT access tokens + refresh token rotation
+- VCP HTTP client for governance API communication
+- Membership service mapping users to participants across assemblies
+- VCP proxy with identity injection (resolves authenticated user to participant per assembly)
+- Seed script creating 59 users from VCP participant data
+- Login form in web client replacing static identity picker
+
+### Changed
+- Web client migrated from direct VCP connection to backend proxy (port 4000)
+- Removed `identity-store.ts`, `VITE_API_KEY`, and client-side `X-Participant-Id` injection
+
+## Deployment Hardening (Phases A–D) — March 2026
+
+### Added
+- Web client env var support (`VITE_API_BASE_URL`)
+- VCP production config validation (fail-fast when `VCP_CORS_ORIGINS` not set)
+- Structured logger with JSON output in production
+- `POST /outcomes` now requires operational scope
+- Async `DatabaseAdapter` interface (all methods return Promises)
+- PostgreSQL adapter with connection pooling and `AsyncLocalStorage`
+- JWT authentication for VCP participant identity
+- Request ID middleware (`X-Request-Id`)
+- Rate limiting (per-client token bucket)
+- Request body size limits
+- Paginated list endpoints (limit/offset on 6 endpoints)
+- Expanded health check (per-component status)
+- Metrics endpoint (`GET /metrics`)
+
+### Changed
+- Standardized SQL with `ON CONFLICT` syntax (cross-DB compatible)
+- JSONB auto-parsing fix for PostgreSQL
+
+### Removed
+- Dead `resolveId()` pass-through (10+ callsites updated)
+
 ## Phase 6: Production Hardening — March 2026
 
 ### Added

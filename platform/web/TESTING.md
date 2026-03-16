@@ -7,14 +7,36 @@ This guide maps features to specific test identities and assemblies so you know 
 ## Quick Start
 
 ```bash
-# Terminal 1 — VCP backend
+# Terminal 1 — VCP server (port 3000)
 cd platform/vcp && pnpm reset && pnpm dev
 
-# Terminal 2 — Web frontend
+# Terminal 2 — Client backend (port 4000)
+cd platform/backend && pnpm seed && pnpm dev
+
+# Terminal 3 — Web frontend (port 5174)
 cd platform/web && pnpm dev
 ```
 
-Open `http://localhost:5174`. You'll be prompted to pick an identity (participant name).
+Open `http://localhost:5174`. You'll be prompted to log in with an email and password.
+
+---
+
+## Test Credentials
+
+All seeded users have the email format `{slugified-name}@example.com` and the password `password`.
+
+For example, to log in as Elena Vasquez, use `elena-vasquez@example.com` / `password`.
+
+### Recommended Cross-Assembly Test Accounts
+
+These users belong to multiple assemblies, making them the best starting points for testing cross-assembly features:
+
+| Email | Name | Assemblies |
+|---|---|---|
+| `sofia-reyes@example.com` | Sofia Reyes | OSC + Youth |
+| `marcus-chen@example.com` | Marcus Chen | OSC + Municipal |
+| `priya-sharma@example.com` | Priya Sharma | Municipal + Youth |
+| `james-okafor@example.com` | James Okafor | Municipal + Board |
 
 ---
 
@@ -290,28 +312,28 @@ Only Youth Advisory Panel and Municipal Budget Committee have polls enabled.
 ## Common Testing Scenarios
 
 ### Scenario 1: Delegation Override
-1. Select **Chiara Rossi** → OSC Governance Board
+1. Log in as **Chiara Rossi** (`chiara-rossi@example.com`) → OSC Governance Board
 2. Go to Events → OSC Dependencies Audit
 3. Some issues should show "Delegated to Mei-Ling Wu"
 4. Vote directly on one → verify your direct vote appears and delegation is overridden
 
 ### Scenario 2: Chain Visualization
-1. Select **Nadia Boutros** → OSC Governance Board
+1. Log in as **Nadia Boutros** (`nadia-boutros@example.com`) → OSC Governance Board
 2. Go to Delegations → Chain Resolver
 3. Select Nadia + any issue → verify chain shows Nadia → Chiara → Mei-Ling
 
 ### Scenario 3: Poll Response + Results
-1. Select **Ravi Gupta** → Youth Advisory Panel (hasn't responded to "Preferred Community Event Type")
+1. Log in as **Ravi Gupta** (`ravi-gupta@example.com`) → Youth Advisory Panel (hasn't responded to "Preferred Community Event Type")
 2. Go to Polls → click an option on the multiple-choice poll
 3. Verify response is recorded and results bar chart appears
 4. Scroll to Study Space Survey → verify closed poll shows auto-loaded results
 
 ### Scenario 4: Cross-Assembly Dashboard
-1. Select **Sofia Reyes**
+1. Log in as **Sofia Reyes** (`sofia-reyes@example.com`)
 2. Dashboard should show pending votes from both OSC and Youth assemblies
 3. Navigate into each assembly to verify different delegation contexts
 
 ### Scenario 5: Board Proxy (Non-Transitive)
-1. Select **Margaret Ashworth** → Board of Directors
+1. Log in as **Margaret Ashworth** (`margaret-ashworth@example.com`) → Board of Directors
 2. Go to Delegations → verify single delegation to Victoria Harrington
 3. Verify no chain depth beyond 1 (non-transitive preset)
