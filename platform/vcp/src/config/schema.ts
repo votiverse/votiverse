@@ -11,6 +11,8 @@ export interface VCPConfig {
   apiKeys: Array<{ key: string; clientId: string; clientName: string }>;
   /** Log level. */
   logLevel: "debug" | "info" | "warn" | "error";
+  /** Allowed CORS origins. */
+  corsOrigins: string[];
 }
 
 const DEFAULT_API_KEY = "vcp_dev_key_00000000";
@@ -23,6 +25,7 @@ export function loadConfig(): VCPConfig {
     dbPath: process.env["VCP_DB_PATH"] ?? "./vcp-dev.db",
     apiKeys: parseApiKeys(process.env["VCP_API_KEYS"]),
     logLevel: (process.env["VCP_LOG_LEVEL"] as VCPConfig["logLevel"]) ?? "info",
+    corsOrigins: parseCorsOrigins(process.env["VCP_CORS_ORIGINS"]),
   };
 }
 
@@ -38,4 +41,11 @@ function parseApiKeys(
     // Treat as a single key
     return [{ key: envValue, clientId: DEFAULT_CLIENT_ID, clientName: DEFAULT_CLIENT_NAME }];
   }
+}
+
+const DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://localhost:5174"];
+
+function parseCorsOrigins(envValue: string | undefined): string[] {
+  if (!envValue) return DEFAULT_CORS_ORIGINS;
+  return envValue.split(",").map((s) => s.trim()).filter(Boolean);
 }

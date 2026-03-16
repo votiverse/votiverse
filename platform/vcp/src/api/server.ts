@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { VCPAdapters } from "../adapters/index.js";
+import type { VCPConfig } from "../config/schema.js";
 import type { AssemblyManager } from "../engine/assembly-manager.js";
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/error-handler.js";
@@ -21,12 +22,12 @@ import { awarenessRoutes } from "./routes/awareness.js";
 import { topicRoutes } from "./routes/topics.js";
 import { stubRoutes } from "./routes/stubs.js";
 
-export function createApp(adapters: VCPAdapters, manager: AssemblyManager): Hono {
+export function createApp(adapters: VCPAdapters, manager: AssemblyManager, config?: VCPConfig): Hono {
   const app = new Hono();
 
   // Middleware
   app.use("*", cors({
-    origin: (origin) => origin,
+    origin: config?.corsOrigins ?? ["http://localhost:5173", "http://localhost:5174"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "X-Participant-Id"],
   }));

@@ -30,7 +30,7 @@ const adapters: VCPAdapters = { database, queue, scheduler, webhook, auth };
 const manager = new AssemblyManager(database, queue);
 
 // Create HTTP app
-const app = createApp(adapters, manager);
+const app = createApp(adapters, manager, config);
 
 // Start queue processor
 queue.start();
