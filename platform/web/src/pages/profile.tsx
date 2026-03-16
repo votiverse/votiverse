@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
-import { Card, CardHeader, CardBody, Button, Spinner, Badge, ErrorBox } from "../components/ui.js";
+import { Card, CardHeader, CardBody, Spinner, Badge, ErrorBox } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { presetLabel } from "../lib/presets.js";
 
@@ -77,44 +78,46 @@ export function Profile() {
       {/* Identity card */}
       <Card className="mb-6">
         <CardBody>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Avatar name={participantName ?? "?"} size="lg" />
-              <div>
-                <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
-                <p className="text-xs text-gray-400 font-mono">{participantId.slice(0, 16)}...</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <Avatar name={participantName ?? "?"} size="lg" />
+            <div>
+              <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
+              <p className="text-xs text-gray-400 font-mono">{participantId.slice(0, 16)}...</p>
             </div>
-            <Button variant="secondary" size="sm" onClick={clearIdentity}>
-              Switch
-            </Button>
           </div>
         </CardBody>
       </Card>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-8">
         <Card>
           <CardBody className="text-center py-4">
             <div className="text-2xl font-semibold text-gray-900">{totalVotes}</div>
             <div className="text-xs text-gray-500 mt-0.5">Votes Cast</div>
           </CardBody>
         </Card>
-        <Card>
-          <CardBody className="text-center py-4">
-            <div className="text-2xl font-semibold text-gray-900">{totalDelegators}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Delegate to You</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="text-center py-4">
-            <div className="text-2xl font-semibold text-gray-900">{totalOutbound}</div>
-            <div className="text-xs text-gray-500 mt-0.5">My Delegates</div>
-          </CardBody>
-        </Card>
+        <Link to="/profile/delegators">
+          <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+            <CardBody className="text-center py-4">
+              <div className="text-2xl font-semibold text-gray-900">{totalDelegators}</div>
+              <div className="text-xs text-gray-500 mt-0.5">Delegate to You</div>
+            </CardBody>
+          </Card>
+        </Link>
+        <Link to="/profile/delegates">
+          <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+            <CardBody className="text-center py-4">
+              <div className="text-2xl font-semibold text-gray-900">{totalOutbound}</div>
+              <div className="text-xs text-gray-500 mt-0.5">My Delegates</div>
+            </CardBody>
+          </Card>
+        </Link>
       </div>
 
       {/* Per-assembly breakdown */}
+      {data.length > 0 && (
+        <h2 className="text-sm font-medium text-gray-500 mb-3">Your activity by group</h2>
+      )}
       {data.map(({ assembly, profile, history }) => (
         <Card key={assembly.id} className="mb-4">
           <CardHeader>

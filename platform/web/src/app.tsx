@@ -13,6 +13,8 @@ import { Delegations } from "./pages/delegations.js";
 import { Polls } from "./pages/polls.js";
 import { Predictions } from "./pages/predictions.js";
 import { Profile } from "./pages/profile.js";
+import { ProfileDelegators } from "./pages/profile-delegators.js";
+import { ProfileDelegates } from "./pages/profile-delegates.js";
 
 function Layout() {
   return (
@@ -41,6 +43,8 @@ export function App() {
               <Route index element={<Dashboard />} />
               <Route path="assemblies" element={<AssemblyList />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="profile/delegators" element={<ProfileDelegators />} />
+              <Route path="profile/delegates" element={<ProfileDelegates />} />
               <Route path="assembly/:assemblyId" element={<AssemblyDashboard />} />
               <Route path="assembly/:assemblyId/members" element={<Members />} />
               <Route path="assembly/:assemblyId/events" element={<EventsList />} />
