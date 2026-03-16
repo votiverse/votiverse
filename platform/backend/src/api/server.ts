@@ -18,6 +18,7 @@ import { healthRoutes } from "./routes/health.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { authRoutes } from "./routes/auth.js";
 import { meRoutes } from "./routes/me.js";
+import { proxyRoutes } from "./routes/proxy.js";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 
 export interface AppDependencies {
@@ -71,6 +72,7 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService));
   app.route("/", meRoutes(userService, membershipService));
+  app.route("/", proxyRoutes(membershipService, config));
 
   return app;
 }
