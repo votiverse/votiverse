@@ -7,6 +7,7 @@ import type { TopicId, PollId, ParticipantId } from "@votiverse/core";
 import type { CreatePollParams, SubmitResponseParams } from "@votiverse/polling";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant } from "../middleware/auth.js";
+import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function pollRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -41,7 +42,8 @@ export function pollRoutes(manager: AssemblyManager) {
       }),
     );
 
-    return c.json({ polls: items });
+    const { data, pagination } = paginate(items, parsePagination(c));
+    return c.json({ polls: data, pagination });
   });
 
   /** POST /assemblies/:id/polls — create poll. */

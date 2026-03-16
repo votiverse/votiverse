@@ -1,5 +1,11 @@
 /** Types mirroring VCP API response shapes. */
 
+export interface PaginationMeta {
+  limit: number;
+  offset: number;
+  total: number;
+}
+
 export interface Assembly {
   id: string;
   organizationId: string | null;

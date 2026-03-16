@@ -7,6 +7,7 @@ import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, getParticipantId } from "../middleware/auth.js";
 import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
+import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function delegationRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -122,16 +123,16 @@ export function delegationRoutes(manager: AssemblyManager) {
       );
     }
 
-    return c.json({
-      delegations: delegations.map((d) => ({
-        id: d.id,
-        sourceId: d.sourceId,
-        targetId: d.targetId,
-        topicScope: d.topicScope,
-        createdAt: new Date(d.createdAt).toISOString(),
-        active: d.active,
-      })),
-    });
+    const mapped = delegations.map((d) => ({
+      id: d.id,
+      sourceId: d.sourceId,
+      targetId: d.targetId,
+      topicScope: d.topicScope,
+      createdAt: new Date(d.createdAt).toISOString(),
+      active: d.active,
+    }));
+    const { data, pagination } = paginate(mapped, parsePagination(c));
+    return c.json({ delegations: data, pagination });
   });
 
   /** GET /assemblies/:id/delegations/chain — resolve chain for participant. */

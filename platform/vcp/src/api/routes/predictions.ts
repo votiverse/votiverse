@@ -7,6 +7,7 @@ import type { ParticipantId } from "@votiverse/core";
 import type { PredictionId, CommitPredictionParams, RecordOutcomeParams } from "@votiverse/prediction";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, requireScope } from "../middleware/auth.js";
+import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function predictionRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -27,16 +28,16 @@ export function predictionRoutes(manager: AssemblyManager) {
     const { engine } = await manager.getEngine(assemblyId);
     const predictions = await engine.prediction.getByParticipant(participantId as ParticipantId);
 
-    return c.json({
-      predictions: predictions.map((p) => ({
-        id: p.id,
-        proposalId: p.proposalId,
-        participantId: p.participantId,
-        claim: p.claim,
-        commitmentHash: p.commitmentHash,
-        committedAt: new Date(p.committedAt).toISOString(),
-      })),
-    });
+    const mapped = predictions.map((p) => ({
+      id: p.id,
+      proposalId: p.proposalId,
+      participantId: p.participantId,
+      claim: p.claim,
+      commitmentHash: p.commitmentHash,
+      committedAt: new Date(p.committedAt).toISOString(),
+    }));
+    const { data, pagination } = paginate(mapped, parsePagination(c));
+    return c.json({ predictions: data, pagination });
   });
 
   /** POST /assemblies/:id/predictions — commit prediction. Sovereignty enforced. */

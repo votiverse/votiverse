@@ -8,6 +8,7 @@ import type { GovernanceConfig } from "@votiverse/config";
 import { validateConfig, getPreset } from "@votiverse/config";
 import type { PresetName } from "@votiverse/config";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function assemblyRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -70,10 +71,11 @@ export function assemblyRoutes(manager: AssemblyManager) {
     return c.json(assembly, 201);
   });
 
-  /** GET /assemblies — list all assemblies. */
+  /** GET /assemblies — list all assemblies (paginated). */
   app.get("/assemblies", async (c) => {
-    const assemblies = await manager.listAssemblies();
-    return c.json({ assemblies });
+    const all = await manager.listAssemblies();
+    const { data, pagination } = paginate(all, parsePagination(c));
+    return c.json({ assemblies: data, pagination });
   });
 
   /** GET /assemblies/:id — get assembly state. */

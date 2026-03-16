@@ -8,6 +8,7 @@ import { createEvent, generateEventId, now } from "@votiverse/core";
 import type { ParticipantStatusChangedEvent, DelegationRevokedEvent } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireScope, getClient } from "../middleware/auth.js";
+import { parsePagination, paginate } from "../middleware/pagination.js";
 
 const VALID_STATUSES = new Set<string>(["active", "inactive", "sunset"]);
 
@@ -59,8 +60,9 @@ export function participantRoutes(manager: AssemblyManager) {
         404,
       );
     }
-    const participants = await manager.listParticipants(assemblyId);
-    return c.json({ participants });
+    const all = await manager.listParticipants(assemblyId);
+    const { data, pagination } = paginate(all, parsePagination(c));
+    return c.json({ participants: data, pagination });
   });
 
   /** DELETE /assemblies/:id/participants/:pid — remove participant. */

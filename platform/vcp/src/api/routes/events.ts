@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { parsePagination, paginate } from "../middleware/pagination.js";
 
 interface CreateEventBody {
   title: string;
@@ -144,21 +145,19 @@ export function eventRoutes(manager: AssemblyManager) {
     });
   });
 
-  /** GET /assemblies/:id/events — list events. */
+  /** GET /assemblies/:id/events — list events (paginated). */
   app.get("/assemblies/:id/events", async (c) => {
     const assemblyId = c.req.param("id");
     const { engine } = await manager.getEngine(assemblyId);
-    const events = engine.events.list();
-
-    return c.json({
-      events: events.map((e) => ({
-        id: e.id,
-        title: e.title,
-        description: e.description,
-        issueIds: e.issueIds,
-        createdAt: new Date(e.createdAt).toISOString(),
-      })),
-    });
+    const allEvents = engine.events.list().map((e) => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      issueIds: e.issueIds,
+      createdAt: new Date(e.createdAt).toISOString(),
+    }));
+    const { data, pagination } = paginate(allEvents, parsePagination(c));
+    return c.json({ events: data, pagination });
   });
 
   return app;
