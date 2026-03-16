@@ -8,6 +8,8 @@ import { configureLogger, logger } from "./lib/logger.js";
 import { SQLiteAdapter } from "./adapters/database/sqlite.js";
 import { UserService } from "./services/user-service.js";
 import { SessionService } from "./services/session-service.js";
+import { MembershipService } from "./services/membership-service.js";
+import { VCPClient } from "./services/vcp-client.js";
 import { createApp } from "./api/server.js";
 
 async function main() {
@@ -31,9 +33,11 @@ async function main() {
     config.jwtAccessExpiry,
     config.jwtRefreshExpiry,
   );
+  const vcpClient = new VCPClient(config.vcpBaseUrl, config.vcpApiKey);
+  const membershipService = new MembershipService(database, vcpClient);
 
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, config });
+  const app = createApp({ database, userService, sessionService, membershipService, config });
 
   // Start HTTP server
   const server = serve({

@@ -8,6 +8,7 @@ import { bodyLimit } from "hono/body-limit";
 import type { BackendConfig } from "../config/schema.js";
 import type { UserService } from "../services/user-service.js";
 import type { SessionService } from "../services/session-service.js";
+import type { MembershipService } from "../services/membership-service.js";
 import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { createRequestLogger } from "./middleware/request-logger.js";
@@ -16,17 +17,19 @@ import { createAuthMiddleware } from "./middleware/auth.js";
 import { healthRoutes } from "./routes/health.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { authRoutes } from "./routes/auth.js";
+import { meRoutes } from "./routes/me.js";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 
 export interface AppDependencies {
   database: DatabaseAdapter;
   userService: UserService;
   sessionService: SessionService;
+  membershipService: MembershipService;
   config: BackendConfig;
 }
 
 export function createApp(deps: AppDependencies): Hono {
-  const { database, userService, sessionService, config } = deps;
+  const { database, userService, sessionService, membershipService, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -67,6 +70,7 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService));
+  app.route("/", meRoutes(userService, membershipService));
 
   return app;
 }

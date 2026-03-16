@@ -162,12 +162,12 @@ describe("Auth flow", () => {
 
     it("accepts valid access token", async () => {
       const { accessToken } = await backend.registerAndLogin("alice@example.com", "password123", "Alice");
-      // /me route doesn't exist yet, but auth middleware should pass
       const res = await backend.request("GET", "/me", undefined, {
         Authorization: `Bearer ${accessToken}`,
       });
-      // 404 because /me route isn't mounted yet — but NOT 401
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(200);
+      const data = await res.json() as { email: string };
+      expect(data.email).toBe("alice@example.com");
     });
   });
 });

@@ -6,6 +6,8 @@ import { Hono } from "hono";
 import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
 import { UserService } from "../src/services/user-service.js";
 import { SessionService } from "../src/services/session-service.js";
+import { MembershipService } from "../src/services/membership-service.js";
+import { VCPClient } from "../src/services/vcp-client.js";
 import { createApp } from "../src/api/server.js";
 import type { BackendConfig } from "../src/config/schema.js";
 
@@ -43,8 +45,10 @@ export async function createTestBackend(): Promise<TestBackend> {
 
   const userService = new UserService(db);
   const sessionService = new SessionService(db, TEST_JWT_SECRET, "1h", "30d");
+  const vcpClient = new VCPClient(TEST_CONFIG.vcpBaseUrl, TEST_CONFIG.vcpApiKey);
+  const membershipService = new MembershipService(db, vcpClient);
 
-  const app = createApp({ database: db, userService, sessionService, config: TEST_CONFIG });
+  const app = createApp({ database: db, userService, sessionService, membershipService, config: TEST_CONFIG });
 
   const cleanup = () => {
     void db.close();
