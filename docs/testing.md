@@ -448,7 +448,64 @@ See `platform/web/TESTING.md` for complete delegation graphs with chain diagrams
 
 ---
 
-## 10. Troubleshooting
+## 10. Gotchas and Common Pitfalls
+
+### Reseed order matters: VCP first, then backend
+
+The backend seed reads participant data from the running VCP. If you reseed the VCP (which generates new UUIDs), the backend's membership records point to old assembly/participant IDs. **Always reseed the backend after reseeding the VCP:**
+
+```bash
+# Correct order:
+cd platform/vcp && pnpm reset && pnpm dev      # 1. VCP with fresh UUIDs
+cd platform/backend && pnpm reset && pnpm dev   # 2. Backend reads from VCP
+```
+
+**Symptom of stale backend:** Dashboard shows "No groups found" even though My Groups lists assemblies. The attention hook filters assemblies by membership IDs, which don't match if the backend was seeded against a different VCP.
+
+### Kill servers before reseeding
+
+`pnpm reset` starts a temporary server, seeds, and stops it. If a server is already running on that port, the reset will fail or seed the wrong instance. Always kill existing servers first:
+
+```bash
+lsof -ti :3000 -ti :4000 | xargs kill 2>/dev/null
+```
+
+### Stale engine dist/ after code changes
+
+If VCP returns `"X is not a function"` errors (e.g., `hasResponded is not a function`), the engine packages' compiled `dist/` is stale. Rebuild:
+
+```bash
+pnpm --filter @votiverse/core build && \
+pnpm --filter @votiverse/config build && \
+pnpm --filter @votiverse/polling build && \
+pnpm --filter @votiverse/engine build
+```
+
+Then **restart the VCP** — a running process holds old modules in memory.
+
+### Token expiry
+
+**Dev mode defaults:** Access tokens last 7 days, refresh tokens last 365 days. You should rarely need to re-login during development.
+
+**Production defaults:** Access tokens last 15 minutes (auto-refreshed silently by the client), refresh tokens last 90 days. Users re-login roughly every 3 months.
+
+Override via environment:
+```bash
+BACKEND_JWT_ACCESS_EXPIRY=1h    # shorter access token
+BACKEND_JWT_REFRESH_EXPIRY=30d  # shorter refresh token
+```
+
+### Browser autofill interferes with login
+
+Chrome may autofill the password field with a saved (wrong) password. If login fails, clear the field manually and type `password`.
+
+### Dev clock left advanced
+
+If pages show unexpected "Ended" status or votes are rejected, the dev clock may be advanced from a previous test session. Check the clock widget in the bottom-right — if it shows a **TEST** badge or an offset, click "Reset to real time".
+
+---
+
+## 11. Troubleshooting
 
 ### "Voting has not started" or "Voting has closed" errors
 
@@ -460,15 +517,24 @@ The engine enforces timeline windows. If you're getting unexpected rejections:
 ### Backend returns 401 on login
 
 - Verify the backend is running (`curl http://localhost:4000/health`)
-- Verify the backend was seeded (`pnpm reset` in backend directory)
+- Verify the backend was seeded AFTER the VCP (`pnpm reset` in backend directory while VCP is running)
 - Verify you're using the correct password (`password` for all seeded users)
 - Check email format: `{first-last}@example.com` with hyphens, lowercase
 
-### VCP returns 500 on vote
+### "No groups found" on dashboard but groups exist in My Groups
+
+The backend was seeded against a different VCP instance (assembly UUIDs don't match). Fix: reseed the backend from the current VCP data:
+
+```bash
+lsof -ti :4000 | xargs kill   # kill backend
+cd platform/backend && pnpm reset && pnpm dev   # reseed from running VCP
+```
+
+### VCP returns 500 on vote or poll
 
 - Check VCP logs for the specific error
 - If "VOTING_CLOSED" or "VOTING_NOT_OPEN", see timeline troubleshooting above
-- If "is not a function", rebuild engine packages: `pnpm --filter '@votiverse/*' build`
+- If "is not a function", rebuild engine packages (see "Stale engine dist/" above)
 
 ### Dev clock not appearing
 

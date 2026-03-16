@@ -25,8 +25,10 @@ export function loadConfig(): BackendConfig {
     dbPath: process.env["BACKEND_DB_PATH"] ?? "./backend-dev.db",
     databaseUrl: process.env["BACKEND_DATABASE_URL"] ?? null,
     jwtSecret: process.env["BACKEND_JWT_SECRET"] ?? DEFAULT_JWT_SECRET,
-    jwtAccessExpiry: process.env["BACKEND_JWT_ACCESS_EXPIRY"] ?? "1h",
-    jwtRefreshExpiry: process.env["BACKEND_JWT_REFRESH_EXPIRY"] ?? "30d",
+    jwtAccessExpiry: process.env["BACKEND_JWT_ACCESS_EXPIRY"] ??
+      (process.env["NODE_ENV"] === "production" ? "15m" : "7d"),
+    jwtRefreshExpiry: process.env["BACKEND_JWT_REFRESH_EXPIRY"] ??
+      (process.env["NODE_ENV"] === "production" ? "90d" : "365d"),
     vcpBaseUrl: process.env["BACKEND_VCP_URL"] ?? "http://localhost:3000",
     vcpApiKey: process.env["BACKEND_VCP_API_KEY"] ?? "vcp_dev_key_00000000",
     logLevel: (process.env["BACKEND_LOG_LEVEL"] as BackendConfig["logLevel"]) ?? "info",
