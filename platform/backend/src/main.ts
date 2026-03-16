@@ -1,12 +1,13 @@
 /**
- * Backend entry point — reads config, wires adapters, starts services.
+ * Backend entry point — reads config, wires services, starts server.
  */
 
 import { serve } from "@hono/node-server";
 import { loadConfig, validateProductionConfig } from "./config/schema.js";
 import { configureLogger, logger } from "./lib/logger.js";
 import { SQLiteAdapter } from "./adapters/database/sqlite.js";
-import type { BackendAdapters } from "./adapters/index.js";
+import { UserService } from "./services/user-service.js";
+import { SessionService } from "./services/session-service.js";
 import { createApp } from "./api/server.js";
 
 async function main() {
@@ -17,15 +18,22 @@ async function main() {
     validateProductionConfig(config);
   }
 
-  // Wire database adapter
+  // Wire database
   const database = new SQLiteAdapter(config.dbPath);
   await database.initialize();
   logger.info(`Using SQLite database: ${config.dbPath}`);
 
-  const adapters: BackendAdapters = { database };
+  // Wire services
+  const userService = new UserService(database);
+  const sessionService = new SessionService(
+    database,
+    config.jwtSecret,
+    config.jwtAccessExpiry,
+    config.jwtRefreshExpiry,
+  );
 
   // Create HTTP app
-  const app = createApp(adapters, config);
+  const app = createApp({ database, userService, sessionService, config });
 
   // Start HTTP server
   const server = serve({

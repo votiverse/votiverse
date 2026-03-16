@@ -5,16 +5,28 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
-import type { BackendAdapters } from "../adapters/index.js";
 import type { BackendConfig } from "../config/schema.js";
+import type { UserService } from "../services/user-service.js";
+import type { SessionService } from "../services/session-service.js";
 import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { createRequestLogger } from "./middleware/request-logger.js";
-import { errorHandler } from "./middleware/error-handler.js";
+import { errorHandler, AppError } from "./middleware/error-handler.js";
+import { createAuthMiddleware } from "./middleware/auth.js";
 import { healthRoutes } from "./routes/health.js";
 import { metricsRoutes } from "./routes/metrics.js";
+import { authRoutes } from "./routes/auth.js";
+import type { DatabaseAdapter } from "../adapters/database/interface.js";
 
-export function createApp(adapters: BackendAdapters, config: BackendConfig): Hono {
+export interface AppDependencies {
+  database: DatabaseAdapter;
+  userService: UserService;
+  sessionService: SessionService;
+  config: BackendConfig;
+}
+
+export function createApp(deps: AppDependencies): Hono {
+  const { database, userService, sessionService, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -34,9 +46,16 @@ export function createApp(adapters: BackendAdapters, config: BackendConfig): Hon
   }));
   app.use("*", createRequestLogger(logger));
   app.use("*", errorHandler);
+  app.use("*", createAuthMiddleware(config.jwtSecret));
 
-  // Fallback error handler
+  // Fallback error handler (catches errors from route handlers)
   app.onError((error, c) => {
+    if (error instanceof AppError) {
+      return c.json(
+        { error: { code: error.code, message: error.message } },
+        error.statusCode as 400,
+      );
+    }
     logger.error("Unhandled error", { message: error.message, stack: error.stack });
     return c.json(
       { error: { code: "INTERNAL_ERROR", message: error.message } },
@@ -45,8 +64,9 @@ export function createApp(adapters: BackendAdapters, config: BackendConfig): Hon
   });
 
   // Routes
-  app.route("/", healthRoutes(adapters.database));
+  app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
+  app.route("/", authRoutes(userService, sessionService));
 
   return app;
 }
