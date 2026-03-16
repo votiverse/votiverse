@@ -16,6 +16,11 @@ import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { QueueAdapter } from "../adapters/queue/interface.js";
 import { SQLiteEventStore } from "./sqlite-event-store.js";
 
+/** Parse a value that may be a JSON string (SQLite) or already-parsed object (PostgreSQL JSONB). */
+function parseJson<T>(value: string | T): T {
+  return typeof value === "string" ? JSON.parse(value) as T : value;
+}
+
 interface AssemblyRecord {
   id: string;
   organization_id: string | null;
@@ -100,7 +105,7 @@ export class AssemblyManager {
       id: row.id,
       organizationId: row.organization_id,
       name: row.name,
-      config: JSON.parse(row.config) as GovernanceConfig,
+      config: parseJson<GovernanceConfig>(row.config),
       status: row.status,
       createdAt: row.created_at,
     }));
@@ -117,7 +122,7 @@ export class AssemblyManager {
       id: row.id,
       organizationId: row.organization_id,
       name: row.name,
-      config: JSON.parse(row.config) as GovernanceConfig,
+      config: parseJson<GovernanceConfig>(row.config),
       status: row.status,
       createdAt: row.created_at,
     };
@@ -155,9 +160,9 @@ export class AssemblyManager {
         id: row.id as IssueId,
         title: row.title,
         description: row.description,
-        topicIds: JSON.parse(row.topic_ids) as TopicId[],
+        topicIds: parseJson<TopicId[]>(row.topic_ids),
         votingEventId: row.voting_event_id as VotingEventId,
-        ...(row.choices ? { choices: JSON.parse(row.choices) as string[] } : {}),
+        ...(row.choices ? { choices: parseJson<string[]>(row.choices!) } : {}),
       });
     }
 
@@ -343,10 +348,10 @@ export class AssemblyManager {
       participantId: row.participant_id,
       issueId: row.issue_id,
       status: row.status,
-      effectiveChoice: row.effective_choice !== null ? JSON.parse(row.effective_choice) : null,
+      effectiveChoice: row.effective_choice !== null ? parseJson(row.effective_choice) : null,
       delegateId: row.delegate_id,
       terminalVoterId: row.terminal_voter_id,
-      chain: JSON.parse(row.chain) as string[],
+      chain: parseJson<string[]>(row.chain),
     }));
   }
 
@@ -374,10 +379,10 @@ export class AssemblyManager {
       participantId: row.participant_id,
       issueId: row.issue_id,
       status: row.status,
-      effectiveChoice: row.effective_choice !== null ? JSON.parse(row.effective_choice) : null,
+      effectiveChoice: row.effective_choice !== null ? parseJson(row.effective_choice) : null,
       delegateId: row.delegate_id,
       terminalVoterId: row.terminal_voter_id,
-      chain: JSON.parse(row.chain) as string[],
+      chain: parseJson<string[]>(row.chain),
     }));
   }
 
@@ -413,7 +418,7 @@ export class AssemblyManager {
     return {
       issueId: row.issue_id,
       winner: row.winner,
-      counts: JSON.parse(row.counts) as Record<string, number>,
+      counts: parseJson<Record<string, number>>(row.counts),
       totalVotes: row.total_votes,
       quorumMet: row.quorum_met === 1,
       quorumThreshold: row.quorum_threshold,
@@ -453,7 +458,7 @@ export class AssemblyManager {
     if (!row) return null;
     return {
       issueId: row.issue_id,
-      weights: JSON.parse(row.weights) as Record<string, number>,
+      weights: parseJson<Record<string, number>>(row.weights),
       totalWeight: row.total_weight,
     };
   }
@@ -501,7 +506,7 @@ export class AssemblyManager {
       giniCoefficient: row.gini_coefficient,
       maxWeight: row.max_weight,
       maxWeightHolder: row.max_weight_holder,
-      chainLengthDistribution: JSON.parse(row.chain_length_distribution) as Record<number, number>,
+      chainLengthDistribution: parseJson<Record<number, number>>(row.chain_length_distribution),
       delegatingCount: row.delegating_count,
       directVoterCount: row.direct_voter_count,
     };

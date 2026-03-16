@@ -98,7 +98,7 @@ export class SQLiteEventStore implements EventStore {
       id: row.id as EventId,
       type: row.event_type,
       timestamp: new Date(row.occurred_at).getTime() as Timestamp,
-      payload: JSON.parse(row.payload) as Record<string, unknown>,
+      payload: (typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload) as Record<string, unknown>,
     } as DomainEvent;
   }
 }
