@@ -3,32 +3,44 @@
  */
 
 import { Hono } from "hono";
-import type { TopicId, PollId } from "@votiverse/core";
+import type { TopicId, PollId, ParticipantId } from "@votiverse/core";
 import type { CreatePollParams, SubmitResponseParams } from "@votiverse/polling";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 
 export function pollRoutes(manager: AssemblyManager) {
   const app = new Hono();
 
-  /** GET /assemblies/:id/polls — list all polls. */
+  /** GET /assemblies/:id/polls — list all polls. Optional ?participantId= to include hasResponded. */
   app.get("/assemblies/:id/polls", async (c) => {
     const assemblyId = c.req.param("id");
+    const participantId = c.req.query("participantId") as ParticipantId | undefined;
 
     const { engine } = await manager.getEngine(assemblyId);
     const polls = await engine.polls.list();
 
-    return c.json({
-      polls: polls.map((poll) => ({
-        id: poll.id,
-        title: poll.title,
-        status: poll.status,
-        questions: poll.questions,
-        topicIds: poll.topicScope,
-        schedule: poll.schedule,
-        closesAt: poll.closesAt,
-        createdBy: poll.createdBy,
-      })),
-    });
+    const items = await Promise.all(
+      polls.map(async (poll) => {
+        const item: Record<string, unknown> = {
+          id: poll.id,
+          title: poll.title,
+          status: poll.status,
+          questions: poll.questions,
+          topicIds: poll.topicScope,
+          schedule: poll.schedule,
+          closesAt: poll.closesAt,
+          createdBy: poll.createdBy,
+        };
+        if (participantId) {
+          item.hasResponded = await engine.polls.hasResponded(
+            poll.id,
+            participantId,
+          );
+        }
+        return item;
+      }),
+    );
+
+    return c.json({ polls: items });
   });
 
   /** POST /assemblies/:id/polls — create poll. */

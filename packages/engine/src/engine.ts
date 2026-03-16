@@ -529,6 +529,9 @@ export class VotiverseEngine {
     get: (pollId: PollId) => this.pollingService.getPoll(pollId),
 
     list: () => this.pollingService.getAllPolls(),
+
+    hasResponded: (pollId: PollId, participantId: ParticipantId): Promise<boolean> =>
+      this.pollingService.hasResponded(pollId, participantId),
   };
 
   // -----------------------------------------------------------------------

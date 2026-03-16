@@ -255,8 +255,10 @@ export function getDelegateProfile(
 
 export function listPolls(
   assemblyId: string,
+  participantId?: string,
 ): Promise<{ polls: Poll[] }> {
-  return request("GET", `/assemblies/${assemblyId}/polls`);
+  const qs = participantId ? `?participantId=${participantId}` : "";
+  return request("GET", `/assemblies/${assemblyId}/polls${qs}`);
 }
 
 export function createPoll(

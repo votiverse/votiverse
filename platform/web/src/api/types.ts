@@ -200,6 +200,7 @@ export interface Poll {
   schedule: number;
   closesAt: number;
   createdBy: string;
+  hasResponded?: boolean;
 }
 
 export interface PollQuestion {

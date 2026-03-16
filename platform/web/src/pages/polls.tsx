@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
 import type { Poll, PollQuestion, PollResults } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
+
+type PollTab = "open" | "closed";
 
 // ---------------------------------------------------------------------------
 // Colors for result bars (consistent with tally bars in event-detail.tsx)
@@ -27,20 +29,26 @@ const RESULT_COLORS = [
 export function Polls() {
   const { assemblyId } = useParams();
   const { assembly } = useAssembly(assemblyId);
+  const { participantId } = useParticipant();
   const [creating, setCreating] = useState(false);
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<PollTab>("open");
 
   const pollsEnabled = assembly?.config.features.polls ?? false;
 
   useEffect(() => {
     if (!assemblyId) return;
     setLoading(true);
-    api.listPolls(assemblyId)
+    api.listPolls(assemblyId, participantId ?? undefined)
       .then((data) => setPolls(data.polls))
       .catch(() => {/* ignore — falls back to empty list */})
       .finally(() => setLoading(false));
-  }, [assemblyId]);
+  }, [assemblyId, participantId]);
+
+  const openPolls = useMemo(() => polls.filter((p) => p.status !== "closed"), [polls]);
+  const closedPolls = useMemo(() => polls.filter((p) => p.status === "closed"), [polls]);
+  const visiblePolls = tab === "open" ? openPolls : closedPolls;
 
   if (!pollsEnabled && !loading) {
     return (
@@ -61,6 +69,28 @@ export function Polls() {
         {pollsEnabled && <Button onClick={() => setCreating(true)}>New Survey</Button>}
       </div>
 
+      {/* Open / Closed tabs */}
+      <div className="flex gap-1 mb-4 border-b border-gray-200">
+        {([["open", "Open"], ["closed", "Closed"]] as const).map(([key, label]) => {
+          const count = key === "open" ? openPolls.length : closedPolls.length;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === key
+                  ? "border-brand text-brand"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {label}
+              {!loading && <span className="ml-1.5 text-xs text-gray-400">({count})</span>}
+            </button>
+          );
+        })}
+      </div>
+
       {creating && (
         <CreatePollForm
           assemblyId={assemblyId!}
@@ -77,14 +107,16 @@ export function Polls() {
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
         </div>
-      ) : polls.length === 0 && !creating ? (
+      ) : visiblePolls.length === 0 && !creating ? (
         <EmptyState
-          title="No surveys yet"
-          description="Create a survey to gather member feedback on a topic."
+          title={tab === "open" ? "No open surveys" : "No closed surveys"}
+          description={tab === "open"
+            ? "Create a survey to gather member feedback on a topic."
+            : "Closed surveys and their results will appear here."}
         />
       ) : (
         <div className="space-y-4">
-          {polls.map((poll) => (
+          {visiblePolls.map((poll) => (
             <PollCard key={poll.id} assemblyId={assemblyId!} poll={poll} />
           ))}
         </div>
@@ -325,7 +357,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
   const [results, setResults] = useState<PollResults | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
-  const [responded, setResponded] = useState(false);
+  const [responded, setResponded] = useState(poll.hasResponded ?? false);
   const [responseError, setResponseError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, unknown>>({});
 
@@ -333,13 +365,13 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
   const showButtons = !isClosed && !responded && participantId;
   const allAnswered = poll.questions.every((q) => q.id in selected);
 
-  // Auto-load results for closed polls
+  // Auto-load results for closed polls or already-responded polls
   useEffect(() => {
-    if (isClosed) {
+    if (isClosed || responded) {
       loadResults();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClosed]);
+  }, [isClosed, responded]);
 
   const loadResults = useCallback(async () => {
     try {

@@ -253,6 +253,15 @@ export class PollingService {
   }
 
   /**
+   * Check whether a participant has already responded to a poll.
+   */
+  async hasResponded(pollId: PollId, participantId: ParticipantId): Promise<boolean> {
+    const hash = hashParticipant(participantId);
+    const responses = await this.getResponses(pollId);
+    return responses.some((r) => r.participantHash === hash);
+  }
+
+  /**
    * Get all responses for a poll.
    */
   async getResponses(pollId: PollId): Promise<readonly PollResponse[]> {
