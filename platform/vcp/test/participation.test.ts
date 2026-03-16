@@ -21,7 +21,7 @@ describe("Participation records", () => {
   let issueId: string;
 
   beforeEach(async () => {
-    vcp = createTestVCP();
+    vcp = await createTestVCP();
 
     // Create assembly with LIQUID_STANDARD (public secrecy, public delegation visibility)
     const asmRes = await vcp.request("POST", "/assemblies", {

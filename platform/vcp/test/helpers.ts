@@ -23,10 +23,10 @@ export interface TestVCP {
   requestAs: (participantId: string, method: string, path: string, body?: unknown) => Promise<{ status: number; json: () => Promise<unknown> }>;
 }
 
-export function createTestVCP(): TestVCP {
+export async function createTestVCP(): Promise<TestVCP> {
   // Use in-memory SQLite for tests
   const db = new SQLiteAdapter(":memory:");
-  db.initialize();
+  await db.initialize();
 
   const queue = new MemoryQueueAdapter();
   const scheduler = new LocalSchedulerAdapter();
@@ -45,7 +45,7 @@ export function createTestVCP(): TestVCP {
   const cleanup = () => {
     queue.stop();
     scheduler.stopAll();
-    db.close();
+    void db.close();
   };
 
   const request = async (method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => {

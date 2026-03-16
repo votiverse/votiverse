@@ -25,7 +25,7 @@ export class SQLiteEventStore implements EventStore {
   ) {}
 
   async append(event: DomainEvent): Promise<void> {
-    const existing = this.db.queryOne<{ id: string }>(
+    const existing = await this.db.queryOne<{ id: string }>(
       "SELECT id FROM events WHERE id = ?",
       [event.id],
     );
@@ -33,7 +33,7 @@ export class SQLiteEventStore implements EventStore {
       throw new DuplicateEventError(event.id);
     }
 
-    this.db.run(
+    await this.db.run(
       `INSERT INTO events (id, assembly_id, event_type, payload, occurred_at)
        VALUES (?, ?, ?, ?, ?)`,
       [
@@ -47,7 +47,7 @@ export class SQLiteEventStore implements EventStore {
   }
 
   async getById(id: EventId): Promise<DomainEvent | undefined> {
-    const row = this.db.queryOne<EventRow>(
+    const row = await this.db.queryOne<EventRow>(
       "SELECT * FROM events WHERE id = ? AND assembly_id = ?",
       [id, this.assemblyId],
     );
@@ -81,12 +81,12 @@ export class SQLiteEventStore implements EventStore {
       params.push(options.limit);
     }
 
-    const rows = this.db.query<EventRow>(sql, params);
+    const rows = await this.db.query<EventRow>(sql, params);
     return rows.map((r) => this.rowToEvent(r));
   }
 
   async getAll(): Promise<readonly DomainEvent[]> {
-    const rows = this.db.query<EventRow>(
+    const rows = await this.db.query<EventRow>(
       "SELECT * FROM events WHERE assembly_id = ? ORDER BY sequence_num ASC",
       [this.assemblyId],
     );

@@ -57,7 +57,7 @@ export function votingRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -98,7 +98,7 @@ export function votingRoutes(manager: AssemblyManager) {
         });
       } else if (votingEnded) {
         // Closed: use materialized data if available
-        const cached = manager.getTally(assemblyId, issueId);
+        const cached = await manager.getTally(assemblyId, issueId);
         if (cached) {
           tallies.push({ ...cached, sealed: false });
         } else {
@@ -148,7 +148,7 @@ export function votingRoutes(manager: AssemblyManager) {
     const participantId = rawPid ?? undefined;
     const callerId = getParticipantId(c);
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -184,7 +184,7 @@ export function votingRoutes(manager: AssemblyManager) {
     // Collect raw records
     const rawRecords = [];
     for (const issueId of votingEvent.issueIds) {
-      const records = manager.getParticipation(assemblyId, issueId, participantId);
+      const records = await manager.getParticipation(assemblyId, issueId, participantId);
       rawRecords.push(...records);
     }
 
@@ -237,7 +237,7 @@ export function votingRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -281,7 +281,7 @@ export function votingRoutes(manager: AssemblyManager) {
     for (const issueId of votingEvent.issueIds) {
       // Use materialized weights for closed events
       if (votingEnded) {
-        const cached = manager.getWeights(assemblyId, issueId);
+        const cached = await manager.getWeights(assemblyId, issueId);
         if (cached) {
           weightDists.push(cached);
           continue;

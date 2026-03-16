@@ -23,7 +23,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -34,7 +34,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
     const { secrecy } = info.config.ballot;
 
     // Try materialized data first
-    const cached = manager.getConcentration(assemblyId, issueId);
+    const cached = await manager.getConcentration(assemblyId, issueId);
     if (cached) {
       return c.json({
         ...cached,
@@ -63,7 +63,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
     const pid = c.req.param("pid");
     const callerId = getParticipantId(c);
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -125,7 +125,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const pid = c.req.param("pid");
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },

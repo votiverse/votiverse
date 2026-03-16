@@ -13,5 +13,5 @@ export interface ClientInfo {
 
 export interface AuthAdapter {
   /** Validate an API key and return the associated client, or null if invalid. */
-  validate(apiKey: string): ClientInfo | null;
+  validate(apiKey: string): Promise<ClientInfo | null>;
 }

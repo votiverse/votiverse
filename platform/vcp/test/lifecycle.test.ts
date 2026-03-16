@@ -13,8 +13,8 @@ import { createTestVCP, type TestVCP } from "./helpers.js";
 describe("Full governance lifecycle", () => {
   let vcp: TestVCP;
 
-  beforeEach(() => {
-    vcp = createTestVCP();
+  beforeEach(async () => {
+    vcp = await createTestVCP();
   });
 
   afterEach(() => {

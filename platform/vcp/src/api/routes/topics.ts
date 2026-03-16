@@ -10,9 +10,9 @@ export function topicRoutes(manager: AssemblyManager) {
   const app = new Hono();
 
   /** GET /assemblies/:id/topics — list all topics. */
-  app.get("/assemblies/:id/topics", (c) => {
+  app.get("/assemblies/:id/topics", async (c) => {
     const assemblyId = c.req.param("id");
-    const topics = manager.listTopics(assemblyId);
+    const topics = await manager.listTopics(assemblyId);
     return c.json({ topics });
   });
 
@@ -33,7 +33,7 @@ export function topicRoutes(manager: AssemblyManager) {
     }
 
     const id = randomUUID();
-    manager.createTopic(assemblyId, {
+    await manager.createTopic(assemblyId, {
       id,
       name: body.name,
       parentId: body.parentId ?? null,

@@ -75,20 +75,12 @@ export class AssemblyManager {
   ) {}
 
   /** Register a new Assembly. */
-  createAssembly(id: string, params: CreateAssemblyParams): AssemblyInfo {
-    this.db.run(
+  async createAssembly(id: string, params: CreateAssemblyParams): Promise<AssemblyInfo> {
+    await this.db.run(
       `INSERT INTO assemblies (id, organization_id, name, config, created_at, status)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        params.organizationId ?? null,
-        params.name,
-        JSON.stringify(params.config),
-        new Date().toISOString(),
-        "active",
-      ],
+      [id, params.organizationId ?? null, params.name, JSON.stringify(params.config), new Date().toISOString(), "active"],
     );
-
     return {
       id,
       organizationId: params.organizationId ?? null,
@@ -100,8 +92,8 @@ export class AssemblyManager {
   }
 
   /** List all assemblies. */
-  listAssemblies(): AssemblyInfo[] {
-    const rows = this.db.query<AssemblyRecord>(
+  async listAssemblies(): Promise<AssemblyInfo[]> {
+    const rows = await this.db.query<AssemblyRecord>(
       "SELECT * FROM assemblies ORDER BY created_at DESC",
     );
     return rows.map((row) => ({
@@ -115,8 +107,8 @@ export class AssemblyManager {
   }
 
   /** Get Assembly info without instantiating the engine. */
-  getAssemblyInfo(assemblyId: string): AssemblyInfo | undefined {
-    const row = this.db.queryOne<AssemblyRecord>(
+  async getAssemblyInfo(assemblyId: string): Promise<AssemblyInfo | undefined> {
+    const row = await this.db.queryOne<AssemblyRecord>(
       "SELECT * FROM assemblies WHERE id = ?",
       [assemblyId],
     );
@@ -136,7 +128,7 @@ export class AssemblyManager {
     const cached = this.engines.get(assemblyId);
     if (cached) return cached;
 
-    const info = this.getAssemblyInfo(assemblyId);
+    const info = await this.getAssemblyInfo(assemblyId);
     if (!info) {
       throw new AssemblyNotFoundError(assemblyId);
     }
@@ -154,7 +146,7 @@ export class AssemblyManager {
     await engine.rehydrate();
 
     // Inject persisted issue details
-    const issueRows = this.db.query<IssueRow>(
+    const issueRows = await this.db.query<IssueRow>(
       "SELECT * FROM issues WHERE assembly_id = ?",
       [assemblyId],
     );
@@ -182,36 +174,33 @@ export class AssemblyManager {
       throw new Error(result.error.message);
     }
     const participant = result.value;
-
-    // Persist to participants table
-    this.db.run(
+    await this.db.run(
       `INSERT OR IGNORE INTO participants (id, assembly_id, name, registered_at)
        VALUES (?, ?, ?, ?)`,
       [participant.id, assemblyId, participant.name, new Date(participant.registeredAt).toISOString()],
     );
-
     return { id: participant.id, name: participant.name };
   }
 
   /** Remove a participant from an Assembly. */
-  removeParticipant(assemblyId: string, participantId: string): void {
-    const result = this.db.run(
+  async removeParticipant(assemblyId: string, participantId: string): Promise<void> {
+    const result = await this.db.run(
       "DELETE FROM participants WHERE assembly_id = ? AND id = ?",
       [assemblyId, participantId],
     );
     if (result.changes === 0) {
       throw new Error(`Participant "${participantId}" not found in assembly "${assemblyId}"`);
     }
-    // Invalidate engine cache since participant state changed
     this.engines.delete(assemblyId);
   }
 
   /** List participants in an Assembly. */
-  listParticipants(assemblyId: string): Array<{ id: string; name: string; registeredAt: string; status: string }> {
-    return this.db.query<ParticipantRow>(
+  async listParticipants(assemblyId: string): Promise<Array<{ id: string; name: string; registeredAt: string; status: string }>> {
+    const rows = await this.db.query<ParticipantRow>(
       "SELECT * FROM participants WHERE assembly_id = ? ORDER BY registered_at ASC",
       [assemblyId],
-    ).map((r) => ({
+    );
+    return rows.map((r) => ({
       id: r.id,
       name: r.name,
       registeredAt: r.registered_at,
@@ -220,21 +209,20 @@ export class AssemblyManager {
   }
 
   /** Update a participant's status. */
-  updateParticipantStatus(assemblyId: string, participantId: string, status: string): void {
-    const result = this.db.run(
+  async updateParticipantStatus(assemblyId: string, participantId: string, status: string): Promise<void> {
+    const result = await this.db.run(
       "UPDATE participants SET status = ? WHERE assembly_id = ? AND id = ?",
       [status, assemblyId, participantId],
     );
     if (result.changes === 0) {
       throw new Error(`Participant "${participantId}" not found in assembly "${assemblyId}"`);
     }
-    // Invalidate engine cache since participant state changed
     this.engines.delete(assemblyId);
   }
 
   /** Get a single participant's data from the DB. */
-  getParticipant(assemblyId: string, participantId: string): { id: string; name: string; registeredAt: string; status: string } | undefined {
-    const row = this.db.queryOne<ParticipantRow>(
+  async getParticipant(assemblyId: string, participantId: string): Promise<{ id: string; name: string; registeredAt: string; status: string } | undefined> {
+    const row = await this.db.queryOne<ParticipantRow>(
       "SELECT * FROM participants WHERE assembly_id = ? AND id = ?",
       [assemblyId, participantId],
     );
@@ -248,18 +236,14 @@ export class AssemblyManager {
   }
 
   /** Persist issue details after creating a voting event. */
-  persistIssues(assemblyId: string, issues: readonly Issue[]): void {
+  async persistIssues(assemblyId: string, issues: readonly Issue[]): Promise<void> {
     for (const issue of issues) {
-      this.db.run(
+      await this.db.run(
         `INSERT OR REPLACE INTO issues (id, assembly_id, title, description, topic_ids, voting_event_id, choices)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          issue.id,
-          assemblyId,
-          issue.title,
-          issue.description,
-          JSON.stringify(issue.topicIds),
-          issue.votingEventId,
+          issue.id, assemblyId, issue.title, issue.description,
+          JSON.stringify(issue.topicIds), issue.votingEventId,
           issue.choices ? JSON.stringify(issue.choices) : null,
         ],
       );
@@ -267,19 +251,20 @@ export class AssemblyManager {
   }
 
   /** Create a topic in an assembly's taxonomy. */
-  createTopic(assemblyId: string, topic: { id: string; name: string; parentId: string | null; sortOrder?: number }): void {
-    this.db.run(
+  async createTopic(assemblyId: string, topic: { id: string; name: string; parentId: string | null; sortOrder?: number }): Promise<void> {
+    await this.db.run(
       `INSERT INTO topics (id, assembly_id, name, parent_id, sort_order) VALUES (?, ?, ?, ?, ?)`,
       [topic.id, assemblyId, topic.name, topic.parentId, topic.sortOrder ?? 0],
     );
   }
 
   /** List all topics for an assembly, ordered for tree rendering. */
-  listTopics(assemblyId: string): Array<{ id: string; name: string; parentId: string | null; sortOrder: number }> {
-    return this.db.query<TopicRow>(
+  async listTopics(assemblyId: string): Promise<Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>> {
+    const rows = await this.db.query<TopicRow>(
       "SELECT * FROM topics WHERE assembly_id = ? ORDER BY sort_order ASC, name ASC",
       [assemblyId],
-    ).map((r) => ({
+    );
+    return rows.map((r) => ({
       id: r.id,
       name: r.name,
       parentId: r.parent_id,
@@ -292,8 +277,8 @@ export class AssemblyManager {
   // -----------------------------------------------------------------------
 
   /** Check whether participation records have been materialized for an issue. */
-  hasParticipation(assemblyId: string, issueId: string): boolean {
-    const row = this.db.queryOne<{ cnt: number }>(
+  async hasParticipation(assemblyId: string, issueId: string): Promise<boolean> {
+    const row = await this.db.queryOne<{ cnt: number }>(
       "SELECT COUNT(*) as cnt FROM issue_participation WHERE assembly_id = ? AND issue_id = ?",
       [assemblyId, issueId],
     );
@@ -302,28 +287,23 @@ export class AssemblyManager {
 
   /** Materialize participation records for an issue (idempotent — skips if already materialized). */
   async materializeParticipation(assemblyId: string, issueId: string): Promise<void> {
-    if (this.hasParticipation(assemblyId, issueId)) return;
+    if (await this.hasParticipation(assemblyId, issueId)) return;
 
     const { engine } = await this.getEngine(assemblyId);
     const records = await engine.voting.participation(issueId as IssueId);
     const computedAt = new Date().toISOString();
 
-    this.db.transaction(() => {
+    await this.db.transaction(async () => {
       for (const record of records) {
-        this.db.run(
+        await this.db.run(
           `INSERT OR IGNORE INTO issue_participation
            (assembly_id, issue_id, participant_id, status, effective_choice, delegate_id, terminal_voter_id, chain, computed_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            assemblyId,
-            record.issueId,
-            record.participantId,
-            record.status,
+            assemblyId, record.issueId, record.participantId, record.status,
             record.effectiveChoice !== null ? JSON.stringify(record.effectiveChoice) : null,
-            record.delegateId,
-            record.terminalVoterId,
-            JSON.stringify(record.chain),
-            computedAt,
+            record.delegateId, record.terminalVoterId,
+            JSON.stringify(record.chain), computedAt,
           ],
         );
       }
@@ -331,19 +311,15 @@ export class AssemblyManager {
   }
 
   /** Query participation records for an issue, optionally filtered by participant. */
-  getParticipation(
+  async getParticipation(
     assemblyId: string,
     issueId: string,
     participantId?: string,
-  ): Array<{
-    participantId: string;
-    issueId: string;
-    status: string;
-    effectiveChoice: unknown;
-    delegateId: string | null;
-    terminalVoterId: string | null;
-    chain: string[];
-  }> {
+  ): Promise<Array<{
+    participantId: string; issueId: string; status: string;
+    effectiveChoice: unknown; delegateId: string | null;
+    terminalVoterId: string | null; chain: string[];
+  }>> {
     const sql = participantId
       ? "SELECT * FROM issue_participation WHERE assembly_id = ? AND issue_id = ? AND participant_id = ?"
       : "SELECT * FROM issue_participation WHERE assembly_id = ? AND issue_id = ?";
@@ -352,18 +328,14 @@ export class AssemblyManager {
       : [assemblyId, issueId];
 
     interface ParticipationRow {
-      assembly_id: string;
-      issue_id: string;
-      participant_id: string;
-      status: string;
-      effective_choice: string | null;
-      delegate_id: string | null;
-      terminal_voter_id: string | null;
-      chain: string;
-      computed_at: string;
+      assembly_id: string; issue_id: string; participant_id: string;
+      status: string; effective_choice: string | null;
+      delegate_id: string | null; terminal_voter_id: string | null;
+      chain: string; computed_at: string;
     }
 
-    return this.db.query<ParticipationRow>(sql, params).map((row) => ({
+    const rows = await this.db.query<ParticipationRow>(sql, params);
+    return rows.map((row) => ({
       participantId: row.participant_id,
       issueId: row.issue_id,
       status: row.status,
@@ -375,34 +347,26 @@ export class AssemblyManager {
   }
 
   /** Query participation records for a participant across all issues in an assembly. */
-  getParticipationByParticipant(
+  async getParticipationByParticipant(
     assemblyId: string,
     participantId: string,
-  ): Array<{
-    participantId: string;
-    issueId: string;
-    status: string;
-    effectiveChoice: unknown;
-    delegateId: string | null;
-    terminalVoterId: string | null;
-    chain: string[];
-  }> {
+  ): Promise<Array<{
+    participantId: string; issueId: string; status: string;
+    effectiveChoice: unknown; delegateId: string | null;
+    terminalVoterId: string | null; chain: string[];
+  }>> {
     interface ParticipationRow {
-      assembly_id: string;
-      issue_id: string;
-      participant_id: string;
-      status: string;
-      effective_choice: string | null;
-      delegate_id: string | null;
-      terminal_voter_id: string | null;
-      chain: string;
-      computed_at: string;
+      assembly_id: string; issue_id: string; participant_id: string;
+      status: string; effective_choice: string | null;
+      delegate_id: string | null; terminal_voter_id: string | null;
+      chain: string; computed_at: string;
     }
 
-    return this.db.query<ParticipationRow>(
+    const rows = await this.db.query<ParticipationRow>(
       "SELECT * FROM issue_participation WHERE assembly_id = ? AND participant_id = ?",
       [assemblyId, participantId],
-    ).map((row) => ({
+    );
+    return rows.map((row) => ({
       participantId: row.participant_id,
       issueId: row.issue_id,
       status: row.status,
@@ -418,8 +382,8 @@ export class AssemblyManager {
   // -----------------------------------------------------------------------
 
   /** Check if a tally is already materialized. */
-  hasTally(assemblyId: string, issueId: string): boolean {
-    const row = this.db.queryOne(
+  async hasTally(assemblyId: string, issueId: string): Promise<boolean> {
+    const row = await this.db.queryOne(
       "SELECT 1 FROM issue_tallies WHERE assembly_id = ? AND issue_id = ?",
       [assemblyId, issueId],
     );
@@ -427,17 +391,17 @@ export class AssemblyManager {
   }
 
   /** Read a materialized tally. Returns null if not yet materialized. */
-  getTally(assemblyId: string, issueId: string): {
+  async getTally(assemblyId: string, issueId: string): Promise<{
     issueId: string; winner: string | null; counts: Record<string, number>;
     totalVotes: number; quorumMet: boolean; quorumThreshold: number;
     eligibleCount: number; participatingCount: number;
-  } | null {
+  } | null> {
     interface TallyRow {
       issue_id: string; winner: string | null; counts: string;
       total_votes: number; quorum_met: number; quorum_threshold: number;
       eligible_count: number; participating_count: number;
     }
-    const row = this.db.queryOne<TallyRow>(
+    const row = await this.db.queryOne<TallyRow>(
       "SELECT * FROM issue_tallies WHERE assembly_id = ? AND issue_id = ?",
       [assemblyId, issueId],
     );
@@ -456,10 +420,10 @@ export class AssemblyManager {
 
   /** Materialize a tally for a closed issue (idempotent). */
   async materializeTally(assemblyId: string, issueId: string): Promise<void> {
-    if (this.hasTally(assemblyId, issueId)) return;
+    if (await this.hasTally(assemblyId, issueId)) return;
     const { engine } = await this.getEngine(assemblyId);
     const tally = await engine.voting.tally(issueId as IssueId);
-    this.db.run(
+    await this.db.run(
       `INSERT OR IGNORE INTO issue_tallies
        (assembly_id, issue_id, winner, counts, total_votes, quorum_met, quorum_threshold, eligible_count, participating_count, computed_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -474,11 +438,11 @@ export class AssemblyManager {
   }
 
   /** Read materialized weights. Returns null if not yet materialized. */
-  getWeights(assemblyId: string, issueId: string): {
+  async getWeights(assemblyId: string, issueId: string): Promise<{
     issueId: string; weights: Record<string, number>; totalWeight: number;
-  } | null {
+  } | null> {
     interface WeightRow { issue_id: string; weights: string; total_weight: number }
-    const row = this.db.queryOne<WeightRow>(
+    const row = await this.db.queryOne<WeightRow>(
       "SELECT * FROM issue_weights WHERE assembly_id = ? AND issue_id = ?",
       [assemblyId, issueId],
     );
@@ -492,14 +456,14 @@ export class AssemblyManager {
 
   /** Materialize delegation weights for a closed issue (idempotent). */
   async materializeWeights(assemblyId: string, issueId: string): Promise<void> {
-    const existing = this.db.queryOne(
+    const existing = await this.db.queryOne(
       "SELECT 1 FROM issue_weights WHERE assembly_id = ? AND issue_id = ?",
       [assemblyId, issueId],
     );
     if (existing) return;
     const { engine } = await this.getEngine(assemblyId);
     const weights = await engine.delegation.weights(issueId as IssueId);
-    this.db.run(
+    await this.db.run(
       `INSERT OR IGNORE INTO issue_weights
        (assembly_id, issue_id, weights, total_weight, computed_at)
        VALUES (?, ?, ?, ?, ?)`,
@@ -513,17 +477,17 @@ export class AssemblyManager {
   }
 
   /** Read materialized concentration metrics. Returns null if not yet materialized. */
-  getConcentration(assemblyId: string, issueId: string): {
+  async getConcentration(assemblyId: string, issueId: string): Promise<{
     issueId: string; giniCoefficient: number; maxWeight: number;
     maxWeightHolder: string | null; chainLengthDistribution: Record<number, number>;
     delegatingCount: number; directVoterCount: number;
-  } | null {
+  } | null> {
     interface ConcRow {
       issue_id: string; gini_coefficient: number; max_weight: number;
       max_weight_holder: string | null; chain_length_distribution: string;
       delegating_count: number; direct_voter_count: number;
     }
-    const row = this.db.queryOne<ConcRow>(
+    const row = await this.db.queryOne<ConcRow>(
       "SELECT * FROM issue_concentration WHERE assembly_id = ? AND issue_id = ?",
       [assemblyId, issueId],
     );
@@ -541,14 +505,14 @@ export class AssemblyManager {
 
   /** Materialize concentration metrics for a closed issue (idempotent). */
   async materializeConcentration(assemblyId: string, issueId: string): Promise<void> {
-    const existing = this.db.queryOne(
+    const existing = await this.db.queryOne(
       "SELECT 1 FROM issue_concentration WHERE assembly_id = ? AND issue_id = ?",
       [assemblyId, issueId],
     );
     if (existing) return;
     const { engine } = await this.getEngine(assemblyId);
     const metrics = await engine.delegation.concentration(issueId as IssueId);
-    this.db.run(
+    await this.db.run(
       `INSERT OR IGNORE INTO issue_concentration
        (assembly_id, issue_id, gini_coefficient, max_weight, max_weight_holder, chain_length_distribution, delegating_count, direct_voter_count, computed_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -562,12 +526,11 @@ export class AssemblyManager {
     );
   }
 
-  /** Materialize all computed data for a closed event (tallies, weights, concentration, participation). */
+  /** Materialize all computed data for a closed event. */
   async materializeClosedEvent(assemblyId: string, eventId: string): Promise<void> {
     const { engine } = await this.getEngine(assemblyId);
     const votingEvent = engine.events.get(eventId as VotingEventId);
     if (!votingEvent) return;
-
     for (const issueId of votingEvent.issueIds) {
       await this.materializeTally(assemblyId, issueId);
       await this.materializeWeights(assemblyId, issueId);
@@ -576,7 +539,7 @@ export class AssemblyManager {
     }
   }
 
-  /** Evict a cached engine (e.g., after config changes). */
+  /** Evict a cached engine. */
   evictEngine(assemblyId: string): void {
     this.engines.delete(assemblyId);
   }

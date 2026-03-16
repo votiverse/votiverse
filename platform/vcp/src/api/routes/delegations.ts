@@ -95,7 +95,7 @@ export function delegationRoutes(manager: AssemblyManager) {
     const rawSourceId = c.req.query("sourceId");
     const sourceId = rawSourceId ?? undefined;
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -147,7 +147,7 @@ export function delegationRoutes(manager: AssemblyManager) {
       );
     }
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -205,7 +205,7 @@ export function delegationRoutes(manager: AssemblyManager) {
       );
     }
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },

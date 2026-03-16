@@ -27,7 +27,7 @@ export function participantRoutes(manager: AssemblyManager) {
     }
 
     // Ensure assembly exists
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -50,25 +50,25 @@ export function participantRoutes(manager: AssemblyManager) {
   });
 
   /** GET /assemblies/:id/participants — list participants. */
-  app.get("/assemblies/:id/participants", (c) => {
+  app.get("/assemblies/:id/participants", async (c) => {
     const assemblyId = c.req.param("id");
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
         404,
       );
     }
-    const participants = manager.listParticipants(assemblyId);
+    const participants = await manager.listParticipants(assemblyId);
     return c.json({ participants });
   });
 
   /** DELETE /assemblies/:id/participants/:pid — remove participant. */
-  app.delete("/assemblies/:id/participants/:pid", (c) => {
+  app.delete("/assemblies/:id/participants/:pid", async (c) => {
     const assemblyId = c.req.param("id");
     const pid = c.req.param("pid");
 
-    const info = manager.getAssemblyInfo(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
@@ -77,7 +77,7 @@ export function participantRoutes(manager: AssemblyManager) {
     }
 
     try {
-      manager.removeParticipant(assemblyId, pid);
+      await manager.removeParticipant(assemblyId, pid);
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes("not found")) {
         return c.json(
@@ -119,7 +119,7 @@ export function participantRoutes(manager: AssemblyManager) {
       );
     }
 
-    const participant = manager.getParticipant(assemblyId, pid);
+    const participant = await manager.getParticipant(assemblyId, pid);
     if (!participant) {
       return c.json(
         { error: { code: "NOT_FOUND", message: `Participant "${pid}" not found in assembly` } },
@@ -154,7 +154,7 @@ export function participantRoutes(manager: AssemblyManager) {
     await store.append(statusEvent);
 
     // Update DB
-    manager.updateParticipantStatus(assemblyId, pid, newStatus);
+    await manager.updateParticipantStatus(assemblyId, pid, newStatus);
 
     // Sunset cascade: revoke all delegations from AND to this participant
     let revokedCount = 0;

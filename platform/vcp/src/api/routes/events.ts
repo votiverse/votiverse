@@ -65,7 +65,7 @@ export function eventRoutes(manager: AssemblyManager) {
 
     // Persist issue details
     const issues = votingEvent.issueIds.map((id) => engine.events.getIssue(id as IssueId)!);
-    manager.persistIssues(assemblyId, issues);
+    await manager.persistIssues(assemblyId, issues);
 
     return c.json({
       id: votingEvent.id,

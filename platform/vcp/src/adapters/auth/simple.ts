@@ -25,7 +25,7 @@ export class SimpleAuthAdapter implements AuthAdapter {
     }
   }
 
-  validate(apiKey: string): ClientInfo | null {
+  async validate(apiKey: string): Promise<ClientInfo | null> {
     // Check static keys first
     const staticClient = this.staticKeys.get(apiKey);
     if (staticClient) return staticClient;
@@ -33,7 +33,7 @@ export class SimpleAuthAdapter implements AuthAdapter {
     // Check database if available
     if (this.db) {
       const hash = createHash("sha256").update(apiKey).digest("hex");
-      const row = this.db.queryOne<{ id: string; name: string }>(
+      const row = await this.db.queryOne<{ id: string; name: string }>(
         "SELECT id, name FROM clients WHERE api_key_hash = ?",
         [hash],
       );

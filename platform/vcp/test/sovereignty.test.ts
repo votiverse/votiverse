@@ -19,7 +19,7 @@ describe("Delegation sovereignty & visibility", () => {
   let carol: { id: string };
 
   beforeEach(async () => {
-    vcp = createTestVCP();
+    vcp = await createTestVCP();
 
     // Create assembly with LIQUID_STANDARD (public visibility, revocableAnytime)
     const asmRes = await vcp.request("POST", "/assemblies", {

@@ -30,7 +30,7 @@ describe("Ballot secrecy enforcement", () => {
   let publicIssueId: string;
 
   beforeEach(async () => {
-    vcp = createTestVCP();
+    vcp = await createTestVCP();
 
     // --- Secret ballot assembly ---
     const secretConfig = deriveConfig(getPreset("LIQUID_STANDARD"), {

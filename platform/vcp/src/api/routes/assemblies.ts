@@ -61,7 +61,7 @@ export function assemblyRoutes(manager: AssemblyManager) {
     }
 
     const id = randomUUID();
-    const assembly = manager.createAssembly(id, {
+    const assembly = await manager.createAssembly(id, {
       name: body.name,
       organizationId: body.organizationId,
       config,
@@ -71,14 +71,14 @@ export function assemblyRoutes(manager: AssemblyManager) {
   });
 
   /** GET /assemblies — list all assemblies. */
-  app.get("/assemblies", (c) => {
-    const assemblies = manager.listAssemblies();
+  app.get("/assemblies", async (c) => {
+    const assemblies = await manager.listAssemblies();
     return c.json({ assemblies });
   });
 
   /** GET /assemblies/:id — get assembly state. */
-  app.get("/assemblies/:id", (c) => {
-    const info = manager.getAssemblyInfo(c.req.param("id"));
+  app.get("/assemblies/:id", async (c) => {
+    const info = await manager.getAssemblyInfo(c.req.param("id"));
     if (!info) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${c.req.param("id")}" not found` } },

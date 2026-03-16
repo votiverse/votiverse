@@ -31,7 +31,7 @@ export function createAuthMiddleware(auth: AuthAdapter) {
       );
     }
 
-    const client = auth.validate(match[1]);
+    const client = await auth.validate(match[1]);
     if (!client) {
       return c.json(
         { error: { code: "UNAUTHORIZED", message: "Invalid API key" } },
@@ -78,7 +78,7 @@ export function requireParticipant(manager: AssemblyManager) {
     // Extract assembly ID from route params
     const assemblyId = c.req.param("id");
     if (assemblyId) {
-      const participant = manager.getParticipant(assemblyId, participantId);
+      const participant = await manager.getParticipant(assemblyId, participantId);
 
       if (!participant) {
         return c.json(

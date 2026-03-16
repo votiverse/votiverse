@@ -8,8 +8,8 @@ import { createTestVCP, type TestVCP } from "./helpers.js";
 describe("Error handling", () => {
   let vcp: TestVCP;
 
-  beforeEach(() => {
-    vcp = createTestVCP();
+  beforeEach(async () => {
+    vcp = await createTestVCP();
   });
 
   afterEach(() => {

@@ -1,8 +1,8 @@
 /**
  * SQLite database adapter using better-sqlite3.
  *
- * Adapts the PostgreSQL schema from vcp-architecture.md Section 5
- * for SQLite: UUID→TEXT, JSONB→TEXT, TIMESTAMPTZ→TEXT, arrays→JSON text.
+ * All methods are async to satisfy the DatabaseAdapter interface,
+ * but better-sqlite3 is synchronous — Promises resolve immediately.
  */
 
 import Database from "better-sqlite3";
@@ -17,7 +17,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
     this.db.pragma("foreign_keys = ON");
   }
 
-  initialize(): void {
+  async initialize(): Promise<void> {
     this.db.exec(`
       -- Core event log, append-only
       CREATE TABLE IF NOT EXISTS events (
@@ -168,7 +168,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
     `);
   }
 
-  run(sql: string, params: unknown[] = []): RunResult {
+  async run(sql: string, params: unknown[] = []): Promise<RunResult> {
     const stmt = this.db.prepare(sql);
     const result = stmt.run(...params);
     return {
@@ -177,21 +177,31 @@ export class SQLiteAdapter implements DatabaseAdapter {
     };
   }
 
-  query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): T[] {
+  async query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
     const stmt = this.db.prepare(sql);
     return stmt.all(...params) as T[];
   }
 
-  queryOne<T = Record<string, unknown>>(sql: string, params: unknown[] = []): T | undefined {
+  async queryOne<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T | undefined> {
     const stmt = this.db.prepare(sql);
     return stmt.get(...params) as T | undefined;
   }
 
-  transaction<T>(fn: () => T): T {
-    return this.db.transaction(fn)();
+  async transaction<T>(fn: () => Promise<T>): Promise<T> {
+    // better-sqlite3 is synchronous, but our interface is async.
+    // Use manual BEGIN/COMMIT so we can await the async callback.
+    this.db.exec("BEGIN");
+    try {
+      const result = await fn();
+      this.db.exec("COMMIT");
+      return result;
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
   }
 
-  close(): void {
+  async close(): Promise<void> {
     this.db.close();
   }
 }
