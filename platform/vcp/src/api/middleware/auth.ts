@@ -14,7 +14,7 @@ import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { verifyToken } from "../../lib/jwt.js";
 
 const PUBLIC_PATHS = new Set(["/health", "/metrics"]);
-const PUBLIC_PREFIXES_LIST = ["/dev/"];
+const PUBLIC_PREFIXES_LIST = ["/dev/"];  // Dev routes have their own guard
 
 export function createAuthMiddleware(auth: AuthAdapter, jwtSecret?: string | null) {
   return async (c: Context, next: Next) => {

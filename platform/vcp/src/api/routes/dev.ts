@@ -1,8 +1,11 @@
 /**
  * Dev-only routes — test clock control.
  *
- * These endpoints are NEVER mounted in production (NODE_ENV=production).
- * They allow advancing, setting, and resetting the server's time source,
+ * Double-gated:
+ * 1. Never mounted when NODE_ENV=production (in server.ts)
+ * 2. Refuses to operate unless VCP_ENABLE_DEV_ROUTES=true (belt-and-suspenders)
+ *
+ * Allows advancing, setting, and resetting the server's time source,
  * enabling Stripe-style test clock scenarios for voting lifecycle testing.
  */
 
@@ -11,8 +14,25 @@ import { TestClock } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { logger } from "../../lib/logger.js";
 
+/** Check if dev routes are explicitly enabled. */
+function isDevEnabled(): boolean {
+  return process.env["NODE_ENV"] !== "production" &&
+    process.env["VCP_ENABLE_DEV_ROUTES"] !== "false";
+}
+
 export function devRoutes(manager: AssemblyManager) {
   const app = new Hono();
+
+  // Belt-and-suspenders: even if mounted, refuse in production
+  app.use("*", async (c, next) => {
+    if (!isDevEnabled()) {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Dev routes are disabled" } },
+        403,
+      );
+    }
+    return next();
+  });
 
   function ensureTestClock(): TestClock {
     if (!(manager.timeProvider instanceof TestClock)) {
