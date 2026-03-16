@@ -11,7 +11,6 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
   return useMemo(() => {
     if (!assemblyId) return [];
     const tabs: AssemblyTab[] = [
-      { to: `/assembly/${assemblyId}`, label: "Overview" },
       { to: `/assembly/${assemblyId}/events`, label: "Votes" },
     ];
     if (config?.delegation.enabled !== false) {
@@ -21,9 +20,9 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
       tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
     }
     if (config?.features.predictions && config.features.predictions !== "disabled") {
-      tabs.push({ to: `/assembly/${assemblyId}/predictions`, label: "Predictions" });
+      tabs.push({ to: `/assembly/${assemblyId}/predictions`, label: "Track Record" });
     }
-    tabs.push({ to: `/assembly/${assemblyId}/members`, label: "Members" });
+    tabs.push({ to: `/assembly/${assemblyId}`, label: "Group" });
     return tabs;
   }, [assemblyId, config]);
 }

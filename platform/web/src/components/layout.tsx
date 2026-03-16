@@ -1,15 +1,38 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useParams, useLocation } from "react-router";
+import { Link, useParams, useLocation, useNavigate } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useAssemblyTabs } from "../hooks/use-assembly-tabs.js";
 import { Avatar } from "./avatar.js";
+import {
+  Home,
+  Vote,
+  Users,
+  BarChart3,
+  TrendingUp,
+  Settings,
+  LayoutGrid,
+  User,
+  ChevronLeft,
+  Menu,
+  X,
+} from "lucide-react";
 
 export function Header() {
   const { assemblyId } = useParams();
   const { participantName, participantId } = useIdentity();
+  const { assembly } = useAssembly(assemblyId);
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const inAssembly = Boolean(assemblyId);
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate("/");
+    }
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
@@ -18,14 +41,21 @@ export function Header() {
           {/* Left: logo / back + desktop nav */}
           <div className="flex items-center gap-4 sm:gap-6">
             {inAssembly ? (
-              <Link to="/" className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 shrink-0">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                </svg>
-                <div className="w-7 h-7 bg-brand rounded-md flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">V</span>
-                </div>
-              </Link>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleBack}
+                  className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Go back"
+                >
+                  <ChevronLeft size={18} strokeWidth={2} />
+                </button>
+                <Link
+                  to={`/assembly/${assemblyId}`}
+                  className="text-sm font-medium text-gray-900 hover:text-brand truncate max-w-[180px] sm:max-w-[240px]"
+                >
+                  {assembly?.name ?? "Loading..."}
+                </Link>
+              </div>
             ) : (
               <Link to="/" className="flex items-center gap-2 shrink-0">
                 <div className="w-7 h-7 bg-brand rounded-md flex items-center justify-center">
@@ -54,13 +84,7 @@ export function Header() {
                 className="lg:hidden p-2 -mr-2 text-gray-500 hover:text-gray-900 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Menu"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {menuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             )}
           </div>
@@ -142,16 +166,16 @@ export function BottomTabs() {
   const inAssembly = Boolean(assemblyId);
 
   const globalTabs = [
-    { to: "/", label: "Home", icon: HomeIcon, exact: true },
-    { to: "/assemblies", label: "My Groups", icon: GridIcon, exact: true },
-    { to: "/profile", label: "Me", icon: UserIcon, exact: true },
+    { to: "/", label: "Home", icon: TabHome, exact: true },
+    { to: "/assemblies", label: "My Groups", icon: TabGrid, exact: true },
+    { to: "/profile", label: "Me", icon: TabUser, exact: true },
   ];
 
   const assemblyTabDefs = useAssemblyTabs(assemblyId, assembly?.config);
   const assemblyTabs = assemblyTabDefs.map((tab) => ({
     ...tab,
-    icon: TAB_ICONS[tab.label] ?? HomeIcon,
-    exact: tab.label === "Overview",
+    icon: TAB_ICONS[tab.label] ?? TabHome,
+    exact: tab.label === "Group",
   }));
 
   const tabs = inAssembly ? assemblyTabs : globalTabs;
@@ -181,18 +205,23 @@ export function BottomTabs() {
   );
 }
 
+// ---------- Desktop nav links with icons ----------
+
+const GLOBAL_NAV: Array<{ to: string; label: string; Icon: typeof Home }> = [
+  { to: "/", label: "Home", Icon: Home },
+  { to: "/assemblies", label: "My Groups", Icon: LayoutGrid },
+  { to: "/profile", label: "Me", Icon: User },
+];
+
 function GlobalNavLinks() {
   return (
     <>
-      <Link to="/" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-        Home
-      </Link>
-      <Link to="/assemblies" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-        My Groups
-      </Link>
-      <Link to="/profile" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-        Me
-      </Link>
+      {GLOBAL_NAV.map(({ to, label, Icon }) => (
+        <Link key={to} to={to} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
+          <Icon size={15} strokeWidth={1.5} />
+          {label}
+        </Link>
+      ))}
     </>
   );
 }
@@ -203,15 +232,19 @@ function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
 
   return (
     <>
-      {tabs.map((tab) => (
-        <Link
-          key={tab.to}
-          to={tab.to}
-          className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-        >
-          {tab.label}
-        </Link>
-      ))}
+      {tabs.map((tab) => {
+        const Icon = NAV_ICONS[tab.label];
+        return (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            {Icon && <Icon size={15} strokeWidth={1.5} />}
+            {tab.label}
+          </Link>
+        );
+      })}
     </>
   );
 }
@@ -236,79 +269,54 @@ function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNav
   );
 }
 
-// ---------- Tab label → icon mapping ----------
+// ---------- Icon mapping for desktop nav ----------
 
-const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Element> = {
-  Overview: HomeIcon,
-  Votes: CalendarIcon,
-  Delegates: LinkIcon,
-  Surveys: ChartIcon,
-  Predictions: TrendIcon,
-  Members: UsersIcon,
+const NAV_ICONS: Record<string, typeof Home> = {
+  Votes: Vote,
+  Delegates: Users,
+  Surveys: BarChart3,
+  "Track Record": TrendingUp,
+  Group: Settings,
 };
 
-// ---------- Tab bar icons (inline SVGs, 20x20) ----------
+// ---------- Tab bar icon wrappers (Lucide, 20x20) ----------
 
-function HomeIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-    </svg>
-  );
+const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Element> = {
+  Votes: TabVote,
+  Delegates: TabUsers,
+  Surveys: TabChart,
+  "Track Record": TabTrend,
+  Group: TabSettings,
+};
+
+function TabHome({ active }: { active: boolean }) {
+  return <Home size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function CalendarIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-    </svg>
-  );
+function TabVote({ active }: { active: boolean }) {
+  return <Vote size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function LinkIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.914-3.814a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L5.25 9.879" />
-    </svg>
-  );
+function TabUsers({ active }: { active: boolean }) {
+  return <Users size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function ChartIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-    </svg>
-  );
+function TabChart({ active }: { active: boolean }) {
+  return <BarChart3 size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function GridIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-    </svg>
-  );
+function TabTrend({ active }: { active: boolean }) {
+  return <TrendingUp size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function UserIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-    </svg>
-  );
+function TabSettings({ active }: { active: boolean }) {
+  return <Settings size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function UsersIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-    </svg>
-  );
+function TabGrid({ active }: { active: boolean }) {
+  return <LayoutGrid size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function TrendIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941" />
-    </svg>
-  );
+function TabUser({ active }: { active: boolean }) {
+  return <User size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
