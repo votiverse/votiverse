@@ -196,11 +196,11 @@ export async function main() {
   for (const def of VOTES) {
     const assemblyId = aid(def.assemblyKey);
     const issueId = iid(def.eventKey, def.issueIndex);
-    await post(`/assemblies/${assemblyId}/votes`, {
-      participantId: pid(def.assemblyKey, def.participant),
+    const voterPid = pid(def.assemblyKey, def.participant);
+    await postAs(`/assemblies/${assemblyId}/votes`, {
       issueId,
       choice: def.choice,
-    });
+    }, voterPid);
     votesByEvent.set(def.eventKey, (votesByEvent.get(def.eventKey) ?? 0) + 1);
   }
   for (const [eventKey, count] of votesByEvent) {
@@ -252,11 +252,11 @@ export async function main() {
       value,
     }));
 
-    await post(`/assemblies/${assemblyId}/polls/${pollId}/respond`, {
+    const responderPid = pid(def.assemblyKey, def.participantName);
+    await postAs(`/assemblies/${assemblyId}/polls/${pollId}/respond`, {
       pollId,
-      participantId: pid(def.assemblyKey, def.participantName),
       answers,
-    });
+    }, responderPid);
     responseCount++;
   }
   console.log(`\n  Created ${POLLS.length} polls with ${responseCount} responses\n`);

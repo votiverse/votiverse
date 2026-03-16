@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId } from "@votiverse/core";
 import type { PredictionId, CommitPredictionParams, RecordOutcomeParams } from "@votiverse/prediction";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { requireParticipant } from "../middleware/auth.js";
 
 export function predictionRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -38,24 +39,32 @@ export function predictionRoutes(manager: AssemblyManager) {
     });
   });
 
-  /** POST /assemblies/:id/predictions — commit prediction. */
-  app.post("/assemblies/:id/predictions", async (c) => {
-    const assemblyId = c.req.param("id");
-    const body = await c.req.json<CommitPredictionParams>();
+  /** POST /assemblies/:id/predictions — commit prediction. Sovereignty enforced. */
+  app.post(
+    "/assemblies/:id/predictions",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const body = await c.req.json<CommitPredictionParams>();
+      const authenticatedPid = c.get("participantId") as string;
 
-    const { engine } = await manager.getEngine(assemblyId);
-    const prediction = await engine.prediction.commit(body);
+      const { engine } = await manager.getEngine(assemblyId);
+      const prediction = await engine.prediction.commit({
+        ...body,
+        participantId: authenticatedPid as ParticipantId,
+      });
 
-    return c.json({
-      id: prediction.id,
-      proposalId: prediction.proposalId,
-      participantId: prediction.participantId,
-      claim: prediction.claim,
-      commitmentHash: prediction.commitmentHash,
-      status: prediction.status,
-      committedAt: new Date(prediction.committedAt).toISOString(),
-    }, 201);
-  });
+      return c.json({
+        id: prediction.id,
+        proposalId: prediction.proposalId,
+        participantId: prediction.participantId,
+        claim: prediction.claim,
+        commitmentHash: prediction.commitmentHash,
+        status: prediction.status,
+        committedAt: new Date(prediction.committedAt).toISOString(),
+      }, 201);
+    },
+  );
 
   /** POST /assemblies/:id/outcomes — record outcome. */
   app.post("/assemblies/:id/outcomes", async (c) => {

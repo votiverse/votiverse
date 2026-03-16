@@ -63,8 +63,7 @@ describe("Participation records", () => {
 
   describe("public secrecy (LIQUID_STANDARD)", () => {
     it("returns direct participation with choice visible to anyone", async () => {
-      await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-        participantId: alice.id,
+      await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
         choice: "for",
       });
@@ -102,8 +101,7 @@ describe("Participation records", () => {
         targetId: bob.id,
         topicScope: [],
       });
-      await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-        participantId: bob.id,
+      await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
         choice: "against",
       });
@@ -141,8 +139,7 @@ describe("Participation records", () => {
         targetId: carol.id,
         topicScope: [],
       });
-      await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-        participantId: carol.id,
+      await vcp.requestAs(carol.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
         choice: "for",
       });
@@ -172,8 +169,7 @@ describe("Participation records", () => {
     });
 
     it("returns absent for non-participating members", async () => {
-      await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-        participantId: alice.id,
+      await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
         choice: "for",
       });
@@ -193,8 +189,7 @@ describe("Participation records", () => {
     });
 
     it("returns all participants when no participantId filter", async () => {
-      await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-        participantId: alice.id,
+      await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
         choice: "for",
       });
@@ -214,8 +209,7 @@ describe("Participation records", () => {
     });
 
     it("materialization is idempotent", async () => {
-      await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-        participantId: alice.id,
+      await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
         choice: "for",
       });
@@ -230,8 +224,7 @@ describe("Participation records", () => {
     });
 
     it("tally endpoint triggers materialization for closed events", async () => {
-      await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-        participantId: alice.id,
+      await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
         choice: "for",
       });
@@ -299,8 +292,7 @@ describe("Participation records", () => {
     });
 
     it("own direct vote: choice IS visible to self", async () => {
-      await vcp.request("POST", `/assemblies/${secretAsmId}/votes`, {
-        participantId: sAlice.id,
+      await vcp.requestAs(sAlice.id, "POST", `/assemblies/${secretAsmId}/votes`, {
         issueId: secretIssueId,
         choice: "for",
       });
@@ -320,8 +312,7 @@ describe("Participation records", () => {
     });
 
     it("other's direct vote: choice is HIDDEN from others", async () => {
-      await vcp.request("POST", `/assemblies/${secretAsmId}/votes`, {
-        participantId: sAlice.id,
+      await vcp.requestAs(sAlice.id, "POST", `/assemblies/${secretAsmId}/votes`, {
         issueId: secretIssueId,
         choice: "for",
       });
@@ -347,8 +338,7 @@ describe("Participation records", () => {
         targetId: sBob.id,
         topicScope: [],
       });
-      await vcp.request("POST", `/assemblies/${secretAsmId}/votes`, {
-        participantId: sBob.id,
+      await vcp.requestAs(sBob.id, "POST", `/assemblies/${secretAsmId}/votes`, {
         issueId: secretIssueId,
         choice: "against",
       });
@@ -376,8 +366,7 @@ describe("Participation records", () => {
         targetId: sAlice.id,
         topicScope: [],
       });
-      await vcp.request("POST", `/assemblies/${secretAsmId}/votes`, {
-        participantId: sAlice.id,
+      await vcp.requestAs(sAlice.id, "POST", `/assemblies/${secretAsmId}/votes`, {
         issueId: secretIssueId,
         choice: "for",
       });
@@ -449,8 +438,7 @@ describe("Participation records", () => {
         targetId: cBob.id,
         topicScope: [],
       });
-      await vcp.request("POST", `/assemblies/${civicAsmId}/votes`, {
-        participantId: cBob.id,
+      await vcp.requestAs(cBob.id, "POST", `/assemblies/${civicAsmId}/votes`, {
         issueId: civicIssueId,
         choice: "against",
       });
@@ -471,8 +459,7 @@ describe("Participation records", () => {
     });
 
     it("non-delegator CANNOT see another's choice", async () => {
-      await vcp.request("POST", `/assemblies/${civicAsmId}/votes`, {
-        participantId: cBob.id,
+      await vcp.requestAs(cBob.id, "POST", `/assemblies/${civicAsmId}/votes`, {
         issueId: civicIssueId,
         choice: "for",
       });
@@ -493,8 +480,7 @@ describe("Participation records", () => {
     });
 
     it("own direct vote visible under secret ballot", async () => {
-      await vcp.request("POST", `/assemblies/${civicAsmId}/votes`, {
-        participantId: cAlice.id,
+      await vcp.requestAs(cAlice.id, "POST", `/assemblies/${civicAsmId}/votes`, {
         issueId: civicIssueId,
         choice: "for",
       });
@@ -544,8 +530,7 @@ describe("Participation records", () => {
       });
       const event = (await eventRes.json()) as { id: string; issueIds: string[] };
 
-      await vcp.request("POST", `/assemblies/${privAsmId}/votes`, {
-        participantId: pAlice.id,
+      await vcp.requestAs(pAlice.id, "POST", `/assemblies/${privAsmId}/votes`, {
         issueId: event.issueIds[0]!,
         choice: "for",
       });

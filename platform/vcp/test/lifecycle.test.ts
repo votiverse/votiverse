@@ -76,15 +76,13 @@ describe("Full governance lifecycle", () => {
     expect(delRes.status).toBe(201);
 
     // 5. Cast votes: Bob votes "for", Carol votes "against"
-    let voteRes = await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-      participantId: bob!.id,
+    let voteRes = await vcp.requestAs(bob!.id, "POST", `/assemblies/${asmId}/votes`, {
       issueId,
       choice: "for",
     });
     expect(voteRes.status).toBe(200);
 
-    voteRes = await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-      participantId: carol!.id,
+    voteRes = await vcp.requestAs(carol!.id, "POST", `/assemblies/${asmId}/votes`, {
       issueId,
       choice: "against",
     });
@@ -153,13 +151,11 @@ describe("Full governance lifecycle", () => {
     });
 
     // Both vote directly — Alice's direct vote overrides delegation
-    await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-      participantId: alice!.id,
+    await vcp.requestAs(alice!.id, "POST", `/assemblies/${asmId}/votes`, {
       issueId,
       choice: "for",
     });
-    await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-      participantId: bob!.id,
+    await vcp.requestAs(bob!.id, "POST", `/assemblies/${asmId}/votes`, {
       issueId,
       choice: "against",
     });
@@ -219,11 +215,11 @@ describe("Full governance lifecycle", () => {
     });
 
     // C and E vote (they carry delegations)
-    await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-      participantId: ps[2]!.id, issueId, choice: "for",
+    await vcp.requestAs(ps[2]!.id, "POST", `/assemblies/${asmId}/votes`, {
+      issueId, choice: "for",
     });
-    await vcp.request("POST", `/assemblies/${asmId}/votes`, {
-      participantId: ps[4]!.id, issueId, choice: "against",
+    await vcp.requestAs(ps[4]!.id, "POST", `/assemblies/${asmId}/votes`, {
+      issueId, choice: "against",
     });
 
     const tallyRes = await vcp.request("GET", `/assemblies/${asmId}/events/${votingEvent.id}/tally`);

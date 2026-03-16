@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { TopicId, PollId, ParticipantId } from "@votiverse/core";
 import type { CreatePollParams, SubmitResponseParams } from "@votiverse/polling";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { requireParticipant } from "../middleware/auth.js";
 
 export function pollRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -63,17 +64,26 @@ export function pollRoutes(manager: AssemblyManager) {
     }, 201);
   });
 
-  /** POST /assemblies/:id/polls/:pid/respond — submit response. */
-  app.post("/assemblies/:id/polls/:pid/respond", async (c) => {
-    const assemblyId = c.req.param("id");
-    const pid = c.req.param("pid");
-    const body = await c.req.json<SubmitResponseParams>();
+  /** POST /assemblies/:id/polls/:pid/respond — submit response. Sovereignty enforced. */
+  app.post(
+    "/assemblies/:id/polls/:pid/respond",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const pid = c.req.param("pid");
+      const body = await c.req.json<SubmitResponseParams>();
+      const authenticatedPid = c.get("participantId") as string;
 
-    const { engine } = await manager.getEngine(assemblyId);
-    await engine.polls.respond({ ...body, pollId: pid as PollId });
+      const { engine } = await manager.getEngine(assemblyId);
+      await engine.polls.respond({
+        ...body,
+        pollId: pid as PollId,
+        participantId: authenticatedPid as ParticipantId,
+      });
 
-    return c.json({ status: "ok" });
-  });
+      return c.json({ status: "ok" });
+    },
+  );
 
   /** GET /assemblies/:id/polls/:pid/results — poll results. */
   app.get("/assemblies/:id/polls/:pid/results", async (c) => {

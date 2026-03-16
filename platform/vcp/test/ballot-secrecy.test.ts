@@ -67,11 +67,11 @@ describe("Ballot secrecy enforcement", () => {
     issueId = secretEvent.issueIds[0]!;
 
     // Cast votes
-    await vcp.request("POST", `/assemblies/${secretAsmId}/votes`, {
-      participantId: alice.id, issueId, choice: "for",
+    await vcp.requestAs(alice.id, "POST", `/assemblies/${secretAsmId}/votes`, {
+      issueId, choice: "for",
     });
-    await vcp.request("POST", `/assemblies/${secretAsmId}/votes`, {
-      participantId: bob.id, issueId, choice: "against",
+    await vcp.requestAs(bob.id, "POST", `/assemblies/${secretAsmId}/votes`, {
+      issueId, choice: "against",
     });
 
     // --- Public ballot assembly ---
@@ -104,8 +104,8 @@ describe("Ballot secrecy enforcement", () => {
     publicEventId = publicEvent.id;
     publicIssueId = publicEvent.issueIds[0]!;
 
-    await vcp.request("POST", `/assemblies/${publicAsmId}/votes`, {
-      participantId: pAlice.id, issueId: publicIssueId, choice: "for",
+    await vcp.requestAs(pAlice.id, "POST", `/assemblies/${publicAsmId}/votes`, {
+      issueId: publicIssueId, choice: "for",
     });
   });
 
@@ -203,8 +203,8 @@ describe("Ballot secrecy enforcement", () => {
     });
 
     it("public ballot: shows maxWeightHolder", async () => {
-      await vcp.request("POST", `/assemblies/${publicAsmId}/votes`, {
-        participantId: pBob.id, issueId: publicIssueId, choice: "against",
+      await vcp.requestAs(pBob.id, "POST", `/assemblies/${publicAsmId}/votes`, {
+        issueId: publicIssueId, choice: "against",
       });
 
       const res = await vcp.request(

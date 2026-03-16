@@ -6,46 +6,50 @@ import { Hono } from "hono";
 import type { ParticipantId, IssueId, VotingEventId, VoteChoice } from "@votiverse/core";
 import { ValidationError } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { getParticipantId } from "../middleware/auth.js";
+import { requireParticipant, getParticipantId } from "../middleware/auth.js";
 
 export function votingRoutes(manager: AssemblyManager) {
   const app = new Hono();
 
-  /** POST /assemblies/:id/votes — cast vote. */
-  app.post("/assemblies/:id/votes", async (c) => {
-    const assemblyId = c.req.param("id");
-    const body = await c.req.json<{
-      participantId: string;
-      issueId: string;
-      choice: string | string[];
-    }>();
+  /** POST /assemblies/:id/votes — cast vote. Sovereignty enforced via requireParticipant. */
+  app.post(
+    "/assemblies/:id/votes",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const body = await c.req.json<{
+        issueId: string;
+        choice: string | string[];
+      }>();
 
-    if (!body.participantId || !body.issueId || body.choice === undefined) {
-      return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "participantId, issueId, and choice are required" } },
-        400,
-      );
-    }
-
-    const { engine } = await manager.getEngine(assemblyId);
-    try {
-      await engine.voting.cast(
-        body.participantId as ParticipantId,
-        body.issueId as IssueId,
-        body.choice as VoteChoice,
-      );
-    } catch (err) {
-      if (err instanceof ValidationError) {
+      if (!body.issueId || body.choice === undefined) {
         return c.json(
-          { error: { code: "VALIDATION_ERROR", message: err.message } },
+          { error: { code: "VALIDATION_ERROR", message: "issueId and choice are required" } },
           400,
         );
       }
-      throw err;
-    }
 
-    return c.json({ status: "ok", participantId: body.participantId, issueId: body.issueId });
-  });
+      const participantId = c.get("participantId") as string;
+      const { engine } = await manager.getEngine(assemblyId);
+      try {
+        await engine.voting.cast(
+          participantId as ParticipantId,
+          body.issueId as IssueId,
+          body.choice as VoteChoice,
+        );
+      } catch (err) {
+        if (err instanceof ValidationError) {
+          return c.json(
+            { error: { code: "VALIDATION_ERROR", message: err.message } },
+            400,
+          );
+        }
+        throw err;
+      }
+
+      return c.json({ status: "ok", participantId, issueId: body.issueId });
+    },
+  );
 
   /** GET /assemblies/:id/events/:eid/tally — get tally results. */
   app.get("/assemblies/:id/events/:eid/tally", async (c) => {

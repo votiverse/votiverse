@@ -118,15 +118,13 @@ describe("Multi-tenancy isolation", () => {
     })).json()) as { id: string; issueIds: string[] };
 
     // Vote "for" in assembly 1
-    await vcp.request("POST", `/assemblies/${asm1.id}/votes`, {
-      participantId: alice1.id,
+    await vcp.requestAs(alice1.id, "POST", `/assemblies/${asm1.id}/votes`, {
       issueId: evt1.issueIds[0],
       choice: "for",
     });
 
     // Vote "against" in assembly 2
-    await vcp.request("POST", `/assemblies/${asm2.id}/votes`, {
-      participantId: alice2.id,
+    await vcp.requestAs(alice2.id, "POST", `/assemblies/${asm2.id}/votes`, {
       issueId: evt2.issueIds[0],
       choice: "against",
     });
