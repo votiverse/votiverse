@@ -175,8 +175,8 @@ export class AssemblyManager {
     }
     const participant = result.value;
     await this.db.run(
-      `INSERT OR IGNORE INTO participants (id, assembly_id, name, registered_at)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO participants (id, assembly_id, name, registered_at)
+       VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING`,
       [participant.id, assemblyId, participant.name, new Date(participant.registeredAt).toISOString()],
     );
     return { id: participant.id, name: participant.name };
@@ -239,8 +239,12 @@ export class AssemblyManager {
   async persistIssues(assemblyId: string, issues: readonly Issue[]): Promise<void> {
     for (const issue of issues) {
       await this.db.run(
-        `INSERT OR REPLACE INTO issues (id, assembly_id, title, description, topic_ids, voting_event_id, choices)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO issues (id, assembly_id, title, description, topic_ids, voting_event_id, choices)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (assembly_id, id) DO UPDATE SET
+           title = excluded.title, description = excluded.description,
+           topic_ids = excluded.topic_ids, voting_event_id = excluded.voting_event_id,
+           choices = excluded.choices`,
         [
           issue.id, assemblyId, issue.title, issue.description,
           JSON.stringify(issue.topicIds), issue.votingEventId,
@@ -296,9 +300,9 @@ export class AssemblyManager {
     await this.db.transaction(async () => {
       for (const record of records) {
         await this.db.run(
-          `INSERT OR IGNORE INTO issue_participation
+          `INSERT INTO issue_participation
            (assembly_id, issue_id, participant_id, status, effective_choice, delegate_id, terminal_voter_id, chain, computed_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
           [
             assemblyId, record.issueId, record.participantId, record.status,
             record.effectiveChoice !== null ? JSON.stringify(record.effectiveChoice) : null,
@@ -424,9 +428,9 @@ export class AssemblyManager {
     const { engine } = await this.getEngine(assemblyId);
     const tally = await engine.voting.tally(issueId as IssueId);
     await this.db.run(
-      `INSERT OR IGNORE INTO issue_tallies
+      `INSERT INTO issue_tallies
        (assembly_id, issue_id, winner, counts, total_votes, quorum_met, quorum_threshold, eligible_count, participating_count, computed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
       [
         assemblyId, issueId, tally.winner,
         JSON.stringify(Object.fromEntries(tally.counts)),
@@ -464,9 +468,9 @@ export class AssemblyManager {
     const { engine } = await this.getEngine(assemblyId);
     const weights = await engine.delegation.weights(issueId as IssueId);
     await this.db.run(
-      `INSERT OR IGNORE INTO issue_weights
+      `INSERT INTO issue_weights
        (assembly_id, issue_id, weights, total_weight, computed_at)
-       VALUES (?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
       [
         assemblyId, issueId,
         JSON.stringify(Object.fromEntries(weights.weights)),
@@ -513,9 +517,9 @@ export class AssemblyManager {
     const { engine } = await this.getEngine(assemblyId);
     const metrics = await engine.delegation.concentration(issueId as IssueId);
     await this.db.run(
-      `INSERT OR IGNORE INTO issue_concentration
+      `INSERT INTO issue_concentration
        (assembly_id, issue_id, gini_coefficient, max_weight, max_weight_holder, chain_length_distribution, delegating_count, direct_voter_count, computed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
       [
         assemblyId, issueId,
         metrics.giniCoefficient, metrics.maxWeight, metrics.maxWeightHolder,
