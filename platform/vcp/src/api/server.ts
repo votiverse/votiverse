@@ -58,14 +58,56 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
     app.use("*", createRateLimiter({ rpm: config.rateLimitRpm }));
   }
 
-  // Fallback error handler — ensures all unhandled errors return JSON
+  // Global error handler — Hono's compose routes errors here, bypassing
+  // middleware try/catch blocks. All domain error classification lives here.
   app.onError((error, c) => {
-    if (error.message?.includes("not found") && error.message?.includes("Assembly")) {
+    // Use error.name for cross-module resilience (instanceof fails when
+    // vitest loads engine source alongside VCP source, creating separate
+    // class instances for the same error type).
+    if (error.name === "AssemblyNotFoundError" || (error.message?.includes("not found") && error.message?.includes("Assembly"))) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: error.message } },
         404,
       );
     }
+
+    if (error.name === "NotFoundError") {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: error.message } },
+        404,
+      );
+    }
+
+    if (error.name === "ValidationError") {
+      const e = error as Error & { field?: string };
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: error.message, details: { field: e.field } } },
+        400,
+      );
+    }
+
+    if (error.name === "GovernanceRuleViolation") {
+      const e = error as Error & { rule?: string };
+      return c.json(
+        { error: { code: "GOVERNANCE_RULE_VIOLATION", message: error.message, details: { rule: e.rule } } },
+        409,
+      );
+    }
+
+    if (error.name === "InvalidStateError") {
+      return c.json(
+        { error: { code: "ENGINE_ERROR", message: error.message } },
+        400,
+      );
+    }
+
+    if (error.name === "VotiverseError") {
+      return c.json(
+        { error: { code: "ENGINE_ERROR", message: error.message } },
+        400,
+      );
+    }
+
     logger.error("Unhandled error", { message: error.message, stack: error.stack });
     return c.json(
       { error: { code: "INTERNAL_ERROR", message: error.message } },
