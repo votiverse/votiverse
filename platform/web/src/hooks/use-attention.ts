@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import * as api from "../api/client.js";
 import type { Assembly, VotingEvent } from "../api/types.js";
+import { deriveEventStatus, derivePollStatus } from "../lib/status.js";
 
 export interface PendingVote {
   assemblyId: string;
@@ -125,8 +126,9 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
           for (const result of eventDetails) {
             if (result.status !== "fulfilled") continue;
             const evt = result.value;
-            if (evt.status !== "voting") {
-              if (evt.status === "deliberation") activeCount++;
+            const evtStatus = evt.timeline ? deriveEventStatus(evt.timeline) : "upcoming";
+            if (evtStatus !== "voting") {
+              if (evtStatus === "deliberation") activeCount++;
               continue;
             }
             activeCount++;
@@ -171,7 +173,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
           if (pollsRes.status === "fulfilled") {
             const polls = pollsRes.value.polls ?? [];
             for (const poll of polls) {
-              if (poll.status === "open" && poll.hasResponded === false) {
+              if (derivePollStatus(poll.schedule, poll.closesAt) === "open" && poll.hasResponded === false) {
                 pendingSurveyCount++;
                 allPendingSurveys.push({
                   assemblyId: asm.id,

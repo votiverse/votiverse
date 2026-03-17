@@ -25,7 +25,6 @@ export function pollRoutes(manager: AssemblyManager) {
         const item: Record<string, unknown> = {
           id: poll.id,
           title: poll.title,
-          status: poll.status,
           questions: poll.questions,
           topicIds: poll.topicScope,
           schedule: poll.schedule,
@@ -60,7 +59,6 @@ export function pollRoutes(manager: AssemblyManager) {
     return c.json({
       id: poll.id,
       title: poll.title,
-      status: poll.status,
       questions: poll.questions,
       topicIds: poll.topicScope,
       schedule: poll.schedule,

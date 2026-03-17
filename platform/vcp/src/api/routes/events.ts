@@ -109,18 +109,6 @@ export function eventRoutes(manager: AssemblyManager) {
       );
     }
 
-    const now = manager.timeProvider.now();
-    let status: string;
-    if (now < votingEvent.timeline.deliberationStart) {
-      status = "upcoming";
-    } else if (now < votingEvent.timeline.votingStart) {
-      status = "deliberation";
-    } else if (now < votingEvent.timeline.votingEnd) {
-      status = "voting";
-    } else {
-      status = "closed";
-    }
-
     const issues = votingEvent.issueIds.map((id) => {
       const issue = engine.events.getIssue(id as IssueId);
       if (!issue) return { id };
@@ -137,7 +125,6 @@ export function eventRoutes(manager: AssemblyManager) {
       id: votingEvent.id,
       title: votingEvent.title,
       description: votingEvent.description,
-      status,
       issues,
       eligibleParticipantIds: votingEvent.eligibleParticipantIds,
       timeline: {

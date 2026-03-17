@@ -67,7 +67,6 @@ export interface VotingEvent {
   id: string;
   title: string;
   description: string;
-  status?: string;
   issueIds: string[];
   issues?: Issue[];
   eligibleParticipantIds: string[];
@@ -187,7 +186,6 @@ export interface DelegateProfile {
 export interface Poll {
   id: string;
   title: string;
-  status: string;
   questions: PollQuestion[];
   topicIds: string[];
   schedule: number;

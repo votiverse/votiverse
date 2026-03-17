@@ -4,6 +4,7 @@ import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
 import type { Poll, PollQuestion, PollResults } from "../api/types.js";
+import { derivePollStatus } from "../lib/status.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
 
 type PollTab = "open" | "closed";
@@ -47,8 +48,8 @@ export function Polls() {
       .finally(() => setLoading(false));
   }, [assemblyId, participantId]);
 
-  const openPolls = useMemo(() => polls.filter((p) => p.status !== "closed"), [polls]);
-  const closedPolls = useMemo(() => polls.filter((p) => p.status === "closed"), [polls]);
+  const openPolls = useMemo(() => polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) !== "closed"), [polls]);
+  const closedPolls = useMemo(() => polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) === "closed"), [polls]);
   const visiblePolls = tab === "open" ? openPolls : closedPolls;
 
   if (!pollsEnabled && !loading) {
@@ -364,7 +365,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
   const [responseError, setResponseError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, unknown>>({});
 
-  const isClosed = poll.status === "closed";
+  const isClosed = derivePollStatus(poll.schedule, poll.closesAt) === "closed";
   const showButtons = !isClosed && !responded && participantId;
   const allAnswered = poll.questions.every((q) => q.id in selected);
 
@@ -440,7 +441,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
             {closesLabel && !isClosed && (
               <span className="text-xs text-gray-500">{closesLabel}</span>
             )}
-            <StatusBadge status={poll.status} />
+            <StatusBadge status={derivePollStatus(poll.schedule, poll.closesAt)} />
           </div>
         </div>
       </CardHeader>

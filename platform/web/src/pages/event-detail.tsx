@@ -7,6 +7,7 @@ import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-statu
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord } from "../api/types.js";
+import { deriveEventStatus } from "../lib/status.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { QuickDelegateForm } from "../components/quick-delegate-form.js";
@@ -58,7 +59,7 @@ export function EventDetail() {
     [assemblyId],
   );
 
-  const status = event?.status ?? "upcoming";
+  const status = event?.timeline ? deriveEventStatus(event.timeline) : "upcoming";
 
   // Fetch participation records for closed events (O(1) lookup for what happened with your vote)
   const { data: participationData } = useApi(

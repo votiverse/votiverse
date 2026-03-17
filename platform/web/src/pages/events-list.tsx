@@ -6,6 +6,7 @@ import * as api from "../api/client.js";
 import type { VotingEvent } from "../api/types.js";
 import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
 import { Countdown } from "../components/countdown.js";
+import { deriveEventStatus } from "../lib/status.js";
 
 /** Fetch full event details (status, timeline) for all events in a list. */
 function useFullEvents(assemblyId: string | undefined, eventIds: string[]) {
@@ -52,8 +53,10 @@ export function EventsList() {
   const sortedEvents = useMemo(() => {
     const enriched = events.map((e) => fullEvents[e.id] ?? e);
     return enriched.sort((a, b) => {
-      const aO = STATUS_ORDER[a.status ?? ""] ?? 2;
-      const bO = STATUS_ORDER[b.status ?? ""] ?? 2;
+      const aStatus = a.timeline ? deriveEventStatus(a.timeline) : "";
+      const bStatus = b.timeline ? deriveEventStatus(b.timeline) : "";
+      const aO = STATUS_ORDER[aStatus] ?? 2;
+      const bO = STATUS_ORDER[bStatus] ?? 2;
       if (aO !== bO) return aO - bO;
       if (aO === 0) return new Date(a.timeline?.votingEnd ?? 0).getTime() - new Date(b.timeline?.votingEnd ?? 0).getTime();
       if (aO === 1) return new Date(a.timeline?.votingStart ?? 0).getTime() - new Date(b.timeline?.votingStart ?? 0).getTime();
@@ -93,7 +96,7 @@ export function EventsList() {
 }
 
 function EventCard({ assemblyId, event: evt, history }: { assemblyId: string; event: VotingEvent; history: { history: Array<{ issueId: string }> } | null }) {
-  const status = evt.status;
+  const status = evt.timeline ? deriveEventStatus(evt.timeline) : undefined;
   const issueIds = evt.issueIds ?? evt.issues?.map((i) => i.id) ?? [];
   const issueCount = issueIds.length;
   const votedCount = history
