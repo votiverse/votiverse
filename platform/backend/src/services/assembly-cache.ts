@@ -40,14 +40,21 @@ export class AssemblyCacheService {
 
   /** Insert or replace an assembly in the cache. */
   async upsert(assembly: CachedAssembly): Promise<void> {
+    const configJson = typeof assembly.config === "string" ? assembly.config : JSON.stringify(assembly.config);
     await this.db.run(
-      `INSERT OR REPLACE INTO assemblies_cache (id, organization_id, name, config, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO assemblies_cache (id, organization_id, name, config, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (id) DO UPDATE SET
+         organization_id = excluded.organization_id,
+         name = excluded.name,
+         config = excluded.config,
+         status = excluded.status,
+         created_at = excluded.created_at`,
       [
         assembly.id,
         assembly.organizationId,
         assembly.name,
-        typeof assembly.config === "string" ? assembly.config : JSON.stringify(assembly.config),
+        configJson,
         assembly.status,
         assembly.createdAt,
       ],

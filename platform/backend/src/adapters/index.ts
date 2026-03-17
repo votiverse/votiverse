@@ -4,6 +4,7 @@
 
 export type { DatabaseAdapter, RunResult } from "./database/interface.js";
 export { SQLiteAdapter } from "./database/sqlite.js";
+export { PostgresAdapter } from "./database/postgres.js";
 
 export interface BackendAdapters {
   database: import("./database/interface.js").DatabaseAdapter;

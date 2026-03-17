@@ -6,6 +6,8 @@ import { serve } from "@hono/node-server";
 import { loadConfig, validateProductionConfig } from "./config/schema.js";
 import { configureLogger, logger } from "./lib/logger.js";
 import { SQLiteAdapter } from "./adapters/database/sqlite.js";
+import { PostgresAdapter } from "./adapters/database/postgres.js";
+import type { DatabaseAdapter } from "./adapters/database/interface.js";
 import { UserService } from "./services/user-service.js";
 import { SessionService } from "./services/session-service.js";
 import { MembershipService } from "./services/membership-service.js";
@@ -25,9 +27,16 @@ async function main() {
   }
 
   // Wire database
-  const database = new SQLiteAdapter(config.dbPath);
-  await database.initialize();
-  logger.info(`Using SQLite database: ${config.dbPath}`);
+  let database: DatabaseAdapter;
+  if (config.databaseUrl) {
+    database = new PostgresAdapter(config.databaseUrl);
+    await database.initialize();
+    logger.info("Using PostgreSQL database");
+  } else {
+    database = new SQLiteAdapter(config.dbPath);
+    await database.initialize();
+    logger.info(`Using SQLite database: ${config.dbPath}`);
+  }
 
   // Wire services
   const userService = new UserService(database);
