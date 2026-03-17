@@ -11,7 +11,7 @@ import { TopicPicker } from "../components/topic-picker.js";
 
 export function Delegations() {
   const { assemblyId } = useParams();
-  const { getParticipantId, participantName } = useIdentity();
+  const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const { assembly } = useAssembly(assemblyId);
   const { data, loading, error, refetch } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
@@ -58,7 +58,6 @@ export function Delegations() {
       <DelegatesList
         assemblyId={assemblyId!}
         participantId={participantId}
-        participantName={participantName}
         myOutgoing={myOutgoing}
         participants={participants}
         nameMap={nameMap}
@@ -84,7 +83,6 @@ export function Delegations() {
 function DelegatesList({
   assemblyId,
   participantId,
-  participantName,
   myOutgoing,
   participants,
   nameMap,
@@ -94,7 +92,6 @@ function DelegatesList({
 }: {
   assemblyId: string;
   participantId: string;
-  participantName: string | null;
   myOutgoing: Delegation[];
   participants: Array<{ id: string; name: string }>;
   nameMap: Map<string, string>;
@@ -125,7 +122,6 @@ function DelegatesList({
           <CreateDelegationForm
             assemblyId={assemblyId}
             participantId={participantId}
-            participantName={participantName}
             participants={participants}
             isTopicScoped={isTopicScoped}
             onClose={() => setCreating(false)}
@@ -149,7 +145,6 @@ function DelegatesList({
         <CreateDelegationForm
           assemblyId={assemblyId}
           participantId={participantId}
-          participantName={participantName}
           participants={participants}
           isTopicScoped={isTopicScoped}
           onClose={() => setCreating(false)}
@@ -282,7 +277,6 @@ function IncomingSection({
 function CreateDelegationForm({
   assemblyId,
   participantId,
-  participantName,
   participants,
   isTopicScoped,
   onClose,
@@ -290,7 +284,6 @@ function CreateDelegationForm({
 }: {
   assemblyId: string;
   participantId: string;
-  participantName: string | null;
   participants: Array<{ id: string; name: string }>;
   isTopicScoped: boolean;
   onClose: () => void;

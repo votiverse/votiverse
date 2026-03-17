@@ -393,7 +393,6 @@ function IssueVotingCard({
         {votingOpen && participantId && !issueStatus.loading && (
           <VotingSection
             assemblyId={assemblyId}
-            issueId={issueId}
             choices={choices}
             issueStatus={issueStatus}
             delegationConfig={delegationConfig}
@@ -445,7 +444,6 @@ function IssueVotingCard({
 
 function VotingSection({
   assemblyId,
-  issueId,
   choices,
   issueStatus,
   delegationConfig,
@@ -463,7 +461,6 @@ function VotingSection({
   onDelegationCreated,
 }: {
   assemblyId: string;
-  issueId: string;
   choices?: string[];
   issueStatus: ReturnType<typeof useIssueStatus>;
   delegationConfig: DelegationConfig;

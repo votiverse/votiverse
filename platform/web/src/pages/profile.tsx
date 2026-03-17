@@ -13,7 +13,7 @@ interface AssemblyProfileData {
 }
 
 export function Profile() {
-  const { storeUserId, participantName, memberships, clearIdentity } = useIdentity();
+  const { storeUserId, participantName, memberships } = useIdentity();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
