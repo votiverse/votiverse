@@ -408,6 +408,136 @@ describe("VotiverseEngine — integration", () => {
     });
   });
 
+  describe("Poll time window enforcement", () => {
+    it("rejects poll response before schedule", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const now = clock.now() as number;
+
+      // Use a config with polls enabled
+      const pollStore = new InMemoryEventStore();
+      const pollProvider = new InvitationProvider(pollStore);
+      const pollClock = new TestClock();
+      const pollEngine = createEngine({
+        config: getPreset("LIQUID_ACCOUNTABLE"),
+        eventStore: pollStore,
+        identityProvider: pollProvider,
+        timeProvider: pollClock,
+      });
+
+      const pResult = await pollProvider.invite("Alice");
+      const pid = isOk(pResult) ? pResult.value.id : ("" as ParticipantId);
+      const pNow = pollClock.now() as number;
+
+      const poll = await pollEngine.polls.create({
+        title: "Future Poll",
+        topicScope: [],
+        questions: [
+          { text: "Q?", questionType: { type: "yes-no" }, topicIds: [], tags: [] },
+        ],
+        schedule: timestamp(pNow + 2 * DAY) as Timestamp,
+        closesAt: timestamp(pNow + 7 * DAY) as Timestamp,
+        createdBy: pid,
+      });
+      expect(poll.status).toBe("scheduled");
+
+      await expect(
+        pollEngine.polls.respond({
+          pollId: poll.id,
+          participantId: pid,
+          answers: [{ questionId: poll.questions[0]!.id, value: true }],
+        }),
+      ).rejects.toThrow("not yet open");
+    });
+
+    it("accepts poll response within window, rejects after close", async () => {
+      const pollStore = new InMemoryEventStore();
+      const pollProvider = new InvitationProvider(pollStore);
+      const pollClock = new TestClock();
+      const pollEngine = createEngine({
+        config: getPreset("LIQUID_ACCOUNTABLE"),
+        eventStore: pollStore,
+        identityProvider: pollProvider,
+        timeProvider: pollClock,
+      });
+
+      const aliceResult = await pollProvider.invite("Alice");
+      const bobResult = await pollProvider.invite("Bob");
+      const alicePid = isOk(aliceResult) ? aliceResult.value.id : ("" as ParticipantId);
+      const bobPid = isOk(bobResult) ? bobResult.value.id : ("" as ParticipantId);
+      const pNow = pollClock.now() as number;
+
+      const poll = await pollEngine.polls.create({
+        title: "Timed Poll",
+        topicScope: [],
+        questions: [
+          { text: "Agree?", questionType: { type: "yes-no" }, topicIds: [], tags: [] },
+        ],
+        schedule: timestamp(pNow + 1 * DAY) as Timestamp,
+        closesAt: timestamp(pNow + 5 * DAY) as Timestamp,
+        createdBy: alicePid,
+      });
+
+      // Advance into open window
+      pollClock.advance(2 * DAY);
+      await pollEngine.polls.respond({
+        pollId: poll.id,
+        participantId: alicePid,
+        answers: [{ questionId: poll.questions[0]!.id, value: true }],
+      });
+
+      // Advance past close
+      pollClock.advance(5 * DAY);
+      await expect(
+        pollEngine.polls.respond({
+          pollId: poll.id,
+          participantId: bobPid,
+          answers: [{ questionId: poll.questions[0]!.id, value: false }],
+        }),
+      ).rejects.toThrow("Poll has closed");
+
+      // Only Alice's response should exist
+      const responses = await pollEngine.polls.get(poll.id);
+      expect(responses!.status).toBe("closed");
+    });
+
+    it("poll status transitions through clock advancement", async () => {
+      const pollStore = new InMemoryEventStore();
+      const pollProvider = new InvitationProvider(pollStore);
+      const pollClock = new TestClock();
+      const pollEngine = createEngine({
+        config: getPreset("LIQUID_ACCOUNTABLE"),
+        eventStore: pollStore,
+        identityProvider: pollProvider,
+        timeProvider: pollClock,
+      });
+
+      const pResult = await pollProvider.invite("Admin");
+      const adminId = isOk(pResult) ? pResult.value.id : ("" as ParticipantId);
+      const pNow = pollClock.now() as number;
+
+      const poll = await pollEngine.polls.create({
+        title: "Phase Poll",
+        topicScope: [],
+        questions: [
+          { text: "Q?", questionType: { type: "yes-no" }, topicIds: [], tags: [] },
+        ],
+        schedule: timestamp(pNow + 2 * DAY) as Timestamp,
+        closesAt: timestamp(pNow + 8 * DAY) as Timestamp,
+        createdBy: adminId,
+      });
+
+      expect(poll.status).toBe("scheduled");
+
+      pollClock.advance(3 * DAY);
+      let fetched = await pollEngine.polls.get(poll.id);
+      expect(fetched!.status).toBe("open");
+
+      pollClock.advance(6 * DAY);
+      fetched = await pollEngine.polls.get(poll.id);
+      expect(fetched!.status).toBe("closed");
+    });
+  });
+
   describe("Event store integration", () => {
     it("records all operations as events", async () => {
       const [alice, bob] = await inviteParticipants("Alice", "Bob");
