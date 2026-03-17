@@ -2,6 +2,25 @@
 
 All notable changes to the Votiverse project.
 
+## VCP Multi-Tenancy & Backend Independence — March 2026
+
+### Added
+- **VCP client-assembly access enforcement** — `assemblyAccess` on `ClientInfo` (`readonly string[] | "*"`), enforced by `requireAssemblyAccess()` path-scoped middleware on all assembly routes
+- **VCP scope gates** — admin write operations (POST participants/events/polls/topics, DELETE participants) require `"operational"` scope; participant-only keys cannot create or delete resources
+- **VCP auto-link on create** — `POST /assemblies` automatically grants the creating client access to the new assembly
+- **VCP token exchange validation** — `POST /auth/token` rejects clients without access to the target assembly
+- **Backend assembly cache** — `assemblies_cache` table, `AssemblyCacheService` with upsert/get/listByIds, `GET /assemblies` and `GET /assemblies/:id` served from local cache (no VCP round-trip)
+- **Backend topic cache** — `topics_cache` table, `TopicCacheService`, `GET /assemblies/:id/topics` served from local cache, populated on proxy intercept
+- **Backend PostgreSQL adapter** — full schema with all 8 tables, wired via `BACKEND_DATABASE_URL` env var, SQLite fallback when not set
+- 13 new VCP tests (client-assembly access + scope gates), 5+ new backend tests (assembly cache)
+
+### Changed
+- `GET /assemblies` filtered by client's `assemblyAccess` at VCP level
+- Backend `GET /assemblies`, `GET /assemblies/:id`, `GET /assemblies/:id/topics` no longer proxy to VCP
+- `SimpleAuthAdapter` loads and enforces `assemblyAccess` from config and DB
+- Backend seed script fetches full assembly details and populates local cache
+- Assembly cache upsert uses standard `ON CONFLICT` syntax (works on both SQLite and PostgreSQL)
+
 ## Time-Based Lifecycle Management — March 2026
 
 ### Added

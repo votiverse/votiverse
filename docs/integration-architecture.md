@@ -90,7 +90,8 @@ It complements:
 │                                              │          │
 │  ┌──────────────────────────────────────┐    │          │
 │  │  Backend DB (users, refresh_tokens,  │    │          │
-│  │  memberships)                        │    │          │
+│  │  memberships, assemblies_cache,      │    │          │
+│  │  topics_cache, notifications)        │    │          │
 │  └──────────────────────────────────────┘    │          │
 │                                              │          │
 └──────────────────────────────────────────────┼──────────┘
@@ -178,7 +179,11 @@ All user-facing presentation — dashboards, booklet displays, delegation chain 
 Proposals, booklets, and arguments may contain rich content — formatted text, media, attachments. The VCP stores only the structured governance data it needs to compute (prediction claims, poll questions, issue identifiers, vote choices). Rich content management is the client's domain.
 
 ### 4.5 Access control
-Who can create Assemblies, who can manage participants, who can submit proposals — these are access control decisions. The client backend enforces RBAC before proxying requests to the VCP. The VCP enforces governance rules (non-delegable polls, override rule, quorum requirements) but not organizational RBAC.
+Access control operates at two levels:
+
+**VCP-level (client isolation).** The VCP enforces client-assembly access: each API key carries an `assemblyAccess` list (explicit assembly IDs, or `"*"` for unrestricted). Requests to assemblies outside a client's access list are rejected with `403 Forbidden`. Admin write operations (creating participants, events, polls, topics) require the `"operational"` scope; participant-scoped keys can only perform governance actions (voting, delegating, responding to polls). This prevents a compromised or misconfigured client from affecting assemblies it doesn't own.
+
+**Client-level (organizational RBAC).** Who within an organization can create Assemblies, manage participants, or submit proposals are access control decisions enforced by the client backend before proxying to the VCP. The VCP trusts the client backend's authorization decisions.
 
 ### 4.6 Communication delivery
 When the VCP emits a webhook event, the client backend receives it and decides how to deliver it to the user — or whether to deliver it at all (email, push notification, in-app alert, etc.).
@@ -213,15 +218,24 @@ X-Participant-Id: p_456
 ```
 
 API keys are issued when a client backend registers with the VCP. Each key is associated with:
-- a client identity,
-- a set of Assemblies the client has access to,
+- a **client identity** (`clientId`, `clientName`),
+- an **assembly access list** (`assemblyAccess`: explicit assembly IDs, or `"*"` for unrestricted access),
+- **auth scopes** (`"participant"` for governance actions, `"operational"` for admin writes like creating participants/events/polls/topics),
 - a usage tier that determines rate limits and feature access.
 
 The `X-Participant-Id` header is set by the client backend after resolving the authenticated user's participant ID for the target Assembly. The VCP trusts this header — it does not verify end-user identity.
 
-A request to an Assembly the client doesn't have access to returns `403 Forbidden`.
+**Assembly access enforcement.** Every request to `/assemblies/:id` or `/assemblies/:id/*` is checked against the client's `assemblyAccess` list. A request to an Assembly the client doesn't have access to returns `403 Forbidden`. When a client creates a new assembly via `POST /assemblies`, it is automatically granted access to that assembly. `GET /assemblies` returns only assemblies the client has access to.
 
-The VCP also exposes `POST /auth/token` for JWT-based token exchange, allowing client backends to obtain short-lived VCP session tokens instead of passing the API key on every request.
+**Scope enforcement.** Admin write operations require the `"operational"` scope:
+- `POST /assemblies/:id/participants` and `DELETE /assemblies/:id/participants/:pid`
+- `POST /assemblies/:id/events`
+- `POST /assemblies/:id/polls`
+- `POST /assemblies/:id/topics`
+
+Participant governance actions (voting, delegating, responding to polls) require only the `"participant"` scope. A client with only `"participant"` scope cannot create events or manage participants.
+
+The VCP also exposes `POST /auth/token` for JWT-based token exchange, allowing client backends to obtain short-lived VCP session tokens instead of passing the API key on every request. Token exchange validates that the client has access to the requested assembly before minting the JWT.
 
 ### 5.2 VCP REST Endpoints
 
@@ -455,9 +469,23 @@ The `/me/assemblies/:id/join` endpoint is where the user-to-participant mapping 
 2. Stores the returned `participantId` in its own database, associated with the user's account.
 3. Returns the assembly membership to the end-user application.
 
-### 6.3 Governance Proxy
+### 6.3 Governance Proxy and Local Cache
 
-All `/assemblies/*` routes are forwarded to the VCP with identity injection:
+The client backend serves some read-heavy endpoints locally and proxies the rest to the VCP with identity injection.
+
+**Locally served (no VCP round-trip):**
+
+| Endpoint | Data source |
+|---|---|
+| `GET /assemblies` | Local cache, filtered by user's memberships |
+| `GET /assemblies/:id` | Local assembly cache |
+| `GET /assemblies/:id/topics` | Local topic cache |
+
+Assembly and topic data are immutable after creation, so the local cache never goes stale. The cache is populated when: (a) a user joins an assembly, (b) the seed script runs, or (c) a POST response is intercepted (e.g., creating a topic populates the topic cache).
+
+**Proxied to VCP (governance computation):**
+
+All other `/assemblies/:id/*` routes are forwarded to the VCP with identity injection:
 
 ```
 Client app request:
@@ -475,20 +503,28 @@ The proxy logic:
 2. Looks up the user's participant ID for the target Assembly.
 3. Forwards the request to the VCP, replacing the `Authorization` header with the VCP API key and adding the `X-Participant-Id` header.
 4. Returns the VCP response to the end-user application.
+5. Intercepts successful POST responses for events and polls to track them for the notification scheduler.
 
 If the user is not a member of the target Assembly, the proxy returns `403 Forbidden` without contacting the VCP.
 
 ### 6.4 Client Backend Database
 
-The client backend maintains its own database (separate from the VCP's database) with these tables:
+The client backend maintains its own database (separate from the VCP's database, SQLite or PostgreSQL) with these tables:
 
 | Table | Purpose |
 |---|---|
 | `users` | User accounts: id, email, password hash, name, created_at |
 | `refresh_tokens` | Active refresh tokens: token, user_id, expires_at |
 | `memberships` | User-to-Assembly mappings: user_id, assembly_id, participant_id |
+| `assemblies_cache` | Local cache of immutable assembly data (id, name, config, status) |
+| `topics_cache` | Local cache of immutable topic data (id, assembly_id, name, parent_id) |
+| `tracked_events` | Voting events tracked for notification scheduling |
+| `tracked_polls` | Polls tracked for notification scheduling |
+| `notification_preferences` | Per-user notification settings (key-value) |
 
 The client backend database contains PII (email, name). The VCP database does not — it only stores opaque participant IDs.
+
+The cache tables (`assemblies_cache`, `topics_cache`) store immutable data that doesn't change after creation. This eliminates VCP round-trips for the most frequently accessed read endpoints (assembly listing, topic listing) and makes the backend resilient to brief VCP unavailability for cached reads.
 
 ---
 
@@ -500,6 +536,8 @@ Tenancy guarantees:
 
 - An Assembly's event store, delegation graph, predictions, poll data, and awareness metrics are invisible to other Assemblies.
 - API requests are scoped to an Assembly ID. No API call can access data across Assemblies.
+- **Client-assembly access enforcement** gates every assembly-scoped request. Each API key carries an `assemblyAccess` list — the VCP rejects requests to assemblies outside the client's access list with `403 Forbidden`. `GET /assemblies` returns only assemblies the client has access to. Creating a new assembly automatically grants the creating client access to it.
+- **Scope enforcement** prevents participant-scoped clients from performing admin operations (creating events, managing participants). This separates the governance plane (voting, delegating) from the management plane (assembly administration).
 - Webhook subscriptions are per-client, per-Assembly. A client receives events only for Assemblies it has access to.
 - The engine library processes each request in the context of a single Assembly. There is no cross-Assembly computation.
 

@@ -46,8 +46,31 @@ To reset the database to fresh seed data at any time, run `pnpm reset`. This wip
 |---------------------|---------|-------------|
 | `VCP_PORT` | `3000` | HTTP server port |
 | `VCP_DB_PATH` | `./vcp-dev.db` | SQLite database file path |
-| `VCP_API_KEYS` | `vcp_dev_key_00000000` | API keys (JSON array or single key string) |
+| `VCP_DATABASE_URL` | (none) | PostgreSQL connection URL. If set, PostgreSQL is used instead of SQLite. |
+| `VCP_API_KEYS` | `vcp_dev_key_00000000` | API keys (JSON array, see below) |
+| `VCP_JWT_SECRET` | (none) | JWT signing secret. Enables JWT auth for participants. |
+| `VCP_JWT_EXPIRY` | `24h` | JWT token expiry duration |
 | `VCP_LOG_LEVEL` | `info` | Log level: debug, info, warn, error |
+| `VCP_CORS_ORIGINS` | `localhost:5173,5174` | Comma-separated CORS origins |
+| `VCP_RATE_LIMIT_RPM` | `0` (disabled) | Requests per minute per client |
+| `VCP_MAX_BODY_SIZE` | `1048576` (1MB) | Max request body size in bytes |
+
+### API Key Configuration
+
+`VCP_API_KEYS` accepts a JSON array of key objects:
+
+```json
+[{
+  "key": "vcp_key_xxx",
+  "clientId": "my-backend",
+  "clientName": "My Backend",
+  "assemblyAccess": "*",
+  "scopes": ["participant", "operational"]
+}]
+```
+
+- **`assemblyAccess`**: `"*"` for unrestricted access, or an array of assembly IDs. Default: `"*"`.
+- **`scopes`**: `"participant"` allows governance actions (vote, delegate, poll). `"operational"` additionally allows admin writes (create participants, events, polls, topics). Default: both.
 
 ---
 
@@ -71,19 +94,19 @@ Every request (except `/health`) requires `Authorization: Bearer <key>`.
 
 ### Participants
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/assemblies/:id/participants` | Add participant |
-| `GET` | `/assemblies/:id/participants` | List participants |
-| `DELETE` | `/assemblies/:id/participants/:pid` | Remove participant |
+| Method | Path | Scope | Description |
+|--------|------|-------|-------------|
+| `POST` | `/assemblies/:id/participants` | operational | Add participant |
+| `GET` | `/assemblies/:id/participants` | participant | List participants |
+| `DELETE` | `/assemblies/:id/participants/:pid` | operational | Remove participant |
 
 ### Voting Events
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/assemblies/:id/events` | Create voting event with issues |
-| `GET` | `/assemblies/:id/events` | List voting events |
-| `GET` | `/assemblies/:id/events/:eid` | Get event status and details |
+| Method | Path | Scope | Description |
+|--------|------|-------|-------------|
+| `POST` | `/assemblies/:id/events` | operational | Create voting event with issues |
+| `GET` | `/assemblies/:id/events` | participant | List voting events |
+| `GET` | `/assemblies/:id/events/:eid` | participant | Get event status and details |
 
 ### Delegations
 
@@ -113,13 +136,13 @@ Every request (except `/health`) requires `Authorization: Bearer <key>`.
 
 ### Polls
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/assemblies/:id/polls` | Create poll |
-| `GET` | `/assemblies/:id/polls` | List polls |
-| `POST` | `/assemblies/:id/polls/:pid/respond` | Submit poll response |
-| `GET` | `/assemblies/:id/polls/:pid/results` | Poll results |
-| `GET` | `/assemblies/:id/trends/:topic` | Topic trend data |
+| Method | Path | Scope | Description |
+|--------|------|-------|-------------|
+| `POST` | `/assemblies/:id/polls` | operational | Create poll |
+| `GET` | `/assemblies/:id/polls` | participant | List polls |
+| `POST` | `/assemblies/:id/polls/:pid/respond` | participant | Submit poll response |
+| `GET` | `/assemblies/:id/polls/:pid/results` | participant | Poll results |
+| `GET` | `/assemblies/:id/trends/:topic` | participant | Topic trend data |
 
 ### Awareness
 
@@ -144,15 +167,17 @@ Every request (except `/health`) requires `Authorization: Bearer <key>`.
 
 The VCP follows the **adapter pattern** — every infrastructure dependency is behind an interface:
 
-| Adapter | Phase 1 (local dev) | Production (future) |
-|---------|-------|------------|
-| Database | SQLite (better-sqlite3) | PostgreSQL |
+| Adapter | Local dev | Production |
+|---------|-----------|------------|
+| Database | SQLite or PostgreSQL | PostgreSQL |
 | Queue | In-memory array | SQS |
 | Scheduler | setInterval | EventBridge |
 | Webhook | Console logging | HTTP delivery |
-| Auth | Static API keys | OAuth/JWT |
+| Auth | Static API keys (with assemblyAccess + scopes) | OAuth/JWT |
 
-Application code never references a specific technology directly. Swapping SQLite for PostgreSQL requires changing only the adapter construction in `main.ts` — zero changes to route handlers or engine integration.
+Application code never references a specific technology directly. Set `VCP_DATABASE_URL` to use PostgreSQL — zero changes to route handlers or engine integration.
+
+**Access control.** Every assembly-scoped request passes through `requireAssemblyAccess()` middleware, which checks the client's `assemblyAccess` against the route's assembly ID. Admin write operations additionally require the `"operational"` scope via `requireScope()`. This is enforced at the middleware layer — individual route handlers don't need access control logic.
 
 The engine integration uses `SQLiteEventStore`, which implements the `@votiverse/core` EventStore interface over the VCP's database. Each assembly gets its own logically scoped event stream. Engine instances are cached per assembly and rehydrated from persisted events on first access.
 
