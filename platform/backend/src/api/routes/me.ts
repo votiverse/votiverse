@@ -36,6 +36,54 @@ export function meRoutes(
     return c.json({ status: "ok" }, 201);
   });
 
+  /**
+   * POST /internal/tracked-events — seed-only: track an existing VCP event
+   * with all notification flags pre-set (already notified).
+   */
+  app.post("/internal/tracked-events", async (c) => {
+    const body = await c.req.json<{
+      id: string;
+      assemblyId: string;
+      title: string;
+      votingStart: string;
+      votingEnd: string;
+    }>();
+    await notificationService.trackEvent({
+      id: body.id,
+      assemblyId: body.assemblyId,
+      title: body.title,
+      votingStart: body.votingStart,
+      votingEnd: body.votingEnd,
+    });
+    // Mark all notification flags as already sent
+    await notificationService.markAllNotified("event", body.id);
+    return c.json({ status: "ok" }, 201);
+  });
+
+  /**
+   * POST /internal/tracked-polls — seed-only: track an existing VCP poll
+   * with all notification flags pre-set (already notified).
+   */
+  app.post("/internal/tracked-polls", async (c) => {
+    const body = await c.req.json<{
+      id: string;
+      assemblyId: string;
+      title: string;
+      schedule: string;
+      closesAt: string;
+    }>();
+    await notificationService.trackPoll({
+      id: body.id,
+      assemblyId: body.assemblyId,
+      title: body.title,
+      schedule: body.schedule,
+      closesAt: body.closesAt,
+    });
+    // Mark all notification flags as already sent
+    await notificationService.markAllNotified("poll", body.id);
+    return c.json({ status: "ok" }, 201);
+  });
+
   /** GET /me — current user profile with memberships. */
   app.get("/me", async (c) => {
     const { id } = getUser(c);

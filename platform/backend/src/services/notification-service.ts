@@ -131,6 +131,21 @@ export class NotificationService {
     this.log.info(`Tracking poll: ${poll.title}`, { pollId: poll.id, assemblyId: poll.assemblyId });
   }
 
+  /** Mark all notification flags as sent (used by seed to prevent re-notifying historical data). */
+  async markAllNotified(type: "event" | "poll", id: string): Promise<void> {
+    if (type === "event") {
+      await this.db.run(
+        "UPDATE tracked_events SET notified_created = 1, notified_voting_open = 1, notified_deadline = 1, notified_closed = 1 WHERE id = ?",
+        [id],
+      );
+    } else {
+      await this.db.run(
+        "UPDATE tracked_polls SET notified_created = 1, notified_deadline = 1, notified_closed = 1 WHERE id = ?",
+        [id],
+      );
+    }
+  }
+
   // ── Preferences ──────────────────────────────────────────────────
 
   /** Get notification preferences for a user (with defaults applied). */

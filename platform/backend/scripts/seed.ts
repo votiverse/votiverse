@@ -92,6 +92,7 @@ export async function main() {
   // 3. Register users in the backend and create memberships
   let created = 0;
   let crossAssembly = 0;
+  let firstToken: string | undefined;
 
   for (const user of userMap.values()) {
     // Register
@@ -107,6 +108,7 @@ export async function main() {
 
     const userId = body.user.id;
     const token = body.accessToken;
+    if (!firstToken) firstToken = token;
 
     // Create membership records directly via backend DB
     // We use a special internal endpoint or direct DB access via the seed
@@ -129,9 +131,64 @@ export async function main() {
     if (user.memberships.length > 1) crossAssembly++;
   }
 
+  // 4. Sync tracked events and polls from VCP (pre-mark all as notified)
+  // This prevents the scheduler from sending notifications about historical seeded data.
+  let trackedEvents = 0;
+  let trackedPolls = 0;
+
+  for (const assembly of assemblies) {
+    // Sync events
+    try {
+      const { events } = await vcpGet<{ events: Array<{ id: string; title: string; timeline: { votingStart: string; votingEnd: string } }> }>(
+        `/assemblies/${assembly.id}/events`,
+      );
+      for (const event of events) {
+        await backendPost(
+          "/internal/tracked-events",
+          {
+            id: event.id,
+            assemblyId: assembly.id,
+            title: event.title,
+            votingStart: event.timeline.votingStart,
+            votingEnd: event.timeline.votingEnd,
+          },
+          firstToken,
+        );
+        trackedEvents++;
+      }
+    } catch {
+      // Assembly may not have events
+    }
+
+    // Sync polls
+    try {
+      const { polls } = await vcpGet<{ polls: Array<{ id: string; title: string; schedule: number; closesAt: number }> }>(
+        `/assemblies/${assembly.id}/polls`,
+      );
+      for (const poll of polls) {
+        await backendPost(
+          "/internal/tracked-polls",
+          {
+            id: poll.id,
+            assemblyId: assembly.id,
+            title: poll.title,
+            schedule: new Date(poll.schedule).toISOString(),
+            closesAt: new Date(poll.closesAt).toISOString(),
+          },
+          firstToken,
+        );
+        trackedPolls++;
+      }
+    } catch {
+      // Assembly may not have polls
+    }
+  }
+
   console.log(`\n═══ SEED COMPLETE ═══\n`);
   console.log(`  Users:            ${created}`);
   console.log(`  Cross-assembly:   ${crossAssembly}`);
+  console.log(`  Tracked events:   ${trackedEvents}`);
+  console.log(`  Tracked polls:    ${trackedPolls}`);
   console.log(`  Default password: ${DEFAULT_PASSWORD}`);
   console.log();
 }
