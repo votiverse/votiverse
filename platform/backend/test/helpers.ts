@@ -30,6 +30,7 @@ const TEST_CONFIG: BackendConfig = {
   maxBodySize: 1024 * 1024,
   notificationAdapter: "console",
   notificationIntervalMs: 60000,
+  notificationFileDir: "./test-notifications",
   smtpHost: "",
   smtpPort: 587,
   smtpUser: "",

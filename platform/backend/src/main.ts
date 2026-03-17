@@ -11,7 +11,7 @@ import { SessionService } from "./services/session-service.js";
 import { MembershipService } from "./services/membership-service.js";
 import { VCPClient } from "./services/vcp-client.js";
 import { NotificationService } from "./services/notification-service.js";
-import { ConsoleNotificationAdapter, SmtpNotificationAdapter } from "./services/notification-adapter.js";
+import { ConsoleNotificationAdapter, FileNotificationAdapter, SmtpNotificationAdapter } from "./services/notification-adapter.js";
 import type { NotificationAdapter } from "./services/notification-adapter.js";
 import { createApp } from "./api/server.js";
 
@@ -40,20 +40,38 @@ async function main() {
   const membershipService = new MembershipService(database, vcpClient);
 
   // Wire notification service
-  let notificationAdapter: NotificationAdapter;
-  if (config.notificationAdapter === "smtp") {
-    notificationAdapter = new SmtpNotificationAdapter({
-      host: config.smtpHost,
-      port: config.smtpPort,
-      user: config.smtpUser,
-      pass: config.smtpPass,
-      from: config.smtpFrom,
-    });
-    logger.info("Notification adapter: SMTP");
-  } else {
-    notificationAdapter = new ConsoleNotificationAdapter();
-    logger.info("Notification adapter: console");
+  const isProduction = process.env["NODE_ENV"] === "production";
+  let adapterChoice = config.notificationAdapter;
+
+  // Safety guard: block real email delivery in dev unless explicitly opted in
+  if (!isProduction && (adapterChoice === "smtp" || adapterChoice === "ses" || adapterChoice === "twilio")) {
+    logger.warn(
+      `Notification adapter "${adapterChoice}" requested but NODE_ENV is not "production". ` +
+      `Falling back to "file" adapter to prevent accidental email delivery. ` +
+      `Set NODE_ENV=production to send real emails.`,
+    );
+    adapterChoice = "file";
   }
+
+  let notificationAdapter: NotificationAdapter;
+  switch (adapterChoice) {
+    case "smtp":
+      notificationAdapter = new SmtpNotificationAdapter({
+        host: config.smtpHost,
+        port: config.smtpPort,
+        user: config.smtpUser,
+        pass: config.smtpPass,
+        from: config.smtpFrom,
+      });
+      break;
+    case "file":
+      notificationAdapter = new FileNotificationAdapter(config.notificationFileDir);
+      break;
+    default:
+      notificationAdapter = new ConsoleNotificationAdapter();
+      break;
+  }
+  logger.info(`Notification adapter: ${adapterChoice}`);
   const notificationService = new NotificationService(
     database,
     notificationAdapter,

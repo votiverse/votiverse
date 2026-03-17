@@ -11,6 +11,10 @@ dist/
 test/.tmp/
 stress-test/
 
+# Notification file adapter output
+notifications/
+test-notifications/
+
 # Editor / OS
 .DS_Store
 *.swp

@@ -15,8 +15,9 @@ export interface BackendConfig {
   corsOrigins: string[];
   rateLimitRpm: number;
   maxBodySize: number;
-  notificationAdapter: "console" | "smtp" | "ses" | "twilio";
+  notificationAdapter: "console" | "file" | "smtp" | "ses" | "twilio";
   notificationIntervalMs: number;
+  notificationFileDir: string;
   smtpHost: string;
   smtpPort: number;
   smtpUser: string;
@@ -44,6 +45,7 @@ export function loadConfig(): BackendConfig {
     maxBodySize: parseInt(process.env["BACKEND_MAX_BODY_SIZE"] ?? String(1024 * 1024), 10),
     notificationAdapter: (process.env["BACKEND_NOTIFICATION_ADAPTER"] as BackendConfig["notificationAdapter"]) ?? "console",
     notificationIntervalMs: parseInt(process.env["BACKEND_NOTIFICATION_INTERVAL"] ?? "60000", 10),
+    notificationFileDir: process.env["BACKEND_NOTIFICATION_FILE_DIR"] ?? "./notifications",
     smtpHost: process.env["BACKEND_SMTP_HOST"] ?? "",
     smtpPort: parseInt(process.env["BACKEND_SMTP_PORT"] ?? "587", 10),
     smtpUser: process.env["BACKEND_SMTP_USER"] ?? "",
