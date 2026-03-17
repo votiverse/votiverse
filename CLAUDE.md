@@ -20,6 +20,24 @@ The repository has two major layers:
 
 ---
 
+## Session Start — Stale Dist Check
+
+At the start of every session that touches VCP or engine code, run:
+
+```bash
+./scripts/check-dist.sh
+```
+
+This compares `src/` timestamps against `dist/` for each engine package. If any are stale, rebuild with:
+
+```bash
+./scripts/check-dist.sh --rebuild
+```
+
+**Why this matters:** The VCP and its tests import from `dist/`, not `src/`. If the dist is stale, runtime behavior diverges from source — tests fail for mysterious reasons (e.g., the TestClock being invisible to the polling engine). This is the single most common source of phantom bugs in this codebase.
+
+---
+
 ## After Context Compaction
 
 When context is compacted, you lose architectural reasoning. Before resuming any work:
@@ -411,20 +429,15 @@ These are recurring issues that waste debugging time. Read this section before i
 
 **Cause:** Engine packages (`packages/*/dist/`) are compiled artifacts. When another agent or branch adds new methods, types, or config fields, the compiled `dist/` is stale. The VCP server imports from `dist/`, not from source.
 
-**Fix:** Rebuild all engine packages in dependency order, then restart the VCP server:
+**Fix:** Run the automated check-and-rebuild script:
 
 ```bash
-pnpm --filter @votiverse/core build && \
-pnpm --filter @votiverse/config build && \
-pnpm --filter @votiverse/identity build && \
-pnpm --filter @votiverse/delegation build && \
-pnpm --filter @votiverse/voting build && \
-pnpm --filter @votiverse/engine build
+./scripts/check-dist.sh --rebuild
 ```
 
 Then stop and restart the VCP server. A running VCP process holds the old modules in memory — rebuilding alone is not enough.
 
-**Prevention:** After pulling new code or merging another agent's work, always rebuild before starting servers.
+**Prevention:** Run `./scripts/check-dist.sh` at the start of every session and after pulling new code. The script compares `src/` timestamps against `dist/` and flags stale packages.
 
 ### 2. Vite dev server caching stale transforms
 
