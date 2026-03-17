@@ -114,6 +114,17 @@ export class PostgresAdapter implements DatabaseAdapter {
           created_at      TIMESTAMPTZ NOT NULL,
           cached_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- Local topic cache (immutable after creation — avoids VCP round-trips)
+        CREATE TABLE IF NOT EXISTS topics_cache (
+          id            TEXT NOT NULL,
+          assembly_id   TEXT NOT NULL,
+          name          TEXT NOT NULL,
+          parent_id     TEXT,
+          sort_order    INTEGER NOT NULL DEFAULT 0,
+          cached_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (assembly_id, id)
+        );
       `);
     } finally {
       client.release();

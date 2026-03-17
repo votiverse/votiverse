@@ -12,6 +12,7 @@ import { UserService } from "./services/user-service.js";
 import { SessionService } from "./services/session-service.js";
 import { MembershipService } from "./services/membership-service.js";
 import { AssemblyCacheService } from "./services/assembly-cache.js";
+import { TopicCacheService } from "./services/topic-cache.js";
 import { VCPClient } from "./services/vcp-client.js";
 import { NotificationService } from "./services/notification-service.js";
 import { ConsoleNotificationAdapter, FileNotificationAdapter, SmtpNotificationAdapter } from "./services/notification-adapter.js";
@@ -48,6 +49,7 @@ async function main() {
   );
   const vcpClient = new VCPClient(config.vcpBaseUrl, config.vcpApiKey);
   const assemblyCacheService = new AssemblyCacheService(database);
+  const topicCacheService = new TopicCacheService(database);
   const membershipService = new MembershipService(database, vcpClient, assemblyCacheService);
 
   // Wire notification service
@@ -91,7 +93,7 @@ async function main() {
   );
 
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, notificationService, config });
+  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, notificationService, config });
 
   // Start HTTP server
   const server = serve({

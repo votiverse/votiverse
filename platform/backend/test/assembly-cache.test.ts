@@ -1,5 +1,5 @@
 /**
- * Assembly cache tests — verify local cache serves assemblies without VCP round-trips.
+ * Assembly and topic cache tests — verify local caches serve data without VCP round-trips.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -122,5 +122,79 @@ describe("Assembly cache", () => {
     const cached = await backend.assemblyCacheService.get(ASSEMBLY_A.id);
     expect(cached).toBeDefined();
     expect(cached!.name).toBe(ASSEMBLY_A.name);
+  });
+});
+
+describe("Topic cache", () => {
+  let backend: TestBackend;
+  let accessToken: string;
+
+  const ASM_ID = "asm-topic-test";
+
+  beforeEach(async () => {
+    backend = await createTestBackend();
+    const auth = await backend.registerAndLogin("topic@example.com", "password", "Topic Tester");
+    accessToken = auth.accessToken;
+  });
+
+  afterEach(() => {
+    backend.cleanup();
+  });
+
+  it("GET /assemblies/:id/topics serves from local cache", async () => {
+    // Populate topic cache
+    await backend.topicCacheService.upsertMany([
+      { id: "t1", assemblyId: ASM_ID, name: "Environment", parentId: null, sortOrder: 0 },
+      { id: "t2", assemblyId: ASM_ID, name: "Water", parentId: "t1", sortOrder: 1 },
+    ]);
+
+    // Also need a membership for the user
+    const auth = await backend.registerAndLogin("topic2@example.com", "password", "Topic User 2");
+    await backend.db.run(
+      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
+      [auth.userId, ASM_ID, "p-topic-user", "Topic Assembly"],
+    );
+
+    const res = await backend.request("GET", `/assemblies/${ASM_ID}/topics`, undefined, {
+      Authorization: `Bearer ${auth.accessToken}`,
+    });
+    expect(res.status).toBe(200);
+
+    const data = (await res.json()) as { topics: Array<{ id: string; name: string; parentId: string | null }> };
+    expect(data.topics).toHaveLength(2);
+    expect(data.topics[0]!.name).toBe("Environment");
+    expect(data.topics[1]!.name).toBe("Water");
+    expect(data.topics[1]!.parentId).toBe("t1");
+  });
+
+  it("POST /internal/topics-cache populates the cache", async () => {
+    const res = await backend.request("POST", "/internal/topics-cache", {
+      topics: [
+        { id: "t10", assemblyId: ASM_ID, name: "Education", parentId: null, sortOrder: 0 },
+        { id: "t11", assemblyId: ASM_ID, name: "Primary", parentId: "t10", sortOrder: 1 },
+      ],
+    }, {
+      Authorization: `Bearer ${accessToken}`,
+    });
+    expect(res.status).toBe(201);
+
+    const cached = await backend.topicCacheService.listByAssembly(ASM_ID);
+    expect(cached).toHaveLength(2);
+    expect(cached[0]!.name).toBe("Education");
+  });
+
+  it("topic cache is scoped per assembly", async () => {
+    await backend.topicCacheService.upsertMany([
+      { id: "t1", assemblyId: "asm-a", name: "Topic A", parentId: null, sortOrder: 0 },
+      { id: "t2", assemblyId: "asm-b", name: "Topic B", parentId: null, sortOrder: 0 },
+    ]);
+
+    const topicsA = await backend.topicCacheService.listByAssembly("asm-a");
+    expect(topicsA).toHaveLength(1);
+    expect(topicsA[0]!.name).toBe("Topic A");
+
+    const topicsB = await backend.topicCacheService.listByAssembly("asm-b");
+    expect(topicsB).toHaveLength(1);
+    expect(topicsB[0]!.name).toBe("Topic B");
   });
 });

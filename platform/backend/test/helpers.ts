@@ -8,6 +8,7 @@ import { UserService } from "../src/services/user-service.js";
 import { SessionService } from "../src/services/session-service.js";
 import { MembershipService } from "../src/services/membership-service.js";
 import { AssemblyCacheService } from "../src/services/assembly-cache.js";
+import { TopicCacheService } from "../src/services/topic-cache.js";
 import { VCPClient } from "../src/services/vcp-client.js";
 import { NotificationService } from "../src/services/notification-service.js";
 import { ConsoleNotificationAdapter } from "../src/services/notification-adapter.js";
@@ -45,6 +46,7 @@ export interface TestBackend {
   userService: UserService;
   sessionService: SessionService;
   assemblyCacheService: AssemblyCacheService;
+  topicCacheService: TopicCacheService;
   cleanup: () => void;
   request: (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
   /** Register a user and return the access token. */
@@ -59,11 +61,12 @@ export async function createTestBackend(): Promise<TestBackend> {
   const sessionService = new SessionService(db, TEST_JWT_SECRET, "1h", "30d");
   const vcpClient = new VCPClient(TEST_CONFIG.vcpBaseUrl, TEST_CONFIG.vcpApiKey);
   const assemblyCacheService = new AssemblyCacheService(db);
+  const topicCacheService = new TopicCacheService(db);
   const membershipService = new MembershipService(db, vcpClient, assemblyCacheService);
   const notificationAdapter = new ConsoleNotificationAdapter();
   const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl);
 
-  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, notificationService, config: TEST_CONFIG });
+  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, notificationService, config: TEST_CONFIG });
 
   const cleanup = () => {
     void db.close();
@@ -94,5 +97,5 @@ export async function createTestBackend(): Promise<TestBackend> {
     return { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.user.id };
   };
 
-  return { app, db, userService, sessionService, assemblyCacheService, cleanup, request, registerAndLogin };
+  return { app, db, userService, sessionService, assemblyCacheService, topicCacheService, cleanup, request, registerAndLogin };
 }

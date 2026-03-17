@@ -1,13 +1,19 @@
 /**
  * VCP proxy routes — forwards governance requests to VCP with identity injection.
  *
- * User-scoped routes: GET /assemblies (served from local cache), GET /assemblies/:id (served from local cache)
- * Assembly-scoped routes: resolves user → participant, injects X-Participant-Id
+ * Locally served (no VCP round-trip):
+ *   GET /assemblies — from assemblies_cache, filtered by user memberships
+ *   GET /assemblies/:id — from assemblies_cache
+ *   GET /assemblies/:id/topics — from topics_cache (falls through to VCP on cache miss)
+ *
+ * Proxied to VCP (all other assembly-scoped routes):
+ *   resolves user → participant, injects X-Participant-Id, intercepts POST responses for caching
  */
 
 import { Hono } from "hono";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
+import type { TopicCacheService } from "../../services/topic-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
@@ -16,6 +22,7 @@ import { logger } from "../../lib/logger.js";
 export function proxyRoutes(
   membershipService: MembershipService,
   assemblyCacheService: AssemblyCacheService,
+  topicCacheService: TopicCacheService,
   notificationService: NotificationService,
   config: BackendConfig,
 ) {
@@ -50,6 +57,50 @@ export function proxyRoutes(
   });
 
   /**
+   * GET /assemblies/:assemblyId/topics — served from local topic cache.
+   * Falls through to VCP proxy if cache is empty (first access).
+   */
+  app.get("/assemblies/:assemblyId/topics", async (c) => {
+    const assemblyId = c.req.param("assemblyId");
+
+    // Check cache first
+    const hasCached = await topicCacheService.hasTopics(assemblyId);
+    if (hasCached) {
+      const topics = await topicCacheService.listByAssembly(assemblyId);
+      return c.json({ topics });
+    }
+
+    // Cache miss — proxy to VCP, cache the response, and return
+    const user = getUser(c);
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const response = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/topics`, participantId);
+
+    if (response.status === 200) {
+      try {
+        const body = (response as ResponseWithBody).__bufferedBody;
+        if (body) {
+          const data = JSON.parse(body) as { topics: Array<{ id: string; name: string; parentId?: string | null; sortOrder?: number }> };
+          if (data.topics?.length) {
+            await topicCacheService.upsertMany(
+              data.topics.map((t) => ({
+                id: t.id,
+                assemblyId,
+                name: t.name,
+                parentId: t.parentId ?? null,
+                sortOrder: t.sortOrder ?? 0,
+              })),
+            );
+          }
+        }
+      } catch (err) {
+        logger.warn("Failed to cache topics from VCP response", { error: String(err) });
+      }
+    }
+
+    return response;
+  });
+
+  /**
    * Assembly-scoped routes — resolve user → participant, then proxy.
    * Catches all methods and paths under /assemblies/:assemblyId/
    *
@@ -68,10 +119,11 @@ export function proxyRoutes(
 
     const response = await proxyToVcp(c, config, c.req.method, path, participantId);
 
-    // Intercept successful POST responses to track events and polls
+    // Intercept successful POST responses to track events/polls and cache topics
     if (c.req.method === "POST" && response.status === 201) {
       const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
       await interceptForNotifications(response, assemblyId, subpath, notificationService);
+      await interceptForTopicCache(response, assemblyId, subpath, topicCacheService);
     }
 
     return response;
@@ -174,5 +226,35 @@ async function interceptForNotifications(
   } catch (err) {
     // Interception failures should not break the proxy response
     logger.warn("Failed to intercept response for notifications", { error: String(err) });
+  }
+}
+
+/**
+ * Intercept successful POST /topics responses to populate the topic cache.
+ */
+async function interceptForTopicCache(
+  response: Response,
+  assemblyId: string,
+  subpath: string,
+  topicCacheService: TopicCacheService,
+): Promise<void> {
+  try {
+    if (!/^\/topics\/?$/.test(subpath)) return;
+
+    const body = (response as ResponseWithBody).__bufferedBody;
+    if (!body) return;
+
+    const data = JSON.parse(body) as { id: string; name: string; parentId?: string | null; sortOrder?: number };
+    if (data.id) {
+      await topicCacheService.upsert({
+        id: data.id,
+        assemblyId,
+        name: data.name,
+        parentId: data.parentId ?? null,
+        sortOrder: data.sortOrder ?? 0,
+      });
+    }
+  } catch (err) {
+    logger.warn("Failed to cache topic from POST response", { error: String(err) });
   }
 }

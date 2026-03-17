@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { UserService } from "../../services/user-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
+import type { TopicCacheService } from "../../services/topic-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
@@ -14,6 +15,7 @@ export function meRoutes(
   userService: UserService,
   membershipService: MembershipService,
   assemblyCacheService: AssemblyCacheService,
+  topicCacheService: TopicCacheService,
   notificationService: NotificationService,
 ) {
   const app = new Hono();
@@ -107,6 +109,31 @@ export function meRoutes(
       createdAt: body.createdAt,
     });
     return c.json({ status: "ok" }, 201);
+  });
+
+  /**
+   * POST /internal/topics-cache — seed-only: cache topics for an assembly.
+   */
+  app.post("/internal/topics-cache", async (c) => {
+    const body = await c.req.json<{
+      topics: Array<{
+        id: string;
+        assemblyId: string;
+        name: string;
+        parentId?: string | null;
+        sortOrder?: number;
+      }>;
+    }>();
+    await topicCacheService.upsertMany(
+      body.topics.map((t) => ({
+        id: t.id,
+        assemblyId: t.assemblyId,
+        name: t.name,
+        parentId: t.parentId ?? null,
+        sortOrder: t.sortOrder ?? 0,
+      })),
+    );
+    return c.json({ status: "ok", count: body.topics.length }, 201);
   });
 
   /** GET /me — current user profile with memberships. */
