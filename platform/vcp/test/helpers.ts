@@ -13,16 +13,22 @@ import type { VCPAdapters } from "../src/adapters/index.js";
 import { AssemblyManager } from "../src/engine/assembly-manager.js";
 import { createApp } from "../src/api/server.js";
 
-const TEST_API_KEY = "test_key_12345";
+export const TEST_API_KEY = "test_key_12345";
+
+/** API key with empty assemblyAccess and participant-only scope. */
+export const LIMITED_API_KEY = "limited_key_67890";
 
 export interface TestVCP {
   app: Hono;
   manager: AssemblyManager;
   clock: TestClock;
   db: SQLiteAdapter;
+  auth: SimpleAuthAdapter;
   cleanup: () => void;
   request: (method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
   requestAs: (participantId: string, method: string, path: string, body?: unknown) => Promise<{ status: number; json: () => Promise<unknown> }>;
+  /** Make a request using a specific API key. */
+  requestWithKey: (apiKey: string, method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
 }
 
 export async function createTestVCP(): Promise<TestVCP> {
@@ -34,7 +40,10 @@ export async function createTestVCP(): Promise<TestVCP> {
   const scheduler = new LocalSchedulerAdapter();
   const webhook = new ConsoleWebhookAdapter();
   const auth = new SimpleAuthAdapter(
-    [{ key: TEST_API_KEY, clientId: "test-client", clientName: "Test Client" }],
+    [
+      { key: TEST_API_KEY, clientId: "test-client", clientName: "Test Client", assemblyAccess: "*" },
+      { key: LIMITED_API_KEY, clientId: "limited-client", clientName: "Limited Client", scopes: ["participant"], assemblyAccess: [] },
+    ],
     db,
   );
 
@@ -52,12 +61,12 @@ export async function createTestVCP(): Promise<TestVCP> {
     void db.close();
   };
 
-  const request = async (method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => {
+  const makeRequest = async (apiKey: string, method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => {
     const init: RequestInit = {
       method,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${TEST_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         ...extraHeaders,
       },
     };
@@ -72,10 +81,18 @@ export async function createTestVCP(): Promise<TestVCP> {
     };
   };
 
+  const request = (method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => {
+    return makeRequest(TEST_API_KEY, method, path, body, extraHeaders);
+  };
+
   /** Make a request with X-Participant-Id header set. */
   const requestAs = (participantId: string, method: string, path: string, body?: unknown) => {
     return request(method, path, body, { "X-Participant-Id": participantId });
   };
 
-  return { app, manager, clock, db, cleanup, request, requestAs };
+  const requestWithKey = (apiKey: string, method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => {
+    return makeRequest(apiKey, method, path, body, extraHeaders);
+  };
+
+  return { app, manager, clock, db, auth, cleanup, request, requestAs, requestWithKey };
 }

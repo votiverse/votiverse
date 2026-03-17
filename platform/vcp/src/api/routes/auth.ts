@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import type { VCPConfig } from "../../config/schema.js";
 import { signToken } from "../../lib/jwt.js";
+import { getClient } from "../middleware/auth.js";
 
 export function authRoutes(manager: AssemblyManager, config: VCPConfig) {
   const app = new Hono();
@@ -30,6 +31,15 @@ export function authRoutes(manager: AssemblyManager, config: VCPConfig) {
       return c.json(
         { error: { code: "VALIDATION_ERROR", message: "participantId and assemblyId are required" } },
         400,
+      );
+    }
+
+    // Verify client has access to the requested assembly
+    const client = getClient(c);
+    if (client.assemblyAccess !== "*" && !client.assemblyAccess.includes(body.assemblyId)) {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Client does not have access to this assembly" } },
+        403,
       );
     }
 

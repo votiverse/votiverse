@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import { randomUUID } from "node:crypto";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { requireScope } from "../middleware/auth.js";
 
 export function topicRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -18,6 +19,9 @@ export function topicRoutes(manager: AssemblyManager) {
 
   /** POST /assemblies/:id/topics — create a topic. */
   app.post("/assemblies/:id/topics", async (c) => {
+    const scopeError = requireScope(c, "operational");
+    if (scopeError) return scopeError;
+
     const assemblyId = c.req.param("id");
     const body = await c.req.json<{
       name: string;

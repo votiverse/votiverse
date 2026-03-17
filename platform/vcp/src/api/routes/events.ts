@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 interface CreateEventBody {
@@ -35,6 +36,9 @@ export function eventRoutes(manager: AssemblyManager) {
 
   /** POST /assemblies/:id/events — create voting event. */
   app.post("/assemblies/:id/events", async (c) => {
+    const scopeError = requireScope(c, "operational");
+    if (scopeError) return scopeError;
+
     const assemblyId = c.req.param("id");
     const body = await c.req.json<CreateEventBody>();
 

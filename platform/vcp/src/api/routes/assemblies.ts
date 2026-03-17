@@ -8,9 +8,11 @@ import type { GovernanceConfig } from "@votiverse/config";
 import { validateConfig, getPreset } from "@votiverse/config";
 import type { PresetName } from "@votiverse/config";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import type { AuthAdapter } from "../../adapters/auth/interface.js";
+import { getClient } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
-export function assemblyRoutes(manager: AssemblyManager) {
+export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
   const app = new Hono();
 
   /** POST /assemblies — register a new assembly. */
@@ -68,12 +70,26 @@ export function assemblyRoutes(manager: AssemblyManager) {
       config,
     });
 
+    // Auto-link: grant the creating client access to the new assembly
+    const client = getClient(c);
+    if (auth?.grantAssemblyAccess) {
+      await auth.grantAssemblyAccess(client.id, id);
+    }
+
     return c.json(assembly, 201);
   });
 
-  /** GET /assemblies — list all assemblies (paginated). */
+  /** GET /assemblies — list all assemblies (paginated, filtered by client access). */
   app.get("/assemblies", async (c) => {
-    const all = await manager.listAssemblies();
+    const client = getClient(c);
+    let all = await manager.listAssemblies();
+
+    // Filter by client assembly access
+    if (client.assemblyAccess !== "*") {
+      const allowed = new Set(client.assemblyAccess);
+      all = all.filter((a) => allowed.has(a.id));
+    }
+
     const { data, pagination } = paginate(all, parsePagination(c));
     return c.json({ assemblies: data, pagination });
   });

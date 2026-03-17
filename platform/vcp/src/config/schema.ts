@@ -9,8 +9,8 @@ export interface VCPConfig {
   dbPath: string;
   /** PostgreSQL connection URL. If set, PostgreSQL is used instead of SQLite. */
   databaseUrl: string | null;
-  /** API keys: array of { key, clientId, clientName }. */
-  apiKeys: Array<{ key: string; clientId: string; clientName: string }>;
+  /** API keys: array of { key, clientId, clientName, assemblyAccess?, scopes? }. */
+  apiKeys: Array<{ key: string; clientId: string; clientName: string; assemblyAccess?: readonly string[] | "*"; scopes?: string[] }>;
   /** Log level. */
   logLevel: "debug" | "info" | "warn" | "error";
   /** Allowed CORS origins. */

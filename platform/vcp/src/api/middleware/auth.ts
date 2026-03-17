@@ -48,8 +48,8 @@ export function createAuthMiddleware(auth: AuthAdapter, jwtSecret?: string | nul
         c.set("participantId", payload.sub);
         c.set("jwtAssemblyId", payload.aud);
         c.set("authMode", "jwt");
-        // Set a synthetic client for scope checks
-        c.set("client", { id: "jwt-participant", name: "JWT Participant", scopes: ["participant"] } satisfies ClientInfo);
+        // Set a synthetic client for scope checks — JWT is scoped to exactly one assembly
+        c.set("client", { id: "jwt-participant", name: "JWT Participant", scopes: ["participant"], assemblyAccess: [payload.aud] } satisfies ClientInfo);
         return next();
       }
       // JWT verification failed — fall through to API key validation
@@ -154,4 +154,43 @@ export function requireScope(c: Context, scope: AuthScope): Response | null {
     ) as unknown as Response;
   }
   return null;
+}
+
+/**
+ * Middleware factory that enforces client-assembly access.
+ *
+ * - For JWT auth: verifies jwtAssemblyId matches the route's :id param.
+ * - For API key auth: checks assemblyAccess === "*" or includes the assembly ID.
+ *
+ * Returns 403 if the client does not have access to the assembly.
+ */
+export function requireAssemblyAccess() {
+  return async (c: Context, next: Next) => {
+    const assemblyId = c.req.param("id");
+    if (!assemblyId) return next();
+
+    const authMode = c.get("authMode") as string | undefined;
+    const client = getClient(c);
+
+    if (authMode === "jwt") {
+      // JWT is scoped to exactly one assembly
+      const jwtAssemblyId = c.get("jwtAssemblyId") as string | undefined;
+      if (jwtAssemblyId !== assemblyId) {
+        return c.json(
+          { error: { code: "FORBIDDEN", message: "JWT token is not scoped to this assembly" } },
+          403,
+        );
+      }
+      return next();
+    }
+
+    // API key mode — check assemblyAccess
+    if (client.assemblyAccess === "*") return next();
+    if (client.assemblyAccess.includes(assemblyId)) return next();
+
+    return c.json(
+      { error: { code: "FORBIDDEN", message: "Client does not have access to this assembly" } },
+      403,
+    );
+  };
 }

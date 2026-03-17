@@ -17,6 +17,9 @@ export function participantRoutes(manager: AssemblyManager) {
 
   /** POST /assemblies/:id/participants — add participant. */
   app.post("/assemblies/:id/participants", async (c) => {
+    const scopeError = requireScope(c, "operational");
+    if (scopeError) return scopeError;
+
     const assemblyId = c.req.param("id");
     const body = await c.req.json<{ name: string }>();
 
@@ -67,6 +70,9 @@ export function participantRoutes(manager: AssemblyManager) {
 
   /** DELETE /assemblies/:id/participants/:pid — remove participant. */
   app.delete("/assemblies/:id/participants/:pid", async (c) => {
+    const scopeError = requireScope(c, "operational");
+    if (scopeError) return scopeError;
+
     const assemblyId = c.req.param("id");
     const pid = c.req.param("pid");
 

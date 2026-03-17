@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import type { TopicId, PollId, ParticipantId } from "@votiverse/core";
 import type { CreatePollParams, SubmitResponseParams } from "@votiverse/polling";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { requireParticipant } from "../middleware/auth.js";
+import { requireParticipant, requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function pollRoutes(manager: AssemblyManager) {
@@ -48,6 +48,9 @@ export function pollRoutes(manager: AssemblyManager) {
 
   /** POST /assemblies/:id/polls — create poll. */
   app.post("/assemblies/:id/polls", async (c) => {
+    const scopeError = requireScope(c, "operational");
+    if (scopeError) return scopeError;
+
     const assemblyId = c.req.param("id");
     const body = await c.req.json<CreatePollParams>();
 

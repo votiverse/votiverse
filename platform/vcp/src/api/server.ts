@@ -11,7 +11,7 @@ import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { createRequestLogger } from "./middleware/request-logger.js";
 import type { AssemblyManager } from "../engine/assembly-manager.js";
-import { createAuthMiddleware } from "./middleware/auth.js";
+import { createAuthMiddleware, requireAssemblyAccess } from "./middleware/auth.js";
 import { createRateLimiter } from "./middleware/rate-limiter.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { healthRoutes } from "./routes/health.js";
@@ -52,6 +52,10 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   app.use("*", createRequestLogger(logger));
   app.use("*", errorHandler);
   app.use("*", createAuthMiddleware(adapters.auth, config?.jwtSecret));
+
+  // Client-assembly access enforcement (after auth, before routes)
+  app.use("/assemblies/:id/*", requireAssemblyAccess());
+  app.use("/assemblies/:id", requireAssemblyAccess());
 
   // Rate limiting (after auth so we can key by client ID)
   if (config?.rateLimitRpm && config.rateLimitRpm > 0) {
@@ -120,7 +124,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   if (config) {
     app.route("/", authRoutes(manager, config));
   }
-  app.route("/", assemblyRoutes(manager));
+  app.route("/", assemblyRoutes(manager, adapters.auth));
   app.route("/", participantRoutes(manager));
   app.route("/", eventRoutes(manager));
   app.route("/", delegationRoutes(manager));
