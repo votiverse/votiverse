@@ -141,7 +141,7 @@ export class VotiverseEngine {
     this.delegationService = new DelegationService(this.eventStore, this.governanceConfig);
     this.votingService = new VotingService(this.eventStore, this.governanceConfig);
     this.predictionService = new PredictionService(this.eventStore, this.governanceConfig);
-    this.pollingService = new PollingService(this.eventStore, this.governanceConfig);
+    this.pollingService = new PollingService(this.eventStore, this.governanceConfig, this.timeProvider);
   }
 
   /**

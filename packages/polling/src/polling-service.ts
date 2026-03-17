@@ -15,12 +15,13 @@ import type {
   PollCreatedEvent,
   PollResponseSubmittedEvent,
 } from "@votiverse/core";
+import type { TimeProvider } from "@votiverse/core";
 import {
   createEvent,
   generateEventId,
   generatePollId,
   generateQuestionId,
-  now,
+  systemTime,
   NotFoundError,
   ValidationError,
   InvalidStateError,
@@ -48,10 +49,15 @@ import { aggregateResults, computeTrend } from "./aggregation.js";
  * internally for deduplication.
  */
 export class PollingService {
+  private readonly timeProvider: TimeProvider;
+
   constructor(
     private readonly eventStore: EventStore,
     private readonly config: GovernanceConfig,
-  ) {}
+    timeProvider?: TimeProvider,
+  ) {
+    this.timeProvider = timeProvider ?? systemTime;
+  }
 
   /**
    * Create a new poll. Records a PollCreated event.
@@ -75,7 +81,7 @@ export class PollingService {
       id: generateQuestionId(),
     }));
 
-    const currentTime = now();
+    const currentTime = this.timeProvider.now();
     const status: PollStatus = currentTime >= params.schedule ? "open" : "scheduled";
 
     // The core PollCreatedPayload.questions is string[]. We encode
@@ -127,7 +133,7 @@ export class PollingService {
     }
 
     // Check that the poll is open
-    const currentTime = now();
+    const currentTime = this.timeProvider.now();
     if (currentTime < poll.schedule) {
       throw new InvalidStateError("Poll is not yet open for responses");
     }
@@ -234,7 +240,7 @@ export class PollingService {
       }
 
       // Determine status from timestamps
-      const currentTime = now();
+      const currentTime = this.timeProvider.now();
       let status: PollStatus = "scheduled";
       if (currentTime >= e.payload.schedule) status = "open";
       if (currentTime >= closesAt) status = "closed";
