@@ -16,6 +16,7 @@ import { Profile } from "./pages/profile.js";
 import { ProfileDelegators } from "./pages/profile-delegators.js";
 import { ProfileDelegates } from "./pages/profile-delegates.js";
 import { ProfileVotes } from "./pages/profile-votes.js";
+import { NotificationSettings } from "./pages/notification-settings.js";
 import { DevClock } from "./components/dev-clock.js";
 
 function Layout() {
@@ -48,6 +49,7 @@ export function App() {
               <Route path="profile/delegators" element={<ProfileDelegators />} />
               <Route path="profile/delegates" element={<ProfileDelegates />} />
               <Route path="profile/votes" element={<ProfileVotes />} />
+              <Route path="settings/notifications" element={<NotificationSettings />} />
               <Route path="assembly/:assemblyId" element={<AssemblyDashboard />} />
               <Route path="assembly/:assemblyId/members" element={<Members />} />
               <Route path="assembly/:assemblyId/events" element={<EventsList />} />

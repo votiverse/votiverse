@@ -300,4 +300,19 @@ export function evaluatePrediction(
   return request("GET", `/assemblies/${assemblyId}/predictions/${predictionId}/eval`);
 }
 
+// ---- Notification Preferences ----
+
+export function getNotificationPreferences(): Promise<{
+  preferences: import("./types.js").NotificationPreferences;
+}> {
+  return request("GET", "/me/notifications");
+}
+
+export function setNotificationPreference(
+  key: string,
+  value: string,
+): Promise<{ preferences: import("./types.js").NotificationPreferences }> {
+  return request("PUT", "/me/notifications", { key, value });
+}
+
 export { ApiError };

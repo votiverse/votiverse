@@ -218,6 +218,16 @@ export interface PollResults {
   }>;
 }
 
+// ---- Notification Preferences ----
+
+export interface NotificationPreferences {
+  notify_new_votes: "always" | "undelegated_only" | "never";
+  notify_new_surveys: "true" | "false";
+  notify_deadlines: "true" | "false";
+  notify_results: "true" | "false";
+  notify_channel: "email" | "sms" | "both" | "none";
+}
+
 // ---- Predictions ----
 
 export interface PredictionClaim {
