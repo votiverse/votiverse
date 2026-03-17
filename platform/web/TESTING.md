@@ -2,6 +2,8 @@
 
 This guide maps features to specific test identities and assemblies so you know which participant to select when testing.
 
+For the full testing guide — engine unit tests, VCP integration tests, backend tests, dev clock usage, notification testing, and detailed manual scenarios — see [`docs/testing.md`](../../docs/testing.md).
+
 ---
 
 ## Quick Start
@@ -11,13 +13,13 @@ This guide maps features to specific test identities and assemblies so you know 
 cd platform/vcp && pnpm reset && pnpm dev
 
 # Terminal 2 — Client backend (port 4000)
-cd platform/backend && pnpm seed && pnpm dev
+cd platform/backend && pnpm reset && pnpm dev
 
-# Terminal 3 — Web frontend (port 5174)
+# Terminal 3 — Web frontend
 cd platform/web && pnpm dev
 ```
 
-Open `http://localhost:5174`. You'll be prompted to log in with an email and password.
+Open the URL shown by Vite (typically `http://localhost:5173`, port may vary). You'll be prompted to log in with an email and password.
 
 ---
 
@@ -294,18 +296,27 @@ Only Youth Advisory Panel and Municipal Budget Committee have polls enabled.
 
 ## Seeded Events (Summary)
 
-| Assembly | Event | Issues | Status |
+15 voting events across 5 assemblies. Status is relative to seed time — use the dev clock to advance through lifecycle phases.
+
+| Assembly | Event | Issues | Status at seed time |
 |---|---|---|---|
-| Greenfield | Greenfield Spring Decision | 3 issues | Closed (some votes cast) |
-| Greenfield | Community Park Redesign | 2 issues | Voting phase |
-| OSC | OSC Dependencies Audit | 3 issues | Voting phase |
-| OSC | 2026 Maintainer Elections | 3 multi-option issues | Voting phase |
-| OSC | Community Governance Evolution | 2 issues | Upcoming |
-| Municipal | Participatory Budget Cycle 2025 | 4 issues | Voting phase |
-| Municipal | Emergency Infrastructure Measures | 3 issues | Upcoming |
-| Youth | Youth Program Priorities 2026 | 3 issues | Voting phase |
-| Board | Board Election Q2 | 3 multi-option issues | Voting phase |
-| Board | Strategic Initiative Review | 2 issues | Upcoming |
+| Greenfield | Spring Community Improvement Vote | 3 | Closed |
+| Greenfield | Q1 Infrastructure Decisions | 4 | Voting |
+| Greenfield | Annual Budget Review 2026 | 2 | Upcoming |
+| OSC | 2025 Roadmap Retrospective | 3 | Closed |
+| OSC | Dependency Policy Review | 5 | Voting |
+| OSC | Community Governance Evolution | 2 | Voting |
+| OSC | H2 2026 Roadmap Proposals | 4 | Deliberation |
+| OSC | 2026 Maintainer Elections | 3 (multi-option) | Voting |
+| Municipal | Participatory Budget Cycle 2025 | 4 | Closed |
+| Municipal | Emergency Infrastructure Measures | 3 | Voting |
+| Youth | Youth Program Priorities 2026 | 3 | Voting |
+| Youth | Digital Citizenship Curriculum | 2 | Deliberation |
+| Board | Q4 2025 Board Resolutions | 3 | Closed |
+| Board | Q1 2026 Strategic Decisions | 2 | Voting |
+| Board | 2026 Board Officer Election | 3 (multi-option) | Closed |
+
+For timeline decay details and reseeding instructions, see [`docs/testing.md`](../../docs/testing.md#10-seeded-data-reference).
 
 ---
 

@@ -13,11 +13,11 @@ cd platform/vcp && pnpm reset && pnpm dev
 # Terminal 2 — Client backend (port 4000)
 cd platform/backend && pnpm reset && pnpm dev
 
-# Terminal 3 — Web UI (port 5173)
+# Terminal 3 — Web UI
 cd platform/web && pnpm dev
 ```
 
-Open `http://localhost:5173` and log in with any seeded account (see Section 3).
+Open the URL shown by Vite (typically `http://localhost:5173`, port may vary) and log in with any seeded account (see Section 3).
 
 ---
 
@@ -465,6 +465,8 @@ The backend seed script syncs existing VCP events/polls into `tracked_events`/`t
 ---
 
 ## 9. Manual Testing Scenarios
+
+> **Tip:** For a quick reference of which test identity to use for each feature, see [`platform/web/TESTING.md`](../platform/web/TESTING.md) — it has delegation graphs, topic-scoped delegation tables, and an assembly-by-feature matrix.
 
 ### Scenario 1: Full voting lifecycle
 
