@@ -321,7 +321,7 @@ describe("Delegation sovereignty & visibility", () => {
 
       // Try to revoke — should fail with governance rule violation
       const revokeRes = await vcp.requestAs(bAlice!.id, "DELETE", `/assemblies/${boardAsm.id}/delegations/${delegation.id}`);
-      expect(revokeRes.status).toBe(500); // GovernanceRuleViolation propagates as 500
+      expect(revokeRes.status).toBe(409); // GovernanceRuleViolation returns 409
     });
   });
 });
