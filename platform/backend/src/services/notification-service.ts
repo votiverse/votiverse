@@ -6,6 +6,7 @@
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { NotificationAdapter } from "./notification-adapter.js";
 import type { VCPClient } from "./vcp-client.js";
+import { renderTemplate } from "./notification-templates.js";
 import { logger } from "../lib/logger.js";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -259,21 +260,12 @@ export class NotificationService {
   private async notifyEventCreated(event: TrackedEventRow): Promise<void> {
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_new_votes", event);
     const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const template = renderTemplate("event_created", {
+      assemblyName, title: event.title,
+      votingStart: event.voting_start, votingEnd: event.voting_end, baseUrl: this.baseUrl,
+    });
     for (const r of recipients) {
-      await this.adapter.send({
-        to: r.email,
-        subject: `New vote in ${assemblyName}: ${event.title}`,
-        body: [
-          `A new vote has been created in ${assemblyName}.`,
-          "",
-          event.title,
-          "",
-          `Voting opens: ${event.voting_start}`,
-          `Voting closes: ${event.voting_end}`,
-          "",
-          `Go to Votiverse to review and vote: ${this.baseUrl}`,
-        ].join("\n"),
-      });
+      await this.adapter.send({ to: r.email, ...template });
     }
     this.log.info(`Notified ${recipients.length} users: event created`, { eventId: event.id });
   }
@@ -281,18 +273,11 @@ export class NotificationService {
   private async notifyVotingOpen(event: TrackedEventRow): Promise<void> {
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_new_votes", event);
     const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const template = renderTemplate("voting_open", {
+      assemblyName, title: event.title, votingEnd: event.voting_end, baseUrl: this.baseUrl,
+    });
     for (const r of recipients) {
-      await this.adapter.send({
-        to: r.email,
-        subject: `Voting is open: ${event.title}`,
-        body: [
-          `Voting is now open for ${event.title} in ${assemblyName}.`,
-          "",
-          `Deadline: ${event.voting_end}`,
-          "",
-          `Cast your vote: ${this.baseUrl}`,
-        ].join("\n"),
-      });
+      await this.adapter.send({ to: r.email, ...template });
     }
     this.log.info(`Notified ${recipients.length} users: voting open`, { eventId: event.id });
   }
@@ -300,18 +285,11 @@ export class NotificationService {
   private async notifyDeadline(event: TrackedEventRow): Promise<void> {
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_deadlines");
     const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const template = renderTemplate("deadline_approaching", {
+      assemblyName, title: event.title, votingEnd: event.voting_end, baseUrl: this.baseUrl,
+    });
     for (const r of recipients) {
-      await this.adapter.send({
-        to: r.email,
-        subject: `Voting closes tomorrow: ${event.title}`,
-        body: [
-          `Voting for ${event.title} in ${assemblyName} closes in less than 24 hours.`,
-          "",
-          `Deadline: ${event.voting_end}`,
-          "",
-          `Vote now: ${this.baseUrl}`,
-        ].join("\n"),
-      });
+      await this.adapter.send({ to: r.email, ...template });
     }
     this.log.info(`Notified ${recipients.length} users: deadline approaching`, { eventId: event.id });
   }
@@ -319,16 +297,11 @@ export class NotificationService {
   private async notifyResultsAvailable(event: TrackedEventRow): Promise<void> {
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_results");
     const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const template = renderTemplate("results_available", {
+      assemblyName, title: event.title, baseUrl: this.baseUrl,
+    });
     for (const r of recipients) {
-      await this.adapter.send({
-        to: r.email,
-        subject: `Results are in: ${event.title}`,
-        body: [
-          `Voting has closed for ${event.title} in ${assemblyName}.`,
-          "",
-          `View the results: ${this.baseUrl}`,
-        ].join("\n"),
-      });
+      await this.adapter.send({ to: r.email, ...template });
     }
     this.log.info(`Notified ${recipients.length} users: results available`, { eventId: event.id });
   }
@@ -336,21 +309,11 @@ export class NotificationService {
   private async notifySurveyCreated(poll: TrackedPollRow): Promise<void> {
     const recipients = await this.resolveRecipients(poll.assembly_id, "notify_new_surveys");
     const assemblyName = await this.getAssemblyName(poll.assembly_id);
+    const template = renderTemplate("survey_created", {
+      assemblyName, title: poll.title, baseUrl: this.baseUrl,
+    });
     for (const r of recipients) {
-      await this.adapter.send({
-        to: r.email,
-        subject: `New survey in ${assemblyName}: ${poll.title}`,
-        body: [
-          `A new survey has been created in ${assemblyName}.`,
-          "",
-          poll.title,
-          "",
-          "Your observations matter — surveys help the community understand",
-          "what's happening on the ground.",
-          "",
-          `Respond now: ${this.baseUrl}`,
-        ].join("\n"),
-      });
+      await this.adapter.send({ to: r.email, ...template });
     }
     this.log.info(`Notified ${recipients.length} users: survey created`, { pollId: poll.id });
   }
@@ -358,18 +321,11 @@ export class NotificationService {
   private async notifySurveyDeadline(poll: TrackedPollRow): Promise<void> {
     const recipients = await this.resolveRecipients(poll.assembly_id, "notify_deadlines");
     const assemblyName = await this.getAssemblyName(poll.assembly_id);
+    const template = renderTemplate("survey_deadline", {
+      assemblyName, title: poll.title, closesAt: poll.closes_at, baseUrl: this.baseUrl,
+    });
     for (const r of recipients) {
-      await this.adapter.send({
-        to: r.email,
-        subject: `Survey closes tomorrow: ${poll.title}`,
-        body: [
-          `The survey ${poll.title} in ${assemblyName} closes in less than 24 hours.`,
-          "",
-          "If you haven't responded yet, your observations are still needed.",
-          "",
-          `Respond now: ${this.baseUrl}`,
-        ].join("\n"),
-      });
+      await this.adapter.send({ to: r.email, ...template });
     }
     this.log.info(`Notified ${recipients.length} users: survey deadline`, { pollId: poll.id });
   }

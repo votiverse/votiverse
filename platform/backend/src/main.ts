@@ -11,7 +11,8 @@ import { SessionService } from "./services/session-service.js";
 import { MembershipService } from "./services/membership-service.js";
 import { VCPClient } from "./services/vcp-client.js";
 import { NotificationService } from "./services/notification-service.js";
-import { ConsoleNotificationAdapter } from "./services/notification-adapter.js";
+import { ConsoleNotificationAdapter, SmtpNotificationAdapter } from "./services/notification-adapter.js";
+import type { NotificationAdapter } from "./services/notification-adapter.js";
 import { createApp } from "./api/server.js";
 
 async function main() {
@@ -39,7 +40,20 @@ async function main() {
   const membershipService = new MembershipService(database, vcpClient);
 
   // Wire notification service
-  const notificationAdapter = new ConsoleNotificationAdapter();
+  let notificationAdapter: NotificationAdapter;
+  if (config.notificationAdapter === "smtp") {
+    notificationAdapter = new SmtpNotificationAdapter({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      user: config.smtpUser,
+      pass: config.smtpPass,
+      from: config.smtpFrom,
+    });
+    logger.info("Notification adapter: SMTP");
+  } else {
+    notificationAdapter = new ConsoleNotificationAdapter();
+    logger.info("Notification adapter: console");
+  }
   const notificationService = new NotificationService(
     database,
     notificationAdapter,
