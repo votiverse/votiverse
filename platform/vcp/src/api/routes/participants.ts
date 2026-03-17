@@ -7,7 +7,7 @@ import type { ParticipantId, ParticipantStatus } from "@votiverse/core";
 import { createEvent, generateEventId, now } from "@votiverse/core";
 import type { ParticipantStatusChangedEvent, DelegationRevokedEvent } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { requireScope, getClient } from "../middleware/auth.js";
+import { requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 const VALID_STATUSES = new Set<string>(["active", "inactive", "sunset"]);
