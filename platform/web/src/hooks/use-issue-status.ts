@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import * as api from "../api/client.js";
 import type { DelegationChain, VotingHistory } from "../api/types.js";
 
@@ -10,9 +10,10 @@ export interface IssueStatus {
   delegateChain: string[];
   terminalVoterId: string | null;
   loading: boolean;
+  refetch: () => void;
 }
 
-const EMPTY: IssueStatus = {
+const EMPTY_STATUS: Omit<IssueStatus, "refetch"> = {
   hasVoted: false,
   myVoteChoice: null,
   myVoteDate: null,
@@ -49,12 +50,18 @@ export function useIssueStatus(
   participantId: string | null,
   issueId: string,
 ): IssueStatus {
-  const [status, setStatus] = useState<IssueStatus>(EMPTY);
+  const [status, setStatus] = useState<Omit<IssueStatus, "refetch">>(EMPTY_STATUS);
   const versionRef = useRef(0);
+  const [fetchVersion, setFetchVersion] = useState(0);
+
+  const refetch = useCallback(() => {
+    invalidateHistoryCache();
+    setFetchVersion((v) => v + 1);
+  }, []);
 
   useEffect(() => {
     if (!assemblyId || !participantId) {
-      setStatus({ ...EMPTY, loading: false });
+      setStatus({ ...EMPTY_STATUS, loading: false });
       return;
     }
 
@@ -93,10 +100,10 @@ export function useIssueStatus(
         });
       } catch {
         if (versionRef.current !== version) return;
-        setStatus({ ...EMPTY, loading: false });
+        setStatus({ ...EMPTY_STATUS, loading: false });
       }
     })();
-  }, [assemblyId, participantId, issueId]);
+  }, [assemblyId, participantId, issueId, fetchVersion]);
 
-  return status;
+  return { ...status, refetch };
 }

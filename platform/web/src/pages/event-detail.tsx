@@ -315,6 +315,7 @@ function IssueVotingCard({
   const issueStatus = useIssueStatus(assemblyId, participantId, issueId);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(!issueStatus.hasVoted);
 
   const votingOpen = eventStatus === "voting";
 
@@ -324,6 +325,8 @@ function IssueVotingCard({
     setVoteError(null);
     try {
       await api.castVote(assemblyId, { participantId, issueId, choice });
+      setExpanded(false);
+      issueStatus.refetch();
       onVoted();
     } catch (err: unknown) {
       setVoteError(err instanceof Error ? err.message : "Vote failed");
@@ -402,8 +405,10 @@ function IssueVotingCard({
             participantId={participantId!}
             voting={voting}
             voteError={voteError}
+            expanded={expanded}
+            onSetExpanded={setExpanded}
             onVote={handleVote}
-            onDelegationCreated={onVoted}
+            onDelegationCreated={() => { issueStatus.refetch(); onVoted(); }}
           />
         )}
 
@@ -452,6 +457,8 @@ function VotingSection({
   participantId,
   voting,
   voteError,
+  expanded,
+  onSetExpanded,
   onVote,
   onDelegationCreated,
 }: {
@@ -468,11 +475,11 @@ function VotingSection({
   participantId: string;
   voting: boolean;
   voteError: string | null;
+  expanded: boolean;
+  onSetExpanded: (v: boolean) => void;
   onVote: (choice: string) => void;
   onDelegationCreated: () => void;
 }) {
-  const [expanded, setExpanded] = useState(!issueStatus.hasVoted);
-
   const isMultiOption = choices && choices.length > 0;
 
   // Collapsed state: user has already voted, show compact summary
@@ -495,7 +502,7 @@ function VotingSection({
             </span>
           </div>
           <button
-            onClick={() => setExpanded(true)}
+            onClick={() => onSetExpanded(true)}
             className="text-xs text-green-600 hover:text-green-800 underline min-h-[32px] flex items-center"
           >
             Change vote
@@ -586,7 +593,7 @@ function VotingSection({
         {/* Cancel button when changing an existing vote */}
         {issueStatus.hasVoted && (
           <button
-            onClick={() => setExpanded(false)}
+            onClick={() => onSetExpanded(false)}
             className="text-xs text-gray-500 hover:text-gray-700 underline mt-2 min-h-[32px] flex items-center"
           >
             Cancel
