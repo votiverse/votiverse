@@ -1,12 +1,13 @@
 /**
  * VCP proxy routes — forwards governance requests to VCP with identity injection.
  *
- * User-scoped routes (no participant needed): GET /assemblies (filtered by membership), GET /assemblies/:id
+ * User-scoped routes: GET /assemblies (served from local cache), GET /assemblies/:id (served from local cache)
  * Assembly-scoped routes: resolves user → participant, injects X-Participant-Id
  */
 
 import { Hono } from "hono";
 import type { MembershipService } from "../../services/membership-service.js";
+import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
@@ -14,37 +15,38 @@ import { logger } from "../../lib/logger.js";
 
 export function proxyRoutes(
   membershipService: MembershipService,
+  assemblyCacheService: AssemblyCacheService,
   notificationService: NotificationService,
   config: BackendConfig,
 ) {
   const app = new Hono();
 
   /**
-   * GET /assemblies — list assemblies filtered to those the user belongs to.
-   * Fetches all assemblies from VCP, then filters by user's memberships.
+   * GET /assemblies — list assemblies the user belongs to (served from local cache).
    */
   app.get("/assemblies", async (c) => {
     const user = getUser(c);
     const memberships = await membershipService.getUserMemberships(user.id);
-    const memberAssemblyIds = new Set(memberships.map((m) => m.assemblyId));
+    const memberAssemblyIds = memberships.map((m) => m.assemblyId);
 
-    // Proxy to VCP to get all assemblies
-    const vcpRes = await proxyToVcp(c, config, "GET", "/assemblies" + (c.req.url.includes("?") ? "?" + c.req.url.split("?")[1] : ""));
+    const assemblies = await assemblyCacheService.listByIds(memberAssemblyIds);
 
-    // If VCP returned an error, pass it through
-    if (!vcpRes.ok) return vcpRes;
-
-    // Filter assemblies to only those the user is a member of
-    const data = await vcpRes.json() as { assemblies: Array<{ id: string; [key: string]: unknown }>; pagination?: unknown };
-    const filtered = data.assemblies.filter((asm) => memberAssemblyIds.has(asm.id));
-
-    return c.json({ assemblies: filtered, pagination: data.pagination });
+    return c.json({ assemblies });
   });
 
+  /**
+   * GET /assemblies/:id — get assembly (served from local cache).
+   */
   app.get("/assemblies/:id", async (c) => {
     const id = c.req.param("id");
-    // Avoid matching /assemblies/:id/* — only exact match
-    return proxyToVcp(c, config, "GET", `/assemblies/${id}`);
+    const assembly = await assemblyCacheService.get(id);
+    if (!assembly) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: `Assembly "${id}" not found` } },
+        404,
+      );
+    }
+    return c.json(assembly);
   });
 
   /**

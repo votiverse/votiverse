@@ -14,6 +14,10 @@ const DEFAULT_PASSWORD = "password";
 interface VCPAssembly {
   id: string;
   name: string;
+  organizationId?: string | null;
+  config?: unknown;
+  status?: string;
+  createdAt?: string;
 }
 
 interface VCPParticipant {
@@ -55,9 +59,16 @@ interface UserWithMemberships {
 export async function main() {
   console.log(`\nSeeding backend from VCP at ${VCP_URL}...\n`);
 
-  // 1. Fetch all assemblies and their participants from VCP
-  const { assemblies } = await vcpGet<{ assemblies: VCPAssembly[] }>("/assemblies");
-  console.log(`Found ${assemblies.length} assemblies in VCP\n`);
+  // 1. Fetch all assemblies (with full details) and their participants from VCP
+  const { assemblies: assemblyList } = await vcpGet<{ assemblies: VCPAssembly[] }>("/assemblies");
+  console.log(`Found ${assemblyList.length} assemblies in VCP\n`);
+
+  // Fetch full assembly details for caching
+  const assemblies: VCPAssembly[] = [];
+  for (const asm of assemblyList) {
+    const full = await vcpGet<VCPAssembly>(`/assemblies/${asm.id}`);
+    assemblies.push(full);
+  }
 
   // 2. Build a map of unique people across assemblies
   const userMap = new Map<string, UserWithMemberships>();
@@ -131,7 +142,25 @@ export async function main() {
     if (user.memberships.length > 1) crossAssembly++;
   }
 
-  // 4. Sync tracked events and polls from VCP (pre-mark all as notified)
+  // 4. Populate assembly cache
+  let cachedAssemblies = 0;
+  for (const asm of assemblies) {
+    await backendPost(
+      "/internal/assemblies-cache",
+      {
+        id: asm.id,
+        organizationId: asm.organizationId ?? null,
+        name: asm.name,
+        config: asm.config ?? {},
+        status: asm.status ?? "active",
+        createdAt: asm.createdAt ?? new Date().toISOString(),
+      },
+      firstToken,
+    );
+    cachedAssemblies++;
+  }
+
+  // 5. Sync tracked events and polls from VCP (pre-mark all as notified)
   // This prevents the scheduler from sending notifications about historical seeded data.
   let trackedEvents = 0;
   let trackedPolls = 0;
@@ -187,6 +216,7 @@ export async function main() {
   console.log(`\n═══ SEED COMPLETE ═══\n`);
   console.log(`  Users:            ${created}`);
   console.log(`  Cross-assembly:   ${crossAssembly}`);
+  console.log(`  Cached assemblies:${cachedAssemblies}`);
   console.log(`  Tracked events:   ${trackedEvents}`);
   console.log(`  Tracked polls:    ${trackedPolls}`);
   console.log(`  Default password: ${DEFAULT_PASSWORD}`);

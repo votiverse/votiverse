@@ -90,6 +90,17 @@ export class SQLiteAdapter implements DatabaseAdapter {
         value     TEXT NOT NULL,
         PRIMARY KEY (user_id, key)
       );
+
+      -- Local assembly cache (immutable after creation — avoids VCP round-trips)
+      CREATE TABLE IF NOT EXISTS assemblies_cache (
+        id              TEXT PRIMARY KEY,
+        organization_id TEXT,
+        name            TEXT NOT NULL,
+        config          TEXT NOT NULL,
+        status          TEXT NOT NULL DEFAULT 'active',
+        created_at      TEXT NOT NULL,
+        cached_at       TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
   }
 

@@ -9,6 +9,7 @@ import { SQLiteAdapter } from "./adapters/database/sqlite.js";
 import { UserService } from "./services/user-service.js";
 import { SessionService } from "./services/session-service.js";
 import { MembershipService } from "./services/membership-service.js";
+import { AssemblyCacheService } from "./services/assembly-cache.js";
 import { VCPClient } from "./services/vcp-client.js";
 import { NotificationService } from "./services/notification-service.js";
 import { ConsoleNotificationAdapter, FileNotificationAdapter, SmtpNotificationAdapter } from "./services/notification-adapter.js";
@@ -37,7 +38,8 @@ async function main() {
     config.jwtRefreshExpiry,
   );
   const vcpClient = new VCPClient(config.vcpBaseUrl, config.vcpApiKey);
-  const membershipService = new MembershipService(database, vcpClient);
+  const assemblyCacheService = new AssemblyCacheService(database);
+  const membershipService = new MembershipService(database, vcpClient, assemblyCacheService);
 
   // Wire notification service
   const isProduction = process.env["NODE_ENV"] === "production";
@@ -80,7 +82,7 @@ async function main() {
   );
 
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, notificationService, config });
+  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, notificationService, config });
 
   // Start HTTP server
   const server = serve({

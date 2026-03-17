@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import type { UserService } from "../../services/user-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
+import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
@@ -12,6 +13,7 @@ import { ValidationError } from "../middleware/error-handler.js";
 export function meRoutes(
   userService: UserService,
   membershipService: MembershipService,
+  assemblyCacheService: AssemblyCacheService,
   notificationService: NotificationService,
 ) {
   const app = new Hono();
@@ -81,6 +83,29 @@ export function meRoutes(
     });
     // Mark all notification flags as already sent
     await notificationService.markAllNotified("poll", body.id);
+    return c.json({ status: "ok" }, 201);
+  });
+
+  /**
+   * POST /internal/assemblies-cache — seed-only: cache an assembly locally.
+   */
+  app.post("/internal/assemblies-cache", async (c) => {
+    const body = await c.req.json<{
+      id: string;
+      organizationId?: string | null;
+      name: string;
+      config: unknown;
+      status?: string;
+      createdAt: string;
+    }>();
+    await assemblyCacheService.upsert({
+      id: body.id,
+      organizationId: body.organizationId ?? null,
+      name: body.name,
+      config: body.config,
+      status: body.status ?? "active",
+      createdAt: body.createdAt,
+    });
     return c.json({ status: "ok" }, 201);
   });
 

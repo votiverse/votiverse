@@ -4,6 +4,7 @@
 
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { VCPClient } from "./vcp-client.js";
+import type { AssemblyCacheService } from "./assembly-cache.js";
 import { NotFoundError, ConflictError } from "../api/middleware/error-handler.js";
 
 interface MembershipRow {
@@ -25,6 +26,7 @@ export class MembershipService {
   constructor(
     private readonly db: DatabaseAdapter,
     private readonly vcpClient: VCPClient,
+    private readonly assemblyCache?: AssemblyCacheService,
   ) {}
 
   /** Join an assembly: create participant in VCP + store local mapping. */
@@ -40,6 +42,18 @@ export class MembershipService {
 
     // Get assembly info from VCP
     const assembly = await this.vcpClient.getAssembly(assemblyId);
+
+    // Cache assembly data locally
+    if (this.assemblyCache) {
+      await this.assemblyCache.upsert({
+        id: assembly.id,
+        organizationId: assembly.organizationId,
+        name: assembly.name,
+        config: assembly.config,
+        status: assembly.status,
+        createdAt: assembly.createdAt,
+      });
+    }
 
     // Create participant in VCP
     const participant = await this.vcpClient.createParticipant(assemblyId, participantName);
