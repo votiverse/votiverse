@@ -315,7 +315,9 @@ vcp.clock.advance(7200000);
 
 ## 7. Backend Integration Tests
 
-13 tests in `platform/backend/test/auth.test.ts`:
+35 tests in `platform/backend/test/`:
+
+### Auth tests (13 tests) — `test/auth.test.ts`
 
 | Test | What it verifies |
 |------|-----------------|
@@ -333,9 +335,136 @@ vcp.clock.advance(7200000);
 | Unauthenticated request rejected | Returns 401 |
 | Valid access token accepted | Returns 200 on /me |
 
+### Notification tests (22 tests) — `test/notifications.test.ts`
+
+| Test | What it verifies |
+|------|-----------------|
+| Track event | Inserts into tracked_events, idempotent on duplicate |
+| Track poll | Inserts into tracked_polls |
+| Preferences: defaults | Returns all 5 defaults when none set |
+| Preferences: set/get | Stores and retrieves a preference |
+| Preferences: overwrite | Updates existing preference |
+| Preferences: reject unknown key | Throws on invalid key |
+| Preferences: reject invalid value | Throws on value not in allowed set |
+| Scheduler: event created | Sends notification, marks flag, no re-send on next tick |
+| Scheduler: voting open | Fires when voting_start is in the past |
+| Scheduler: deadline approaching | Fires when voting_end is within 24h |
+| Scheduler: results available | Fires when voting_end is in the past |
+| Scheduler: survey created | Fires for new polls |
+| Scheduler: channel=none | Sends nothing when user disables all channels |
+| Scheduler: new_votes=never | Skips vote notifications |
+| Scheduler: new_surveys=false | Skips survey notifications |
+| API: GET /me/notifications | Returns default preferences |
+| API: PUT /me/notifications | Updates a preference, returns new state |
+| API: reject invalid key | Returns 400 |
+| API: reject invalid value | Returns 400 |
+| API: reject missing fields | Returns 400 |
+| API: auth required | Returns 401 without token |
+
 ---
 
-## 8. Manual Testing Scenarios
+## 8. Notification System — Dev Workflow
+
+### Adapter safety model
+
+The notification system has a three-tier adapter model designed to prevent accidental email delivery in development:
+
+| Adapter | Set via | What it does | When to use |
+|---------|---------|-------------|-------------|
+| `console` (default) | `BACKEND_NOTIFICATION_ADAPTER=console` or unset | Logs to stdout | Normal dev — just see that notifications fire |
+| `file` | `BACKEND_NOTIFICATION_ADAPTER=file` | Writes `.eml` + `.html` files to a local directory | When you want to preview email templates |
+| `smtp` | `BACKEND_NOTIFICATION_ADAPTER=smtp` | Sends real email via SMTP | Production only |
+
+### Dev safety guard
+
+**If `NODE_ENV` is not `production` and the adapter is `smtp`, `ses`, or `twilio`, the backend automatically falls back to the `file` adapter** and logs a warning. This prevents sending real emails even if someone configures SMTP credentials in dev.
+
+To actually send email, you must explicitly set `NODE_ENV=production` (which also triggers JWT secret validation, CORS origin validation, etc.).
+
+### File adapter — previewing email templates
+
+The file adapter writes notifications to `./notifications/` (configurable via `BACKEND_NOTIFICATION_FILE_DIR`). Each notification produces two files:
+
+```
+notifications/
+  2026-03-16T14-30-00-000Z_New vote in OSC Governance Board Budget Vote.eml
+  2026-03-16T14-30-00-000Z_New vote in OSC Governance Board Budget Vote.html
+```
+
+- **`.eml`** — plain-text version with email headers (To, Subject, Date)
+- **`.html`** — HTML version, open in a browser to see the styled email with CTA buttons
+
+These directories are in `.gitignore` and won't be committed.
+
+### Testing the notification flow end-to-end
+
+```bash
+# 1. Start all servers
+cd platform/vcp && pnpm dev        # Terminal 1
+cd platform/backend && pnpm dev    # Terminal 2
+cd platform/web && pnpm dev        # Terminal 3
+
+# 2. Watch backend logs for [notification] lines
+#    (console adapter is the default)
+
+# 3. Login to the web UI and create a new voting event via the UI
+#    → Backend proxy intercepts the VCP response
+#    → tracked_events row is created
+#    → Within 60 seconds, the scheduler fires and sends "event created" notification
+
+# 4. To preview HTML templates, use the file adapter:
+BACKEND_NOTIFICATION_ADAPTER=file pnpm dev
+#    → Create an event → check ./notifications/ for .html files
+```
+
+### Testing with a local SMTP server (Mailpit)
+
+For full email rendering with a real mail client:
+
+```bash
+# 1. Start Mailpit (Docker)
+docker run -d -p 8025:8025 -p 1025:1025 axllent/mailpit
+
+# 2. Start backend with SMTP pointed at Mailpit (must be production mode to bypass guard)
+NODE_ENV=production \
+BACKEND_NOTIFICATION_ADAPTER=smtp \
+BACKEND_SMTP_HOST=localhost \
+BACKEND_SMTP_PORT=1025 \
+BACKEND_SMTP_FROM=noreply@votiverse.local \
+BACKEND_JWT_SECRET=any-secret-for-local-testing \
+BACKEND_CORS_ORIGINS=http://localhost:5173 \
+BACKEND_VCP_API_KEY=vcp_dev_key_00000000 \
+pnpm dev
+
+# 3. Open Mailpit UI at http://localhost:8025
+# 4. Create an event → email appears in Mailpit within 60 seconds
+```
+
+### Notification preferences in the UI
+
+Settings page: `/settings/notifications` (accessible from the identity dropdown → "Notifications").
+
+Preferences:
+
+| Setting | Default | Options |
+|---------|---------|---------|
+| New voting events | Always notify | Always / Only if not delegated / Never |
+| Deadline reminders | Enabled | Enabled / Disabled |
+| Results available | Disabled | Enabled / Disabled |
+| New surveys | Enabled | Enabled / Disabled |
+| Delivery channel | Email | Email / SMS / Both / None |
+
+Setting "None" as the delivery channel disables all outbound notifications. The dashboard still shows pending items.
+
+### Seed data and notifications
+
+The backend seed script syncs existing VCP events/polls into `tracked_events`/`tracked_polls` with all notification flags pre-set to 1 (already notified). This prevents the scheduler from sending a flood of notifications about historical data after a reseed.
+
+**If notifications fire unexpectedly after reseeding**, the backend may have been seeded before this sync was added. Fix: `cd platform/backend && pnpm reset` (which re-runs the updated seed).
+
+---
+
+## 9. Manual Testing Scenarios
 
 ### Scenario 1: Full voting lifecycle
 
@@ -394,7 +523,26 @@ vcp.clock.advance(7200000);
 5. Verify results/tally are shown
 6. Reset dev clock → event returns to "Voting Open"
 
-### Scenario 7: Poll response
+### Scenario 7: Notification preferences
+
+1. Login as any user
+2. Click avatar → "Notifications" (or go to `/settings/notifications`)
+3. Verify all defaults are shown (Always, Enabled, Enabled, Disabled, Email)
+4. Change "New voting events" to "Never"
+5. Refresh page — verify the setting persisted
+6. Change "Delivery channel" to "None" — verify warning banner appears
+7. Change back to "Email"
+
+### Scenario 8: Notification delivery (file adapter)
+
+1. Stop backend, restart with: `BACKEND_NOTIFICATION_ADAPTER=file pnpm dev`
+2. Login and create a voting event through the web UI
+3. Wait ~60 seconds for the scheduler tick
+4. Check `./notifications/` directory — should contain `.eml` and `.html` files
+5. Open the `.html` file in a browser — verify it shows the styled email
+6. Verify the `.eml` file contains the plain-text version with correct To/Subject
+
+### Scenario 9: Poll response
 
 1. Login as Ravi Gupta → Youth Advisory Panel
 2. Go to Polls → find "Preferred Community Event Type" (open, hasn't responded)
@@ -404,7 +552,7 @@ vcp.clock.advance(7200000);
 
 ---
 
-## 9. Seeded Data Reference
+## 10. Seeded Data Reference
 
 ### Voting Events (15 total)
 
@@ -448,7 +596,7 @@ See `platform/web/TESTING.md` for complete delegation graphs with chain diagrams
 
 ---
 
-## 10. Gotchas and Common Pitfalls
+## 11. Gotchas and Common Pitfalls
 
 ### Reseed order matters: VCP first, then backend
 
@@ -505,7 +653,7 @@ If pages show unexpected "Ended" status or votes are rejected, the dev clock may
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### "Voting has not started" or "Voting has closed" errors
 
