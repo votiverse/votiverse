@@ -7,6 +7,7 @@ import type { UserService } from "../../services/user-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { TopicCacheService } from "../../services/topic-cache.js";
+import type { PollCacheService } from "../../services/poll-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
@@ -16,6 +17,7 @@ export function meRoutes(
   membershipService: MembershipService,
   assemblyCacheService: AssemblyCacheService,
   topicCacheService: TopicCacheService,
+  pollCacheService: PollCacheService,
   notificationService: NotificationService,
 ) {
   const app = new Hono();
@@ -134,6 +136,28 @@ export function meRoutes(
       })),
     );
     return c.json({ status: "ok", count: body.topics.length }, 201);
+  });
+
+  /**
+   * POST /internal/polls-cache — seed-only: cache polls for an assembly.
+   */
+  app.post("/internal/polls-cache", async (c) => {
+    const body = await c.req.json<{
+      polls: Array<{
+        id: string;
+        assemblyId: string;
+        title: string;
+        questions: unknown[];
+        topicIds: string[];
+        schedule: number;
+        closesAt: number;
+        createdBy: string;
+      }>;
+    }>();
+    for (const p of body.polls) {
+      await pollCacheService.upsert(p);
+    }
+    return c.json({ status: "ok", count: body.polls.length }, 201);
   });
 
   /** GET /me — current user profile with memberships. */

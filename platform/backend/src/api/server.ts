@@ -11,6 +11,7 @@ import type { SessionService } from "../services/session-service.js";
 import type { MembershipService } from "../services/membership-service.js";
 import type { AssemblyCacheService } from "../services/assembly-cache.js";
 import type { TopicCacheService } from "../services/topic-cache.js";
+import type { PollCacheService } from "../services/poll-cache.js";
 import type { NotificationService } from "../services/notification-service.js";
 import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
@@ -31,12 +32,13 @@ export interface AppDependencies {
   membershipService: MembershipService;
   assemblyCacheService: AssemblyCacheService;
   topicCacheService: TopicCacheService;
+  pollCacheService: PollCacheService;
   notificationService: NotificationService;
   config: BackendConfig;
 }
 
 export function createApp(deps: AppDependencies): Hono {
-  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, notificationService, config } = deps;
+  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -77,8 +79,8 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService));
-  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, notificationService));
-  app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, notificationService, config));
+  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService));
+  app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, config));
 
   return app;
 }

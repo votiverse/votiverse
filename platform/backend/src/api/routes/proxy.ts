@@ -5,6 +5,7 @@
  *   GET /assemblies — from assemblies_cache, filtered by user memberships
  *   GET /assemblies/:id — from assemblies_cache
  *   GET /assemblies/:id/topics — from topics_cache (falls through to VCP on cache miss)
+ *   GET /assemblies/:id/polls — from polls_cache + poll_responses (falls through on miss)
  *
  * Proxied to VCP (all other assembly-scoped routes):
  *   resolves user → participant, injects X-Participant-Id, intercepts POST responses for caching
@@ -14,6 +15,7 @@ import { Hono } from "hono";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { TopicCacheService } from "../../services/topic-cache.js";
+import type { PollCacheService } from "../../services/poll-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
@@ -23,6 +25,7 @@ export function proxyRoutes(
   membershipService: MembershipService,
   assemblyCacheService: AssemblyCacheService,
   topicCacheService: TopicCacheService,
+  pollCacheService: PollCacheService,
   notificationService: NotificationService,
   config: BackendConfig,
 ) {
@@ -101,6 +104,59 @@ export function proxyRoutes(
   });
 
   /**
+   * GET /assemblies/:assemblyId/polls — served from local poll cache.
+   * Falls through to VCP proxy if cache is empty (first access).
+   * Enriches with hasResponded from local poll_responses table.
+   */
+  app.get("/assemblies/:assemblyId/polls", async (c) => {
+    const assemblyId = c.req.param("assemblyId");
+    const user = getUser(c);
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    const hasCached = await pollCacheService.hasPolls(assemblyId);
+    if (hasCached) {
+      const cachedPolls = await pollCacheService.listByAssembly(assemblyId);
+      const respondedIds = await pollCacheService.respondedPollIds(assemblyId, participantId);
+      const polls = cachedPolls.map((p) => ({
+        id: p.id,
+        title: p.title,
+        questions: p.questions,
+        topicIds: p.topicIds,
+        schedule: p.schedule,
+        closesAt: p.closesAt,
+        createdBy: p.createdBy,
+        hasResponded: respondedIds.has(p.id),
+      }));
+      return c.json({ polls });
+    }
+
+    // Cache miss — proxy to VCP, cache the response, and return
+    const response = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/polls?participantId=${participantId}`, participantId);
+
+    if (response.status === 200) {
+      try {
+        const body = (response as ResponseWithBody).__bufferedBody;
+        if (body) {
+          const data = JSON.parse(body) as { polls: Array<{ id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string; hasResponded?: boolean }> };
+          for (const p of data.polls ?? []) {
+            await pollCacheService.upsert({
+              id: p.id, assemblyId, title: p.title, questions: p.questions,
+              topicIds: p.topicIds, schedule: p.schedule, closesAt: p.closesAt, createdBy: p.createdBy,
+            });
+            if (p.hasResponded) {
+              await pollCacheService.recordResponse(assemblyId, p.id, participantId);
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn("Failed to cache polls from VCP response", { error: String(err) });
+      }
+    }
+
+    return response;
+  });
+
+  /**
    * Assembly-scoped routes — resolve user → participant, then proxy.
    * Catches all methods and paths under /assemblies/:assemblyId/
    *
@@ -119,11 +175,15 @@ export function proxyRoutes(
 
     const response = await proxyToVcp(c, config, c.req.method, path, participantId);
 
-    // Intercept successful POST responses to track events/polls and cache topics
-    if (c.req.method === "POST" && response.status === 201) {
+    // Intercept successful POST responses to track events/polls and cache data
+    if (c.req.method === "POST" && (response.status === 200 || response.status === 201)) {
       const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
-      await interceptForNotifications(response, assemblyId, subpath, notificationService);
-      await interceptForTopicCache(response, assemblyId, subpath, topicCacheService);
+      if (response.status === 201) {
+        await interceptForNotifications(response, assemblyId, subpath, notificationService);
+        await interceptForTopicCache(response, assemblyId, subpath, topicCacheService);
+        await interceptForPollCache(response, assemblyId, subpath, pollCacheService);
+      }
+      await interceptForPollResponse(response, assemblyId, subpath, participantId, pollCacheService);
     }
 
     return response;
@@ -256,5 +316,59 @@ async function interceptForTopicCache(
     }
   } catch (err) {
     logger.warn("Failed to cache topic from POST response", { error: String(err) });
+  }
+}
+
+/**
+ * Intercept successful POST /polls to cache the new poll metadata.
+ */
+async function interceptForPollCache(
+  response: Response,
+  assemblyId: string,
+  subpath: string,
+  pollCacheService: PollCacheService,
+): Promise<void> {
+  try {
+    if (!/^\/polls\/?$/.test(subpath)) return;
+
+    const body = (response as ResponseWithBody).__bufferedBody;
+    if (!body) return;
+
+    const data = JSON.parse(body) as { id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string };
+    if (data.id) {
+      await pollCacheService.upsert({
+        id: data.id,
+        assemblyId,
+        title: data.title,
+        questions: data.questions,
+        topicIds: data.topicIds ?? [],
+        schedule: data.schedule,
+        closesAt: data.closesAt,
+        createdBy: data.createdBy,
+      });
+    }
+  } catch (err) {
+    logger.warn("Failed to cache poll from POST response", { error: String(err) });
+  }
+}
+
+/**
+ * Intercept successful POST /polls/:pid/respond to record the response.
+ */
+async function interceptForPollResponse(
+  _response: Response,
+  assemblyId: string,
+  subpath: string,
+  participantId: string,
+  pollCacheService: PollCacheService,
+): Promise<void> {
+  try {
+    const match = /^\/polls\/([^/]+)\/respond\/?$/.exec(subpath);
+    if (!match) return;
+
+    const pollId = match[1]!;
+    await pollCacheService.recordResponse(assemblyId, pollId, participantId);
+  } catch (err) {
+    logger.warn("Failed to record poll response in cache", { error: String(err) });
   }
 }

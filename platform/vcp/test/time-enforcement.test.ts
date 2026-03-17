@@ -357,22 +357,18 @@ describe("Time enforcement — poll windows", () => {
     expect(res.status).toBe(201);
     const data = (await res.json()) as {
       id: string;
-      status: string;
+      schedule: number;
+      closesAt: number;
       questions: Array<{ id: string }>;
     };
     return data;
   }
 
-  it("poll created in future has status 'scheduled'", async () => {
+  it("poll response returns immutable schedule and closesAt timestamps", async () => {
     const now = vcp.clock.now() as number;
     const poll = await createPoll(now + 1 * DAY, now + 7 * DAY);
-    expect(poll.status).toBe("scheduled");
-  });
-
-  it("poll created with past schedule has status 'open'", async () => {
-    const now = vcp.clock.now() as number;
-    const poll = await createPoll(now - HOUR, now + 7 * DAY);
-    expect(poll.status).toBe("open");
+    expect(poll.schedule).toBe(now + 1 * DAY);
+    expect(poll.closesAt).toBe(now + 7 * DAY);
   });
 
   it("rejects poll response before schedule (HTTP 400)", async () => {
@@ -430,26 +426,17 @@ describe("Time enforcement — poll windows", () => {
     expect(body.error.message).toContain("closed");
   });
 
-  it("poll transitions scheduled → open → closed via clock", async () => {
+  it("poll list returns immutable timestamps for client-side status derivation", async () => {
     const now = vcp.clock.now() as number;
-    const poll = await createPoll(now + 2 * DAY, now + 5 * DAY);
+    const schedule = now + 2 * DAY;
+    const closesAt = now + 5 * DAY;
+    const poll = await createPoll(schedule, closesAt);
 
-    // Check initial status via list
-    let listRes = await vcp.request("GET", `/assemblies/${asmId}/polls`);
-    let polls = (await listRes.json()) as { polls: Array<{ id: string; status: string }> };
-    expect(polls.polls.find((p) => p.id === poll.id)!.status).toBe("scheduled");
-
-    // Advance to open
-    vcp.clock.advance(3 * DAY);
-    listRes = await vcp.request("GET", `/assemblies/${asmId}/polls`);
-    polls = (await listRes.json()) as { polls: Array<{ id: string; status: string }> };
-    expect(polls.polls.find((p) => p.id === poll.id)!.status).toBe("open");
-
-    // Advance to closed
-    vcp.clock.advance(3 * DAY);
-    listRes = await vcp.request("GET", `/assemblies/${asmId}/polls`);
-    polls = (await listRes.json()) as { polls: Array<{ id: string; status: string }> };
-    expect(polls.polls.find((p) => p.id === poll.id)!.status).toBe("closed");
+    const listRes = await vcp.request("GET", `/assemblies/${asmId}/polls`);
+    const polls = (await listRes.json()) as { polls: Array<{ id: string; schedule: number; closesAt: number }> };
+    const listed = polls.polls.find((p) => p.id === poll.id)!;
+    expect(listed.schedule).toBe(schedule);
+    expect(listed.closesAt).toBe(closesAt);
   });
 
   it("response accepted then clock advances past close prevents further responses", async () => {

@@ -188,7 +188,38 @@ export async function main() {
     }
   }
 
-  // 6. Sync tracked events and polls from VCP (pre-mark all as notified)
+  // 6. Populate poll cache
+  let cachedPolls = 0;
+  for (const asm of assemblies) {
+    try {
+      const { polls } = await vcpGet<{ polls: Array<{ id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string }> }>(
+        `/assemblies/${asm.id}/polls`,
+      );
+      if (polls.length > 0) {
+        await backendPost(
+          "/internal/polls-cache",
+          {
+            polls: polls.map((p) => ({
+              id: p.id,
+              assemblyId: asm.id,
+              title: p.title,
+              questions: p.questions,
+              topicIds: p.topicIds ?? [],
+              schedule: p.schedule,
+              closesAt: p.closesAt,
+              createdBy: p.createdBy,
+            })),
+          },
+          firstToken,
+        );
+        cachedPolls += polls.length;
+      }
+    } catch {
+      // Assembly may not have polls
+    }
+  }
+
+  // 7. Sync tracked events and polls from VCP (pre-mark all as notified)
   // This prevents the scheduler from sending notifications about historical seeded data.
   let trackedEvents = 0;
   let trackedPolls = 0;
@@ -246,6 +277,7 @@ export async function main() {
   console.log(`  Cross-assembly:   ${crossAssembly}`);
   console.log(`  Cached assemblies:${cachedAssemblies}`);
   console.log(`  Cached topics:    ${cachedTopics}`);
+  console.log(`  Cached polls:     ${cachedPolls}`);
   console.log(`  Tracked events:   ${trackedEvents}`);
   console.log(`  Tracked polls:    ${trackedPolls}`);
   console.log(`  Default password: ${DEFAULT_PASSWORD}`);

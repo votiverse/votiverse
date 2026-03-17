@@ -125,6 +125,29 @@ export class PostgresAdapter implements DatabaseAdapter {
           cached_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (assembly_id, id)
         );
+
+        -- Local poll cache (metadata is immutable after creation)
+        CREATE TABLE IF NOT EXISTS polls_cache (
+          id            TEXT NOT NULL,
+          assembly_id   TEXT NOT NULL,
+          title         TEXT NOT NULL,
+          questions     JSONB NOT NULL,
+          topic_ids     JSONB NOT NULL DEFAULT '[]',
+          schedule      BIGINT NOT NULL,
+          closes_at     BIGINT NOT NULL,
+          created_by    TEXT NOT NULL,
+          cached_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (assembly_id, id)
+        );
+
+        -- Poll response tracking (one-way latch: once responded, never reverted)
+        CREATE TABLE IF NOT EXISTS poll_responses (
+          assembly_id    TEXT NOT NULL,
+          poll_id        TEXT NOT NULL,
+          participant_id TEXT NOT NULL,
+          responded_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (assembly_id, poll_id, participant_id)
+        );
       `);
     } finally {
       client.release();
