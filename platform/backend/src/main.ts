@@ -10,6 +10,8 @@ import { UserService } from "./services/user-service.js";
 import { SessionService } from "./services/session-service.js";
 import { MembershipService } from "./services/membership-service.js";
 import { VCPClient } from "./services/vcp-client.js";
+import { NotificationService } from "./services/notification-service.js";
+import { ConsoleNotificationAdapter } from "./services/notification-adapter.js";
 import { createApp } from "./api/server.js";
 
 async function main() {
@@ -36,8 +38,17 @@ async function main() {
   const vcpClient = new VCPClient(config.vcpBaseUrl, config.vcpApiKey);
   const membershipService = new MembershipService(database, vcpClient);
 
+  // Wire notification service
+  const notificationAdapter = new ConsoleNotificationAdapter();
+  const notificationService = new NotificationService(
+    database,
+    notificationAdapter,
+    vcpClient,
+    config.vcpBaseUrl,
+  );
+
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, config });
+  const app = createApp({ database, userService, sessionService, membershipService, notificationService, config });
 
   // Start HTTP server
   const server = serve({
@@ -45,12 +56,21 @@ async function main() {
     port: config.port,
   });
 
+  // Start notification scheduler
+  const schedulerInterval = setInterval(() => {
+    notificationService.processScheduledNotifications().catch((err) =>
+      logger.error("Notification scheduler failed", { error: String(err) }),
+    );
+  }, config.notificationIntervalMs);
+  logger.info(`Notification scheduler started (interval: ${config.notificationIntervalMs}ms)`);
+
   logger.info(`Votiverse Backend started on http://localhost:${config.port}`);
   logger.info(`VCP: ${config.vcpBaseUrl}`);
 
   // Graceful shutdown
   function shutdown() {
     logger.info("Shutting down...");
+    clearInterval(schedulerInterval);
     void database.close();
     if (server && "close" in server) {
       (server as { close: () => void }).close();

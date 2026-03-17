@@ -9,6 +9,7 @@ import type { BackendConfig } from "../config/schema.js";
 import type { UserService } from "../services/user-service.js";
 import type { SessionService } from "../services/session-service.js";
 import type { MembershipService } from "../services/membership-service.js";
+import type { NotificationService } from "../services/notification-service.js";
 import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { createRequestLogger } from "./middleware/request-logger.js";
@@ -26,11 +27,12 @@ export interface AppDependencies {
   userService: UserService;
   sessionService: SessionService;
   membershipService: MembershipService;
+  notificationService: NotificationService;
   config: BackendConfig;
 }
 
 export function createApp(deps: AppDependencies): Hono {
-  const { database, userService, sessionService, membershipService, config } = deps;
+  const { database, userService, sessionService, membershipService, notificationService, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -71,8 +73,8 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService));
-  app.route("/", meRoutes(userService, membershipService));
-  app.route("/", proxyRoutes(membershipService, config));
+  app.route("/", meRoutes(userService, membershipService, notificationService));
+  app.route("/", proxyRoutes(membershipService, notificationService, config));
 
   return app;
 }

@@ -51,6 +51,45 @@ export class SQLiteAdapter implements DatabaseAdapter {
       );
       CREATE INDEX IF NOT EXISTS idx_memberships_participant
         ON memberships(assembly_id, participant_id);
+
+      -- Events tracked for notification scheduling (populated by proxy interceptor)
+      CREATE TABLE IF NOT EXISTS tracked_events (
+        id                   TEXT PRIMARY KEY,
+        assembly_id          TEXT NOT NULL,
+        title                TEXT NOT NULL,
+        voting_start         TEXT NOT NULL,
+        voting_end           TEXT NOT NULL,
+        created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+        notified_created     INTEGER NOT NULL DEFAULT 0,
+        notified_voting_open INTEGER NOT NULL DEFAULT 0,
+        notified_deadline    INTEGER NOT NULL DEFAULT 0,
+        notified_closed      INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_tracked_events_assembly
+        ON tracked_events(assembly_id);
+
+      -- Polls tracked for notification scheduling (populated by proxy interceptor)
+      CREATE TABLE IF NOT EXISTS tracked_polls (
+        id                   TEXT PRIMARY KEY,
+        assembly_id          TEXT NOT NULL,
+        title                TEXT NOT NULL,
+        schedule             TEXT NOT NULL,
+        closes_at            TEXT NOT NULL,
+        created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+        notified_created     INTEGER NOT NULL DEFAULT 0,
+        notified_deadline    INTEGER NOT NULL DEFAULT 0,
+        notified_closed      INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_tracked_polls_assembly
+        ON tracked_polls(assembly_id);
+
+      -- User notification preferences (key-value per user)
+      CREATE TABLE IF NOT EXISTS notification_preferences (
+        user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        key       TEXT NOT NULL,
+        value     TEXT NOT NULL,
+        PRIMARY KEY (user_id, key)
+      );
     `);
   }
 

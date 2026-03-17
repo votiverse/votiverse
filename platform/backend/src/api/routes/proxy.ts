@@ -7,11 +7,16 @@
 
 import { Hono } from "hono";
 import type { MembershipService } from "../../services/membership-service.js";
+import type { NotificationService } from "../../services/notification-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
 
-export function proxyRoutes(membershipService: MembershipService, config: BackendConfig) {
+export function proxyRoutes(
+  membershipService: MembershipService,
+  notificationService: NotificationService,
+  config: BackendConfig,
+) {
   const app = new Hono();
 
   /**
@@ -31,6 +36,8 @@ export function proxyRoutes(membershipService: MembershipService, config: Backen
   /**
    * Assembly-scoped routes — resolve user → participant, then proxy.
    * Catches all methods and paths under /assemblies/:assemblyId/
+   *
+   * Intercepts POST responses for events and polls to track them for notifications.
    */
   app.all("/assemblies/:assemblyId/*", async (c) => {
     const user = getUser(c);
@@ -43,7 +50,15 @@ export function proxyRoutes(membershipService: MembershipService, config: Backen
     const url = new URL(c.req.url);
     const path = url.pathname + url.search;
 
-    return proxyToVcp(c, config, c.req.method, path, participantId);
+    const response = await proxyToVcp(c, config, c.req.method, path, participantId);
+
+    // Intercept successful POST responses to track events and polls
+    if (c.req.method === "POST" && response.status === 201) {
+      const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
+      await interceptForNotifications(response, assemblyId, subpath, notificationService);
+    }
+
+    return response;
   });
 
   return app;
@@ -81,17 +96,67 @@ async function proxyToVcp(
 
   const vcpRes = await fetch(vcpUrl, init);
 
-  // Stream VCP response back to client
+  // Buffer response body so it can be read by interceptors and returned to client
+  const responseBody = await vcpRes.text();
+
   const responseHeaders = new Headers();
   vcpRes.headers.forEach((value, key) => {
-    // Forward content-type and other relevant headers
-    if (!["transfer-encoding", "connection"].includes(key.toLowerCase())) {
+    if (!["transfer-encoding", "connection", "content-length"].includes(key.toLowerCase())) {
       responseHeaders.set(key, value);
     }
   });
 
-  return new Response(vcpRes.body, {
+  const response = new Response(responseBody, {
     status: vcpRes.status,
     headers: responseHeaders,
   });
+  // Stash the buffered body for interceptors to read without consuming the stream
+  (response as ResponseWithBody).__bufferedBody = responseBody;
+  return response;
+}
+
+interface ResponseWithBody extends Response {
+  __bufferedBody?: string;
+}
+
+/**
+ * Intercept successful POST responses to track events and polls for notifications.
+ */
+async function interceptForNotifications(
+  response: Response,
+  assemblyId: string,
+  subpath: string,
+  notificationService: NotificationService,
+): Promise<void> {
+  try {
+    const body = (response as ResponseWithBody).__bufferedBody;
+    if (!body) return;
+
+    const data = JSON.parse(body);
+
+    // POST /assemblies/:id/events → track for notification
+    if (/^\/events\/?$/.test(subpath) && data.id) {
+      await notificationService.trackEvent({
+        id: data.id,
+        assemblyId,
+        title: data.title ?? "Untitled Event",
+        votingStart: data.timeline?.votingStart ?? data.votingStart ?? "",
+        votingEnd: data.timeline?.votingEnd ?? data.votingEnd ?? "",
+      });
+    }
+
+    // POST /assemblies/:id/polls → track for notification
+    if (/^\/polls\/?$/.test(subpath) && data.id) {
+      await notificationService.trackPoll({
+        id: data.id,
+        assemblyId,
+        title: data.title ?? "Untitled Poll",
+        schedule: data.schedule ?? "",
+        closesAt: data.closesAt ?? "",
+      });
+    }
+  } catch (err) {
+    // Interception failures should not break the proxy response
+    logger.warn("Failed to intercept response for notifications", { error: String(err) });
+  }
 }

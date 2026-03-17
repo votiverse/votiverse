@@ -15,6 +15,13 @@ export interface BackendConfig {
   corsOrigins: string[];
   rateLimitRpm: number;
   maxBodySize: number;
+  notificationAdapter: "console" | "smtp" | "ses" | "twilio";
+  notificationIntervalMs: number;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPass: string;
+  smtpFrom: string;
 }
 
 const DEFAULT_JWT_SECRET = "backend-dev-secret-do-not-use-in-production";
@@ -35,6 +42,13 @@ export function loadConfig(): BackendConfig {
     corsOrigins: parseCorsOrigins(process.env["BACKEND_CORS_ORIGINS"]),
     rateLimitRpm: parseInt(process.env["BACKEND_RATE_LIMIT_RPM"] ?? "0", 10),
     maxBodySize: parseInt(process.env["BACKEND_MAX_BODY_SIZE"] ?? String(1024 * 1024), 10),
+    notificationAdapter: (process.env["BACKEND_NOTIFICATION_ADAPTER"] as BackendConfig["notificationAdapter"]) ?? "console",
+    notificationIntervalMs: parseInt(process.env["BACKEND_NOTIFICATION_INTERVAL"] ?? "60000", 10),
+    smtpHost: process.env["BACKEND_SMTP_HOST"] ?? "",
+    smtpPort: parseInt(process.env["BACKEND_SMTP_PORT"] ?? "587", 10),
+    smtpUser: process.env["BACKEND_SMTP_USER"] ?? "",
+    smtpPass: process.env["BACKEND_SMTP_PASS"] ?? "",
+    smtpFrom: process.env["BACKEND_SMTP_FROM"] ?? "noreply@votiverse.example.com",
   };
 }
 

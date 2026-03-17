@@ -5,9 +5,15 @@
 import { Hono } from "hono";
 import type { UserService } from "../../services/user-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
+import type { NotificationService } from "../../services/notification-service.js";
 import { getUser } from "../middleware/auth.js";
+import { ValidationError } from "../middleware/error-handler.js";
 
-export function meRoutes(userService: UserService, membershipService: MembershipService) {
+export function meRoutes(
+  userService: UserService,
+  membershipService: MembershipService,
+  notificationService: NotificationService,
+) {
   const app = new Hono();
 
   /**
@@ -51,6 +57,32 @@ export function meRoutes(userService: UserService, membershipService: Membership
 
     const membership = await membershipService.joinAssembly(id, assemblyId, name);
     return c.json(membership, 201);
+  });
+
+  /** GET /me/notifications — get notification preferences. */
+  app.get("/me/notifications", async (c) => {
+    const { id } = getUser(c);
+    const preferences = await notificationService.getPreferences(id);
+    return c.json({ preferences });
+  });
+
+  /** PUT /me/notifications — set a notification preference. */
+  app.put("/me/notifications", async (c) => {
+    const { id } = getUser(c);
+    const body = await c.req.json<{ key: string; value: string }>();
+
+    if (!body.key || !body.value) {
+      throw new ValidationError("Both 'key' and 'value' are required");
+    }
+
+    try {
+      await notificationService.setPreference(id, body.key, body.value);
+    } catch (err) {
+      throw new ValidationError((err as Error).message);
+    }
+
+    const preferences = await notificationService.getPreferences(id);
+    return c.json({ preferences });
   });
 
   return app;

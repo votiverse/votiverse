@@ -1,0 +1,458 @@
+/**
+ * NotificationService — tracks governance events/polls and dispatches
+ * notifications on a schedule based on user preferences.
+ */
+
+import type { DatabaseAdapter } from "../adapters/database/interface.js";
+import type { NotificationAdapter } from "./notification-adapter.js";
+import type { VCPClient } from "./vcp-client.js";
+import { logger } from "../lib/logger.js";
+
+// ─── Types ───────────────────────────────────────────────────────────
+
+export interface TrackedEvent {
+  id: string;
+  assemblyId: string;
+  title: string;
+  votingStart: string;
+  votingEnd: string;
+}
+
+export interface TrackedPoll {
+  id: string;
+  assemblyId: string;
+  title: string;
+  schedule: string;
+  closesAt: string;
+}
+
+interface TrackedEventRow {
+  id: string;
+  assembly_id: string;
+  title: string;
+  voting_start: string;
+  voting_end: string;
+  created_at: string;
+  notified_created: number;
+  notified_voting_open: number;
+  notified_deadline: number;
+  notified_closed: number;
+}
+
+interface TrackedPollRow {
+  id: string;
+  assembly_id: string;
+  title: string;
+  schedule: string;
+  closes_at: string;
+  created_at: string;
+  notified_created: number;
+  notified_deadline: number;
+  notified_closed: number;
+}
+
+interface MembershipRow {
+  user_id: string;
+  assembly_id: string;
+  participant_id: string;
+  assembly_name: string;
+}
+
+interface UserRow {
+  id: string;
+  email: string;
+  name: string;
+}
+
+interface PrefRow {
+  key: string;
+  value: string;
+}
+
+/** Preference keys and their defaults. */
+const PREFERENCE_DEFAULTS: Record<string, string> = {
+  notify_new_votes: "always",
+  notify_new_surveys: "true",
+  notify_deadlines: "true",
+  notify_results: "false",
+  notify_channel: "email",
+};
+
+const VALID_PREFERENCES: Record<string, string[]> = {
+  notify_new_votes: ["always", "undelegated_only", "never"],
+  notify_new_surveys: ["true", "false"],
+  notify_deadlines: ["true", "false"],
+  notify_results: ["true", "false"],
+  notify_channel: ["email", "sms", "both", "none"],
+};
+
+export interface NotificationPreferences {
+  notify_new_votes: string;
+  notify_new_surveys: string;
+  notify_deadlines: string;
+  notify_results: string;
+  notify_channel: string;
+}
+
+// ─── Service ─────────────────────────────────────────────────────────
+
+export class NotificationService {
+  private readonly log = logger.child({ component: "notifications" });
+
+  constructor(
+    private readonly db: DatabaseAdapter,
+    private readonly adapter: NotificationAdapter,
+    private readonly vcpClient: VCPClient,
+    private readonly baseUrl: string,
+  ) {}
+
+  // ── Tracking ─────────────────────────────────────────────────────
+
+  /** Track a new voting event for notification scheduling. */
+  async trackEvent(event: TrackedEvent): Promise<void> {
+    await this.db.run(
+      `INSERT INTO tracked_events (id, assembly_id, title, voting_start, voting_end)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (id) DO NOTHING`,
+      [event.id, event.assemblyId, event.title, event.votingStart, event.votingEnd],
+    );
+    this.log.info(`Tracking event: ${event.title}`, { eventId: event.id, assemblyId: event.assemblyId });
+  }
+
+  /** Track a new poll for notification scheduling. */
+  async trackPoll(poll: TrackedPoll): Promise<void> {
+    await this.db.run(
+      `INSERT INTO tracked_polls (id, assembly_id, title, schedule, closes_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (id) DO NOTHING`,
+      [poll.id, poll.assemblyId, poll.title, poll.schedule, poll.closesAt],
+    );
+    this.log.info(`Tracking poll: ${poll.title}`, { pollId: poll.id, assemblyId: poll.assemblyId });
+  }
+
+  // ── Preferences ──────────────────────────────────────────────────
+
+  /** Get notification preferences for a user (with defaults applied). */
+  async getPreferences(userId: string): Promise<NotificationPreferences> {
+    const rows = await this.db.query<PrefRow>(
+      "SELECT key, value FROM notification_preferences WHERE user_id = ?",
+      [userId],
+    );
+
+    const prefs: Record<string, string> = { ...PREFERENCE_DEFAULTS };
+    for (const row of rows) {
+      prefs[row.key] = row.value;
+    }
+    return prefs as NotificationPreferences;
+  }
+
+  /** Set a single notification preference for a user. */
+  async setPreference(userId: string, key: string, value: string): Promise<void> {
+    const validValues = VALID_PREFERENCES[key];
+    if (!validValues) {
+      throw new Error(`Unknown preference key: ${key}`);
+    }
+    if (!validValues.includes(value)) {
+      throw new Error(`Invalid value "${value}" for ${key}. Valid: ${validValues.join(", ")}`);
+    }
+
+    await this.db.run(
+      `INSERT INTO notification_preferences (user_id, key, value) VALUES (?, ?, ?)
+       ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value`,
+      [userId, key, value],
+    );
+  }
+
+  // ── Scheduler ────────────────────────────────────────────────────
+
+  /** Process all pending notifications. Called on each scheduler tick. */
+  async processScheduledNotifications(): Promise<void> {
+    const now = new Date().toISOString();
+    const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    await this.processEventNotifications(now, deadline);
+    await this.processPollNotifications(now, deadline);
+  }
+
+  // ── Internal: Event notifications ────────────────────────────────
+
+  private async processEventNotifications(now: string, deadline: string): Promise<void> {
+    // 1. New events created
+    const newEvents = await this.db.query<TrackedEventRow>(
+      "SELECT * FROM tracked_events WHERE notified_created = 0",
+    );
+    for (const event of newEvents) {
+      await this.notifyEventCreated(event);
+      await this.db.run("UPDATE tracked_events SET notified_created = 1 WHERE id = ?", [event.id]);
+    }
+
+    // 2. Voting now open
+    const openEvents = await this.db.query<TrackedEventRow>(
+      "SELECT * FROM tracked_events WHERE notified_voting_open = 0 AND voting_start <= ?",
+      [now],
+    );
+    for (const event of openEvents) {
+      await this.notifyVotingOpen(event);
+      await this.db.run("UPDATE tracked_events SET notified_voting_open = 1 WHERE id = ?", [event.id]);
+    }
+
+    // 3. Deadline approaching (within 24h)
+    const deadlineEvents = await this.db.query<TrackedEventRow>(
+      "SELECT * FROM tracked_events WHERE notified_deadline = 0 AND notified_closed = 0 AND voting_end <= ?",
+      [deadline],
+    );
+    for (const event of deadlineEvents) {
+      // Don't send deadline notification if already closed
+      if (event.voting_end > now) {
+        await this.notifyDeadline(event);
+      }
+      await this.db.run("UPDATE tracked_events SET notified_deadline = 1 WHERE id = ?", [event.id]);
+    }
+
+    // 4. Voting closed
+    const closedEvents = await this.db.query<TrackedEventRow>(
+      "SELECT * FROM tracked_events WHERE notified_closed = 0 AND voting_end <= ?",
+      [now],
+    );
+    for (const event of closedEvents) {
+      await this.notifyResultsAvailable(event);
+      await this.db.run("UPDATE tracked_events SET notified_closed = 1 WHERE id = ?", [event.id]);
+    }
+  }
+
+  // ── Internal: Poll notifications ─────────────────────────────────
+
+  private async processPollNotifications(now: string, deadline: string): Promise<void> {
+    // 1. New polls created
+    const newPolls = await this.db.query<TrackedPollRow>(
+      "SELECT * FROM tracked_polls WHERE notified_created = 0",
+    );
+    for (const poll of newPolls) {
+      await this.notifySurveyCreated(poll);
+      await this.db.run("UPDATE tracked_polls SET notified_created = 1 WHERE id = ?", [poll.id]);
+    }
+
+    // 2. Survey closing soon (within 24h)
+    const deadlinePolls = await this.db.query<TrackedPollRow>(
+      "SELECT * FROM tracked_polls WHERE notified_deadline = 0 AND notified_closed = 0 AND closes_at <= ?",
+      [deadline],
+    );
+    for (const poll of deadlinePolls) {
+      if (poll.closes_at > now) {
+        await this.notifySurveyDeadline(poll);
+      }
+      await this.db.run("UPDATE tracked_polls SET notified_deadline = 1 WHERE id = ?", [poll.id]);
+    }
+
+    // 3. Survey closed
+    const closedPolls = await this.db.query<TrackedPollRow>(
+      "SELECT * FROM tracked_polls WHERE notified_closed = 0 AND closes_at <= ?",
+      [now],
+    );
+    for (const poll of closedPolls) {
+      await this.db.run("UPDATE tracked_polls SET notified_closed = 1 WHERE id = ?", [poll.id]);
+    }
+  }
+
+  // ── Internal: Notification dispatch ──────────────────────────────
+
+  private async notifyEventCreated(event: TrackedEventRow): Promise<void> {
+    const recipients = await this.resolveRecipients(event.assembly_id, "notify_new_votes", event);
+    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    for (const r of recipients) {
+      await this.adapter.send({
+        to: r.email,
+        subject: `New vote in ${assemblyName}: ${event.title}`,
+        body: [
+          `A new vote has been created in ${assemblyName}.`,
+          "",
+          event.title,
+          "",
+          `Voting opens: ${event.voting_start}`,
+          `Voting closes: ${event.voting_end}`,
+          "",
+          `Go to Votiverse to review and vote: ${this.baseUrl}`,
+        ].join("\n"),
+      });
+    }
+    this.log.info(`Notified ${recipients.length} users: event created`, { eventId: event.id });
+  }
+
+  private async notifyVotingOpen(event: TrackedEventRow): Promise<void> {
+    const recipients = await this.resolveRecipients(event.assembly_id, "notify_new_votes", event);
+    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    for (const r of recipients) {
+      await this.adapter.send({
+        to: r.email,
+        subject: `Voting is open: ${event.title}`,
+        body: [
+          `Voting is now open for ${event.title} in ${assemblyName}.`,
+          "",
+          `Deadline: ${event.voting_end}`,
+          "",
+          `Cast your vote: ${this.baseUrl}`,
+        ].join("\n"),
+      });
+    }
+    this.log.info(`Notified ${recipients.length} users: voting open`, { eventId: event.id });
+  }
+
+  private async notifyDeadline(event: TrackedEventRow): Promise<void> {
+    const recipients = await this.resolveRecipients(event.assembly_id, "notify_deadlines");
+    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    for (const r of recipients) {
+      await this.adapter.send({
+        to: r.email,
+        subject: `Voting closes tomorrow: ${event.title}`,
+        body: [
+          `Voting for ${event.title} in ${assemblyName} closes in less than 24 hours.`,
+          "",
+          `Deadline: ${event.voting_end}`,
+          "",
+          `Vote now: ${this.baseUrl}`,
+        ].join("\n"),
+      });
+    }
+    this.log.info(`Notified ${recipients.length} users: deadline approaching`, { eventId: event.id });
+  }
+
+  private async notifyResultsAvailable(event: TrackedEventRow): Promise<void> {
+    const recipients = await this.resolveRecipients(event.assembly_id, "notify_results");
+    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    for (const r of recipients) {
+      await this.adapter.send({
+        to: r.email,
+        subject: `Results are in: ${event.title}`,
+        body: [
+          `Voting has closed for ${event.title} in ${assemblyName}.`,
+          "",
+          `View the results: ${this.baseUrl}`,
+        ].join("\n"),
+      });
+    }
+    this.log.info(`Notified ${recipients.length} users: results available`, { eventId: event.id });
+  }
+
+  private async notifySurveyCreated(poll: TrackedPollRow): Promise<void> {
+    const recipients = await this.resolveRecipients(poll.assembly_id, "notify_new_surveys");
+    const assemblyName = await this.getAssemblyName(poll.assembly_id);
+    for (const r of recipients) {
+      await this.adapter.send({
+        to: r.email,
+        subject: `New survey in ${assemblyName}: ${poll.title}`,
+        body: [
+          `A new survey has been created in ${assemblyName}.`,
+          "",
+          poll.title,
+          "",
+          "Your observations matter — surveys help the community understand",
+          "what's happening on the ground.",
+          "",
+          `Respond now: ${this.baseUrl}`,
+        ].join("\n"),
+      });
+    }
+    this.log.info(`Notified ${recipients.length} users: survey created`, { pollId: poll.id });
+  }
+
+  private async notifySurveyDeadline(poll: TrackedPollRow): Promise<void> {
+    const recipients = await this.resolveRecipients(poll.assembly_id, "notify_deadlines");
+    const assemblyName = await this.getAssemblyName(poll.assembly_id);
+    for (const r of recipients) {
+      await this.adapter.send({
+        to: r.email,
+        subject: `Survey closes tomorrow: ${poll.title}`,
+        body: [
+          `The survey ${poll.title} in ${assemblyName} closes in less than 24 hours.`,
+          "",
+          "If you haven't responded yet, your observations are still needed.",
+          "",
+          `Respond now: ${this.baseUrl}`,
+        ].join("\n"),
+      });
+    }
+    this.log.info(`Notified ${recipients.length} users: survey deadline`, { pollId: poll.id });
+  }
+
+  // ── Internal: Recipient resolution ───────────────────────────────
+
+  private async resolveRecipients(
+    assemblyId: string,
+    preferenceKey: string,
+    event?: TrackedEventRow,
+  ): Promise<Array<{ userId: string; email: string }>> {
+    // Get all members of the assembly
+    const members = await this.db.query<MembershipRow>(
+      "SELECT * FROM memberships WHERE assembly_id = ?",
+      [assemblyId],
+    );
+
+    const recipients: Array<{ userId: string; email: string }> = [];
+
+    for (const member of members) {
+      const user = await this.db.queryOne<UserRow>(
+        "SELECT id, email, name FROM users WHERE id = ? AND status = 'active'",
+        [member.user_id],
+      );
+      if (!user) continue;
+
+      const prefs = await this.getPreferences(user.id);
+
+      // Check channel — if "none", skip all notifications
+      if (prefs.notify_channel === "none") continue;
+
+      // Check preference for this notification type
+      const prefValue = prefs[preferenceKey as keyof NotificationPreferences];
+      if (prefValue === "false" || prefValue === "never") continue;
+
+      // Handle "undelegated_only" for vote notifications
+      if (prefValue === "undelegated_only" && event) {
+        const covered = await this.isDelegationCovered(
+          assemblyId,
+          member.participant_id,
+        );
+        if (covered) continue;
+      }
+
+      recipients.push({ userId: user.id, email: user.email });
+    }
+
+    return recipients;
+  }
+
+  /**
+   * Check if a participant's delegations cover the event's topics.
+   * This is the one place where we query the VCP at notification time.
+   */
+  private async isDelegationCovered(
+    assemblyId: string,
+    participantId: string,
+  ): Promise<boolean> {
+    try {
+      const { body } = await this.vcpClient.request<{ delegations: Array<{ scope: unknown }> }>(
+        "GET",
+        `/assemblies/${assemblyId}/delegations?from=${participantId}`,
+        { participantId },
+      );
+      // If the participant has any active delegations, consider them "covered"
+      // A more precise implementation would check topic overlap with the event
+      return body.delegations.length > 0;
+    } catch {
+      // If VCP is unreachable, default to sending the notification
+      this.log.warn("Failed to check delegations, defaulting to notify", {
+        assemblyId,
+        participantId,
+      });
+      return false;
+    }
+  }
+
+  /** Get assembly name from memberships table (avoids VCP call). */
+  private async getAssemblyName(assemblyId: string): Promise<string> {
+    const row = await this.db.queryOne<{ assembly_name: string }>(
+      "SELECT assembly_name FROM memberships WHERE assembly_id = ? LIMIT 1",
+      [assemblyId],
+    );
+    return row?.assembly_name ?? assemblyId;
+  }
+}

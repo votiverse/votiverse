@@ -8,6 +8,8 @@ import { UserService } from "../src/services/user-service.js";
 import { SessionService } from "../src/services/session-service.js";
 import { MembershipService } from "../src/services/membership-service.js";
 import { VCPClient } from "../src/services/vcp-client.js";
+import { NotificationService } from "../src/services/notification-service.js";
+import { ConsoleNotificationAdapter } from "../src/services/notification-adapter.js";
 import { createApp } from "../src/api/server.js";
 import type { BackendConfig } from "../src/config/schema.js";
 
@@ -26,6 +28,13 @@ const TEST_CONFIG: BackendConfig = {
   corsOrigins: ["*"],
   rateLimitRpm: 0,
   maxBodySize: 1024 * 1024,
+  notificationAdapter: "console",
+  notificationIntervalMs: 60000,
+  smtpHost: "",
+  smtpPort: 587,
+  smtpUser: "",
+  smtpPass: "",
+  smtpFrom: "",
 };
 
 export interface TestBackend {
@@ -47,8 +56,10 @@ export async function createTestBackend(): Promise<TestBackend> {
   const sessionService = new SessionService(db, TEST_JWT_SECRET, "1h", "30d");
   const vcpClient = new VCPClient(TEST_CONFIG.vcpBaseUrl, TEST_CONFIG.vcpApiKey);
   const membershipService = new MembershipService(db, vcpClient);
+  const notificationAdapter = new ConsoleNotificationAdapter();
+  const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl);
 
-  const app = createApp({ database: db, userService, sessionService, membershipService, config: TEST_CONFIG });
+  const app = createApp({ database: db, userService, sessionService, membershipService, notificationService, config: TEST_CONFIG });
 
   const cleanup = () => {
     void db.close();
