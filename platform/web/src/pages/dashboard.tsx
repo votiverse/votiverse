@@ -293,7 +293,7 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
   }
   if (vote.isDelegated) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded truncate max-w-[160px]">
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
         {vote.delegateTargetName && <Avatar name={vote.delegateTargetName} size="xs" className="!w-3.5 !h-3.5" />}
         Delegated{vote.delegateTargetName ? ` to ${vote.delegateTargetName}` : ""}
       </span>

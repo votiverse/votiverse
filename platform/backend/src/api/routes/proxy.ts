@@ -1,7 +1,7 @@
 /**
  * VCP proxy routes — forwards governance requests to VCP with identity injection.
  *
- * Public routes (no participant needed): GET /assemblies, GET /assemblies/:id
+ * User-scoped routes (no participant needed): GET /assemblies (filtered by membership), GET /assemblies/:id
  * Assembly-scoped routes: resolves user → participant, injects X-Participant-Id
  */
 
@@ -20,11 +20,25 @@ export function proxyRoutes(
   const app = new Hono();
 
   /**
-   * Public VCP routes — proxy with API key only, no participant resolution.
-   * GET /assemblies and GET /assemblies/:id
+   * GET /assemblies — list assemblies filtered to those the user belongs to.
+   * Fetches all assemblies from VCP, then filters by user's memberships.
    */
   app.get("/assemblies", async (c) => {
-    return proxyToVcp(c, config, "GET", "/assemblies" + (c.req.url.includes("?") ? "?" + c.req.url.split("?")[1] : ""));
+    const user = getUser(c);
+    const memberships = await membershipService.getUserMemberships(user.id);
+    const memberAssemblyIds = new Set(memberships.map((m) => m.assemblyId));
+
+    // Proxy to VCP to get all assemblies
+    const vcpRes = await proxyToVcp(c, config, "GET", "/assemblies" + (c.req.url.includes("?") ? "?" + c.req.url.split("?")[1] : ""));
+
+    // If VCP returned an error, pass it through
+    if (!vcpRes.ok) return vcpRes;
+
+    // Filter assemblies to only those the user is a member of
+    const data = await vcpRes.json() as { assemblies: Array<{ id: string; [key: string]: unknown }>; pagination?: unknown };
+    const filtered = data.assemblies.filter((asm) => memberAssemblyIds.has(asm.id));
+
+    return c.json({ assemblies: filtered, pagination: data.pagination });
   });
 
   app.get("/assemblies/:id", async (c) => {

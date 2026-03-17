@@ -4,6 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
+import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
@@ -86,6 +87,7 @@ export function EventDetail() {
   }), [assembly]);
 
   const resultsVisibility = assembly?.config.ballot.resultsVisibility ?? "sealed";
+  const attention = useAttention();
 
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? "Vote not found"} onRetry={refetch} />;
@@ -96,6 +98,7 @@ export function EventDetail() {
 
   const refreshAll = () => {
     invalidateHistoryCache();
+    attention.refresh();
     refetch();
     refetchTally();
   };
