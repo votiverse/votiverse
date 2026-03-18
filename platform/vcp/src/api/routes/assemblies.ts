@@ -171,6 +171,24 @@ export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
     return c.json({ ok: true }, 200);
   });
 
+  /** POST /assemblies/:id/roles/bootstrap — initial role grant (operational scope). */
+  app.post("/assemblies/:id/roles/bootstrap", async (c) => {
+    const scopeError = requireScope(c, "operational");
+    if (scopeError) return scopeError;
+
+    const assemblyId = c.req.param("id");
+    const body = await c.req.json<{ participantId: string }>();
+    if (!body.participantId) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "participantId is required" } },
+        400,
+      );
+    }
+
+    await manager.grantRole(assemblyId, body.participantId, "owner", body.participantId);
+    return c.json({ ok: true }, 200);
+  });
+
   /** DELETE /assemblies/:id/roles — revoke a role. Requires owner. */
   app.delete("/assemblies/:id/roles", async (c) => {
     const assemblyId = c.req.param("id");

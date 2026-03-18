@@ -77,6 +77,21 @@ export async function main() {
   }
   console.log(`\n  Added ${totalParticipants} participants total\n`);
 
+  // ── Step 2b: Grant owner roles to first participant per assembly ───
+
+  // ── Step 2b: Grant owner roles to first participant per assembly ───
+  // Uses the role management API — the first participant becomes owner+admin
+  console.log("═══ ASSEMBLY ROLES ═══\n");
+  for (const [assemblyKey, names] of Object.entries(PARTICIPANTS)) {
+    const assemblyId = aid(assemblyKey);
+    const ownerName = names[0]!;
+    const ownerId = pid(assemblyKey, ownerName);
+    // Bootstrap: grant role via direct API (operational scope can write roles directly)
+    await post(`/assemblies/${assemblyId}/roles/bootstrap`, { participantId: ownerId });
+    console.log(`  ✓ ${assemblyKey}: ${ownerName} → owner`);
+  }
+  console.log("");
+
   // ── Step 3: Create topics ─────────────────────────────────────────
 
   console.log("═══ TOPICS ═══\n");
