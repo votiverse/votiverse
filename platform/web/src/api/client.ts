@@ -315,4 +315,113 @@ export function setNotificationPreference(
   return request("PUT", "/me/notifications", { key, value });
 }
 
+// ---- Proposals ----
+
+export function listProposalDrafts(
+  assemblyId: string,
+): Promise<{ drafts: import("./types.js").ProposalDraft[] }> {
+  return request("GET", `/assemblies/${assemblyId}/proposals/drafts`);
+}
+
+export function createProposalDraft(
+  assemblyId: string,
+  params: { issueId: string; choiceKey?: string; title: string; markdown?: string },
+): Promise<import("./types.js").ProposalDraft> {
+  return request("POST", `/assemblies/${assemblyId}/proposals/drafts`, params);
+}
+
+export function updateProposalDraft(
+  assemblyId: string,
+  draftId: string,
+  params: { title?: string; markdown?: string; choiceKey?: string },
+): Promise<import("./types.js").ProposalDraft> {
+  return request("PUT", `/assemblies/${assemblyId}/proposals/drafts/${draftId}`, params);
+}
+
+export function deleteProposalDraft(assemblyId: string, draftId: string): Promise<void> {
+  return request("DELETE", `/assemblies/${assemblyId}/proposals/drafts/${draftId}`);
+}
+
+export function submitProposalDraft(
+  assemblyId: string,
+  draftId: string,
+): Promise<import("./types.js").Proposal> {
+  return request("POST", `/assemblies/${assemblyId}/proposals/drafts/${draftId}/submit`);
+}
+
+export function getProposal(
+  assemblyId: string,
+  proposalId: string,
+): Promise<import("./types.js").Proposal> {
+  return request("GET", `/assemblies/${assemblyId}/proposals/${proposalId}`);
+}
+
+export function listProposals(
+  assemblyId: string,
+  issueId?: string,
+): Promise<{ proposals: import("./types.js").Proposal[] }> {
+  const qs = issueId ? `?issueId=${issueId}` : "";
+  return request("GET", `/assemblies/${assemblyId}/proposals${qs}`);
+}
+
+// ---- Candidacies ----
+
+export function declareCandidacy(
+  assemblyId: string,
+  params: { topicScope: string[]; voteTransparencyOptIn: boolean; markdown: string },
+): Promise<import("./types.js").Candidacy> {
+  return request("POST", `/assemblies/${assemblyId}/candidacies`, params);
+}
+
+export function getCandidacy(
+  assemblyId: string,
+  candidacyId: string,
+): Promise<import("./types.js").Candidacy> {
+  return request("GET", `/assemblies/${assemblyId}/candidacies/${candidacyId}`);
+}
+
+export function listCandidacies(
+  assemblyId: string,
+  status?: string,
+): Promise<{ candidacies: import("./types.js").Candidacy[] }> {
+  const qs = status ? `?status=${status}` : "";
+  return request("GET", `/assemblies/${assemblyId}/candidacies${qs}`);
+}
+
+// ---- Community Notes ----
+
+export function createNote(
+  assemblyId: string,
+  params: { markdown: string; targetType: string; targetId: string; targetVersionNumber?: number },
+): Promise<import("./types.js").CommunityNote> {
+  return request("POST", `/assemblies/${assemblyId}/notes`, params);
+}
+
+export function getNote(
+  assemblyId: string,
+  noteId: string,
+): Promise<import("./types.js").CommunityNote> {
+  return request("GET", `/assemblies/${assemblyId}/notes/${noteId}`);
+}
+
+export function listNotes(
+  assemblyId: string,
+  targetType?: string,
+  targetId?: string,
+): Promise<{ notes: import("./types.js").CommunityNote[] }> {
+  const params = new URLSearchParams();
+  if (targetType) params.set("targetType", targetType);
+  if (targetId) params.set("targetId", targetId);
+  const qs = params.toString() ? `?${params}` : "";
+  return request("GET", `/assemblies/${assemblyId}/notes${qs}`);
+}
+
+export function evaluateNote(
+  assemblyId: string,
+  noteId: string,
+  evaluation: "endorse" | "dispute",
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/notes/${noteId}/evaluate`, { evaluation });
+}
+
 export { ApiError };

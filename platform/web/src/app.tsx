@@ -12,6 +12,8 @@ import { EventDetail } from "./pages/event-detail.js";
 import { Delegations } from "./pages/delegations.js";
 import { Polls } from "./pages/polls.js";
 import { Predictions } from "./pages/predictions.js";
+import { Proposals } from "./pages/proposals.js";
+import { Candidacies } from "./pages/candidacies.js";
 import { Profile } from "./pages/profile.js";
 import { ProfileDelegators } from "./pages/profile-delegators.js";
 import { ProfileDelegates } from "./pages/profile-delegates.js";
@@ -57,6 +59,8 @@ export function App() {
               <Route path="assembly/:assemblyId/delegations" element={<Delegations />} />
               <Route path="assembly/:assemblyId/polls" element={<Polls />} />
               <Route path="assembly/:assemblyId/predictions" element={<Predictions />} />
+              <Route path="assembly/:assemblyId/proposals" element={<Proposals />} />
+              <Route path="assembly/:assemblyId/candidacies" element={<Candidacies />} />
             </Route>
           </Routes>
         </BrowserRouter>

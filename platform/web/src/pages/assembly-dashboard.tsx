@@ -53,10 +53,10 @@ export function AssemblyDashboard() {
       </div>
 
       {/* Stats row — participant-centric */}
-      <div className={`grid grid-cols-2 ${config.delegation.enabled ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
+      <div className={`grid grid-cols-2 ${config.delegation.delegationMode !== "none" ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
         <StatCard label="Members" value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
         <StatCard label="Votes" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
-        {config.delegation.enabled && (
+        {config.delegation.delegationMode !== "none" && (
           <StatCard
             label="Your Delegates"
             value={delegations.length}
@@ -96,8 +96,8 @@ export function AssemblyDashboard() {
                 <ConfigRow label="Participation" value={humanizeParticipation(config.ballot.participationMode)} />
                 <ConfigRow label="Results" value={humanizeResultsVisibility(config.ballot.resultsVisibility)} />
                 <ConfigRow label="Quorum" value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
-                <ConfigRow label="Delegation" value={humanizeBoolean(config.delegation.enabled, "enabled-disabled")} />
-                {config.delegation.enabled && (
+                <ConfigRow label="Delegation" value={humanizeBoolean(config.delegation.delegationMode !== "none", "enabled-disabled")} />
+                {config.delegation.delegationMode !== "none" && (
                   <>
                     <ConfigRow label="Topic-Scoped" value={humanizeBoolean(config.delegation.topicScoped)} />
                     <ConfigRow label="Transitive" value={humanizeBoolean(config.delegation.transitive)} />

@@ -83,7 +83,7 @@ export function EventDetail() {
 
   // Extract config from assembly (must be before early returns — rules of hooks)
   const delegationConfig: DelegationConfig = useMemo(() => ({
-    enabled: assembly?.config.delegation.enabled ?? false,
+    enabled: (assembly?.config.delegation.delegationMode ?? "none") !== "none",
     topicScoped: assembly?.config.delegation.topicScoped ?? false,
   }), [assembly]);
 

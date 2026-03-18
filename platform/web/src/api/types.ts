@@ -26,7 +26,7 @@ export interface GovernanceConfig {
   name: string;
   description: string;
   delegation: {
-    enabled: boolean;
+    delegationMode: "open" | "candidacy" | "none";
     topicScoped: boolean;
     transitive: boolean;
     revocableAnytime: boolean;
@@ -43,11 +43,15 @@ export interface GovernanceConfig {
     quorum: number;
     participationMode: string;
     resultsVisibility: string;
+    allowVoteChange: boolean;
   };
   features: {
     predictions: string;
     communityNotes: boolean;
+    noteVisibilityThreshold: number;
+    noteMinEvaluations: number;
     polls: boolean;
+    surveyResponseAnonymity: string;
     awarenessIntensity: string;
     blockchainIntegrity: boolean;
   };
@@ -261,4 +265,88 @@ export interface TrackRecord {
   evaluatedPredictions: number;
   averageAccuracy: number;
   byStatus: Record<string, number>;
+}
+
+// ---- Proposals ----
+
+export interface ProposalDraft {
+  id: string;
+  assemblyId: string;
+  issueId: string;
+  choiceKey?: string;
+  authorId: string;
+  title: string;
+  markdown: string;
+  assets: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Proposal {
+  id: string;
+  issueId: string;
+  choiceKey?: string;
+  authorId: string;
+  title: string;
+  currentVersion: number;
+  status: "submitted" | "locked" | "withdrawn";
+  submittedAt: number;
+  lockedAt?: number;
+  withdrawnAt?: number;
+  content?: {
+    markdown: string;
+    assets: string[];
+    contentHash: string;
+    versionNumber: number;
+  };
+  versions?: Array<{
+    versionNumber: number;
+    contentHash: string;
+    createdAt: number;
+  }>;
+}
+
+// ---- Candidacies ----
+
+export interface Candidacy {
+  id: string;
+  participantId: string;
+  topicScope: string[];
+  voteTransparencyOptIn: boolean;
+  currentVersion: number;
+  status: "active" | "withdrawn";
+  declaredAt: number;
+  withdrawnAt?: number;
+  content?: {
+    markdown: string;
+    assets: string[];
+    contentHash: string;
+    versionNumber: number;
+  };
+}
+
+// ---- Community Notes ----
+
+export interface CommunityNote {
+  id: string;
+  authorId: string;
+  contentHash: string;
+  target: {
+    type: "proposal" | "candidacy" | "survey" | "community-note";
+    id: string;
+    versionNumber?: number;
+  };
+  endorsementCount: number;
+  disputeCount: number;
+  status: "proposed" | "withdrawn";
+  createdAt: number;
+  content?: {
+    markdown: string;
+    assets: string[];
+  };
+  visibility?: {
+    visible: boolean;
+    ratio: number;
+    belowMinEvaluations: boolean;
+  };
 }
