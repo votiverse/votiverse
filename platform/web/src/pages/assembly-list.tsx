@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
@@ -9,13 +9,13 @@ import { presetLabel } from "../lib/presets.js";
 // ── Preset definitions ───────────────────────────────────────────────
 
 const PRESETS = [
-  { value: "MODERN_DEMOCRACY", label: "Modern Democracy", desc: "Delegation with candidates, voting booklets, community notes, surveys" },
-  { value: "TOWN_HALL", label: "Direct Democracy", desc: "Every member votes on every question, no delegation" },
-  { value: "SWISS_MODEL", label: "Swiss Votation", desc: "Direct democracy with structured booklets and community notes" },
-  { value: "LIQUID_STANDARD", label: "Liquid Open", desc: "Open delegation for groups where everyone knows each other" },
-  { value: "LIQUID_ACCOUNTABLE", label: "Full Accountability", desc: "Mandatory predictions, full awareness, maximum transparency" },
-  { value: "BOARD_PROXY", label: "Board Proxy", desc: "Single-delegate proxy voting for formal governance bodies" },
-  { value: "CIVIC_PARTICIPATORY", label: "Civic Participatory", desc: "Municipal-scale governance with chain depth cap and blockchain" },
+  { value: "MODERN_DEMOCRACY", label: "Modern Democracy", desc: "The recommended starting point. Balances delegation, deliberation, and accountability." },
+  { value: "TOWN_HALL", label: "Direct Democracy", desc: "Everyone votes on everything. No delegation, no curation." },
+  { value: "SWISS_MODEL", label: "Swiss Votation", desc: "Like Direct Democracy, but with structured deliberation and community verification." },
+  { value: "LIQUID_STANDARD", label: "Liquid Open", desc: "Anyone can delegate to anyone. Informal, for groups where members know each other." },
+  { value: "LIQUID_ACCOUNTABLE", label: "Full Accountability", desc: "Like Modern Democracy, but with mandatory predictions and public ballots." },
+  { value: "BOARD_PROXY", label: "Board Proxy", desc: "One delegate per member, non-transitive. For formal boards and committees." },
+  { value: "CIVIC_PARTICIPATORY", label: "Civic Participatory", desc: "Longer timelines, chain depth limits, blockchain integrity. For municipalities." },
 ];
 
 /** Full config shape for the customization modal. Matches GovernanceConfig sections. */
@@ -302,11 +302,10 @@ function ConfigModal({
           {/* Preset selector */}
           <div>
             <Label>Start from a preset</Label>
-            <Select value={draft.preset} onChange={(e) => applyPreset(e.target.value)} className="mt-1">
-              {PRESETS.map((p) => (
-                <option key={p.value} value={p.value}>{p.label} — {p.desc}</option>
-              ))}
-            </Select>
+            <PresetPicker
+              value={draft.preset}
+              onChange={(presetKey) => applyPreset(presetKey)}
+            />
             <p className="text-xs text-gray-400 mt-1">Selecting a preset resets all settings below.</p>
           </div>
 
@@ -426,6 +425,61 @@ function ConfigModal({
           <Button onClick={handleSave}>Apply</Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Preset picker ────────────────────────────────────────────────────
+
+function PresetPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = PRESETS.find((p) => p.value === value) ?? PRESETS[0]!;
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative mt-1" ref={ref}>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full text-left rounded-lg border border-gray-300 px-3 py-2.5 hover:border-gray-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+      >
+        <span className="text-sm font-medium text-gray-900">{selected.label}</span>
+        <p className="text-xs text-gray-500 mt-0.5">{selected.desc}</p>
+        <svg className="absolute right-3 top-3 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-10 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg max-h-[320px] overflow-y-auto">
+          {PRESETS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => { onChange(p.value); setOpen(false); }}
+              className={`w-full text-left px-3 py-2.5 transition-colors ${
+                p.value === value
+                  ? "bg-brand-50 border-l-2 border-brand"
+                  : "hover:bg-gray-50 border-l-2 border-transparent"
+              }`}
+            >
+              <span className={`text-sm font-medium ${p.value === value ? "text-brand" : "text-gray-900"}`}>{p.label}</span>
+              <p className="text-xs text-gray-500 mt-0.5">{p.desc}</p>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
