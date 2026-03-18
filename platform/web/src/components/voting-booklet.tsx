@@ -94,11 +94,9 @@ export function VotingBooklet({
   choices,
   proposals,
   eventPhase,
-  isCreator: _isCreator,
+  isCreator,
   onClose,
 }: BookletProps) {
-  // isCreator will be used by CurationPanel (E4)
-  void _isCreator;
   const positions = useMemo(() => groupByPosition(proposals), [proposals]);
   const positionKeys = useMemo(() =>
     Array.from(positions.keys()).sort((a, b) => {
@@ -109,6 +107,8 @@ export function VotingBooklet({
   const [activeIdx, setActiveIdx] = useState(0);
   const activeKey = positionKeys[activeIdx] ?? positionKeys[0];
   const activeProposals = positions.get(activeKey!) ?? [];
+
+  const [showCuration, setShowCuration] = useState(false);
 
   // Load booklet data for voting/closed phases
   const [bookletData, setBookletData] = useState<BookletData | null>(null);
@@ -173,13 +173,24 @@ export function VotingBooklet({
                 <p className="text-sm text-gray-500 mt-1">{issueDescription}</p>
               )}
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100 shrink-0"
-              aria-label="Close booklet"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              {isCreator && eventPhase === "deliberation" && (
+                <button
+                  onClick={() => setShowCuration(!showCuration)}
+                  className={`p-2 transition-colors rounded-lg ${showCuration ? "text-amber-600 bg-amber-50" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
+                  title="Curate booklet"
+                >
+                  <Star size={18} />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
+                aria-label="Close booklet"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Position tabs */}
@@ -281,6 +292,19 @@ export function VotingBooklet({
                 </Suspense>
               </div>
             </div>
+          )}
+
+          {/* Curation panel (event creator during deliberation) */}
+          {showCuration && isCreator && eventPhase === "deliberation" && (
+            <CurationPanel
+              assemblyId={assemblyId}
+              eventId={eventId}
+              issueId={issueId}
+              proposals={activeProposals}
+              positionKey={activeKey!}
+              recommendation={recommendation}
+              onRecommendationChange={setRecommendation}
+            />
           )}
         </div>
 
@@ -450,6 +474,129 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
           <NotesList assemblyId={assemblyId} targetType="proposal" targetId={proposal.id} />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Curation panel — event creator can pin/unpin featured proposals and manage recommendation. */
+function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, recommendation, onRecommendationChange }: {
+  assemblyId: string;
+  eventId: string;
+  issueId: string;
+  proposals: Proposal[];
+  positionKey: string;
+  recommendation: BookletRecommendation | null;
+  onRecommendationChange: (rec: BookletRecommendation | null) => void;
+}) {
+  const [recText, setRecText] = useState(recommendation?.markdown ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const handleFeature = async (proposalId: string, featured: boolean) => {
+    try {
+      if (featured) {
+        await api.unfeatureProposal(assemblyId, proposalId);
+      } else {
+        await api.featureProposal(assemblyId, proposalId);
+      }
+      // Force page reload to get updated data
+      window.location.reload();
+    } catch { /* ignore */ }
+  };
+
+  const handleSaveRecommendation = async () => {
+    if (!recText.trim()) return;
+    setSaving(true);
+    try {
+      await api.setRecommendation(assemblyId, eventId, issueId, recText);
+      onRecommendationChange({ markdown: recText, contentHash: "" });
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const handleDeleteRecommendation = async () => {
+    setSaving(true);
+    try {
+      await api.deleteRecommendation(assemblyId, eventId, issueId);
+      onRecommendationChange(null);
+      setRecText("");
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const score = (p: Proposal) => (p.endorsementCount ?? 0) - (p.disputeCount ?? 0);
+
+  return (
+    <div className="mt-8 pt-6 border-t">
+      <div className="flex items-center gap-2 mb-4">
+        <Star size={16} className="text-amber-500" />
+        <h4 className="text-sm font-semibold text-gray-900">Curation Panel</h4>
+        <span className="text-xs text-gray-400">(visible only to you as event creator)</span>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-700 mb-4">
+        Pin one proposal per position for the voting booklet. Unpinned positions auto-select the highest-scored proposal.
+        Aim for fairness — the booklet should present the strongest argument from each side.
+      </div>
+
+      {/* Proposals in current position */}
+      <div className="space-y-2 mb-6">
+        <h5 className="text-xs font-medium text-gray-500 uppercase">{positionLabel(positionKey)} — Proposals</h5>
+        {proposals.length === 0 ? (
+          <p className="text-xs text-gray-400">No proposals in this position.</p>
+        ) : (
+          proposals.map((p) => (
+            <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded border bg-white">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-gray-900 truncate block">{p.title}</span>
+                <span className="text-xs text-gray-500">
+                  Score: {score(p) > 0 ? "+" : ""}{score(p)}
+                  {" "}({p.endorsementCount ?? 0} endorse, {p.disputeCount ?? 0} dispute)
+                </span>
+              </div>
+              <button
+                onClick={() => handleFeature(p.id, p.featured)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  p.featured
+                    ? "bg-amber-100 border-amber-300 text-amber-700"
+                    : "bg-white border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600"
+                }`}
+              >
+                {p.featured ? "Unpin" : "Pin as featured"}
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Recommendation editor */}
+      <div>
+        <h5 className="text-xs font-medium text-gray-500 uppercase mb-2">Organizer Recommendation</h5>
+        <textarea
+          value={recText}
+          onChange={(e) => setRecText(e.target.value)}
+          rows={5}
+          className="w-full border rounded-lg px-3 py-2 text-sm text-gray-700 resize-y"
+          placeholder="Write a recommendation for voters — this appears in the booklet during voting..."
+        />
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={handleSaveRecommendation}
+            disabled={saving || !recText.trim()}
+            className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : recommendation?.markdown ? "Update" : "Save"} Recommendation
+          </button>
+          {recommendation?.markdown && (
+            <button
+              onClick={handleDeleteRecommendation}
+              disabled={saving}
+              className="text-xs px-3 py-1.5 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
