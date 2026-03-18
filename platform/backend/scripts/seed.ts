@@ -323,6 +323,60 @@ export async function main() {
     console.log(`  (Content seeding skipped: ${err instanceof Error ? err.message : String(err)})`);
   }
 
+  // 9. Seed booklet recommendation for osc-deps
+  try {
+    // Find the OSC assembly
+    const oscAsm = assemblies.find((a) => a.name.toLowerCase().includes("governance board"));
+    if (oscAsm) {
+      // Find the osc-deps event
+      const { events } = await vcpGet<{ events: Array<{ id: string; title: string }> }>(
+        `/assemblies/${oscAsm.id}/events`,
+      );
+      const depsEvent = events.find((e) => e.title.includes("Dependency"));
+      if (depsEvent) {
+        // Get the event's first issue
+        const fullEvent = await vcpGet<{ issues: Array<{ id: string }> }>(
+          `/assemblies/${oscAsm.id}/events/${depsEvent.id}`,
+        );
+        const issueId = fullEvent.issues?.[0]?.id;
+        if (issueId) {
+          // Find Sofia Reyes's token (first OSC participant = event creator)
+          const sofiaSlug = "sofia-reyes";
+          const sofiaUser = userMap.get(sofiaSlug);
+          if (sofiaUser) {
+            // Login as Sofia to get her token
+            const loginRes = await backendPost<{ accessToken: string }>(
+              "/auth/login",
+              { email: `${sofiaSlug}@example.com`, password: DEFAULT_PASSWORD },
+            );
+            if (loginRes.status === 200) {
+              const markdown = `## Organizer Recommendation
+
+After reviewing both proposals and community feedback, the governance committee recommends voting **For** mandatory license compatibility checks.
+
+**Key considerations:**
+- The evidence shows real incidents where transitive dependencies introduced incompatible licenses
+- The upfront CI cost is minimal compared to retroactive compliance costs
+- The "against" position raises valid concerns about friction, but a well-configured scanner with an exception process addresses this
+- We recommend a 30-day grace period for existing dependencies to reach compliance
+
+This recommendation does not bind your vote — consider both arguments carefully and vote your conscience.`;
+
+              await backendPost(
+                `/assemblies/${oscAsm.id}/events/${depsEvent.id}/issues/${issueId}/recommendation`,
+                { markdown },
+                loginRes.body.accessToken,
+              );
+              console.log(`  Recommendation: seeded for Dependency Policy Review`);
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.log(`  (Recommendation seeding skipped: ${err instanceof Error ? err.message : String(err)})`);
+  }
+
   console.log(`\n═══ SEED COMPLETE ═══\n`);
   console.log(`  Users:            ${created}`);
   console.log(`  Cross-assembly:   ${crossAssembly}`);

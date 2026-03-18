@@ -35,7 +35,7 @@ import { EVENTS } from "./seed-data/events.js";
 import { DELEGATIONS } from "./seed-data/delegations.js";
 import { VOTES } from "./seed-data/votes.js";
 import { POLLS, POLL_RESPONSES } from "./seed-data/polls.js";
-import { PROPOSALS, CANDIDACIES, NOTES, NOTE_EVALUATIONS } from "./seed-data/content.js";
+import { PROPOSALS, CANDIDACIES, NOTES, NOTE_EVALUATIONS, PROPOSAL_ENDORSEMENTS } from "./seed-data/content.js";
 
 export async function main() {
   console.log(`\nSeeding VCP at ${BASE_URL}...\n`);
@@ -118,8 +118,10 @@ export async function main() {
     if (!pNames) throw new Error(`No participants for assembly ${def.assemblyKey}`);
 
     const eligibleIds = pNames.map((n) => pid(def.assemblyKey, n));
+    // Use first participant as event creator (for curation rights)
+    const creatorPid = pid(def.assemblyKey, pNames[0]!);
 
-    const event = await post(`/assemblies/${assemblyId}/events`, {
+    const event = await postAs(`/assemblies/${assemblyId}/events`, {
       title: def.title,
       description: def.description,
       issues: def.issues.map((i) => ({
@@ -134,7 +136,7 @@ export async function main() {
         votingStart: fromNow(def.votingStart),
         votingEnd: fromNow(def.votingEnd),
       },
-    });
+    }, creatorPid);
 
     const issueIds = event.issueIds as string[];
     eventRegistry.set(def.key, { eventId: event.id as string, issueIds });
@@ -297,6 +299,44 @@ export async function main() {
   await resetDevClock();
   console.log(`\n  Submitted ${PROPOSALS.length} proposals\n`);
 
+  // ── Step 8b: Endorse proposals ─────────────────────────────────────
+
+  console.log("═══ PROPOSAL ENDORSEMENTS ═══\n");
+  for (const def of PROPOSAL_ENDORSEMENTS) {
+    const assemblyId = aid(def.assemblyKey);
+    const evaluatorPid = pid(def.assemblyKey, def.participantName);
+    const propId = proposalIds[def.proposalRef]!;
+
+    await postAs(`/assemblies/${assemblyId}/proposals/${propId}/evaluate`, {
+      evaluation: def.evaluation,
+    }, evaluatorPid);
+  }
+  console.log(`  ✓ ${PROPOSAL_ENDORSEMENTS.length} endorsements/disputes recorded\n`);
+
+  // ── Step 8c: Feature proposals for booklet ─────────────────────────
+  // Feature the highest-endorsed "for" and "against" proposals on osc-deps
+
+  console.log("═══ FEATURED PROPOSALS ═══\n");
+  const oscDepsEvent = eventRegistry.get("osc-deps");
+  if (oscDepsEvent) {
+    const oscId = aid("osc");
+    // Feature "License Checks Protect" (for, index 2)
+    const forPropId = proposalIds[2];
+    if (forPropId) {
+      const creatorPid = pid("osc", PARTICIPANTS["osc"]![0]!);
+      await postAs(`/assemblies/${oscId}/proposals/${forPropId}/feature`, {}, creatorPid);
+      console.log(`  ✓ Featured "License Checks Protect the Project" (for)`);
+    }
+    // Feature "License Enforcement Slows Innovation" (against, index 3)
+    const againstPropId = proposalIds[3];
+    if (againstPropId) {
+      const creatorPid = pid("osc", PARTICIPANTS["osc"]![0]!);
+      await postAs(`/assemblies/${oscId}/proposals/${againstPropId}/feature`, {}, creatorPid);
+      console.log(`  ✓ Featured "License Enforcement Slows Innovation" (against)`);
+    }
+  }
+  console.log();
+
   // ── Step 9: Declare candidacies ─────────────────────────────────────
 
   console.log("═══ CANDIDACIES ═══\n");
@@ -372,6 +412,7 @@ export async function main() {
   console.log("  Polls:         ", POLLS.length);
   console.log("  Poll Responses:", responseCount);
   console.log("  Proposals:     ", PROPOSALS.length);
+  console.log("  Endorsements:  ", PROPOSAL_ENDORSEMENTS.length);
   console.log("  Candidacies:   ", CANDIDACIES.length);
   console.log("  Notes:         ", NOTES.length);
   console.log("  Evaluations:   ", evalCount);

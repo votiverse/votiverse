@@ -47,6 +47,14 @@ export interface NoteEvaluationDef {
   evaluation: "endorse" | "dispute";
 }
 
+export interface ProposalEndorsementDef {
+  assemblyKey: string;
+  /** Index into PROPOSALS array */
+  proposalRef: number;
+  participantName: string;
+  evaluation: "endorse" | "dispute";
+}
+
 // ── Proposals ────────────────────────────────────────────────────────────
 // Submitted during deliberation phase of events with votingStart > 0
 
@@ -299,4 +307,37 @@ export const NOTE_EVALUATIONS: NoteEvaluationDef[] = [
   { assemblyKey: "youth", noteRef: 2, participantName: "Sofia Reyes", evaluation: "endorse" },
   { assemblyKey: "youth", noteRef: 2, participantName: "Jin Park", evaluation: "endorse" },
   { assemblyKey: "youth", noteRef: 2, participantName: "Liam Torres", evaluation: "endorse" },
+];
+
+// ── Proposal Endorsements ────────────────────────────────────────────────
+// Community scoring of proposals during deliberation
+
+export const PROPOSAL_ENDORSEMENTS: ProposalEndorsementDef[] = [
+  // OSC Roadmap — "Accelerate API Stabilization" (index 0) — mostly endorsed
+  { assemblyKey: "osc", proposalRef: 0, participantName: "Sofia Reyes", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 0, participantName: "Tyler Nguyen", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 0, participantName: "Priya Sharma", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 0, participantName: "Leo Fernandez", evaluation: "dispute" },
+
+  // OSC Roadmap — "Feature Velocity Over Stability" (index 1) — mixed
+  { assemblyKey: "osc", proposalRef: 1, participantName: "Sofia Reyes", evaluation: "dispute" },
+  { assemblyKey: "osc", proposalRef: 1, participantName: "Priya Sharma", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 1, participantName: "Leo Fernandez", evaluation: "endorse" },
+
+  // OSC Deps — "License Checks Protect" (index 2) — strong endorsement
+  { assemblyKey: "osc", proposalRef: 2, participantName: "Mei-Ling Wu", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 2, participantName: "Kai Andersen", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 2, participantName: "Leo Fernandez", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 2, participantName: "Priya Sharma", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 2, participantName: "Tyler Nguyen", evaluation: "dispute" },
+
+  // OSC Deps — "License Enforcement Slows Innovation" (index 3) — moderate dispute
+  { assemblyKey: "osc", proposalRef: 3, participantName: "Mei-Ling Wu", evaluation: "dispute" },
+  { assemblyKey: "osc", proposalRef: 3, participantName: "Kai Andersen", evaluation: "dispute" },
+  { assemblyKey: "osc", proposalRef: 3, participantName: "Sofia Reyes", evaluation: "endorse" },
+
+  // Youth — "Digital Literacy Workshops" (index 4) — endorsed
+  { assemblyKey: "youth", proposalRef: 4, participantName: "Liam Torres", evaluation: "endorse" },
+  { assemblyKey: "youth", proposalRef: 4, participantName: "Jin Park", evaluation: "endorse" },
+  { assemblyKey: "youth", proposalRef: 4, participantName: "Priya Sharma", evaluation: "endorse" },
 ];
