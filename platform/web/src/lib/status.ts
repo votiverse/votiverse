@@ -6,18 +6,35 @@
  * fully cacheable.
  */
 
-export type EventStatus = "upcoming" | "deliberation" | "voting" | "closed";
+export type EventStatus = "upcoming" | "deliberation" | "curation" | "voting" | "closed";
 export type PollStatus = "scheduled" | "open" | "closed";
 
-/** Derive voting event status from its timeline. */
-export function deriveEventStatus(timeline: { deliberationStart: string; votingStart: string; votingEnd: string }): EventStatus {
+/**
+ * Derive voting event status from its timeline and optional assembly timeline config.
+ * If timelineConfig is provided and has curationDays > 0, the curation phase
+ * is computed as the window between deliberation end and voting start.
+ */
+export function deriveEventStatus(
+  timeline: { deliberationStart: string; votingStart: string; votingEnd: string },
+  timelineConfig?: { deliberationDays: number; curationDays: number; votingDays: number },
+): EventStatus {
   const now = Date.now();
   const deliberationStart = new Date(timeline.deliberationStart).getTime();
   const votingStart = new Date(timeline.votingStart).getTime();
   const votingEnd = new Date(timeline.votingEnd).getTime();
 
   if (now < deliberationStart) return "upcoming";
-  if (now < votingStart) return "deliberation";
+
+  // If we have timeline config with curation days, compute the curation boundary
+  if (timelineConfig && timelineConfig.curationDays > 0) {
+    const DAY_MS = 86_400_000;
+    const deliberationEnd = deliberationStart + timelineConfig.deliberationDays * DAY_MS;
+    if (now < deliberationEnd) return "deliberation";
+    if (now < votingStart) return "curation";
+  } else {
+    if (now < votingStart) return "deliberation";
+  }
+
   if (now < votingEnd) return "voting";
   return "closed";
 }

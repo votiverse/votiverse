@@ -2,12 +2,18 @@
  *  Used wherever a preset name appears in the UI — assembly cards, profile, dashboard.
  */
 export const PRESET_LABELS: Record<string, string> = {
-  "Town Hall": "Everyone votes directly",
-  "Swiss Model": "Discuss, then vote",
-  "Liquid Standard": "Flexible delegation",
-  "Liquid Accountable": "Delegates with accountability",
+  "Modern Democracy": "The recommended default",
+  "Direct Democracy": "Everyone votes directly",
+  "Swiss Votation": "Structured deliberation, then direct vote",
+  "Liquid Open": "Flexible delegation for close-knit groups",
+  "Full Accountability": "Maximum transparency and accountability",
   "Board Proxy": "Elected representatives",
-  "Civic Participatory": "Mixed — direct votes and delegates",
+  "Civic Participatory": "Municipal-scale governance",
+  // Legacy names (backward compat with pre-rename assemblies)
+  "Town Hall": "Everyone votes directly",
+  "Swiss Model": "Structured deliberation, then direct vote",
+  "Liquid Standard": "Flexible delegation for close-knit groups",
+  "Liquid Accountable": "Maximum transparency and accountability",
 };
 
 /** Return a plain-language label for a preset config name. Falls back to the raw name. */
@@ -37,6 +43,7 @@ const PREDICTIONS_LABELS: Record<string, string> = {
   "disabled": "Disabled",
   "voluntary": "Optional",
   "optional": "Optional",
+  "encouraged": "Encouraged",
   "mandatory": "Required",
 };
 
@@ -49,6 +56,7 @@ const AWARENESS_LABELS: Record<string, string> = {
 
 const RESULTS_VISIBILITY_LABELS: Record<string, string> = {
   "live": "Live",
+  "sealed": "After Voting Ends",
   "after-vote": "After Voting",
   "after-close": "After Close",
 };

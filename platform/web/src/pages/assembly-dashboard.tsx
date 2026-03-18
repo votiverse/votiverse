@@ -21,6 +21,7 @@ export function AssemblyDashboard() {
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const { data: assembly, loading, error, refetch } = useApi(() => api.getAssembly(assemblyId!), [assemblyId]);
+  const { data: profile } = useApi(() => api.getAssemblyProfile(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
   const { data: delegationsData } = useApi(
@@ -118,6 +119,19 @@ export function AssemblyDashboard() {
             </Card>
             <Card>
               <CardHeader>
+                <h2 className="font-medium text-gray-900">Timeline</h2>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                <ConfigRow label="Deliberation" value={`${config.timeline.deliberationDays} day${config.timeline.deliberationDays !== 1 ? "s" : ""}`} />
+                <ConfigRow label="Curation" value={config.timeline.curationDays > 0 ? `${config.timeline.curationDays} day${config.timeline.curationDays !== 1 ? "s" : ""}` : "None"} />
+                <ConfigRow label="Voting" value={`${config.timeline.votingDays} day${config.timeline.votingDays !== 1 ? "s" : ""}`} />
+                <div className="text-xs text-gray-400 pt-1">
+                  Total: {config.timeline.deliberationDays + config.timeline.curationDays + config.timeline.votingDays} days per vote
+                </div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardHeader>
                 <h2 className="font-medium text-gray-900">Features</h2>
               </CardHeader>
               <CardBody className="space-y-3">
@@ -132,6 +146,46 @@ export function AssemblyDashboard() {
           </div>
         )}
       </div>
+
+      {/* Owners & Admins */}
+      {profile && (profile.owners.length > 0 || profile.admins.length > 0) && (
+        <Card className="mt-4 sm:mt-6">
+          <CardHeader>
+            <h2 className="font-medium text-gray-900">Leadership</h2>
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-3">
+              {profile.owners.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Owners</p>
+                  <div className="flex flex-wrap gap-3">
+                    {profile.owners.map((r) => (
+                      <div key={r.participantId} className="flex items-center gap-2">
+                        <Avatar name={r.name ?? "?"} size="xs" />
+                        <span className="text-sm text-gray-700">{r.name ?? r.participantId.slice(0, 8)}</span>
+                        <Badge color="blue">Owner</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {profile.admins.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Admins</p>
+                  <div className="flex flex-wrap gap-3">
+                    {profile.admins.map((r) => (
+                      <div key={r.participantId} className="flex items-center gap-2">
+                        <Avatar name={r.name ?? "?"} size="xs" />
+                        <span className="text-sm text-gray-700">{r.name ?? r.participantId.slice(0, 8)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Recent events */}
       {events.length > 0 && (

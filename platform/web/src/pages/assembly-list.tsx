@@ -3,16 +3,17 @@ import { Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
-import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
+import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { presetLabel } from "../lib/presets.js";
 
 const PRESETS = [
-  { value: "TOWN_HALL", label: "Everyone votes directly", desc: "Every member votes on every question. Simple and equal." },
-  { value: "SWISS_MODEL", label: "Discuss, then vote", desc: "A structured discussion period, then a direct vote by all members." },
-  { value: "LIQUID_STANDARD", label: "Members choose delegates", desc: "Members can delegate their vote to someone they choose, by topic." },
-  { value: "LIQUID_ACCOUNTABLE", label: "Delegates with full accountability", desc: "Delegate votes are visible and predictions are tracked over time." },
-  { value: "BOARD_PROXY", label: "Elected representatives", desc: "Members elect or appoint representatives who vote on their behalf." },
-  { value: "CIVIC_PARTICIPATORY", label: "Mixed approach", desc: "Some topics decided by direct vote, others through delegates." },
+  { value: "MODERN_DEMOCRACY", label: "Modern Democracy", desc: "Delegation with candidates, voting booklets, community notes, surveys. The recommended default.", recommended: true },
+  { value: "TOWN_HALL", label: "Direct Democracy", desc: "Every member votes on every question. No delegation." },
+  { value: "SWISS_MODEL", label: "Swiss Votation", desc: "Structured deliberation with voting booklets and community notes. No delegation." },
+  { value: "LIQUID_STANDARD", label: "Liquid Open", desc: "Open delegation for groups where everyone knows each other." },
+  { value: "LIQUID_ACCOUNTABLE", label: "Full Accountability", desc: "Mandatory predictions, full awareness, maximum transparency." },
+  { value: "BOARD_PROXY", label: "Board Proxy", desc: "Single-delegate proxy voting for formal governance bodies." },
+  { value: "CIVIC_PARTICIPATORY", label: "Civic Participatory", desc: "Municipal-scale deployment with chain depth cap and blockchain integrity." },
 ];
 
 export function AssemblyList() {
@@ -77,13 +78,20 @@ export function AssemblyList() {
 
 function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [name, setName] = useState("");
-  const [preset, setPreset] = useState("LIQUID_STANDARD");
+  const [preset, setPreset] = useState("MODERN_DEMOCRACY");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const selectedPreset = PRESETS.find((p) => p.value === preset);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    if (!showConfirm) {
+      setShowConfirm(true);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -108,21 +116,64 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" autoFocus />
           </div>
           <div>
-            <Label>How should your group make decisions?</Label>
-            <Select value={preset} onChange={(e) => setPreset(e.target.value)}>
+            <Label>Governance approach</Label>
+            <div className="space-y-2 mt-1">
               {PRESETS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label} — {p.desc}
-                </option>
+                <label
+                  key={p.value}
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    preset === p.value
+                      ? "border-brand bg-brand-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="preset"
+                    value={p.value}
+                    checked={preset === p.value}
+                    onChange={() => { setPreset(p.value); setShowConfirm(false); }}
+                    className="mt-0.5"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">{p.label}</span>
+                      {"recommended" in p && p.recommended && (
+                        <Badge color="green">Recommended</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{p.desc}</p>
+                  </div>
+                </label>
               ))}
-            </Select>
+            </div>
           </div>
+
+          {/* Immutability notice */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <p className="text-xs text-amber-800">
+              These rules define how your group governs itself. They apply to all votes and cannot be changed after creation.
+              This ensures every member can trust that the rules won't shift.
+            </p>
+          </div>
+
+          {/* Confirmation step */}
+          {showConfirm && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <p className="text-sm text-gray-700 font-medium mb-1">Confirm creation</p>
+              <p className="text-xs text-gray-500">
+                <strong>{name.trim()}</strong> will use <strong>{selectedPreset?.label}</strong> governance.
+                These rules are permanent.
+              </p>
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Cancel
+            <Button type="button" variant="secondary" onClick={() => { showConfirm ? setShowConfirm(false) : onClose(); }}>
+              {showConfirm ? "Back" : "Cancel"}
             </Button>
             <Button type="submit" disabled={submitting || !name.trim()}>
-              {submitting ? "Creating..." : "Create"}
+              {submitting ? "Creating..." : showConfirm ? "Create Group" : "Continue"}
             </Button>
           </div>
         </form>

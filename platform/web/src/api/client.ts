@@ -103,6 +103,10 @@ export function getAssembly(id: string): Promise<Assembly> {
   return request("GET", `/assemblies/${id}`);
 }
 
+export function getAssemblyProfile(id: string): Promise<import("./types.js").AssemblyProfile> {
+  return request("GET", `/assemblies/${id}/profile`);
+}
+
 // ---- Participants ----
 
 export function listParticipants(assemblyId: string): Promise<{ participants: Participant[] }> {

@@ -15,6 +15,19 @@ export interface Assembly {
   createdAt: string;
 }
 
+export interface AssemblyRole {
+  participantId: string;
+  role: string;
+  name: string | null;
+  grantedAt: number;
+}
+
+export interface AssemblyProfile extends Assembly {
+  owners: AssemblyRole[];
+  admins: AssemblyRole[];
+  memberCount: number;
+}
+
 export interface DelegationVisibilityConfig {
   mode: "public" | "private";
   incomingVisibility: "direct" | "chain";

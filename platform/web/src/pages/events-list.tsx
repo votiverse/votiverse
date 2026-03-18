@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
+import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
 import type { VotingEvent } from "../api/types.js";
 import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
@@ -36,6 +37,8 @@ function useFullEvents(assemblyId: string | undefined, eventIds: string[]) {
 export function EventsList() {
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
+  const { assembly: assemblyData } = useAssembly(assemblyId);
+  const timelineConfig = assemblyData?.config.timeline;
   const [creating, setCreating] = useState(false);
 
   const { getParticipantId } = useIdentity();
@@ -49,7 +52,7 @@ export function EventsList() {
   const eventIds = useMemo(() => events.map((e) => e.id), [events]);
   const { fullEvents, loading: loadingFull } = useFullEvents(assemblyId, eventIds);
 
-  const STATUS_ORDER: Record<string, number> = { voting: 0, deliberation: 1 };
+  const STATUS_ORDER: Record<string, number> = { voting: 0, curation: 1, deliberation: 2 };
   const votedIssueIds = useMemo(
     () => new Set(historyData?.history.map((h) => h.issueId) ?? []),
     [historyData],
@@ -57,8 +60,8 @@ export function EventsList() {
   const sortedEvents = useMemo(() => {
     const enriched = events.map((e) => fullEvents[e.id] ?? e);
     return enriched.sort((a, b) => {
-      const aStatus = a.timeline ? deriveEventStatus(a.timeline) : "";
-      const bStatus = b.timeline ? deriveEventStatus(b.timeline) : "";
+      const aStatus = a.timeline ? deriveEventStatus(a.timeline, timelineConfig) : "";
+      const bStatus = b.timeline ? deriveEventStatus(b.timeline, timelineConfig) : "";
       const aO = STATUS_ORDER[aStatus] ?? 2;
       const bO = STATUS_ORDER[bStatus] ?? 2;
       if (aO !== bO) return aO - bO;
@@ -99,7 +102,7 @@ export function EventsList() {
       ) : (
         <div className="space-y-3">
           {sortedEvents.map((evt) => (
-            <EventCard key={evt.id} assemblyId={assemblyId!} event={evt} history={historyData ?? null} />
+            <EventCard key={evt.id} assemblyId={assemblyId!} event={evt} history={historyData ?? null} timelineConfig={timelineConfig} />
           ))}
         </div>
       )}
@@ -107,8 +110,8 @@ export function EventsList() {
   );
 }
 
-function EventCard({ assemblyId, event: evt, history }: { assemblyId: string; event: VotingEvent; history: { history: Array<{ issueId: string }> } | null }) {
-  const status = evt.timeline ? deriveEventStatus(evt.timeline) : undefined;
+function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemblyId: string; event: VotingEvent; history: { history: Array<{ issueId: string }> } | null; timelineConfig?: { deliberationDays: number; curationDays: number; votingDays: number } }) {
+  const status = evt.timeline ? deriveEventStatus(evt.timeline, timelineConfig) : undefined;
   const issueIds = evt.issueIds ?? evt.issues?.map((i) => i.id) ?? [];
   const issueCount = issueIds.length;
   const votedCount = history
