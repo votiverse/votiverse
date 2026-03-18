@@ -17,7 +17,7 @@ describe("Named presets", () => {
   it("getPreset returns the correct preset", () => {
     const townHall = getPreset("TOWN_HALL");
     expect(townHall.name).toBe("Town Hall");
-    expect(townHall.delegation.enabled).toBe(false);
+    expect(townHall.delegation.delegationMode).toBe("none");
   });
 
   it("PRESETS object matches getPreset results", () => {
@@ -47,21 +47,21 @@ describe("Named presets", () => {
   describe("preset properties match whitepaper", () => {
     it("TOWN_HALL: no delegation, secret ballot, simple majority", () => {
       const config = PRESETS.TOWN_HALL;
-      expect(config.delegation.enabled).toBe(false);
+      expect(config.delegation.delegationMode).toBe("none");
       expect(config.ballot.secrecy).toBe("secret");
       expect(config.ballot.votingMethod).toBe("simple-majority");
     });
 
     it("SWISS_MODEL: no delegation, predictions encouraged, community notes", () => {
       const config = PRESETS.SWISS_MODEL;
-      expect(config.delegation.enabled).toBe(false);
+      expect(config.delegation.delegationMode).toBe("none");
       expect(config.features.predictions).toBe("encouraged");
       expect(config.features.communityNotes).toBe(true);
     });
 
-    it("LIQUID_STANDARD: topic-scoped delegation, transitive, revocable", () => {
+    it("LIQUID_STANDARD: open delegation, topic-scoped, transitive, revocable", () => {
       const config = PRESETS.LIQUID_STANDARD;
-      expect(config.delegation.enabled).toBe(true);
+      expect(config.delegation.delegationMode).toBe("open");
       expect(config.delegation.topicScoped).toBe(true);
       expect(config.delegation.transitive).toBe(true);
       expect(config.delegation.revocableAnytime).toBe(true);
@@ -69,26 +69,26 @@ describe("Named presets", () => {
       expect(config.features.predictions).toBe("optional");
     });
 
-    it("LIQUID_ACCOUNTABLE: mandatory predictions, full awareness, public delegates", () => {
+    it("LIQUID_ACCOUNTABLE: candidacy mode, mandatory predictions, full awareness", () => {
       const config = PRESETS.LIQUID_ACCOUNTABLE;
-      expect(config.delegation.enabled).toBe(true);
+      expect(config.delegation.delegationMode).toBe("candidacy");
       expect(config.features.predictions).toBe("mandatory");
       expect(config.features.awarenessIntensity).toBe("aggressive");
       expect(config.ballot.delegateVoteVisibility).toBe("public");
     });
 
-    it("BOARD_PROXY: single delegate, non-transitive, secret ballot", () => {
+    it("BOARD_PROXY: open delegation, single delegate, non-transitive, secret ballot", () => {
       const config = PRESETS.BOARD_PROXY;
-      expect(config.delegation.enabled).toBe(true);
+      expect(config.delegation.delegationMode).toBe("open");
       expect(config.delegation.transitive).toBe(false);
       expect(config.delegation.maxDelegatesPerParticipant).toBe(1);
       expect(config.delegation.maxChainDepth).toBe(1);
       expect(config.ballot.secrecy).toBe("secret");
     });
 
-    it("CIVIC_PARTICIPATORY: chain depth cap, mandatory predictions, blockchain", () => {
+    it("CIVIC_PARTICIPATORY: open delegation, chain depth cap, mandatory predictions, blockchain", () => {
       const config = PRESETS.CIVIC_PARTICIPATORY;
-      expect(config.delegation.enabled).toBe(true);
+      expect(config.delegation.delegationMode).toBe("open");
       expect(config.delegation.maxChainDepth).toBe(3);
       expect(config.features.predictions).toBe("mandatory");
       expect(config.features.communityNotes).toBe(true);

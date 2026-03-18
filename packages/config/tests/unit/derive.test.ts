@@ -10,9 +10,9 @@ describe("deriveConfig", () => {
 
   it("does not mutate the base config", () => {
     const base = getPreset("TOWN_HALL");
-    const originalEnabled = base.delegation.enabled;
-    deriveConfig(base, { delegation: { enabled: true } });
-    expect(base.delegation.enabled).toBe(originalEnabled);
+    const originalMode = base.delegation.delegationMode;
+    deriveConfig(base, { delegation: { delegationMode: "open" } });
+    expect(base.delegation.delegationMode).toBe(originalMode);
   });
 
   it("overrides top-level properties", () => {
@@ -25,9 +25,9 @@ describe("deriveConfig", () => {
   it("overrides nested delegation properties", () => {
     const base = getPreset("TOWN_HALL");
     const derived = deriveConfig(base, {
-      delegation: { enabled: true, transitive: true },
+      delegation: { delegationMode: "open", transitive: true },
     });
-    expect(derived.delegation.enabled).toBe(true);
+    expect(derived.delegation.delegationMode).toBe("open");
     expect(derived.delegation.transitive).toBe(true);
     // Non-overridden properties should keep base values
     expect(derived.delegation.topicScoped).toBe(base.delegation.topicScoped);

@@ -22,27 +22,27 @@ describe("diffConfig", () => {
   it("detects nested property changes", () => {
     const base = getPreset("TOWN_HALL");
     const modified = deriveConfig(base, {
-      delegation: { enabled: true },
+      delegation: { delegationMode: "open" },
     });
     const diffs = diffConfig(base, modified);
     expect(diffs).toContainEqual({
-      path: "delegation.enabled",
-      oldValue: false,
-      newValue: true,
+      path: "delegation.delegationMode",
+      oldValue: "none",
+      newValue: "open",
     });
   });
 
   it("detects multiple changes", () => {
     const base = getPreset("TOWN_HALL");
     const modified = deriveConfig(base, {
-      delegation: { enabled: true, transitive: true },
+      delegation: { delegationMode: "open", transitive: true },
       ballot: { quorum: 0.5 },
     });
     const diffs = diffConfig(base, modified);
     expect(diffs.length).toBeGreaterThanOrEqual(3);
 
     const paths = diffs.map((d) => d.path);
-    expect(paths).toContain("delegation.enabled");
+    expect(paths).toContain("delegation.delegationMode");
     expect(paths).toContain("delegation.transitive");
     expect(paths).toContain("ballot.quorum");
   });
@@ -65,9 +65,10 @@ describe("diffConfig", () => {
     const accountable = getPreset("LIQUID_ACCOUNTABLE");
     const diffs = diffConfig(base, accountable);
 
-    // Should show the differences: name, description, visibility, predictions, etc.
+    // Should show the differences: name, description, delegationMode, visibility, predictions, etc.
     const paths = diffs.map((d) => d.path);
     expect(paths).toContain("name");
+    expect(paths).toContain("delegation.delegationMode");
     expect(paths).toContain("features.predictions");
     expect(paths).toContain("ballot.delegateVoteVisibility");
     expect(diffs.length).toBeGreaterThan(0);

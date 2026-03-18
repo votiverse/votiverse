@@ -13,7 +13,7 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     const tabs: AssemblyTab[] = [
       { to: `/assembly/${assemblyId}/events`, label: "Votes" },
     ];
-    if (config?.delegation.enabled !== false) {
+    if (config?.delegation.delegationMode !== "none") {
       tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
     }
     if (config?.features.polls) {

@@ -20,6 +20,8 @@ export type {
   ResultsVisibility,
   PredictionRequirement,
   AwarenessIntensity,
+  DelegationMode,
+  SurveyResponseAnonymity,
 } from "./types.js";
 
 // Presets

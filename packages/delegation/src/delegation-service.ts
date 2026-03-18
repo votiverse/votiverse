@@ -53,7 +53,7 @@ export class DelegationService {
    * Creates a new delegation from source to target on the given topic scope.
    */
   async create(params: CreateDelegationParams): Promise<Delegation> {
-    if (!this.config.delegation.enabled) {
+    if (this.config.delegation.delegationMode === "none") {
       throw new ValidationError(
         "delegation",
         "Delegation is disabled in the current configuration",

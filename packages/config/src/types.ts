@@ -20,10 +20,19 @@ export interface DelegationVisibilityConfig {
   readonly incomingVisibility: "direct" | "chain";
 }
 
+/**
+ * Controls who appears in the delegate discovery interface.
+ * - 'open': anyone can receive delegations, all members shown in discovery.
+ * - 'candidacy': only declared candidates with profiles are featured in discovery,
+ *   but any member can still be found via direct search/nomination.
+ * - 'none': delegation is disabled entirely.
+ */
+export type DelegationMode = "open" | "candidacy" | "none";
+
 /** Controls how voting power delegation works. */
 export interface DelegationConfig {
-  /** Whether delegation is enabled at all. */
-  readonly enabled: boolean;
+  /** Delegation mode: 'open', 'candidacy', or 'none' (disabled). */
+  readonly delegationMode: DelegationMode;
   /** Whether delegations can be scoped to specific topics. */
   readonly topicScoped: boolean;
   /** Whether delegation chains are transitive (A→B→C means C carries A's weight). */
@@ -75,6 +84,8 @@ export interface BallotConfig {
   readonly participationMode: ParticipationMode;
   /** When tally results are visible: 'sealed' = after voting ends, 'live' = real-time. */
   readonly resultsVisibility: ResultsVisibility;
+  /** Whether participants can change their vote during the open voting period. */
+  readonly allowVoteChange: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,14 +98,29 @@ export type PredictionRequirement = "disabled" | "optional" | "encouraged" | "ma
 /** How intensively the awareness layer monitors governance activity. */
 export type AwarenessIntensity = "minimal" | "standard" | "aggressive";
 
+/** Anonymity of survey/poll responses in aggregate results. */
+export type SurveyResponseAnonymity = "anonymous" | "visible";
+
 /** Controls which features are active in the governance instance. */
 export interface FeatureConfig {
   /** Whether and how predictions are required on proposals. */
   readonly predictions: PredictionRequirement;
   /** Whether community notes are enabled. */
   readonly communityNotes: boolean;
-  /** Whether participant polls are enabled. */
+  /**
+   * Fraction of evaluating participants who must endorse a community note
+   * for it to be prominently displayed (0.0–1.0). Default: 0.3.
+   */
+  readonly noteVisibilityThreshold: number;
+  /**
+   * Minimum number of evaluations before the visibility threshold applies.
+   * Notes below this count are shown with a "not yet evaluated" indicator. Default: 3.
+   */
+  readonly noteMinEvaluations: number;
+  /** Whether participant polls/surveys are enabled. */
   readonly polls: boolean;
+  /** Anonymity of survey/poll responses in aggregate results. */
+  readonly surveyResponseAnonymity: SurveyResponseAnonymity;
   /** Intensity of the governance awareness layer. */
   readonly awarenessIntensity: AwarenessIntensity;
   /** Whether blockchain integrity anchoring is enabled. */

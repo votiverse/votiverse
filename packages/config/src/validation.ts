@@ -30,25 +30,25 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
 
   // --- Delegation consistency ---
 
-  if (!config.delegation.enabled) {
+  if (config.delegation.delegationMode === "none") {
     if (config.delegation.transitive) {
       issues.push({
         field: "delegation.transitive",
-        message: "Transitivity must be disabled when delegation is disabled",
+        message: "Transitivity must be disabled when delegation mode is 'none'",
         severity: "error",
       });
     }
     if (config.delegation.topicScoped) {
       issues.push({
         field: "delegation.topicScoped",
-        message: "Topic scoping must be disabled when delegation is disabled",
+        message: "Topic scoping must be disabled when delegation mode is 'none'",
         severity: "error",
       });
     }
     if (config.delegation.maxChainDepth !== null && config.delegation.maxChainDepth > 0) {
       issues.push({
         field: "delegation.maxChainDepth",
-        message: "Chain depth limit is meaningless when delegation is disabled",
+        message: "Chain depth limit is meaningless when delegation mode is 'none'",
         severity: "warning",
       });
     }
@@ -93,18 +93,18 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
     });
   }
 
-  if (!config.delegation.enabled && config.delegation.maxAge !== null) {
+  if (config.delegation.delegationMode === "none" && config.delegation.maxAge !== null) {
     issues.push({
       field: "delegation.maxAge",
-      message: "maxAge is meaningless when delegation is disabled",
+      message: "maxAge is meaningless when delegation mode is 'none'",
       severity: "warning",
     });
   }
 
-  if (!config.delegation.enabled && config.delegation.visibility.mode === "public") {
+  if (config.delegation.delegationMode === "none" && config.delegation.visibility.mode === "public") {
     issues.push({
       field: "delegation.visibility.mode",
-      message: "Public visibility is meaningless when delegation is disabled",
+      message: "Public visibility is meaningless when delegation mode is 'none'",
       severity: "warning",
     });
   }
@@ -165,10 +165,10 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
 
   // --- Delegate vote visibility ---
 
-  if (!config.delegation.enabled && config.ballot.delegateVoteVisibility !== "private") {
+  if (config.delegation.delegationMode === "none" && config.ballot.delegateVoteVisibility !== "private") {
     issues.push({
       field: "ballot.delegateVoteVisibility",
-      message: "Delegate vote visibility is irrelevant when delegation is disabled",
+      message: "Delegate vote visibility is irrelevant when delegation mode is 'none'",
       severity: "warning",
     });
   }
@@ -177,11 +177,11 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
 
   if (
     config.ballot.participationMode === "mandatory-with-delegation" &&
-    !config.delegation.enabled
+    config.delegation.delegationMode === "none"
   ) {
     issues.push({
       field: "ballot.participationMode",
-      message: "'mandatory-with-delegation' requires delegation to be enabled",
+      message: "'mandatory-with-delegation' requires delegation mode to be 'open' or 'candidacy'",
       severity: "error",
     });
   }
@@ -191,12 +191,54 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
   if (
     config.ballot.secrecy === "secret" &&
     config.ballot.delegateVoteVisibility === "public" &&
-    config.delegation.enabled
+    config.delegation.delegationMode !== "none"
   ) {
     issues.push({
       field: "ballot.secrecy",
       message:
         "Secret ballots with public delegate votes may create coercion risks in small groups",
+      severity: "warning",
+    });
+  }
+
+  // --- Community notes ---
+
+  if (
+    config.features.noteVisibilityThreshold < 0 ||
+    config.features.noteVisibilityThreshold > 1
+  ) {
+    issues.push({
+      field: "features.noteVisibilityThreshold",
+      message: "Note visibility threshold must be between 0 and 1",
+      severity: "error",
+    });
+  }
+
+  if (config.features.noteMinEvaluations < 0) {
+    issues.push({
+      field: "features.noteMinEvaluations",
+      message: "Minimum note evaluations must be >= 0",
+      severity: "error",
+    });
+  }
+
+  if (
+    !config.features.communityNotes &&
+    (config.features.noteVisibilityThreshold !== 0.3 || config.features.noteMinEvaluations !== 3)
+  ) {
+    issues.push({
+      field: "features.communityNotes",
+      message: "Note threshold settings have no effect when community notes are disabled",
+      severity: "warning",
+    });
+  }
+
+  // --- Vote change + results visibility ---
+
+  if (config.ballot.allowVoteChange && config.ballot.resultsVisibility === "live") {
+    issues.push({
+      field: "ballot.allowVoteChange",
+      message: "Allowing vote changes with live results enables strategic vote-changing based on live tallies",
       severity: "warning",
     });
   }
