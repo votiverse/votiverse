@@ -315,6 +315,8 @@ export async function main() {
   console.log(`\n  Submitted ${PROPOSALS.length} proposals\n`);
 
   // ── Step 8b: Endorse proposals ─────────────────────────────────────
+  // Endorsements must happen during the deliberation phase, so set the
+  // dev clock to each proposal's event deliberation midpoint.
 
   console.log("═══ PROPOSAL ENDORSEMENTS ═══\n");
   for (const def of PROPOSAL_ENDORSEMENTS) {
@@ -322,10 +324,21 @@ export async function main() {
     const evaluatorPid = pid(def.assemblyKey, def.participantName);
     const propId = proposalIds[def.proposalRef]!;
 
+    // Find the event for this proposal and set the clock to deliberation
+    const proposalDef = PROPOSALS[def.proposalRef];
+    if (proposalDef) {
+      const timeline = proposalTimelines.get(proposalDef.eventKey);
+      if (timeline) {
+        const midpoint = seedNow + (timeline.deliberationStart + timeline.votingStart) / 2;
+        await setDevClock(midpoint);
+      }
+    }
+
     await postAs(`/assemblies/${assemblyId}/proposals/${propId}/evaluate`, {
       evaluation: def.evaluation,
     }, evaluatorPid);
   }
+  await resetDevClock();
   console.log(`  ✓ ${PROPOSAL_ENDORSEMENTS.length} endorsements/disputes recorded\n`);
 
   // ── Step 8c: Feature proposals for booklet ─────────────────────────

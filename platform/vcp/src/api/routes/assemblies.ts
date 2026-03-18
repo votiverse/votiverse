@@ -10,7 +10,7 @@ import type { PresetName } from "@votiverse/config";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { RoleInvariantError } from "../../engine/assembly-manager.js";
 import type { AuthAdapter } from "../../adapters/auth/interface.js";
-import { getClient } from "../middleware/auth.js";
+import { getClient, requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
