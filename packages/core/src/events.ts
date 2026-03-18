@@ -70,7 +70,9 @@ export type EventType =
   | "CommunityNoteCreated"
   | "CommunityNoteEvaluated"
   | "CommunityNoteWithdrawn"
-  | "ProposalEndorsed";
+  | "ProposalEndorsed"
+  | "RoleGranted"
+  | "RoleRevoked";
 
 // ---------------------------------------------------------------------------
 // Event payload types
@@ -271,6 +273,21 @@ export interface ProposalEndorsedPayload {
   readonly evaluation: ProposalEvaluation;
 }
 
+/** Assembly role type. */
+export type AssemblyRole = "owner" | "admin";
+
+export interface RoleGrantedPayload {
+  readonly participantId: ParticipantId;
+  readonly role: AssemblyRole;
+  readonly grantedBy: ParticipantId;
+}
+
+export interface RoleRevokedPayload {
+  readonly participantId: ParticipantId;
+  readonly role: AssemblyRole;
+  readonly revokedBy: ParticipantId;
+}
+
 // ---------------------------------------------------------------------------
 // Concrete event types
 // ---------------------------------------------------------------------------
@@ -325,6 +342,9 @@ export type CommunityNoteWithdrawnEvent = BaseEvent<"CommunityNoteWithdrawn", Co
 
 export type ProposalEndorsedEvent = BaseEvent<"ProposalEndorsed", ProposalEndorsedPayload>;
 
+export type RoleGrantedEvent = BaseEvent<"RoleGranted", RoleGrantedPayload>;
+export type RoleRevokedEvent = BaseEvent<"RoleRevoked", RoleRevokedPayload>;
+
 /**
  * Union of all concrete domain event types.
  * Use this when you need to handle any event from the store.
@@ -353,7 +373,9 @@ export type DomainEvent =
   | CommunityNoteCreatedEvent
   | CommunityNoteEvaluatedEvent
   | CommunityNoteWithdrawnEvent
-  | ProposalEndorsedEvent;
+  | ProposalEndorsedEvent
+  | RoleGrantedEvent
+  | RoleRevokedEvent;
 
 // ---------------------------------------------------------------------------
 // Event creation helper

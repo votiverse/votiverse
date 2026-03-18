@@ -72,6 +72,9 @@ export type {
   CommunityNoteWithdrawnPayload,
   ProposalEvaluation,
   ProposalEndorsedPayload,
+  AssemblyRole,
+  RoleGrantedPayload,
+  RoleRevokedPayload,
   ParticipantRegisteredEvent,
   ParticipantStatusChangedEvent,
   TopicCreatedEvent,
@@ -96,6 +99,8 @@ export type {
   CommunityNoteEvaluatedEvent,
   CommunityNoteWithdrawnEvent,
   ProposalEndorsedEvent,
+  RoleGrantedEvent,
+  RoleRevokedEvent,
   DomainEvent,
 } from "./events.js";
 export { createEvent } from "./events.js";
