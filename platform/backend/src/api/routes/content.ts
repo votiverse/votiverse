@@ -385,6 +385,98 @@ export function contentRoutes(
   });
 
   // -----------------------------------------------------------------------
+  // Booklet recommendations (VCP-first for metadata, backend stores content)
+  // -----------------------------------------------------------------------
+
+  /** POST recommendation — VCP-first, then store markdown locally. */
+  app.post("/assemblies/:assemblyId/events/:eventId/issues/:issueId/recommendation", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const eventId = c.req.param("eventId");
+    const issueId = c.req.param("issueId");
+    const body = await c.req.json<{ markdown: string }>();
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    // Compute content hash
+    const contentHash = computeContentHash(body.markdown);
+
+    // VCP-first: register metadata
+    const vcpRes = await callVcp(config, "POST",
+      `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`,
+      { contentHash },
+      participantId,
+    );
+
+    if (!vcpRes.ok) {
+      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
+      return c.json(
+        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to register recommendation" } },
+        vcpRes.status as 400 | 403 | 500,
+      );
+    }
+
+    // Store content locally
+    await contentService.storeRecommendation({
+      assemblyId,
+      eventId,
+      issueId,
+      markdown: body.markdown,
+    });
+
+    return c.json({ status: "ok", contentHash }, 201);
+  });
+
+  /** GET recommendation with content. */
+  app.get("/assemblies/:assemblyId/events/:eventId/issues/:issueId/recommendation", async (c) => {
+    const assemblyId = c.req.param("assemblyId");
+    const eventId = c.req.param("eventId");
+    const issueId = c.req.param("issueId");
+
+    const content = await contentService.getRecommendation(assemblyId, eventId, issueId);
+    if (!content) {
+      return c.json({ recommendation: null });
+    }
+
+    return c.json({
+      recommendation: {
+        markdown: content.markdown,
+        contentHash: content.contentHash,
+        createdAt: content.createdAt,
+        updatedAt: content.updatedAt,
+      },
+    });
+  });
+
+  /** DELETE recommendation. */
+  app.delete("/assemblies/:assemblyId/events/:eventId/issues/:issueId/recommendation", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const eventId = c.req.param("eventId");
+    const issueId = c.req.param("issueId");
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    // VCP-first
+    const vcpRes = await callVcp(config, "DELETE",
+      `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`,
+      undefined,
+      participantId,
+    );
+
+    if (!vcpRes.ok) {
+      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
+      return c.json(
+        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to delete recommendation" } },
+        vcpRes.status as 400 | 403 | 500,
+      );
+    }
+
+    // Delete local content
+    await contentService.deleteRecommendation(assemblyId, eventId, issueId);
+
+    return c.json({ status: "deleted" });
+  });
+
+  // -----------------------------------------------------------------------
   // Assets
   // -----------------------------------------------------------------------
 
