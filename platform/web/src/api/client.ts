@@ -134,7 +134,10 @@ export function createEvent(
     description: string;
     issues: Array<{ title: string; description: string; topicIds: string[] }>;
     eligibleParticipantIds: string[];
-    timeline: { deliberationStart: string; votingStart: string; votingEnd: string };
+    /** Start date — system computes full timeline from assembly config. */
+    startDate?: string | number;
+    /** Explicit timeline (backward compat). */
+    timeline?: { deliberationStart: string; votingStart: string; votingEnd: string };
   },
 ): Promise<VotingEvent> {
   return request("POST", `/assemblies/${assemblyId}/events`, params);

@@ -157,9 +157,16 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [issues, setIssues] = useState([{ title: "", description: "" }]);
+  const [startNow, setStartNow] = useState(true);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 16); // datetime-local format
+  });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId), [assemblyId]);
+  const { assembly: assemblyData } = useAssembly(assemblyId);
+  const tl = assemblyData?.config.timeline;
 
   const addIssue = () => setIssues([...issues, { title: "", description: "" }]);
   const updateIssue = (idx: number, field: "title" | "description", value: string) => {
@@ -172,7 +179,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
     setSubmitting(true);
     setFormError(null);
 
-    const now = Date.now();
+    const start = startNow ? Date.now() : new Date(startDate).getTime();
     const participants = participantsData?.participants ?? [];
 
     try {
@@ -181,11 +188,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
         description: description.trim(),
         issues: issues.map((i) => ({ title: i.title.trim(), description: i.description.trim(), topicIds: [] })),
         eligibleParticipantIds: participants.map((p) => p.id),
-        timeline: {
-          deliberationStart: new Date(now - 86400000).toISOString(),
-          votingStart: new Date(now).toISOString(),
-          votingEnd: new Date(now + 86400000 * 7).toISOString(),
-        },
+        startDate: start,
       });
       onCreated();
       onClose();
@@ -195,6 +198,8 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
       setSubmitting(false);
     }
   };
+
+  const totalDays = tl ? tl.deliberationDays + tl.curationDays + tl.votingDays : null;
 
   return (
     <Card className="mb-4 sm:mb-6">
@@ -234,9 +239,43 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
               </button>
             </div>
           </div>
-          <p className="text-xs text-gray-400">
-            All current members will be eligible. Voting opens immediately for 7 days.
-          </p>
+
+          {/* Start time */}
+          <div>
+            <Label>When to start</Label>
+            <div className="flex items-center gap-3 mt-1">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" checked={startNow} onChange={() => setStartNow(true)} />
+                Now
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" checked={!startNow} onChange={() => setStartNow(false)} />
+                Schedule
+              </label>
+            </div>
+            {!startNow && (
+              <Input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-2 max-w-xs"
+              />
+            )}
+          </div>
+
+          {/* Timeline summary from assembly config */}
+          {tl && (
+            <div className="text-xs text-gray-400 space-y-0.5">
+              <p>
+                {tl.deliberationDays}d deliberation
+                {tl.curationDays > 0 && <> + {tl.curationDays}d curation</>}
+                {" "}+ {tl.votingDays}d voting
+                {totalDays && <> = {totalDays} days total</>}
+              </p>
+              <p>All current members ({participantsData?.participants.length ?? 0}) will be eligible.</p>
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={submitting || !title.trim()}>

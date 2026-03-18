@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
+import type { GovernanceConfig } from "../api/types.js";
 import { Card, CardHeader, CardBody, Spinner, ErrorBox, StatusBadge, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import {
@@ -52,6 +53,9 @@ export function AssemblyDashboard() {
         </div>
         <p className="mt-1 text-sm text-gray-500">{config.description}</p>
       </div>
+
+      {/* Onboarding rules summary — shown once per assembly */}
+      <WelcomeCard assemblyId={assemblyId!} assemblyName={assembly.name} config={config} />
 
       {/* Stats row — participant-centric */}
       <div className={`grid grid-cols-2 ${config.delegation.delegationMode !== "none" ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
@@ -263,5 +267,96 @@ function ConfigRow({ label, value }: { label: string; value: string }) {
       <span className="text-gray-500">{label}</span>
       <span className="text-gray-900 font-medium">{value}</span>
     </div>
+  );
+}
+
+/** Generates plain-language governance rules from the config. */
+function summarizeRules(config: GovernanceConfig): string[] {
+  const rules: string[] = [];
+
+  // Delegation
+  if (config.delegation.delegationMode === "none") {
+    rules.push("Every member votes directly on every question");
+  } else if (config.delegation.delegationMode === "candidacy") {
+    rules.push("Members can delegate their vote to trusted candidates" + (config.delegation.topicScoped ? " by topic" : ""));
+  } else {
+    rules.push("Members can delegate their vote to any other member" + (config.delegation.topicScoped ? " by topic" : ""));
+  }
+
+  // Timeline
+  const tl = config.timeline;
+  if (tl) {
+    const parts = [`${tl.deliberationDays} day${tl.deliberationDays !== 1 ? "s" : ""} for deliberation`];
+    if (tl.curationDays > 0) parts.push(`${tl.curationDays} day${tl.curationDays !== 1 ? "s" : ""} for curation`);
+    parts.push(`${tl.votingDays} day${tl.votingDays !== 1 ? "s" : ""} to vote`);
+    rules.push(parts.join(", then "));
+  }
+
+  // Ballot
+  if (config.ballot.secrecy === "secret") {
+    rules.push("Ballots are secret; results are revealed after voting ends");
+  } else if (config.ballot.secrecy === "public") {
+    rules.push("Ballots are public" + (config.ballot.resultsVisibility === "live" ? " with live results" : ""));
+  }
+
+  if (config.ballot.allowVoteChange) {
+    rules.push("You can change your vote any time before voting closes");
+  }
+
+  // Features
+  if (config.features.communityNotes) {
+    rules.push("Community notes help verify claims in proposals and candidate profiles");
+  }
+  if (config.features.polls) {
+    rules.push("Surveys capture member observations as evidence for accountability");
+  }
+
+  return rules;
+}
+
+function WelcomeCard({ assemblyId, assemblyName, config }: { assemblyId: string; assemblyName: string; config: GovernanceConfig }) {
+  const storageKey = `votiverse:welcome-dismissed:${assemblyId}`;
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(storageKey) === "1");
+
+  const dismiss = useCallback(() => {
+    localStorage.setItem(storageKey, "1");
+    setDismissed(true);
+  }, [storageKey]);
+
+  if (dismissed) return null;
+
+  const rules = summarizeRules(config);
+
+  return (
+    <Card className="mb-6 border-brand-200 bg-brand-50/30">
+      <CardBody>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-gray-900">Welcome to {assemblyName}</h3>
+            <p className="text-xs text-gray-500 mt-0.5 mb-2">
+              This group uses <span className="font-medium">{presetLabel(config.name)}</span> governance:
+            </p>
+            <ul className="space-y-1">
+              {rules.map((rule, i) => (
+                <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                  <span className="text-brand mt-0.5 shrink-0">-</span>
+                  <span>{rule}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-gray-400 mt-2">These rules are permanent and apply to all votes in this group.</p>
+          </div>
+          <button
+            onClick={dismiss}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded shrink-0"
+            aria-label="Dismiss"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
