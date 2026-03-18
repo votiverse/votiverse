@@ -8,6 +8,7 @@ import type { Candidacy } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
+import { FileText, MessageSquareText } from "lucide-react";
 import { lazy, Suspense } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
@@ -135,18 +136,20 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
           </div>
         )}
 
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex gap-4">
           <button
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1.5"
             onClick={handleExpand}
           >
-            {expanded ? "Collapse" : "Read statement"}
+            <FileText size={14} />
+            {expanded ? "Hide statement" : "Candidate statement"}
           </button>
           <button
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
             onClick={() => setShowNotes(!showNotes)}
           >
-            Community Notes
+            <MessageSquareText size={14} />
+            Notes
           </button>
         </div>
 
