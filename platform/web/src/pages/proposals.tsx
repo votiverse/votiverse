@@ -82,8 +82,21 @@ export function Proposals() {
 function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; nameMap: Map<string, string>; assemblyId: string }) {
   const [expanded, setExpanded] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [fullContent, setFullContent] = useState<Proposal | null>(null);
 
   const statusColor = proposal.status === "locked" ? "blue" : proposal.status === "withdrawn" ? "gray" : "green";
+
+  const handleExpand = async () => {
+    if (!expanded && !fullContent) {
+      try {
+        const full = await api.getProposal(assemblyId, proposal.id);
+        setFullContent(full);
+      } catch { /* fallback */ }
+    }
+    setExpanded(!expanded);
+  };
+
+  const markdown = fullContent?.content?.markdown ?? proposal.content?.markdown;
 
   return (
     <Card>
@@ -103,16 +116,20 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
           <Badge color={statusColor}>{proposal.status}</Badge>
         </div>
 
-        {expanded && proposal.content && (
+        {expanded && (
           <div className="mt-4 prose prose-sm max-w-none border-t pt-4">
-            <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">{proposal.content.markdown}</pre>
+            {markdown ? (
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">{markdown}</pre>
+            ) : (
+              <p className="text-sm text-gray-400 italic">Proposal content not yet available.</p>
+            )}
           </div>
         )}
 
         <div className="mt-3 flex gap-2">
           <button
             className="text-sm text-blue-600 hover:text-blue-800"
-            onClick={() => setExpanded(!expanded)}
+            onClick={handleExpand}
           >
             {expanded ? "Collapse" : "Read proposal"}
           </button>

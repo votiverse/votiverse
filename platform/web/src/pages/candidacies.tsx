@@ -82,9 +82,22 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [fullContent, setFullContent] = useState<Candidacy | null>(null);
 
   const name = nameMap.get(candidacy.participantId) ?? candidacy.participantId;
   const topics = candidacy.topicScope.map((t) => topicNameMap.get(t) ?? t);
+
+  const handleExpand = async () => {
+    if (!expanded && !fullContent) {
+      try {
+        const full = await api.getCandidacy(assemblyId, candidacy.id);
+        setFullContent(full);
+      } catch { /* fallback to no content */ }
+    }
+    setExpanded(!expanded);
+  };
+
+  const markdown = fullContent?.content?.markdown ?? candidacy.content?.markdown;
 
   return (
     <Card>
@@ -109,16 +122,20 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
           </div>
         </div>
 
-        {expanded && candidacy.content?.markdown && (
+        {expanded && (
           <div className="mt-4 prose prose-sm max-w-none border-t pt-4">
-            <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">{candidacy.content.markdown}</pre>
+            {markdown ? (
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">{markdown}</pre>
+            ) : (
+              <p className="text-sm text-gray-400 italic">Profile content not yet available.</p>
+            )}
           </div>
         )}
 
         <div className="mt-3 flex gap-2">
           <button
             className="text-sm text-blue-600 hover:text-blue-800"
-            onClick={() => setExpanded(!expanded)}
+            onClick={handleExpand}
           >
             {expanded ? "Collapse" : "View profile"}
           </button>
