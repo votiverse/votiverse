@@ -6,7 +6,8 @@ import { useAssembly } from "../hooks/use-assembly.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
-import type { Tally, WeightDist, ParticipationRecord } from "../api/types.js";
+import type { Tally, WeightDist, ParticipationRecord, Proposal } from "../api/types.js";
+import { FileText } from "lucide-react";
 import { deriveEventStatus } from "../lib/status.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
@@ -58,6 +59,23 @@ export function EventDetail() {
     () => api.listTopics(assemblyId!),
     [assemblyId],
   );
+
+  // Fetch all proposals in the assembly (one call, grouped per issue client-side)
+  const { data: proposalsData } = useApi(
+    () => api.listProposals(assemblyId!),
+    [assemblyId],
+  );
+
+  const proposalsByIssue = useMemo(() => {
+    const map = new Map<string, Proposal[]>();
+    for (const p of proposalsData?.proposals ?? []) {
+      if (p.status === "withdrawn") continue;
+      const list = map.get(p.issueId) ?? [];
+      list.push(p);
+      map.set(p.issueId, list);
+    }
+    return map;
+  }, [proposalsData]);
 
   const status = event?.timeline ? deriveEventStatus(event.timeline) : "upcoming";
 
@@ -174,6 +192,7 @@ export function EventDetail() {
               delegationConfig={delegationConfig}
               resultsVisibility={resultsVisibility}
               allowVoteChange={allowVoteChange}
+              proposals={proposalsByIssue.get(issue.id) ?? []}
               participants={participants}
               topics={topicsData?.topics ?? []}
               onVoted={refreshAll}
@@ -298,6 +317,7 @@ function IssueVotingCard({
   delegationConfig,
   resultsVisibility,
   allowVoteChange,
+  proposals,
   participants,
   topics,
   onVoted,
@@ -317,6 +337,7 @@ function IssueVotingCard({
   delegationConfig: DelegationConfig;
   resultsVisibility: string;
   allowVoteChange: boolean;
+  proposals: Proposal[];
   participants: Array<{ id: string; name: string }>;
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
   onVoted: () => void;
@@ -395,15 +416,21 @@ function IssueVotingCard({
             ))}
           </div>
         )}
-        {/* Proposals link */}
-        <div className="mt-2">
-          <Link
-            to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
-            className="text-sm text-blue-600 hover:text-blue-800"
-          >
-            View proposals for this issue
-          </Link>
-        </div>
+        {/* Proposals — show only when they exist */}
+        {proposals.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {proposals.map((p) => (
+              <Link
+                key={p.id}
+                to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+                className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors"
+              >
+                <FileText size={12} />
+                {p.choiceKey ? <><span className="font-medium capitalize">{p.choiceKey}:</span> {p.title}</> : p.title}
+              </Link>
+            ))}
+          </div>
+        )}
       </CardHeader>
       <CardBody className="space-y-4">
         {/* Closed event: historical participation record */}
