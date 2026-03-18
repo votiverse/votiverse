@@ -195,13 +195,25 @@ export class SQLiteAdapter implements DatabaseAdapter {
         PRIMARY KEY (assembly_id, event_id, issue_id)
       );
 
-      -- Voting event creators (tracks who created each event for curation rights)
+      -- Voting event creators (tracks who created each event — historical attribution)
       CREATE TABLE IF NOT EXISTS voting_event_creators (
         assembly_id     TEXT NOT NULL,
         event_id        TEXT NOT NULL,
         participant_id  TEXT NOT NULL,
         PRIMARY KEY (assembly_id, event_id)
       );
+
+      -- Assembly roles — materialized from RoleGranted/RoleRevoked events
+      CREATE TABLE IF NOT EXISTS assembly_roles (
+        assembly_id     TEXT NOT NULL,
+        participant_id  TEXT NOT NULL,
+        role            TEXT NOT NULL,
+        granted_by      TEXT NOT NULL,
+        granted_at      INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, participant_id, role)
+      );
+      CREATE INDEX IF NOT EXISTS idx_assembly_roles_assembly
+        ON assembly_roles(assembly_id, role);
 
       CREATE TABLE IF NOT EXISTS proposal_versions (
         assembly_id     TEXT NOT NULL,

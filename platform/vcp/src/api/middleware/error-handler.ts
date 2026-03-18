@@ -8,7 +8,7 @@
 
 import type { Context, Next } from "hono";
 import { VotiverseError, NotFoundError, ValidationError, GovernanceRuleViolation } from "@votiverse/core";
-import { AssemblyNotFoundError } from "../../engine/assembly-manager.js";
+import { AssemblyNotFoundError, RoleInvariantError } from "../../engine/assembly-manager.js";
 import { logger } from "../../lib/logger.js";
 
 /** Type-safe check that works across module boundaries. */
@@ -24,6 +24,13 @@ export async function errorHandler(c: Context, next: Next) {
       return c.json(
         { error: { code: "ASSEMBLY_NOT_FOUND", message: (error as Error).message } },
         404,
+      );
+    }
+
+    if (error instanceof RoleInvariantError || isErrorNamed(error, "RoleInvariantError")) {
+      return c.json(
+        { error: { code: "ROLE_INVARIANT", message: (error as Error).message } },
+        409,
       );
     }
 

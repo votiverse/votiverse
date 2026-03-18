@@ -350,6 +350,9 @@ describe("Proposal endorsements and curation", () => {
     }
     [alice, bob, carol, dave] = participants as [{ id: string }, { id: string }, { id: string }, { id: string }];
 
+    // Grant Alice admin role (needed for curation: featuring proposals, recommendations)
+    await vcp.manager.grantRole(asmId, alice.id, "owner", alice.id);
+
     // Create event with Alice as creator (via X-Participant-Id header)
     const now = vcp.clock.now() as number;
     const eventRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/events`, {
@@ -418,7 +421,7 @@ describe("Proposal endorsements and curation", () => {
     expect(body.disputeCount).toBe(1);
   });
 
-  it("event creator can feature and unfeature proposals", async () => {
+  it("admin can feature and unfeature proposals", async () => {
     // Feature
     const featureRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/feature`);
     expect(featureRes.status).toBe(200);
@@ -436,7 +439,7 @@ describe("Proposal endorsements and curation", () => {
     expect(body.featured).toBe(false);
   });
 
-  it("non-creator cannot feature proposals", async () => {
+  it("non-admin cannot feature proposals", async () => {
     const res = await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/feature`);
     expect(res.status).toBe(403);
   });
@@ -472,7 +475,7 @@ describe("Proposal endorsements and curation", () => {
     expect(booklet.recommendation).toBeNull();
   });
 
-  it("recommendation CRUD works for event creator", async () => {
+  it("recommendation CRUD works for admin", async () => {
     // Create recommendation
     const createRes = await vcp.requestAs(alice.id, "POST",
       `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,

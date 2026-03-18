@@ -327,7 +327,7 @@ export function proposalRoutes(manager: AssemblyManager) {
     },
   );
 
-  /** POST /assemblies/:id/proposals/:pid/feature — mark as featured (creator only). */
+  /** POST /assemblies/:id/proposals/:pid/feature — mark as featured (admin only). */
   app.post(
     "/assemblies/:id/proposals/:pid/feature",
     requireParticipant(manager),
@@ -336,31 +336,30 @@ export function proposalRoutes(manager: AssemblyManager) {
       const proposalId = c.req.param("pid");
       const participantId = c.get("participantId") as string;
 
+      // Verify caller is an admin
+      const isAdmin = await manager.isAdmin(assemblyId, participantId);
+      if (!isAdmin) {
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can feature proposals" } }, 403);
+      }
+
       const db = manager.getDatabase();
 
-      // Check proposal exists and get its issue
-      const proposal = await db.queryOne<Record<string, unknown>>(
-        `SELECT issue_id FROM proposals WHERE assembly_id = ? AND id = ?`,
+      // Check proposal exists and get its issue + choiceKey
+      const proposal = await db.queryOne<{ issue_id: string; choice_key: string | null }>(
+        `SELECT issue_id, choice_key FROM proposals WHERE assembly_id = ? AND id = ?`,
         [assemblyId, proposalId],
       );
       if (!proposal) {
         return c.json({ error: { code: "NOT_FOUND", message: "Proposal not found" } }, 404);
       }
 
-      // Verify caller is event creator
-      const issueId = proposal["issue_id"] as string;
-      const issue = await db.queryOne<{ voting_event_id: string }>(
-        `SELECT voting_event_id FROM issues WHERE assembly_id = ? AND id = ?`,
-        [assemblyId, issueId],
-      );
-      if (issue) {
-        const creator = await db.queryOne<{ participant_id: string }>(
-          `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
-          [assemblyId, issue.voting_event_id],
+      // Exclusive featuring: unfeature any other proposal for the same choiceKey + issue
+      if (proposal.choice_key) {
+        await db.run(
+          `UPDATE proposals SET featured = 0
+           WHERE assembly_id = ? AND issue_id = ? AND choice_key = ? AND id != ? AND featured = 1`,
+          [assemblyId, proposal.issue_id, proposal.choice_key, proposalId],
         );
-        if (!creator || creator.participant_id !== participantId) {
-          return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can feature proposals" } }, 403);
-        }
       }
 
       await db.run(
@@ -372,7 +371,7 @@ export function proposalRoutes(manager: AssemblyManager) {
     },
   );
 
-  /** POST /assemblies/:id/proposals/:pid/unfeature — remove featured flag (creator only). */
+  /** POST /assemblies/:id/proposals/:pid/unfeature — remove featured flag (admin only). */
   app.post(
     "/assemblies/:id/proposals/:pid/unfeature",
     requireParticipant(manager),
@@ -381,28 +380,19 @@ export function proposalRoutes(manager: AssemblyManager) {
       const proposalId = c.req.param("pid");
       const participantId = c.get("participantId") as string;
 
+      // Verify caller is an admin
+      const isAdmin = await manager.isAdmin(assemblyId, participantId);
+      if (!isAdmin) {
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can unfeature proposals" } }, 403);
+      }
+
       const db = manager.getDatabase();
       const proposal = await db.queryOne<Record<string, unknown>>(
-        `SELECT issue_id FROM proposals WHERE assembly_id = ? AND id = ?`,
+        `SELECT id FROM proposals WHERE assembly_id = ? AND id = ?`,
         [assemblyId, proposalId],
       );
       if (!proposal) {
         return c.json({ error: { code: "NOT_FOUND", message: "Proposal not found" } }, 404);
-      }
-
-      const issueId = proposal["issue_id"] as string;
-      const issue = await db.queryOne<{ voting_event_id: string }>(
-        `SELECT voting_event_id FROM issues WHERE assembly_id = ? AND id = ?`,
-        [assemblyId, issueId],
-      );
-      if (issue) {
-        const creator = await db.queryOne<{ participant_id: string }>(
-          `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
-          [assemblyId, issue.voting_event_id],
-        );
-        if (!creator || creator.participant_id !== participantId) {
-          return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can unfeature proposals" } }, 403);
-        }
       }
 
       await db.run(
@@ -425,16 +415,13 @@ export function proposalRoutes(manager: AssemblyManager) {
       const participantId = c.get("participantId") as string;
       const body = await c.req.json<{ contentHash: string }>();
 
-      // Verify caller is event creator
-      const db = manager.getDatabase();
-      const creator = await db.queryOne<{ participant_id: string }>(
-        `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
-        [assemblyId, eventId],
-      );
-      if (!creator || creator.participant_id !== participantId) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can set recommendations" } }, 403);
+      // Verify caller is an admin
+      const isAdmin = await manager.isAdmin(assemblyId, participantId);
+      if (!isAdmin) {
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can set recommendations" } }, 403);
       }
 
+      const db = manager.getDatabase();
       const now = Date.now();
       await db.run(
         `INSERT INTO booklet_recommendations (assembly_id, event_id, issue_id, author_id, content_hash, created_at, updated_at)
@@ -484,15 +471,13 @@ export function proposalRoutes(manager: AssemblyManager) {
       const issueId = c.req.param("iid");
       const participantId = c.get("participantId") as string;
 
-      const db = manager.getDatabase();
-      const creator = await db.queryOne<{ participant_id: string }>(
-        `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
-        [assemblyId, eventId],
-      );
-      if (!creator || creator.participant_id !== participantId) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can remove recommendations" } }, 403);
+      // Verify caller is an admin
+      const isAdmin = await manager.isAdmin(assemblyId, participantId);
+      if (!isAdmin) {
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can remove recommendations" } }, 403);
       }
 
+      const db = manager.getDatabase();
       await db.run(
         `DELETE FROM booklet_recommendations WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
         [assemblyId, eventId, issueId],

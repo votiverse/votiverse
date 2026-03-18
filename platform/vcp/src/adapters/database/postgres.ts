@@ -149,6 +149,18 @@ export class PostgresAdapter implements DatabaseAdapter {
           PRIMARY KEY (assembly_id, issue_id)
         );
 
+        -- Assembly roles — materialized from RoleGranted/RoleRevoked events
+        CREATE TABLE IF NOT EXISTS assembly_roles (
+          assembly_id     TEXT NOT NULL,
+          participant_id  TEXT NOT NULL,
+          role            TEXT NOT NULL,
+          granted_by      TEXT NOT NULL,
+          granted_at      BIGINT NOT NULL,
+          PRIMARY KEY (assembly_id, participant_id, role)
+        );
+        CREATE INDEX IF NOT EXISTS idx_assembly_roles_assembly
+          ON assembly_roles(assembly_id, role);
+
         -- Materialized concentration metrics
         CREATE TABLE IF NOT EXISTS issue_concentration (
           assembly_id              TEXT NOT NULL,

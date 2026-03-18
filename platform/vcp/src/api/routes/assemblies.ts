@@ -8,6 +8,7 @@ import type { GovernanceConfig } from "@votiverse/config";
 import { validateConfig, getPreset } from "@votiverse/config";
 import type { PresetName } from "@votiverse/config";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { RoleInvariantError } from "../../engine/assembly-manager.js";
 import type { AuthAdapter } from "../../adapters/auth/interface.js";
 import { getClient } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
@@ -22,6 +23,7 @@ export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
       organizationId?: string;
       config?: GovernanceConfig;
       preset?: string;
+      creatorParticipantId?: string;
     }>();
 
     if (!body.name) {
@@ -76,6 +78,11 @@ export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
       await auth.grantAssemblyAccess(client.id, id);
     }
 
+    // If a creator participant is specified, register them and grant owner + admin roles
+    if (body.creatorParticipantId) {
+      await manager.grantRole(id, body.creatorParticipantId, "owner", body.creatorParticipantId);
+    }
+
     return c.json(assembly, 201);
   });
 
@@ -104,6 +111,108 @@ export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
       );
     }
     return c.json(info);
+  });
+
+  /** GET /assemblies/:id/roles — list all roles for an assembly. */
+  app.get("/assemblies/:id/roles", async (c) => {
+    const assemblyId = c.req.param("id");
+    const roles = await manager.listRoles(assemblyId);
+    return c.json({ roles });
+  });
+
+  /** POST /assemblies/:id/roles — grant a role. Requires owner. */
+  app.post("/assemblies/:id/roles", async (c) => {
+    const assemblyId = c.req.param("id");
+    const body = await c.req.json<{
+      participantId: string;
+      role: "owner" | "admin";
+    }>();
+
+    if (!body.participantId || !body.role) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "participantId and role are required" } },
+        400,
+      );
+    }
+    if (body.role !== "owner" && body.role !== "admin") {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "role must be 'owner' or 'admin'" } },
+        400,
+      );
+    }
+
+    // Only owners can manage roles
+    const callerId = c.req.header("X-Participant-Id") ?? (c.get("participantId") as string | undefined);
+    if (!callerId) {
+      return c.json(
+        { error: { code: "UNAUTHORIZED", message: "Participant identity required" } },
+        401,
+      );
+    }
+    const isOwner = await manager.hasRole(assemblyId, callerId, "owner");
+    if (!isOwner) {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Only owners can manage roles" } },
+        403,
+      );
+    }
+
+    try {
+      await manager.grantRole(assemblyId, body.participantId, body.role, callerId);
+    } catch (e) {
+      if (e instanceof RoleInvariantError) {
+        return c.json(
+          { error: { code: "ROLE_INVARIANT", message: (e as Error).message } },
+          409,
+        );
+      }
+      throw e;
+    }
+    return c.json({ ok: true }, 200);
+  });
+
+  /** DELETE /assemblies/:id/roles — revoke a role. Requires owner. */
+  app.delete("/assemblies/:id/roles", async (c) => {
+    const assemblyId = c.req.param("id");
+    const body = await c.req.json<{
+      participantId: string;
+      role: "owner" | "admin";
+    }>();
+
+    if (!body.participantId || !body.role) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "participantId and role are required" } },
+        400,
+      );
+    }
+
+    const callerId = c.req.header("X-Participant-Id") ?? (c.get("participantId") as string | undefined);
+    if (!callerId) {
+      return c.json(
+        { error: { code: "UNAUTHORIZED", message: "Participant identity required" } },
+        401,
+      );
+    }
+    const isOwner = await manager.hasRole(assemblyId, callerId, "owner");
+    if (!isOwner) {
+      return c.json(
+        { error: { code: "FORBIDDEN", message: "Only owners can manage roles" } },
+        403,
+      );
+    }
+
+    try {
+      await manager.revokeRole(assemblyId, body.participantId, body.role, callerId);
+    } catch (e) {
+      if (e instanceof RoleInvariantError) {
+        return c.json(
+          { error: { code: "ROLE_INVARIANT", message: (e as Error).message } },
+          409,
+        );
+      }
+      throw e;
+    }
+    return c.json({ ok: true }, 200);
   });
 
   return app;

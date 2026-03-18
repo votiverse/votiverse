@@ -292,6 +292,122 @@ export class AssemblyManager {
   }
 
   // -----------------------------------------------------------------------
+  // Assembly roles (materialized from events)
+  // -----------------------------------------------------------------------
+
+  /** Grant a role to a participant, recording both the event and the materialized row. */
+  async grantRole(
+    assemblyId: string,
+    participantId: string,
+    role: "owner" | "admin",
+    grantedBy: string,
+  ): Promise<void> {
+    const now = this.timeProvider.now();
+    // If granting owner, ensure they're also admin
+    if (role === "owner") {
+      await this.db.run(
+        `INSERT INTO assembly_roles (assembly_id, participant_id, role, granted_by, granted_at)
+         VALUES (?, ?, 'admin', ?, ?)
+         ON CONFLICT (assembly_id, participant_id, role) DO NOTHING`,
+        [assemblyId, participantId, grantedBy, now],
+      );
+    }
+    await this.db.run(
+      `INSERT INTO assembly_roles (assembly_id, participant_id, role, granted_by, granted_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (assembly_id, participant_id, role) DO NOTHING`,
+      [assemblyId, participantId, role, grantedBy, now],
+    );
+    // Record the event
+    const { engine } = await this.getEngine(assemblyId);
+    const store = this.engines.get(assemblyId)!.store;
+    const { createEvent } = await import("@votiverse/core");
+    const { randomUUID } = await import("node:crypto");
+    const event = createEvent("RoleGranted", {
+      participantId,
+      role,
+      grantedBy,
+    }, randomUUID() as import("@votiverse/core").EventId, now as import("@votiverse/core").Timestamp);
+    await store.append(event);
+  }
+
+  /** Revoke a role from a participant. Enforces invariants. */
+  async revokeRole(
+    assemblyId: string,
+    participantId: string,
+    role: "owner" | "admin",
+    revokedBy: string,
+  ): Promise<void> {
+    // Cannot remove admin from an owner — must revoke ownership first
+    if (role === "admin") {
+      const ownerRow = await this.db.queryOne<{ role: string }>(
+        `SELECT role FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = 'owner'`,
+        [assemblyId, participantId],
+      );
+      if (ownerRow) {
+        throw new RoleInvariantError("Cannot remove admin role from an owner. Revoke ownership first.");
+      }
+    }
+    // Cannot revoke last owner
+    if (role === "owner") {
+      const ownerCount = await this.db.queryOne<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM assembly_roles WHERE assembly_id = ? AND role = 'owner'`,
+        [assemblyId],
+      );
+      if ((ownerCount?.cnt ?? 0) <= 1) {
+        throw new RoleInvariantError("Cannot revoke the last owner. Promote another admin to owner first, or delete the assembly.");
+      }
+    }
+    await this.db.run(
+      `DELETE FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = ?`,
+      [assemblyId, participantId, role],
+    );
+    // Record the event
+    const store = this.engines.get(assemblyId)?.store ?? (() => { throw new Error("Engine not loaded"); })();
+    const { createEvent } = await import("@votiverse/core");
+    const { randomUUID } = await import("node:crypto");
+    const now = this.timeProvider.now();
+    const event = createEvent("RoleRevoked", {
+      participantId,
+      role,
+      revokedBy,
+    }, randomUUID() as import("@votiverse/core").EventId, now as import("@votiverse/core").Timestamp);
+    await store.append(event);
+  }
+
+  /** List all roles for an assembly. */
+  async listRoles(assemblyId: string): Promise<Array<{ participantId: string; role: string; grantedBy: string; grantedAt: number }>> {
+    const rows = await this.db.query<{ participant_id: string; role: string; granted_by: string; granted_at: number }>(
+      `SELECT participant_id, role, granted_by, granted_at FROM assembly_roles WHERE assembly_id = ? ORDER BY granted_at ASC`,
+      [assemblyId],
+    );
+    return rows.map((r) => ({
+      participantId: r.participant_id,
+      role: r.role,
+      grantedBy: r.granted_by,
+      grantedAt: r.granted_at,
+    }));
+  }
+
+  /** Check if a participant has a specific role in an assembly. */
+  async hasRole(assemblyId: string, participantId: string, role: "owner" | "admin"): Promise<boolean> {
+    const row = await this.db.queryOne<{ role: string }>(
+      `SELECT role FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = ?`,
+      [assemblyId, participantId, role],
+    );
+    return !!row;
+  }
+
+  /** Check if a participant is an admin (owner is always admin). */
+  async isAdmin(assemblyId: string, participantId: string): Promise<boolean> {
+    const row = await this.db.queryOne<{ role: string }>(
+      `SELECT role FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = 'admin'`,
+      [assemblyId, participantId],
+    );
+    return !!row;
+  }
+
+  // -----------------------------------------------------------------------
   // Participation records (materialized read-side projection)
   // -----------------------------------------------------------------------
 
@@ -573,5 +689,12 @@ export class AssemblyNotFoundError extends Error {
   constructor(public readonly assemblyId: string) {
     super(`Assembly "${assemblyId}" not found`);
     this.name = "AssemblyNotFoundError";
+  }
+}
+
+export class RoleInvariantError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RoleInvariantError";
   }
 }
