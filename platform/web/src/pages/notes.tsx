@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams } from "react-router";
+import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
@@ -14,6 +14,20 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
   survey: "Survey",
   "community-note": "Note",
 };
+
+/** Build a link to the page where this note's target lives. */
+function targetLink(assemblyId: string, target: CommunityNote["target"]): string {
+  switch (target.type) {
+    case "proposal":
+      return `/assembly/${assemblyId}/proposals`;
+    case "candidacy":
+      return `/assembly/${assemblyId}/candidacies`;
+    case "survey":
+      return `/assembly/${assemblyId}/polls`;
+    default:
+      return `/assembly/${assemblyId}/notes`;
+  }
+}
 
 export function Notes() {
   const { assemblyId } = useParams();
@@ -37,20 +51,25 @@ export function Notes() {
 
   const allNotes = data?.notes ?? [];
 
-  // Filter by target type
+  // Count my notes
+  const myNoteCount = useMemo(
+    () => allNotes.filter((n) => n.authorId === participantId).length,
+    [allNotes, participantId],
+  );
+
+  // Filter
   const filteredNotes = useMemo(() => {
     if (filter === "all") return allNotes;
+    if (filter === "mine") return allNotes.filter((n) => n.authorId === participantId);
     return allNotes.filter((n) => n.target.type === filter);
-  }, [allNotes, filter]);
+  }, [allNotes, filter, participantId]);
 
   // Sort: most recent first, visible above non-visible
   const sortedNotes = useMemo(() => {
     return [...filteredNotes].sort((a, b) => {
-      // Visible notes first
       const aVis = a.visibility?.visible ? 0 : 1;
       const bVis = b.visibility?.visible ? 0 : 1;
       if (aVis !== bVis) return aVis - bVis;
-      // Then by recency
       return b.createdAt - a.createdAt;
     });
   }, [filteredNotes]);
@@ -78,30 +97,26 @@ export function Notes() {
         </p>
       </div>
 
-      {/* Filter tabs */}
-      {targetTypes.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-4">
+      {/* Filter chips */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <FilterChip label="All" count={allNotes.length} active={filter === "all"} onClick={() => setFilter("all")} />
+        {participantId && myNoteCount > 0 && (
+          <FilterChip label="Mine" count={myNoteCount} active={filter === "mine"} onClick={() => setFilter("mine")} />
+        )}
+        {targetTypes.map((type) => (
           <FilterChip
-            label="All"
-            count={allNotes.length}
-            active={filter === "all"}
-            onClick={() => setFilter("all")}
+            key={type}
+            label={TARGET_TYPE_LABELS[type] ?? type}
+            count={countByType[type] ?? 0}
+            active={filter === type}
+            onClick={() => setFilter(type)}
           />
-          {targetTypes.map((type) => (
-            <FilterChip
-              key={type}
-              label={TARGET_TYPE_LABELS[type] ?? type}
-              count={countByType[type] ?? 0}
-              active={filter === type}
-              onClick={() => setFilter(type)}
-            />
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {sortedNotes.length === 0 ? (
         <EmptyState
-          title="No notes yet"
+          title={filter === "mine" ? "You haven't written any notes" : "No notes yet"}
           description="Notes can be added to proposals and candidates to provide context, evidence, or corrections."
         />
       ) : (
@@ -113,7 +128,7 @@ export function Notes() {
               assemblyId={assemblyId!}
               nameMap={nameMap}
               participantId={participantId}
-              onEvaluated={refetch}
+              onChanged={refetch}
             />
           ))}
         </div>
@@ -142,17 +157,17 @@ function FilterChip({ label, count, active, onClick }: {
   );
 }
 
-function NoteCard({ note, assemblyId, nameMap, participantId, onEvaluated }: {
+function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
   note: CommunityNote;
   assemblyId: string;
   nameMap: Map<string, string>;
   participantId: string | null;
-  onEvaluated: () => void;
+  onChanged: () => void;
 }) {
-  const [evaluating, setEvaluating] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [fullNote, setFullNote] = useState<CommunityNote | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const handleExpand = async () => {
     if (expanded) { setExpanded(false); return; }
@@ -163,22 +178,22 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onEvaluated }: {
         const full = await api.getNote(assemblyId, note.id);
         setFullNote(full);
       } catch {
-        // Content unavailable — show metadata only
+        // Content unavailable
       } finally {
         setLoadingContent(false);
       }
     }
   };
 
-  const handleEvaluate = async (evaluation: "endorse" | "dispute") => {
-    setEvaluating(true);
+  const handleWithdraw = async () => {
+    setWithdrawing(true);
     try {
-      await api.evaluateNote(assemblyId, note.id, evaluation);
-      onEvaluated();
+      await api.withdrawNote(assemblyId, note.id);
+      onChanged();
     } catch {
-      // Self-evaluation or duplicate — silently ignore
+      // Already withdrawn or not author
     } finally {
-      setEvaluating(false);
+      setWithdrawing(false);
     }
   };
 
@@ -194,13 +209,15 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onEvaluated }: {
   return (
     <Card className={isWithdrawn ? "opacity-60" : ""}>
       <CardBody>
-        {/* Header: author + target + metadata */}
+        {/* Header: author + linked target + metadata */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Avatar name={authorName} size="xs" />
             <span className="text-sm font-medium text-gray-900">{authorName}</span>
             <span className="text-xs text-gray-400">on</span>
-            <Badge color="gray">{targetLabel}</Badge>
+            <Link to={targetLink(assemblyId, note.target)} className="hover:opacity-80 transition-opacity">
+              <Badge color="gray">{targetLabel}</Badge>
+            </Link>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {isVisible && <Badge color="green">Visible</Badge>}
@@ -226,13 +243,10 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onEvaluated }: {
           </div>
         )}
 
-        {/* Evaluation bar + actions */}
+        {/* Footer: read toggle + stats + author actions */}
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
           <div className="flex items-center gap-3 text-xs text-gray-500">
-            <button
-              onClick={handleExpand}
-              className="text-xs text-gray-500 hover:text-gray-700"
-            >
+            <button onClick={handleExpand} className="text-xs text-gray-500 hover:text-gray-700">
               {expanded ? "Collapse" : "Read"}
             </button>
             <span className="text-gray-200">|</span>
@@ -245,24 +259,25 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onEvaluated }: {
             )}
           </div>
 
-          {!isWithdrawn && !isOwnNote && participantId && (
-            <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            {/* Link to context page */}
+            <Link
+              to={targetLink(assemblyId, note.target)}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              View in context
+            </Link>
+            {/* Author can withdraw their own note */}
+            {isOwnNote && !isWithdrawn && (
               <button
-                className="text-xs text-green-600 hover:text-green-800 disabled:opacity-50 min-h-[28px] px-2"
-                onClick={() => handleEvaluate("endorse")}
-                disabled={evaluating}
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+                className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
               >
-                Helpful
+                {withdrawing ? "Withdrawing..." : "Withdraw"}
               </button>
-              <button
-                className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 min-h-[28px] px-2"
-                onClick={() => handleEvaluate("dispute")}
-                disabled={evaluating}
-              >
-                Not helpful
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </CardBody>
     </Card>

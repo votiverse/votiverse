@@ -64,7 +64,7 @@ describe("MemberSearch", () => {
     expect(screen.getByText("Declared Candidates")).toBeDefined();
     expect(screen.getByText("Aisha Moyo")).toBeDefined();
     expect(screen.getByText("Candidate")).toBeDefined();
-    expect(screen.getByText("Transparent")).toBeDefined();
+    expect(screen.getByText("Public votes")).toBeDefined();
     expect(screen.getByText("Education, Digital Literacy")).toBeDefined();
   });
 

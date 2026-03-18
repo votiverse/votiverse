@@ -424,4 +424,11 @@ export function evaluateNote(
   return request("POST", `/assemblies/${assemblyId}/notes/${noteId}/evaluate`, { evaluation });
 }
 
+export function withdrawNote(
+  assemblyId: string,
+  noteId: string,
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/notes/${noteId}/withdraw`);
+}
+
 export { ApiError };
