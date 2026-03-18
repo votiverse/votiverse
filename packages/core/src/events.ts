@@ -69,7 +69,8 @@ export type EventType =
   | "CandidacyWithdrawn"
   | "CommunityNoteCreated"
   | "CommunityNoteEvaluated"
-  | "CommunityNoteWithdrawn";
+  | "CommunityNoteWithdrawn"
+  | "ProposalEndorsed";
 
 // ---------------------------------------------------------------------------
 // Event payload types
@@ -261,6 +262,15 @@ export interface CommunityNoteWithdrawnPayload {
   readonly authorId: ParticipantId;
 }
 
+/** Proposal endorsement signal — same domain as NoteEvaluation. */
+export type ProposalEvaluation = "endorse" | "dispute";
+
+export interface ProposalEndorsedPayload {
+  readonly proposalId: ProposalId;
+  readonly participantId: ParticipantId;
+  readonly evaluation: ProposalEvaluation;
+}
+
 // ---------------------------------------------------------------------------
 // Concrete event types
 // ---------------------------------------------------------------------------
@@ -313,6 +323,8 @@ export type CommunityNoteCreatedEvent = BaseEvent<"CommunityNoteCreated", Commun
 export type CommunityNoteEvaluatedEvent = BaseEvent<"CommunityNoteEvaluated", CommunityNoteEvaluatedPayload>;
 export type CommunityNoteWithdrawnEvent = BaseEvent<"CommunityNoteWithdrawn", CommunityNoteWithdrawnPayload>;
 
+export type ProposalEndorsedEvent = BaseEvent<"ProposalEndorsed", ProposalEndorsedPayload>;
+
 /**
  * Union of all concrete domain event types.
  * Use this when you need to handle any event from the store.
@@ -340,7 +352,8 @@ export type DomainEvent =
   | CandidacyWithdrawnEvent
   | CommunityNoteCreatedEvent
   | CommunityNoteEvaluatedEvent
-  | CommunityNoteWithdrawnEvent;
+  | CommunityNoteWithdrawnEvent
+  | ProposalEndorsedEvent;
 
 // ---------------------------------------------------------------------------
 // Event creation helper
