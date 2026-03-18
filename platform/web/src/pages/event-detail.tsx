@@ -8,6 +8,7 @@ import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord, Proposal } from "../api/types.js";
 import { FileText } from "lucide-react";
+import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
@@ -349,6 +350,7 @@ function IssueVotingCard({
   const [voteError, setVoteError] = useState<string | null>(null);
   // null = derive from issueStatus; boolean = user override (e.g. "Change vote" click)
   const [expandedOverride, setExpandedOverride] = useState<boolean | null>(null);
+  const [bookletOpen, setBookletOpen] = useState(false);
   const expanded = expandedOverride ?? !issueStatus.hasVoted;
 
   const votingOpen = eventStatus === "voting";
@@ -416,19 +418,19 @@ function IssueVotingCard({
             ))}
           </div>
         )}
-        {/* Proposals — show only when they exist */}
+        {/* Voting booklet link — only when proposals exist */}
         {proposals.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            {proposals.map((p) => (
-              <Link
-                key={p.id}
-                to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
-                className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors"
-              >
-                <FileText size={12} />
-                {p.choiceKey ? <><span className="font-medium capitalize">{p.choiceKey}:</span> {p.title}</> : p.title}
-              </Link>
-            ))}
+          <div className="mt-2">
+            <button
+              onClick={() => setBookletOpen(true)}
+              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              <FileText size={14} />
+              Voting booklet
+              <span className="text-xs text-gray-400 font-normal">
+                ({proposals.length} argument{proposals.length !== 1 ? "s" : ""})
+              </span>
+            </button>
           </div>
         )}
       </CardHeader>
@@ -484,6 +486,19 @@ function IssueVotingCard({
           resultsVisibility={resultsVisibility}
         />
       </CardBody>
+
+      {/* Voting booklet modal */}
+      {bookletOpen && (
+        <VotingBooklet
+          assemblyId={assemblyId}
+          issueId={issueId}
+          issueTitle={title}
+          issueDescription={description}
+          choices={choices}
+          proposals={proposals}
+          onClose={() => setBookletOpen(false)}
+        />
+      )}
     </Card>
   );
 }
