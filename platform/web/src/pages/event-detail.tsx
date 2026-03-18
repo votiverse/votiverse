@@ -179,6 +179,7 @@ export function EventDetail() {
             <IssueVotingCard
               key={issue.id}
               assemblyId={assemblyId!}
+              eventId={eventId!}
               issueId={issue.id}
               title={issue.title}
               description={issue.description}
@@ -196,6 +197,7 @@ export function EventDetail() {
               proposals={proposalsByIssue.get(issue.id) ?? []}
               participants={participants}
               topics={topicsData?.topics ?? []}
+              isCreator={participantId === event?.createdBy}
               onVoted={refreshAll}
             />
           );
@@ -304,6 +306,7 @@ function IssueSummary({ votedCount, totalCount }: {
 
 function IssueVotingCard({
   assemblyId,
+  eventId,
   issueId,
   title,
   description,
@@ -321,9 +324,11 @@ function IssueVotingCard({
   proposals,
   participants,
   topics,
+  isCreator,
   onVoted,
 }: {
   assemblyId: string;
+  eventId: string;
   issueId: string;
   title: string;
   description: string;
@@ -341,6 +346,7 @@ function IssueVotingCard({
   proposals: Proposal[];
   participants: Array<{ id: string; name: string }>;
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
+  isCreator: boolean;
   onVoted: () => void;
 }) {
   const { getParticipantId } = useIdentity();
@@ -491,11 +497,14 @@ function IssueVotingCard({
       {bookletOpen && (
         <VotingBooklet
           assemblyId={assemblyId}
+          eventId={eventId}
           issueId={issueId}
           issueTitle={title}
           issueDescription={description}
           choices={choices}
           proposals={proposals}
+          eventPhase={eventStatus === "deliberation" ? "deliberation" : eventStatus === "voting" ? "voting" : "closed"}
+          isCreator={isCreator}
           onClose={() => setBookletOpen(false)}
         />
       )}
