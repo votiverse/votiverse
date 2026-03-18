@@ -25,14 +25,17 @@ Open the URL shown by Vite (typically `http://localhost:5173`, port may vary) an
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  Engine unit tests (319 tests)                  │  vitest, in-memory
+│  Engine unit tests (459 tests)                  │  vitest, in-memory
 │  packages/*/tests/                              │  No server needed
 ├─────────────────────────────────────────────────┤
-│  VCP integration tests (55 tests)               │  vitest, in-memory SQLite
+│  VCP integration tests (98 tests)               │  vitest, in-memory SQLite
 │  platform/vcp/test/                             │  TestClock for time control
 ├─────────────────────────────────────────────────┤
-│  Backend integration tests (13 tests)           │  vitest, in-memory SQLite
-│  platform/backend/test/                         │  Auth lifecycle tests
+│  Backend integration tests (63 tests)           │  vitest, in-memory SQLite
+│  platform/backend/test/                         │  Auth + content lifecycle
+├─────────────────────────────────────────────────┤
+│  Web client tests (16 tests)                    │  vitest
+│  platform/web/test/                             │  Member search, assembly tabs
 ├─────────────────────────────────────────────────┤
 │  Seed data + manual UI testing                  │  3 servers running
 │  Dev clock widget for time manipulation         │  Browser-based
@@ -42,14 +45,17 @@ Open the URL shown by Vite (typically `http://localhost:5173`, port may vary) an
 ### Running all tests
 
 ```bash
-# Engine packages (319 tests across 12 packages)
+# Engine packages (459 tests across 13 packages)
 pnpm --filter '@votiverse/*' test
 
-# VCP server (55 tests)
+# VCP server (98 tests)
 cd platform/vcp && pnpm test
 
-# Client backend (13 tests)
+# Client backend (63 tests)
 cd platform/backend && pnpm test
+
+# Web client (16 tests)
+cd platform/web && pnpm test
 ```
 
 ---
@@ -58,7 +64,7 @@ cd platform/backend && pnpm test
 
 ### How seeding works
 
-The seed script creates 5 assemblies with realistic governance configurations, 63 participants, 15 voting events, 27 delegations, 180 votes, and 6 polls with 42 responses.
+The seed script creates 5 assemblies with realistic governance configurations, 63 participants, 15 voting events, 27 delegations, 180 votes, 6 polls with 42 responses, 3 proposals, 3 candidacies, 3 community notes, and 9 note evaluations.
 
 **VCP seed** (`platform/vcp/scripts/seed.ts`): Creates assemblies, participants, topics, events, delegations, votes, and polls in the VCP database. Uses the dev clock API to set the server time into each event's voting window before casting votes.
 
@@ -219,11 +225,12 @@ Each engine package has unit tests in `packages/<name>/tests/`. Run individually
 # All engine tests
 pnpm --filter '@votiverse/*' test
 
-# Specific package
+# Specific package (selected examples)
 cd packages/core && pnpm test        # 71 tests (includes TestClock)
 cd packages/config && pnpm test      # 50 tests
 cd packages/delegation && pnpm test  # 33 tests
 cd packages/voting && pnpm test      # 28 tests
+cd packages/content && pnpm test     # content lifecycle, hash verification
 cd packages/engine && pnpm test      # 17 tests (includes timeline enforcement)
 # ... etc
 ```
@@ -281,7 +288,7 @@ The engine tests verify these formal guarantees:
 
 ## 6. VCP Integration Tests
 
-55 tests in `platform/vcp/test/`. Each test creates an in-process VCP with in-memory SQLite and a `TestClock`:
+98 tests in `platform/vcp/test/`. Each test creates an in-process VCP with in-memory SQLite and a `TestClock`:
 
 ```typescript
 import { createTestVCP, type TestVCP } from "./helpers.js";
@@ -315,7 +322,7 @@ vcp.clock.advance(7200000);
 
 ## 7. Backend Integration Tests
 
-35 tests in `platform/backend/test/`:
+63 tests in `platform/backend/test/`:
 
 ### Auth tests (13 tests) — `test/auth.test.ts`
 
@@ -554,7 +561,69 @@ The backend seed script syncs existing VCP events/polls into `tracked_events`/`t
 
 ---
 
-## 10. Seeded Data Reference
+## 10. Content Testing (Proposals, Candidacies, Notes)
+
+### Data architecture
+
+Content follows the 3-tier split:
+- **VCP** stores metadata only (`proposals`, `candidacies`, `community_notes` tables) with a `content_hash` for integrity verification.
+- **Backend** stores rich content (`proposal_content`, `candidacy_content`, `note_content` tables) — markdown body, title, and assets.
+
+### Seeded content
+
+| Type | Assembly | Item | Author |
+|------|----------|------|--------|
+| Proposal | OSC | 2 proposals on H2 2026 Roadmap Proposals | Mei-Ling Wu, Leo Fernandez |
+| Proposal | Youth | 1 proposal on Digital Citizenship Curriculum | Aisha Moyo |
+| Candidacy | OSC | Mei-Ling Wu (Lead Maintainer), Leo Fernandez (Release Manager) | — |
+| Candidacy | Youth | Aisha Moyo (candidacy declaration) | — |
+| Community Note | Youth | 3 notes on Youth Program Priorities 2026 | Various, with 9 evaluations |
+
+Proposals can be submitted during the deliberation phase. The seeded events that support proposals are:
+- **OSC — H2 2026 Roadmap Proposals** (Deliberation status at seed time)
+- **Youth — Digital Citizenship Curriculum** (Deliberation status at seed time)
+
+Community notes are only available in assemblies where `communityNotes: true` — currently only Youth Advisory Panel (LIQUID_ACCOUNTABLE preset).
+
+### Testing the draft-to-submit workflow
+
+1. Login as any Youth member (e.g., `nina-kowalski@example.com`)
+2. Go to Youth Advisory Panel → Events → Digital Citizenship Curriculum
+3. Click "View Proposals"
+4. Click "New Draft" — the TipTap markdown editor opens
+5. Write a title and body (or use the Import button to load a Word/DOCX file)
+6. Click "Submit" — proposal appears in the proposals list
+7. Verify: the VCP stores metadata + content hash; the backend stores the rich content
+
+### Testing candidacies
+
+1. Login as any OSC member → OSC Governance Board
+2. Go to Events → 2026 Maintainer Elections
+3. Click "View Candidates"
+4. Verify seeded candidacies for Mei-Ling Wu and Leo Fernandez appear
+
+The Candidates tab only appears for assemblies with `delegationMode: 'candidacy'` (Youth Advisory Panel). In other assemblies, candidacies are accessed from within election events.
+
+### Testing community notes
+
+1. Login as any Youth member
+2. Go to Youth Advisory Panel → Events → Youth Program Priorities 2026
+3. Navigate to proposals or candidacies
+4. Community notes appear alongside content — each note has evaluations (helpful/not helpful)
+
+### Content test identities
+
+| Identity | Assembly | Content role |
+|----------|----------|-------------|
+| **Mei-Ling Wu** | OSC | Proposal author, candidacy (Lead Maintainer) |
+| **Leo Fernandez** | OSC | Proposal author, candidacy (Release Manager) |
+| **Aisha Moyo** | Youth | Proposal author, candidacy declaration |
+| **Nina Kowalski** | Youth | Good for testing draft-to-submit (no existing proposals) |
+| **Sofia Reyes** | OSC + Youth | Cross-assembly content testing |
+
+---
+
+## 11. Seeded Data Reference
 
 ### Voting Events (15 total)
 
@@ -598,7 +667,7 @@ See `platform/web/TESTING.md` for complete delegation graphs with chain diagrams
 
 ---
 
-## 11. Gotchas and Common Pitfalls
+## 12. Gotchas and Common Pitfalls
 
 ### Reseed order matters: VCP first, then backend
 
@@ -655,7 +724,7 @@ If pages show unexpected "Ended" status or votes are rejected, the dev clock may
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 ### "Voting has not started" or "Voting has closed" errors
 
