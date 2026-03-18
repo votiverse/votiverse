@@ -1,9 +1,25 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Button, Badge } from "./ui.js";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
+
+/** Sort notes by relevance: visible first, then by endorsement count, then recent. */
+export function sortNotesByRelevance(notes: CommunityNote[]): CommunityNote[] {
+  return [...notes].sort((a, b) => {
+    // Withdrawn last
+    if (a.status === "withdrawn" !== (b.status === "withdrawn")) return a.status === "withdrawn" ? 1 : -1;
+    // Visible above non-visible
+    const aVis = a.visibility?.visible ? 0 : 1;
+    const bVis = b.visibility?.visible ? 0 : 1;
+    if (aVis !== bVis) return aVis - bVis;
+    // More endorsements first
+    if (a.endorsementCount !== b.endorsementCount) return b.endorsementCount - a.endorsementCount;
+    // Then recent first
+    return b.createdAt - a.createdAt;
+  });
+}
 
 // ---------------------------------------------------------------------------
 // NoteContent — renders plain text with auto-linked URLs and markdown links
@@ -71,7 +87,8 @@ export function NotesList({ assemblyId, targetType, targetId }: {
   );
   const [showForm, setShowForm] = useState(false);
 
-  const notes = data?.notes ?? [];
+  const rawNotes = data?.notes ?? [];
+  const notes = useMemo(() => sortNotesByRelevance(rawNotes), [rawNotes]);
 
   return (
     <div>

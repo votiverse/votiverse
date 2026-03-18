@@ -5,7 +5,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
-import { NoteContent } from "../components/community-notes.js";
+import { NoteContent, sortNotesByRelevance } from "../components/community-notes.js";
 import { Avatar } from "../components/avatar.js";
 
 const TARGET_TYPE_LABELS: Record<string, string> = {
@@ -64,15 +64,7 @@ export function Notes() {
     return allNotes.filter((n) => n.target.type === filter);
   }, [allNotes, filter, participantId]);
 
-  // Sort: most recent first, visible above non-visible
-  const sortedNotes = useMemo(() => {
-    return [...filteredNotes].sort((a, b) => {
-      const aVis = a.visibility?.visible ? 0 : 1;
-      const bVis = b.visibility?.visible ? 0 : 1;
-      if (aVis !== bVis) return aVis - bVis;
-      return b.createdAt - a.createdAt;
-    });
-  }, [filteredNotes]);
+  const sortedNotes = useMemo(() => sortNotesByRelevance(filteredNotes), [filteredNotes]);
 
   // Count by type for filter badges
   const countByType = useMemo(() => {
