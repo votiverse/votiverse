@@ -16,6 +16,8 @@ export type {
   VotingHistoryEntry,
   PredictionSummary,
   VotingHistory,
+  CandidacySummary,
+  ProposalSummary,
   HistoricalContext,
   RelatedDecision,
   TopicTrend,

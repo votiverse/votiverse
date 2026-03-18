@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { VotiverseEngine, createEngine } from "../../src/engine.js";
-import { InMemoryEventStore, timestamp, ValidationError, TestClock } from "@votiverse/core";
-import type { ParticipantId, TopicId, Timestamp } from "@votiverse/core";
+import { InMemoryEventStore, timestamp, ValidationError, TestClock, GovernanceRuleViolation } from "@votiverse/core";
+import type { ParticipantId, TopicId, Timestamp, ContentHash } from "@votiverse/core";
 import { getPreset, deriveConfig } from "@votiverse/config";
 import { InvitationProvider } from "@votiverse/identity";
 import { isOk } from "@votiverse/core";
@@ -535,6 +535,140 @@ describe("VotiverseEngine — integration", () => {
       pollClock.advance(6 * DAY);
       fetched = await pollEngine.polls.get(poll.id);
       expect(fetched!.status).toBe("closed");
+    });
+  });
+
+  describe("Content lifecycle — proposals, candidacies, notes", () => {
+    function deliberationTimeline(clock: TestClock) {
+      const now = clock.now() as number;
+      return {
+        deliberationStart: timestamp(now - 7 * DAY) as Timestamp,
+        votingStart: timestamp(now + 3 * DAY) as Timestamp,
+        votingEnd: timestamp(now + 10 * DAY) as Timestamp,
+      };
+    }
+
+    it("submits a proposal during deliberation, locks it when voting starts", async () => {
+      const [alice, bob] = await inviteParticipants("Alice", "Bob");
+      const event = await engine.events.create({
+        title: "Budget Vote",
+        description: "Test",
+        issues: [{ title: "Fund the park?", description: "Test", topicIds: [] }],
+        eligibleParticipantIds: [alice!, bob!],
+        timeline: deliberationTimeline(clock),
+      });
+      const issueId = event.issueIds[0]!;
+
+      // Submit during deliberation
+      const proposal = await engine.proposals.submit({
+        issueId,
+        choiceKey: "for",
+        authorId: alice!,
+        title: "Park Proposal",
+        contentHash: "hash-v1" as ContentHash,
+      });
+      expect(proposal.status).toBe("submitted");
+
+      // Create a version
+      const v2 = await engine.proposals.createVersion({
+        proposalId: proposal.id,
+        contentHash: "hash-v2" as ContentHash,
+      });
+      expect(v2.currentVersion).toBe(2);
+
+      // Advance to voting phase
+      clock.advance(4 * DAY);
+
+      // Submit rejected after voting starts
+      await expect(
+        engine.proposals.submit({
+          issueId,
+          authorId: bob!,
+          title: "Counter",
+          contentHash: "hash-c" as ContentHash,
+        }),
+      ).rejects.toThrow("DELIBERATION_CLOSED");
+
+      // Version rejected after voting starts
+      await expect(
+        engine.proposals.createVersion({
+          proposalId: proposal.id,
+          contentHash: "hash-v3" as ContentHash,
+        }),
+      ).rejects.toThrow("DELIBERATION_CLOSED");
+
+      // Casting a vote locks the proposal
+      await engine.voting.cast(alice!, issueId, "for");
+
+      const locked = await engine.proposals.get(proposal.id);
+      expect(locked!.status).toBe("locked");
+    });
+
+    it("declares a candidacy, versions it, and withdraws", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const topic = await engine.topics_api.create("Budget");
+
+      const candidacy = await engine.candidacies.declare({
+        participantId: alice!,
+        topicScope: [topic.id],
+        voteTransparencyOptIn: true,
+        contentHash: "profile-v1" as ContentHash,
+      });
+      expect(candidacy.status).toBe("active");
+
+      // New version
+      const v2 = await engine.candidacies.createVersion({
+        candidacyId: candidacy.id,
+        contentHash: "profile-v2" as ContentHash,
+        topicScope: [topic.id],
+      });
+      expect(v2.currentVersion).toBe(2);
+
+      // Withdraw
+      await engine.candidacies.withdraw(candidacy.id, alice!);
+      const withdrawn = await engine.candidacies.get(candidacy.id);
+      expect(withdrawn!.status).toBe("withdrawn");
+    });
+
+    it("creates community notes with evaluations and computes visibility", async () => {
+      // Use a config with community notes enabled
+      const notesStore = new InMemoryEventStore();
+      const notesProvider = new InvitationProvider(notesStore);
+      const notesClock = new TestClock();
+      const notesEngine = createEngine({
+        config: getPreset("LIQUID_ACCOUNTABLE"),
+        eventStore: notesStore,
+        identityProvider: notesProvider,
+        timeProvider: notesClock,
+      });
+
+      const ids: ParticipantId[] = [];
+      for (const name of ["Author", "E1", "E2", "E3"]) {
+        const result = await notesProvider.invite(name);
+        if (isOk(result)) ids.push(result.value.id);
+      }
+      const [author, e1, e2, e3] = ids;
+
+      const note = await notesEngine.notes.create({
+        authorId: author!,
+        contentHash: "note-hash" as ContentHash,
+        targetType: "proposal",
+        targetId: "prop-1",
+        targetVersionNumber: 1,
+      });
+
+      // Evaluate
+      await notesEngine.notes.evaluate(note.id, e1!, "endorse");
+      await notesEngine.notes.evaluate(note.id, e2!, "endorse");
+      await notesEngine.notes.evaluate(note.id, e3!, "dispute");
+
+      const retrieved = await notesEngine.notes.get(note.id);
+      expect(retrieved!.endorsementCount).toBe(2);
+      expect(retrieved!.disputeCount).toBe(1);
+
+      const vis = notesEngine.notes.computeVisibility(retrieved!);
+      expect(vis.visible).toBe(true); // 2/3 ≈ 0.67 > 0.3 threshold, 3 >= 3 minEvals
+      expect(vis.ratio).toBeCloseTo(0.667, 2);
     });
   });
 

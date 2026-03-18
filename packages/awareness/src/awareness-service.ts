@@ -21,11 +21,14 @@ import {
 import type { DelegationChain } from "@votiverse/delegation";
 import { PredictionService } from "@votiverse/prediction";
 import { PollingService } from "@votiverse/polling";
+import { ProposalService, CandidacyService, NoteService } from "@votiverse/content";
 import type {
   ConcentrationReport,
   ConcentrationAlert,
+  CandidacySummary,
   DelegateProfile,
   EngagementPrompt,
+  ProposalSummary,
   VotingHistory,
   VotingHistoryEntry,
   PredictionSummary,
@@ -52,6 +55,9 @@ export interface IssueContext {
 export class AwarenessService {
   private readonly predictionService: PredictionService;
   private readonly pollingService: PollingService;
+  private readonly proposalService: ProposalService;
+  private readonly candidacyService: CandidacyService;
+  private readonly noteService: NoteService;
 
   constructor(
     private readonly eventStore: EventStore,
@@ -59,6 +65,12 @@ export class AwarenessService {
   ) {
     this.predictionService = new PredictionService(eventStore, config);
     this.pollingService = new PollingService(eventStore, config);
+    // Content services are read-only from awareness perspective —
+    // used to query candidacy profiles, proposals, and note counts.
+    const readOnlyTimeProvider = { now: () => Date.now() as Timestamp };
+    this.proposalService = new ProposalService(eventStore, readOnlyTimeProvider);
+    this.candidacyService = new CandidacyService(eventStore, readOnlyTimeProvider);
+    this.noteService = new NoteService(eventStore, config, readOnlyTimeProvider);
   }
 
   // -----------------------------------------------------------------------
@@ -153,6 +165,26 @@ export class AwarenessService {
       ctx.eligibleParticipantIds.includes(delegateId),
     ).length;
 
+    // Candidacy profile (if declared)
+    let candidacy: CandidacySummary | undefined;
+    const candidacyMetadata = await this.candidacyService.getByParticipant(delegateId);
+    if (candidacyMetadata) {
+      const notes = await this.noteService.listByTarget("candidacy", candidacyMetadata.id);
+      const endorsedNotes = notes.filter((n) => {
+        const vis = this.noteService.computeVisibility(n);
+        return vis.visible;
+      });
+      candidacy = {
+        id: candidacyMetadata.id,
+        currentVersion: candidacyMetadata.currentVersion,
+        topicScope: candidacyMetadata.topicScope,
+        voteTransparencyOptIn: candidacyMetadata.voteTransparencyOptIn,
+        declaredAt: candidacyMetadata.declaredAt,
+        noteCount: notes.length,
+        endorsedNoteCount: endorsedNotes.length,
+      };
+    }
+
     return {
       delegateId,
       currentDelegatorCount: currentDelegators.length,
@@ -164,6 +196,7 @@ export class AwarenessService {
         eligibleIssueCount > 0 ? delegateVotes.length / eligibleIssueCount : 0,
       totalVotesEligible: eligibleIssueCount,
       totalVotesCast: delegateVotes.length,
+      candidacy,
     };
   }
 
@@ -361,11 +394,15 @@ export class AwarenessService {
       }
     }
 
+    // Proposal summaries for this issue
+    const proposalSummaries = await this.getProposalSummariesForIssue(ctx.issueId);
+
     return {
       issueId: ctx.issueId,
       topicIds: ctx.topicIds,
       relatedDecisions,
       pollTrends,
+      proposals: proposalSummaries,
     };
   }
 
@@ -404,12 +441,67 @@ export class AwarenessService {
   }
 
   private async getPredictionSummariesForIssue(
-    _issueId: IssueId,
+    issueId: IssueId,
   ): Promise<readonly PredictionSummary[]> {
-    // DECISION NEEDED: Currently predictions are linked to proposals, not issues.
-    // The connection between proposals and issues isn't modeled yet.
-    // For now, return empty. When the proposal-to-issue link is established,
-    // this will query predictions by proposal and evaluate them.
-    return [];
+    // Predictions are linked to proposals, which are linked to issues.
+    // Walk the chain: issue → proposals → predictions.
+    const proposals = await this.proposalService.listByIssue(issueId);
+    const summaries: PredictionSummary[] = [];
+
+    for (const proposal of proposals) {
+      // Query predictions by proposalId
+      const events = await this.eventStore.query({ types: ["PredictionCommitted"] });
+      for (const event of events) {
+        if (event.type === "PredictionCommitted" && event.payload.proposalId === proposal.id) {
+          try {
+            const evaluation = await this.predictionService.evaluate(event.payload.predictionId);
+            summaries.push({
+              predictionId: event.payload.predictionId,
+              variable: (event.payload.predictionData as Record<string, unknown>).variable as string ?? "unknown",
+              status: evaluation.status,
+              accuracy: evaluation.accuracy,
+            });
+          } catch {
+            // Prediction may not be evaluable yet
+          }
+        }
+      }
+    }
+
+    return summaries;
+  }
+
+  private async getProposalSummariesForIssue(
+    issueId: IssueId,
+  ): Promise<readonly ProposalSummary[]> {
+    const proposals = await this.proposalService.listByIssue(issueId);
+    const summaries: ProposalSummary[] = [];
+
+    for (const proposal of proposals) {
+      const notes = await this.noteService.listByTarget("proposal", proposal.id);
+      const endorsedNotes = notes.filter((n) => {
+        const vis = this.noteService.computeVisibility(n);
+        return vis.visible;
+      });
+
+      // Count predictions linked to this proposal
+      const predEvents = await this.eventStore.query({ types: ["PredictionCommitted"] });
+      const predCount = predEvents.filter(
+        (e) => e.type === "PredictionCommitted" && e.payload.proposalId === proposal.id,
+      ).length;
+
+      summaries.push({
+        id: proposal.id,
+        authorId: proposal.authorId,
+        title: proposal.title,
+        choiceKey: proposal.choiceKey,
+        version: proposal.currentVersion,
+        noteCount: notes.length,
+        endorsedNoteCount: endorsedNotes.length,
+        predictionCount: predCount,
+      });
+    }
+
+    return summaries;
   }
 }

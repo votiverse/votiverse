@@ -8,7 +8,7 @@
  * level: "summary" for quick checks, "full" for investigation.
  */
 
-import type { ParticipantId, IssueId, TopicId, PredictionId, Timestamp } from "@votiverse/core";
+import type { ParticipantId, IssueId, TopicId, PredictionId, ProposalId, CandidacyId, Timestamp } from "@votiverse/core";
 import type { EvaluationStatus } from "@votiverse/prediction";
 
 // ---------------------------------------------------------------------------
@@ -63,6 +63,21 @@ export interface DelegateProfile {
   readonly votingParticipationRate: number;
   readonly totalVotesEligible: number;
   readonly totalVotesCast: number;
+  /** Formal candidacy profile, if declared. */
+  readonly candidacy?: CandidacySummary;
+}
+
+/** Summary of a delegate's formal candidacy for inclusion in profiles. */
+export interface CandidacySummary {
+  readonly id: CandidacyId;
+  readonly currentVersion: number;
+  readonly topicScope: readonly TopicId[];
+  readonly voteTransparencyOptIn: boolean;
+  readonly declaredAt: Timestamp;
+  /** Number of community notes on this candidacy. */
+  readonly noteCount: number;
+  /** Notes meeting the visibility threshold. */
+  readonly endorsedNoteCount: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,7 +89,11 @@ export type PromptReason =
   | "prediction-mismatch"
   | "delegate-behavior-anomaly"
   | "concentration-alert"
-  | "chain-changed";
+  | "chain-changed"
+  | "delegate-position-changed"
+  | "new-community-note"
+  | "proposal-updated"
+  | "delegate-vote-mismatch";
 
 export interface EngagementPrompt {
   readonly participantId: ParticipantId;
@@ -130,6 +149,20 @@ export interface HistoricalContext {
   readonly relatedDecisions: readonly RelatedDecision[];
   /** Poll trend data for the issue's topics. */
   readonly pollTrends: readonly TopicTrend[];
+  /** Proposals submitted for this issue. */
+  readonly proposals: readonly ProposalSummary[];
+}
+
+/** Summary of a proposal for inclusion in historical context. */
+export interface ProposalSummary {
+  readonly id: ProposalId;
+  readonly authorId: ParticipantId;
+  readonly title: string;
+  readonly choiceKey?: string;
+  readonly version: number;
+  readonly noteCount: number;
+  readonly endorsedNoteCount: number;
+  readonly predictionCount: number;
 }
 
 export interface RelatedDecision {
