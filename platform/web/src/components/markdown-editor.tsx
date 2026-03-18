@@ -11,6 +11,7 @@
 
 import { useCallback, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import "./markdown-editor.css";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 import Image from "@tiptap/extension-image";
@@ -122,7 +123,7 @@ export function MarkdownEditor({
   if (!editor) return null;
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
+    <div className="tiptap-editor border rounded-lg overflow-hidden bg-white">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b bg-gray-50">
         <ToolbarButton
@@ -194,7 +195,7 @@ export function MarkdownEditor({
 
       {/* Editor area */}
       <div
-        className="prose prose-sm max-w-none px-4 py-3 focus-within:ring-2 focus-within:ring-blue-100"
+        className="px-4 py-3 focus-within:ring-2 focus-within:ring-blue-100 text-sm text-gray-800"
         style={{ minHeight }}
       >
         <EditorContent editor={editor} />
@@ -243,7 +244,7 @@ export function MarkdownViewer({ content }: MarkdownViewerProps) {
   if (!editor) return null;
 
   return (
-    <div className="prose prose-sm max-w-none">
+    <div className="tiptap-viewer">
       <EditorContent editor={editor} />
     </div>
   );
