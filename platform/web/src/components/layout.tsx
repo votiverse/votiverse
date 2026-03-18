@@ -8,6 +8,7 @@ import {
   Home,
   Vote,
   Users,
+  UserCheck,
   BarChart3,
   MessageSquareText,
   Settings,
@@ -288,6 +289,7 @@ function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNav
 const NAV_ICONS: Record<string, typeof Home> = {
   Votes: Vote,
   Delegates: Users,
+  Candidates: UserCheck,
   Surveys: BarChart3,
   Notes: MessageSquareText,
   Group: Settings,
@@ -298,6 +300,7 @@ const NAV_ICONS: Record<string, typeof Home> = {
 const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Element> = {
   Votes: TabVote,
   Delegates: TabUsers,
+  Candidates: TabCandidates,
   Surveys: TabChart,
   Notes: TabNotes,
   Group: TabSettings,
@@ -317,6 +320,10 @@ function TabUsers({ active }: { active: boolean }) {
 
 function TabChart({ active }: { active: boolean }) {
   return <BarChart3 size={20} strokeWidth={active ? 2.5 : 1.5} />;
+}
+
+function TabCandidates({ active }: { active: boolean }) {
+  return <UserCheck size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
 function TabNotes({ active }: { active: boolean }) {
