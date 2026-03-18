@@ -5,9 +5,11 @@ import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
 import type { Delegation } from "../api/types.js";
-import { Card, CardBody, Button, Select, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
+import { Card, CardBody, Button, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { TopicPicker } from "../components/topic-picker.js";
+import { MemberSearch } from "../components/member-search.js";
+import type { Candidacy } from "../api/types.js";
 
 export function Delegations() {
   const { assemblyId } = useParams();
@@ -17,6 +19,11 @@ export function Delegations() {
   const { data, loading, error, refetch } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
+  const delegationMode = assembly?.config.delegation.delegationMode ?? "none";
+  const { data: candidaciesData } = useApi(
+    () => delegationMode === "candidacy" ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
+    [assemblyId, delegationMode],
+  );
 
   const isTopicScoped = assembly?.config.delegation.topicScoped ?? false;
 
@@ -63,6 +70,8 @@ export function Delegations() {
         nameMap={nameMap}
         topicNameMap={topicNameMap}
         isTopicScoped={isTopicScoped}
+        candidates={candidaciesData?.candidacies ?? []}
+        delegationMode={delegationMode}
         refetch={refetch}
       />
 
@@ -88,6 +97,8 @@ function DelegatesList({
   nameMap,
   topicNameMap,
   isTopicScoped,
+  candidates,
+  delegationMode,
   refetch,
 }: {
   assemblyId: string;
@@ -97,6 +108,8 @@ function DelegatesList({
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
   isTopicScoped: boolean;
+  candidates: Candidacy[];
+  delegationMode: string;
   refetch: () => void;
 }) {
   const [creating, setCreating] = useState(false);
@@ -124,6 +137,9 @@ function DelegatesList({
             participantId={participantId}
             participants={participants}
             isTopicScoped={isTopicScoped}
+            candidates={candidates}
+            delegationMode={delegationMode}
+            topicNameMap={topicNameMap}
             onClose={() => setCreating(false)}
             onCreated={() => { refetch(); setCreating(false); }}
           />
@@ -147,6 +163,9 @@ function DelegatesList({
           participantId={participantId}
           participants={participants}
           isTopicScoped={isTopicScoped}
+          candidates={candidates}
+          delegationMode={delegationMode}
+          topicNameMap={topicNameMap}
           onClose={() => setCreating(false)}
           onCreated={() => { refetch(); setCreating(false); }}
         />
@@ -279,6 +298,9 @@ function CreateDelegationForm({
   participantId,
   participants,
   isTopicScoped,
+  candidates,
+  delegationMode,
+  topicNameMap,
   onClose,
   onCreated,
 }: {
@@ -286,6 +308,9 @@ function CreateDelegationForm({
   participantId: string;
   participants: Array<{ id: string; name: string }>;
   isTopicScoped: boolean;
+  candidates: Candidacy[];
+  delegationMode: string;
+  topicNameMap: Map<string, string>;
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -294,6 +319,8 @@ function CreateDelegationForm({
   const [topicScope, setTopicScope] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const selectedName = participants.find((p) => p.id === targetId)?.name;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,12 +352,30 @@ function CreateDelegationForm({
           {/* Delegate picker */}
           <div>
             <Label>Who should vote for you?</Label>
-            <Select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-              <option value="">Select a member...</option>
-              {participants.filter((p) => p.id !== participantId).map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </Select>
+            {targetId ? (
+              <div className="flex items-center gap-2 border rounded-lg px-3 py-2">
+                <Avatar name={selectedName ?? "?"} size="sm" />
+                <span className="text-sm font-medium text-gray-900 flex-1">{selectedName}</span>
+                <button
+                  type="button"
+                  onClick={() => setTargetId("")}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <MemberSearch
+                participants={participants}
+                currentParticipantId={participantId}
+                onSelect={setTargetId}
+                candidates={delegationMode === "candidacy" ? candidates : undefined}
+                topicNameMap={topicNameMap}
+                placeholder={delegationMode === "candidacy"
+                  ? "Browse candidates or search any member..."
+                  : "Search for a member by name..."}
+              />
+            )}
           </div>
 
           {/* Scope selector */}
