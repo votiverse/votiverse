@@ -7,6 +7,7 @@ import type { Proposal, ProposalDraft } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
+import { MarkdownEditor, MarkdownViewer } from "../components/markdown-editor.js";
 
 export function Proposals() {
   const { assemblyId } = useParams();
@@ -117,9 +118,9 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
         </div>
 
         {expanded && (
-          <div className="mt-4 prose prose-sm max-w-none border-t pt-4">
+          <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">{markdown}</pre>
+              <MarkdownViewer content={markdown} />
             ) : (
               <p className="text-sm text-gray-400 italic">Proposal content not yet available.</p>
             )}
@@ -199,12 +200,12 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
               className="w-full border rounded px-3 py-2 text-sm"
               placeholder="Proposal title"
             />
-            <textarea
+            <MarkdownEditor
               value={markdown}
-              onChange={(e) => setMarkdown(e.target.value)}
-              rows={8}
-              className="w-full border rounded px-3 py-2 text-sm font-mono"
-              placeholder="Write your proposal in markdown..."
+              onChange={setMarkdown}
+              placeholder="Write your proposal — use headings, lists, and bold text to structure your argument..."
+              assemblyId={assemblyId}
+              minHeight={250}
             />
           </div>
         ) : (

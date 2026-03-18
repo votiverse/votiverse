@@ -8,6 +8,7 @@ import type { Candidacy } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
+import { MarkdownEditor, MarkdownViewer } from "../components/markdown-editor.js";
 
 export function Candidacies() {
   const { assemblyId } = useParams();
@@ -123,9 +124,9 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
         </div>
 
         {expanded && (
-          <div className="mt-4 prose prose-sm max-w-none border-t pt-4">
+          <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">{markdown}</pre>
+              <MarkdownViewer content={markdown} />
             ) : (
               <p className="text-sm text-gray-400 italic">Profile content not yet available.</p>
             )}
@@ -186,12 +187,12 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
         <p className="text-sm text-gray-500 mb-4">
           Introduce yourself, your qualifications, and how you plan to represent delegators.
         </p>
-        <textarea
+        <MarkdownEditor
           value={markdown}
-          onChange={(e) => setMarkdown(e.target.value)}
-          rows={8}
-          className="w-full border rounded px-3 py-2 text-sm font-mono mb-3"
-          placeholder="# Your Name — Delegate Candidate&#10;&#10;## Qualifications&#10;- ...&#10;&#10;## Positions&#10;- ..."
+          onChange={setMarkdown}
+          placeholder="Introduce yourself — qualifications, positions, and why delegates should trust you..."
+          assemblyId={assemblyId}
+          minHeight={250}
         />
         <label className="flex items-center gap-2 text-sm text-gray-700 mb-4">
           <input
