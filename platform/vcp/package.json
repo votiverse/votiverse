@@ -22,7 +22,7 @@
     "@votiverse/delegation": "workspace:*",
     "@votiverse/engine": "workspace:*",
     "@votiverse/identity": "workspace:*",
-    "@votiverse/polling": "workspace:*",
+    "@votiverse/survey": "workspace:*",
     "@votiverse/prediction": "workspace:*",
     "@votiverse/voting": "workspace:*",
     "better-sqlite3": "^11.9.0",

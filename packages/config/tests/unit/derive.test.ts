@@ -50,7 +50,7 @@ describe("deriveConfig", () => {
     });
     expect(derived.features.predictions).toBe("mandatory");
     expect(derived.features.communityNotes).toBe(true);
-    expect(derived.features.polls).toBe(base.features.polls);
+    expect(derived.features.surveys).toBe(base.features.surveys);
   });
 
   it("overrides nested threshold properties", () => {

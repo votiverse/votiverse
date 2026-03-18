@@ -8,7 +8,7 @@
 import type {
   EventStore,
   ParticipantId,
-  PollId,
+  SurveyId,
   PredictionId,
   PredictionCommittedEvent,
   OutcomeRecordedEvent,
@@ -163,7 +163,7 @@ export class PredictionService {
       predictionId,
       source: {
         type: "poll-derived",
-        pollId: pollId as unknown as PollId,
+        pollId: pollId as unknown as SurveyId,
       },
       measuredValue,
       notes: notes ?? `Derived from poll trend data. Normalized score: ${trendScore.toFixed(3)}`,

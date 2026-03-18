@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import * as api from "../api/client.js";
 import type { Assembly, VotingEvent } from "../api/types.js";
-import { deriveEventStatus, derivePollStatus } from "../lib/status.js";
+import { deriveEventStatus, deriveSurveyStatus } from "../lib/status.js";
 
 export interface PendingVote {
   assemblyId: string;
@@ -19,8 +19,8 @@ export interface PendingVote {
 export interface PendingSurvey {
   assemblyId: string;
   assemblyName: string;
-  pollId: string;
-  pollTitle: string;
+  surveyId: string;
+  surveyTitle: string;
   questionCount: number;
   closesAt: number;
 }
@@ -102,11 +102,11 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
       await Promise.allSettled(
         assemblies.map(async (asm) => {
           const participantId = membershipMap.get(asm.id)!;
-          const [eventsRes, historyRes, delegRes, pollsRes] = await Promise.allSettled([
+          const [eventsRes, historyRes, delegRes, surveysRes] = await Promise.allSettled([
             api.listEvents(asm.id),
             api.getVotingHistory(asm.id, participantId),
             api.listDelegations(asm.id, participantId),
-            api.listPolls(asm.id, participantId),
+            api.listSurveys(asm.id, participantId),
           ]);
 
           const events: VotingEvent[] = eventsRes.status === "fulfilled" ? eventsRes.value.events : [];
@@ -168,20 +168,20 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
             }
           }
 
-          // Pending surveys: open polls the user hasn't responded to
+          // Pending surveys: open surveys the user hasn't responded to
           let pendingSurveyCount = 0;
-          if (pollsRes.status === "fulfilled") {
-            const polls = pollsRes.value.polls ?? [];
-            for (const poll of polls) {
-              if (derivePollStatus(poll.schedule, poll.closesAt) === "open" && poll.hasResponded === false) {
+          if (surveysRes.status === "fulfilled") {
+            const surveys = surveysRes.value.surveys ?? [];
+            for (const survey of surveys) {
+              if (deriveSurveyStatus(survey.schedule, survey.closesAt) === "open" && survey.hasResponded === false) {
                 pendingSurveyCount++;
                 allPendingSurveys.push({
                   assemblyId: asm.id,
                   assemblyName: asm.name,
-                  pollId: poll.id,
-                  pollTitle: poll.title,
-                  questionCount: poll.questions?.length ?? 0,
-                  closesAt: poll.closesAt,
+                  surveyId: survey.id,
+                  surveyTitle: survey.title,
+                  questionCount: survey.questions?.length ?? 0,
+                  closesAt: survey.closesAt,
                 });
               }
             }

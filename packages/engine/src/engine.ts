@@ -12,7 +12,7 @@ import type {
   IssueId,
   VotingEventId,
   PredictionId,
-  PollId,
+  SurveyId,
   Topic,
   Issue,
   VotingEvent,
@@ -59,14 +59,14 @@ import type {
   PredictionEvaluation,
   TrackRecord,
 } from "@votiverse/prediction";
-import { PollingService } from "@votiverse/polling";
+import { SurveyService } from "@votiverse/survey";
 import type {
-  CreatePollParams,
+  CreateSurveyParams,
   SubmitResponseParams,
-  Poll,
-  PollResults,
+  Survey,
+  SurveyResults,
   TrendData,
-} from "@votiverse/polling";
+} from "@votiverse/survey";
 import { ProposalService, CandidacyService, NoteService } from "@votiverse/content";
 import type {
   ProposalMetadata,
@@ -140,7 +140,7 @@ export class VotiverseEngine {
   private readonly delegationService: DelegationService;
   private readonly votingService: VotingService;
   private readonly predictionService: PredictionService;
-  private readonly pollingService: PollingService;
+  private readonly surveyService: SurveyService;
   private readonly proposalService: ProposalService;
   private readonly candidacyService: CandidacyService;
   private readonly noteService: NoteService;
@@ -164,7 +164,7 @@ export class VotiverseEngine {
     this.delegationService = new DelegationService(this.eventStore, this.governanceConfig);
     this.votingService = new VotingService(this.eventStore, this.governanceConfig);
     this.predictionService = new PredictionService(this.eventStore, this.governanceConfig);
-    this.pollingService = new PollingService(this.eventStore, this.governanceConfig, this.timeProvider);
+    this.surveyService = new SurveyService(this.eventStore, this.governanceConfig, this.timeProvider);
     this.proposalService = new ProposalService(this.eventStore, this.timeProvider);
     this.candidacyService = new CandidacyService(this.eventStore, this.timeProvider);
     this.noteService = new NoteService(this.eventStore, this.governanceConfig, this.timeProvider);
@@ -566,29 +566,29 @@ export class VotiverseEngine {
   };
 
   // -----------------------------------------------------------------------
-  // Polling API
+  // Survey API
   // -----------------------------------------------------------------------
 
-  /** Polling operations. */
-  readonly polls = {
-    create: (params: CreatePollParams): Promise<Poll> => this.pollingService.create(params),
+  /** Survey operations. */
+  readonly surveys = {
+    create: (params: CreateSurveyParams): Promise<Survey> => this.surveyService.create(params),
 
-    respond: (params: SubmitResponseParams) => this.pollingService.respond(params),
+    respond: (params: SubmitResponseParams) => this.surveyService.respond(params),
 
     results: (
-      pollId: PollId,
+      surveyId: SurveyId,
       eligibleCount: number,
-    ): Promise<PollResults> => this.pollingService.results(pollId, eligibleCount),
+    ): Promise<SurveyResults> => this.surveyService.results(surveyId, eligibleCount),
 
     trends: (topicId: TopicId, eligibleCount: number): Promise<TrendData> =>
-      this.pollingService.trends(topicId, eligibleCount),
+      this.surveyService.trends(topicId, eligibleCount),
 
-    get: (pollId: PollId) => this.pollingService.getPoll(pollId),
+    get: (surveyId: SurveyId) => this.surveyService.getSurvey(surveyId),
 
-    list: () => this.pollingService.getAllPolls(),
+    list: () => this.surveyService.getAllSurveys(),
 
-    hasResponded: (pollId: PollId, participantId: ParticipantId): Promise<boolean> =>
-      this.pollingService.hasResponded(pollId, participantId),
+    hasResponded: (surveyId: SurveyId, participantId: ParticipantId): Promise<boolean> =>
+      this.surveyService.hasResponded(surveyId, participantId),
   };
 
   // -----------------------------------------------------------------------

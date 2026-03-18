@@ -1,12 +1,12 @@
 /**
- * @votiverse/polling — Type definitions
+ * @votiverse/survey — Type definitions
  *
- * Participant polls: non-delegable sensing mechanism.
- * Polls capture observations, not decisions. Responses are
+ * Participant surveys: non-delegable sensing mechanism.
+ * Surveys capture observations, not decisions. Responses are
  * non-transferable — every participant responds for themselves.
  */
 
-import type { ParticipantId, PollId, QuestionId, TopicId, Timestamp } from "@votiverse/core";
+import type { ParticipantId, SurveyId, QuestionId, TopicId, Timestamp } from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
 // Question types (discriminated union)
@@ -47,53 +47,53 @@ export type QuestionType =
   | MultipleChoiceQuestion;
 
 // ---------------------------------------------------------------------------
-// Poll question
+// Survey question
 // ---------------------------------------------------------------------------
 
-export interface PollQuestion {
+export interface SurveyQuestion {
   readonly id: QuestionId;
   readonly text: string;
   readonly questionType: QuestionType;
   /** Topic tags for trend matching. */
   readonly topicIds: readonly TopicId[];
-  /** Free-form tags for grouping related questions across polls. */
+  /** Free-form tags for grouping related questions across surveys. */
   readonly tags: readonly string[];
 }
 
 // ---------------------------------------------------------------------------
-// Poll entity
+// Survey entity
 // ---------------------------------------------------------------------------
 
-export type PollStatus = "scheduled" | "open" | "closed";
+export type SurveyStatus = "scheduled" | "open" | "closed";
 
-export interface Poll {
-  readonly id: PollId;
+export interface Survey {
+  readonly id: SurveyId;
   readonly title: string;
   readonly topicScope: readonly TopicId[];
-  readonly questions: readonly PollQuestion[];
-  /** When the poll opens for responses. */
+  readonly questions: readonly SurveyQuestion[];
+  /** When the survey opens for responses. */
   readonly schedule: Timestamp;
-  /** When the poll closes. */
+  /** When the survey closes. */
   readonly closesAt: Timestamp;
   readonly createdBy: ParticipantId;
-  readonly status: PollStatus;
+  readonly status: SurveyStatus;
 }
 
 // ---------------------------------------------------------------------------
 // Responses
 // ---------------------------------------------------------------------------
 
-export interface PollAnswer {
+export interface SurveyAnswer {
   readonly questionId: QuestionId;
   /** Numeric for likert/numeric/direction, string for multiple-choice, boolean for yes-no. */
   readonly value: number | string | boolean;
 }
 
-export interface PollResponse {
-  readonly pollId: PollId;
+export interface SurveyResponse {
+  readonly surveyId: SurveyId;
   /** Hashed participant ID for deduplication without attribution. */
   readonly participantHash: string;
-  readonly answers: readonly PollAnswer[];
+  readonly answers: readonly SurveyAnswer[];
   readonly submittedAt: Timestamp;
 }
 
@@ -111,8 +111,8 @@ export interface QuestionResult {
   readonly distribution: ReadonlyMap<string, number>;
 }
 
-export interface PollResults {
-  readonly pollId: PollId;
+export interface SurveyResults {
+  readonly surveyId: SurveyId;
   readonly responseCount: number;
   readonly responseRate: number;
   readonly questionResults: readonly QuestionResult[];
@@ -147,17 +147,17 @@ export interface TrendData {
 // Params
 // ---------------------------------------------------------------------------
 
-export interface CreatePollParams {
+export interface CreateSurveyParams {
   readonly title: string;
   readonly topicScope: readonly TopicId[];
-  readonly questions: readonly Omit<PollQuestion, "id">[];
+  readonly questions: readonly Omit<SurveyQuestion, "id">[];
   readonly schedule: Timestamp;
   readonly closesAt: Timestamp;
   readonly createdBy: ParticipantId;
 }
 
 export interface SubmitResponseParams {
-  readonly pollId: PollId;
+  readonly surveyId: SurveyId;
   readonly participantId: ParticipantId;
-  readonly answers: readonly PollAnswer[];
+  readonly answers: readonly SurveyAnswer[];
 }

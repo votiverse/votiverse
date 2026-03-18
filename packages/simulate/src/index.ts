@@ -26,7 +26,7 @@ export type {
   CreateVotingEventAction,
   DelegateAction,
   VoteAction,
-  PollRespondAction,
+  SurveyRespondAction,
   CommitPredictionAction,
   RecordOutcomeAction,
   ConcentrationSnapshot,

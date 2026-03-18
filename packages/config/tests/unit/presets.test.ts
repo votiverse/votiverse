@@ -92,7 +92,7 @@ describe("Named presets", () => {
       expect(config.ballot.allowVoteChange).toBe(true);
       expect(config.features.predictions).toBe("encouraged");
       expect(config.features.communityNotes).toBe(true);
-      expect(config.features.polls).toBe(true);
+      expect(config.features.surveys).toBe(true);
       expect(config.features.awarenessIntensity).toBe("standard");
     });
 
@@ -143,7 +143,7 @@ describe("Named presets", () => {
       expect(config.delegation.maxChainDepth).toBe(3);
       expect(config.features.predictions).toBe("mandatory");
       expect(config.features.communityNotes).toBe(true);
-      expect(config.features.polls).toBe(true);
+      expect(config.features.surveys).toBe(true);
       expect(config.features.blockchainIntegrity).toBe(true);
     });
   });

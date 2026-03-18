@@ -85,7 +85,7 @@ function generateAgents(scenario: SimulationScenario, rng: Rng): SimulatedAgent[
       "topic-expert",
     ]);
 
-    const pollReliability =
+    const surveyReliability =
       engagement === "pure-sensor" ? 0.8 + rng.next() * 0.2 : 0.5 + rng.next() * 0.3;
 
     const isAdversarial = rng.chance(population.adversarialFraction);
@@ -98,7 +98,7 @@ function generateAgents(scenario: SimulationScenario, rng: Rng): SimulatedAgent[
       topicInterests,
       trustHeuristic: isAdversarial ? "random" : trustHeuristic,
       forecastingAbility: isAdversarial ? "poor" : forecastingAbility,
-      pollReliability,
+      surveyReliability,
       adversarial,
     };
 
@@ -265,7 +265,7 @@ function generateEventActions(
     }
   }
 
-  // Generate poll responses from sensors and engaged participants
+  // Generate survey responses from sensors and engaged participants
   for (const agent of agents) {
     if (agent.profile.engagement === "pure-delegator") continue;
     if (!rng.chance(0.7)) continue; // Not everyone responds to every poll
@@ -277,7 +277,7 @@ function generateEventActions(
         if (!gt) continue;
         const trueValue = computeGroundTruthAtEvent(gt, eventIndex);
         // Agent reports with noise based on their reliability
-        const noise = (1 - agent.profile.pollReliability) * rng.normal(0, 1);
+        const noise = (1 - agent.profile.surveyReliability) * rng.normal(0, 1);
         const reportedValue = trueValue + noise;
         // Map to direction response
         const direction =
@@ -291,7 +291,7 @@ function generateEventActions(
 
     if (answers.length > 0) {
       actions.push({
-        type: "poll-respond",
+        type: "survey-respond",
         participantName: agent.name,
         eventIndex,
         answers,
@@ -338,7 +338,7 @@ function decideDirectVote(
     case "pure-delegator":
       return false; // Never votes directly
     case "pure-sensor":
-      return false; // Only responds to polls
+      return false; // Only responds to surveys
   }
 }
 

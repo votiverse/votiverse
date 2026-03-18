@@ -21,7 +21,7 @@ import { eventRoutes } from "./routes/events.js";
 import { delegationRoutes } from "./routes/delegations.js";
 import { votingRoutes } from "./routes/voting.js";
 import { predictionRoutes } from "./routes/predictions.js";
-import { pollRoutes } from "./routes/polls.js";
+import { surveyRoutes } from "./routes/surveys.js";
 import { awarenessRoutes } from "./routes/awareness.js";
 import { topicRoutes } from "./routes/topics.js";
 import { proposalRoutes } from "./routes/proposals.js";
@@ -133,7 +133,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   app.route("/", delegationRoutes(manager));
   app.route("/", votingRoutes(manager));
   app.route("/", predictionRoutes(manager));
-  app.route("/", pollRoutes(manager));
+  app.route("/", surveyRoutes(manager));
   app.route("/", topicRoutes(manager));
   app.route("/", proposalRoutes(manager));
   app.route("/", candidacyRoutes(manager));

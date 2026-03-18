@@ -9,7 +9,7 @@ import { SessionService } from "../src/services/session-service.js";
 import { MembershipService } from "../src/services/membership-service.js";
 import { AssemblyCacheService } from "../src/services/assembly-cache.js";
 import { TopicCacheService } from "../src/services/topic-cache.js";
-import { PollCacheService } from "../src/services/poll-cache.js";
+import { SurveyCacheService } from "../src/services/survey-cache.js";
 import { VCPClient } from "../src/services/vcp-client.js";
 import { NotificationService } from "../src/services/notification-service.js";
 import { ConsoleNotificationAdapter } from "../src/services/notification-adapter.js";
@@ -49,7 +49,7 @@ export interface TestBackend {
   sessionService: SessionService;
   assemblyCacheService: AssemblyCacheService;
   topicCacheService: TopicCacheService;
-  pollCacheService: PollCacheService;
+  surveyCacheService: SurveyCacheService;
   cleanup: () => void;
   request: (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
   /** Register a user and return the access token. */
@@ -65,13 +65,13 @@ export async function createTestBackend(): Promise<TestBackend> {
   const vcpClient = new VCPClient(TEST_CONFIG.vcpBaseUrl, TEST_CONFIG.vcpApiKey);
   const assemblyCacheService = new AssemblyCacheService(db);
   const topicCacheService = new TopicCacheService(db);
-  const pollCacheService = new PollCacheService(db);
+  const surveyCacheService = new SurveyCacheService(db);
   const membershipService = new MembershipService(db, vcpClient, assemblyCacheService);
   const notificationAdapter = new ConsoleNotificationAdapter();
   const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl);
   const contentService = new ContentService(db);
 
-  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, vcpClient, config: TEST_CONFIG });
+  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, contentService, vcpClient, config: TEST_CONFIG });
 
   const cleanup = () => {
     void db.close();
@@ -102,5 +102,5 @@ export async function createTestBackend(): Promise<TestBackend> {
     return { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.user.id };
   };
 
-  return { app, db, userService, sessionService, assemblyCacheService, topicCacheService, pollCacheService, cleanup, request, registerAndLogin };
+  return { app, db, userService, sessionService, assemblyCacheService, topicCacheService, surveyCacheService, cleanup, request, registerAndLogin };
 }

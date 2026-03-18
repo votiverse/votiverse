@@ -19,8 +19,8 @@ import type {
   VotingHistory,
   ParticipationRecord,
   DelegateProfile,
-  Poll,
-  PollResults,
+  Survey,
+  SurveyResults,
 } from "./types.js";
 import { getAccessToken, refreshSession } from "./auth.js";
 
@@ -247,41 +247,41 @@ export function getDelegateProfile(
   return request("GET", `/assemblies/${assemblyId}/awareness/profile/${participantId}`);
 }
 
-// ---- Polls ----
+// ---- Surveys ----
 
-export function listPolls(
+export function listSurveys(
   assemblyId: string,
   participantId?: string,
-): Promise<{ polls: Poll[] }> {
+): Promise<{ surveys: Survey[] }> {
   const qs = participantId ? `?participantId=${participantId}` : "";
-  return request("GET", `/assemblies/${assemblyId}/polls${qs}`);
+  return request("GET", `/assemblies/${assemblyId}/surveys${qs}`);
 }
 
-export function createPoll(
+export function createSurvey(
   assemblyId: string,
   params: unknown,
-): Promise<Poll> {
-  return request("POST", `/assemblies/${assemblyId}/polls`, params);
+): Promise<Survey> {
+  return request("POST", `/assemblies/${assemblyId}/surveys`, params);
 }
 
-export function submitPollResponse(
+export function submitSurveyResponse(
   assemblyId: string,
-  pollId: string,
+  surveyId: string,
   params: { participantId: string; answers: Array<{ questionId: string; value: unknown }> },
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/polls/${pollId}/respond`, {
+  return request("POST", `/assemblies/${assemblyId}/surveys/${surveyId}/respond`, {
     ...params,
-    pollId,
+    pollId: surveyId,
   });
 }
 
-export function getPollResults(
+export function getSurveyResults(
   assemblyId: string,
-  pollId: string,
+  surveyId: string,
   eligibleCount?: number,
-): Promise<PollResults> {
+): Promise<SurveyResults> {
   const qs = eligibleCount ? `?eligibleCount=${eligibleCount}` : "";
-  return request("GET", `/assemblies/${assemblyId}/polls/${pollId}/results${qs}`);
+  return request("GET", `/assemblies/${assemblyId}/surveys/${surveyId}/results${qs}`);
 }
 
 // ---- Predictions ----

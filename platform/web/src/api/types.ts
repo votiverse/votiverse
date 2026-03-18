@@ -63,7 +63,7 @@ export interface GovernanceConfig {
     communityNotes: boolean;
     noteVisibilityThreshold: number;
     noteMinEvaluations: number;
-    polls: boolean;
+    surveys: boolean;
     surveyResponseAnonymity: string;
     awarenessIntensity: string;
     blockchainIntegrity: boolean;
@@ -206,10 +206,10 @@ export interface DelegateProfile {
   }>;
 }
 
-export interface Poll {
+export interface Survey {
   id: string;
   title: string;
-  questions: PollQuestion[];
+  questions: SurveyQuestion[];
   topicIds: string[];
   schedule: number;
   closesAt: number;
@@ -217,7 +217,7 @@ export interface Poll {
   hasResponded?: boolean;
 }
 
-export interface PollQuestion {
+export interface SurveyQuestion {
   id: string;
   text: string;
   questionType: { type: string; [key: string]: unknown };
@@ -225,7 +225,7 @@ export interface PollQuestion {
   tags: string[];
 }
 
-export interface PollResults {
+export interface SurveyResults {
   pollId: string;
   responseCount: number;
   responseRate: number;

@@ -81,8 +81,8 @@ export class PostgresAdapter implements DatabaseAdapter {
         CREATE INDEX IF NOT EXISTS idx_tracked_events_assembly
           ON tracked_events(assembly_id);
 
-        -- Polls tracked for notification scheduling
-        CREATE TABLE IF NOT EXISTS tracked_polls (
+        -- Surveys tracked for notification scheduling
+        CREATE TABLE IF NOT EXISTS tracked_surveys (
           id                   TEXT PRIMARY KEY,
           assembly_id          TEXT NOT NULL,
           title                TEXT NOT NULL,
@@ -93,8 +93,8 @@ export class PostgresAdapter implements DatabaseAdapter {
           notified_deadline    INTEGER NOT NULL DEFAULT 0,
           notified_closed      INTEGER NOT NULL DEFAULT 0
         );
-        CREATE INDEX IF NOT EXISTS idx_tracked_polls_assembly
-          ON tracked_polls(assembly_id);
+        CREATE INDEX IF NOT EXISTS idx_tracked_surveys_assembly
+          ON tracked_surveys(assembly_id);
 
         -- User notification preferences
         CREATE TABLE IF NOT EXISTS notification_preferences (
@@ -126,8 +126,8 @@ export class PostgresAdapter implements DatabaseAdapter {
           PRIMARY KEY (assembly_id, id)
         );
 
-        -- Local poll cache (metadata is immutable after creation)
-        CREATE TABLE IF NOT EXISTS polls_cache (
+        -- Local survey cache (metadata is immutable after creation)
+        CREATE TABLE IF NOT EXISTS surveys_cache (
           id            TEXT NOT NULL,
           assembly_id   TEXT NOT NULL,
           title         TEXT NOT NULL,
@@ -140,13 +140,13 @@ export class PostgresAdapter implements DatabaseAdapter {
           PRIMARY KEY (assembly_id, id)
         );
 
-        -- Poll response tracking (one-way latch: once responded, never reverted)
-        CREATE TABLE IF NOT EXISTS poll_responses (
+        -- Survey response tracking (one-way latch: once responded, never reverted)
+        CREATE TABLE IF NOT EXISTS survey_responses (
           assembly_id    TEXT NOT NULL,
-          poll_id        TEXT NOT NULL,
+          survey_id      TEXT NOT NULL,
           participant_id TEXT NOT NULL,
           responded_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (assembly_id, poll_id, participant_id)
+          PRIMARY KEY (assembly_id, survey_id, participant_id)
         );
 
         -- Proposal drafts (backend-only, mutable, discarded on submit)

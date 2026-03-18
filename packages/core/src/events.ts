@@ -16,7 +16,7 @@ import type {
   NoteId,
   ParticipantId,
   ParticipantStatus,
-  PollId,
+  SurveyId,
   PredictionId,
   ProposalId,
   Timestamp,
@@ -165,15 +165,15 @@ export interface OutcomeRecordedPayload {
   readonly source: string;
 }
 
-export interface PollCreatedPayload {
-  readonly pollId: PollId;
+export interface SurveyCreatedPayload {
+  readonly pollId: SurveyId;
   readonly questions: readonly string[];
   readonly schedule: Timestamp;
   readonly topicScope: readonly TopicId[];
 }
 
-export interface PollResponseSubmittedPayload {
-  readonly pollId: PollId;
+export interface SurveyResponseSubmittedPayload {
+  readonly pollId: SurveyId;
   readonly participantHash: string;
   readonly responses: readonly string[];
 }
@@ -318,11 +318,11 @@ export type PredictionCommittedEvent = BaseEvent<"PredictionCommitted", Predicti
 
 export type OutcomeRecordedEvent = BaseEvent<"OutcomeRecorded", OutcomeRecordedPayload>;
 
-export type PollCreatedEvent = BaseEvent<"PollCreated", PollCreatedPayload>;
+export type SurveyCreatedEvent = BaseEvent<"PollCreated", SurveyCreatedPayload>;
 
-export type PollResponseSubmittedEvent = BaseEvent<
+export type SurveyResponseSubmittedEvent = BaseEvent<
   "PollResponseSubmitted",
-  PollResponseSubmittedPayload
+  SurveyResponseSubmittedPayload
 >;
 
 export type IntegrityCommitmentEvent = BaseEvent<"IntegrityCommitment", IntegrityCommitmentPayload>;
@@ -360,8 +360,8 @@ export type DomainEvent =
   | VoteCastEvent
   | PredictionCommittedEvent
   | OutcomeRecordedEvent
-  | PollCreatedEvent
-  | PollResponseSubmittedEvent
+  | SurveyCreatedEvent
+  | SurveyResponseSubmittedEvent
   | IntegrityCommitmentEvent
   | ProposalSubmittedEvent
   | ProposalVersionCreatedEvent

@@ -2,7 +2,7 @@
  * @votiverse/awareness — AwarenessService
  *
  * Read-only service that queries state from delegation, voting,
- * prediction, and polling packages to deliver contextual findings.
+ * prediction, and survey packages to deliver contextual findings.
  *
  * This package never modifies engine state. It is safe to add,
  * remove, or modify awareness features without risk to governance logic.
@@ -20,7 +20,7 @@ import {
 } from "@votiverse/delegation";
 import type { DelegationChain } from "@votiverse/delegation";
 import { PredictionService } from "@votiverse/prediction";
-import { PollingService } from "@votiverse/polling";
+import { SurveyService } from "@votiverse/survey";
 import { ProposalService, CandidacyService, NoteService } from "@votiverse/content";
 import type {
   ConcentrationReport,
@@ -54,7 +54,7 @@ export interface IssueContext {
  */
 export class AwarenessService {
   private readonly predictionService: PredictionService;
-  private readonly pollingService: PollingService;
+  private readonly surveyService: SurveyService;
   private readonly proposalService: ProposalService;
   private readonly candidacyService: CandidacyService;
   private readonly noteService: NoteService;
@@ -64,7 +64,7 @@ export class AwarenessService {
     private readonly config: GovernanceConfig,
   ) {
     this.predictionService = new PredictionService(eventStore, config);
-    this.pollingService = new PollingService(eventStore, config);
+    this.surveyService = new SurveyService(eventStore, config);
     // Content services are read-only from awareness perspective —
     // used to query candidacy profiles, proposals, and note counts.
     const readOnlyTimeProvider = { now: () => Date.now() as Timestamp };
@@ -371,17 +371,17 @@ export class AwarenessService {
     }
 
     // Poll trends
-    const pollTrends: TopicTrend[] = [];
-    if (this.config.features.polls) {
+    const surveyTrends: TopicTrend[] = [];
+    if (this.config.features.surveys) {
       for (const topicId of ctx.topicIds) {
         try {
-          const trend = await this.pollingService.trends(
+          const trend = await this.surveyService.trends(
             topicId,
             ctx.eligibleParticipantIds.length,
           );
           if (trend.points.length > 0) {
             const latest = trend.points[trend.points.length - 1]!;
-            pollTrends.push({
+            surveyTrends.push({
               topicId,
               direction: trend.direction,
               latestScore: latest.score,
@@ -401,7 +401,7 @@ export class AwarenessService {
       issueId: ctx.issueId,
       topicIds: ctx.topicIds,
       relatedDecisions,
-      pollTrends,
+      surveyTrends,
       proposals: proposalSummaries,
     };
   }

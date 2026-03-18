@@ -117,8 +117,8 @@ export interface FeatureConfig {
    * Notes below this count are shown with a "not yet evaluated" indicator. Default: 3.
    */
   readonly noteMinEvaluations: number;
-  /** Whether participant polls/surveys are enabled. */
-  readonly polls: boolean;
+  /** Whether participant surveys are enabled. */
+  readonly surveys: boolean;
   /** Anonymity of survey/poll responses in aggregate results. */
   readonly surveyResponseAnonymity: SurveyResponseAnonymity;
   /** Intensity of the governance awareness layer. */

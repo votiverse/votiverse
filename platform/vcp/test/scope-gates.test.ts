@@ -67,9 +67,9 @@ describe("Scope gates on write operations", () => {
     expect(body.error.message).toContain("scope");
   });
 
-  it("participant-scoped client cannot POST polls", async () => {
-    const res = await vcp.requestWithKey(LIMITED_API_KEY, "POST", `/assemblies/${assemblyId}/polls`, {
-      title: "Unauthorized Poll",
+  it("participant-scoped client cannot POST surveys", async () => {
+    const res = await vcp.requestWithKey(LIMITED_API_KEY, "POST", `/assemblies/${assemblyId}/surveys`, {
+      title: "Unauthorized Survey",
       questions: [{ text: "Q?", type: "likert" }],
       topicScope: [],
       createdBy: participantId,

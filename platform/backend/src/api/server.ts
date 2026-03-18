@@ -11,7 +11,7 @@ import type { SessionService } from "../services/session-service.js";
 import type { MembershipService } from "../services/membership-service.js";
 import type { AssemblyCacheService } from "../services/assembly-cache.js";
 import type { TopicCacheService } from "../services/topic-cache.js";
-import type { PollCacheService } from "../services/poll-cache.js";
+import type { SurveyCacheService } from "../services/survey-cache.js";
 import type { NotificationService } from "../services/notification-service.js";
 import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
@@ -35,7 +35,7 @@ export interface AppDependencies {
   membershipService: MembershipService;
   assemblyCacheService: AssemblyCacheService;
   topicCacheService: TopicCacheService;
-  pollCacheService: PollCacheService;
+  surveyCacheService: SurveyCacheService;
   notificationService: NotificationService;
   contentService: ContentService;
   vcpClient: VCPClient;
@@ -43,7 +43,7 @@ export interface AppDependencies {
 }
 
 export function createApp(deps: AppDependencies): Hono {
-  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, vcpClient, config } = deps;
+  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, contentService, vcpClient, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -84,10 +84,10 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService));
-  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService));
+  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
   app.route("/", contentRoutes(membershipService, contentService, config));
-  app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, vcpClient, config));
+  app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, vcpClient, config));
 
   return app;
 }

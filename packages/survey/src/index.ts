@@ -1,7 +1,7 @@
 /**
- * @votiverse/polling — Public API
+ * @votiverse/survey — Public API
  *
- * Participant polls: non-delegable sensing mechanism with
+ * Participant surveys: non-delegable sensing mechanism with
  * aggregation and trend computation.
  */
 
@@ -13,17 +13,17 @@ export type {
   YesNoQuestion,
   MultipleChoiceQuestion,
   QuestionType,
-  PollQuestion,
-  PollStatus,
-  Poll,
-  PollAnswer,
-  PollResponse,
+  SurveyQuestion,
+  SurveyStatus,
+  Survey,
+  SurveyAnswer,
+  SurveyResponse,
   QuestionResult,
-  PollResults,
+  SurveyResults,
   TrendPoint,
   TrendDirection,
   TrendData,
-  CreatePollParams,
+  CreateSurveyParams,
   SubmitResponseParams,
 } from "./types.js";
 
@@ -31,4 +31,4 @@ export type {
 export { aggregateResults, computeTrend } from "./aggregation.js";
 
 // Service
-export { PollingService } from "./polling-service.js";
+export { SurveyService } from "./survey-service.js";

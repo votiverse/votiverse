@@ -87,10 +87,10 @@ describe("NotificationService", () => {
     });
   });
 
-  describe("trackPoll", () => {
-    it("inserts a tracked poll", async () => {
-      await service.trackPoll({
-        id: "poll-1",
+  describe("trackSurvey", () => {
+    it("inserts a tracked survey", async () => {
+      await service.trackSurvey({
+        id: "survey-1",
         assemblyId: "asm-1",
         title: "Community Survey",
         schedule: "2026-03-18T00:00:00Z",
@@ -98,8 +98,8 @@ describe("NotificationService", () => {
       });
 
       const row = await db.queryOne<{ id: string; title: string }>(
-        "SELECT id, title FROM tracked_polls WHERE id = ?",
-        ["poll-1"],
+        "SELECT id, title FROM tracked_surveys WHERE id = ?",
+        ["survey-1"],
       );
       expect(row).toBeDefined();
       expect(row!.title).toBe("Community Survey");
@@ -219,9 +219,9 @@ describe("NotificationService", () => {
       expect(subjects.some((s) => s.includes("Results are in"))).toBe(true);
     });
 
-    it("sends 'survey created' notification for new polls", async () => {
-      await service.trackPoll({
-        id: "poll-1",
+    it("sends 'survey created' notification for new surveys", async () => {
+      await service.trackSurvey({
+        id: "survey-1",
         assemblyId: "asm-1",
         title: "Housing Survey",
         schedule: "2099-01-01T00:00:00Z",
@@ -267,8 +267,8 @@ describe("NotificationService", () => {
     it("respects notify_new_surveys=false preference", async () => {
       await service.setPreference("u1", "notify_new_surveys", "false");
 
-      await service.trackPoll({
-        id: "poll-2",
+      await service.trackSurvey({
+        id: "survey-2",
         assemblyId: "asm-1",
         title: "Ignored Survey",
         schedule: "2099-01-01T00:00:00Z",

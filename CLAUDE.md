@@ -39,7 +39,7 @@ This compares `src/` timestamps against `dist/` for each engine package. If any 
 ./scripts/check-dist.sh --rebuild
 ```
 
-**Why this matters:** The VCP and its tests import from `dist/`, not `src/`. If the dist is stale, runtime behavior diverges from source — tests fail for mysterious reasons (e.g., the TestClock being invisible to the polling engine). This is the single most common source of phantom bugs in this codebase.
+**Why this matters:** The VCP and its tests import from `dist/`, not `src/`. If the dist is stale, runtime behavior diverges from source — tests fail for mysterious reasons (e.g., the TestClock being invisible to the survey engine). This is the single most common source of phantom bugs in this codebase.
 
 ---
 
@@ -65,12 +65,12 @@ These decisions are final. Do not reconsider them without explicit instruction f
 - **Event sourcing.** All state changes are recorded as an append-only sequence of immutable events. Current state is derived by replaying events. There is no mutable state store.
 - **Delegation graphs are computed fresh** from the event log for each issue. They are not maintained as mutable state. This ensures temporal queries work correctly and the override rule is always applied against current state.
 - **The awareness package is read-only.** It queries state produced by other packages. It never modifies engine state. It never writes events.
-- **Polls are non-delegable.** This is a hard architectural constraint, not a configuration option. Poll responses cannot be transferred or delegated under any configuration.
+- **Surveys are non-delegable.** This is a hard architectural constraint, not a configuration option. Survey responses cannot be transferred or delegated under any configuration.
 - **Predictions are immutable once committed.** The commitment hash prevents retroactive editing. Outcome data can be updated (new events), but the original prediction is never modified.
 - **The engine exposes a programmatic TypeScript API, not HTTP.** An HTTP layer is a consumer concern built on top of the engine.
 - **Configuration is data.** Governance rules come from `GovernanceConfig` objects. The engine interprets configs — it never hard-codes governance logic.
 - **No circular dependencies between packages.** Dependencies flow strictly downward. See the dependency graph in `docs/architecture.md`.
-- **Time is injectable via TimeProvider.** All time-dependent operations (vote acceptance, event status, poll windows, delegation maxAge) use a `TimeProvider` interface from `@votiverse/core`. Default is `systemTime` (real clock). Tests use `TestClock` which can be advanced programmatically. The VCP exposes dev-only `/dev/clock` endpoints for Stripe-style test clock control. Never use `Date.now()` directly in engine or VCP code — use `timeProvider.now()`.
+- **Time is injectable via TimeProvider.** All time-dependent operations (vote acceptance, event status, survey windows, delegation maxAge) use a `TimeProvider` interface from `@votiverse/core`. Default is `systemTime` (real clock). Tests use `TestClock` which can be advanced programmatically. The VCP exposes dev-only `/dev/clock` endpoints for Stripe-style test clock control. Never use `Date.now()` directly in engine or VCP code — use `timeProvider.now()`.
 - **Voting windows are enforced by the engine.** The engine's `voting.cast()` rejects votes outside the `votingStart`–`votingEnd` window with `GovernanceRuleViolation`. This is not just a UI concern — it's enforced at the engine level.
 - **The VCP stores governance metadata; the backend stores content.** The VCP is a governance computation and integrity engine. It stores event payloads, governance metadata, and content hashes — never markdown documents, binary assets, or PII. Rich content (proposal documents, candidacy profiles, community note text, uploaded files) lives in the client backend. The `contentHash` in the VCP provides integrity verification: anyone can hash backend-served content and compare it to the VCP's record. This separation keeps the VCP lean, deployment-agnostic, and capable of serving multiple client backends.
 - **The backend orchestrates; the VCP computes.** The backend is the entry point for all user actions. It manages drafts, stores content, and calls the VCP to record governance events and perform governance computation. The VCP never initiates contact with the backend.
@@ -120,11 +120,11 @@ Always use the latest stable versions of all dependencies. Check npm before inst
 ## Package Dependency Rules
 
 ```
-cli → engine → [awareness, voting, polling, prediction, integrity, content]
-                awareness → [delegation, voting, prediction, polling, config, core, content]
+cli → engine → [awareness, voting, survey, prediction, integrity, content]
+                awareness → [delegation, voting, prediction, survey, config, core, content]
                 content → [config, core]
                 voting → [delegation, config, core]
-                polling → [identity, config, core]
+                survey → [identity, config, core]
                 prediction → [config, core]
                 delegation → [identity, config, core]
                 integrity → [config, core]
@@ -187,7 +187,7 @@ cli → engine → [awareness, voting, polling, prediction, integrity, content]
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
 
-**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, polls, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. 645 tests across engine (459), VCP (107), backend (63), and web (16).
+**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, surveys, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. 645 tests across engine (459), VCP (107), backend (63), and web (16).
 
 ### Phase 1: Foundation
 1. `@votiverse/core` — base types, event definitions, EventStore interface, Result type, error base class
@@ -209,10 +209,10 @@ Work proceeds in phases. Complete one phase fully before starting the next. At t
 ### Phase 2: Accountability
 1. `@votiverse/prediction` — prediction creation, commitment hashing, outcome recording, accuracy evaluation, track records
 2. Tests for prediction
-3. `@votiverse/polling` — poll creation, response collection, aggregation, trend computation
-4. Tests for polling
-5. Wire prediction and polling into engine
-6. CLI commands for predict and poll
+3. `@votiverse/survey` — survey creation, response collection, aggregation, trend computation
+4. Tests for survey
+5. Wire prediction and survey into engine
+6. CLI commands for predict and survey
 7. Integration tests
 8. **STOP. Write status report. Wait for review.**
 
@@ -305,7 +305,7 @@ These properties must hold for ALL governance configurations. Write property-bas
 5. **Override rule.** If participant A delegates to B, and A votes directly, then B's weight does not include A's vote.
 6. **Cycle resolution.** Participants in a delegation cycle who do not vote directly have effective weight 0. A direct vote from any cycle member breaks the cycle at that point.
 7. **Scope precedence.** A more specific delegation always overrides a more general one for the same participant and issue.
-8. **Poll non-transferability.** No API path allows a poll response to be submitted on behalf of another participant.
+8. **Survey non-transferability.** No API path allows a survey response to be submitted on behalf of another participant.
 
 ---
 
@@ -344,12 +344,12 @@ platform/
 │   │       ├── server.ts        ← Hono app, middleware, route mounting
 │   │       ├── middleware/      ← auth, error-handler
 │   │       └── routes/          ← assemblies, participants, events, delegations,
-│   │                              voting, predictions, polls, topics, awareness
+│   │                              voting, predictions, surveys, topics, awareness
 │   └── scripts/
 │       ├── seed.ts              ← orchestrator: wipes + reseeds all data
 │       ├── reset.ts             ← wipes DB, starts server, runs seed, stops server
 │       └── seed-data/           ← data definitions (assemblies, participants,
-│                                  events, delegations, polls, topics, helpers)
+│                                  events, delegations, surveys, topics, helpers)
 ├── backend/                       ← Client backend (auth, identity, VCP proxy)
 │   ├── src/
 │   │   ├── main.ts              ← entry point
@@ -390,7 +390,7 @@ cd platform/vcp && pnpm reset    # wipes VCP DB, starts server, seeds data, stop
 cd platform/backend && pnpm reset # wipes backend DB, starts backend, seeds users from VCP, stops (requires VCP running)
 ```
 
-The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 5 assemblies with participants, topics, events, delegations, and polls), then stops the server. The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
+The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 5 assemblies with participants, topics, events, delegations, and surveys), then stops the server. The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
 
 ### Running Dev Servers
 
@@ -412,7 +412,7 @@ Or use the `.claude/launch.json` configurations (`vcp`, `backend`, and `web`) wi
 
 The seed creates 5 assemblies using different governance presets:
 
-| Assembly   | Preset              | Delegation            | Polls | Predictions |
+| Assembly   | Preset              | Delegation            | Surveys | Predictions |
 |------------|---------------------|-----------------------|-------|-------------|
 | Greenfield | TOWN_HALL           | Disabled              | No    | Off         |
 | OSC        | LIQUID_STANDARD     | Transitive, topic-scoped | No | Mandatory   |
@@ -420,7 +420,7 @@ The seed creates 5 assemblies using different governance presets:
 | Youth      | LIQUID_ACCOUNTABLE  | Transitive, topic-scoped | Yes | Opt-in      |
 | Board      | BOARD_PROXY         | Non-transitive, 1 delegate | No | Off       |
 
-Each assembly has hierarchical topics (36 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and polls (Municipal + Youth only).
+Each assembly has hierarchical topics (36 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and surveys (Municipal + Youth only).
 
 The backend seed creates 59 user accounts mapped to VCP participants, with 4 cross-assembly users who have memberships in multiple assemblies.
 

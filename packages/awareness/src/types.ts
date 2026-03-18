@@ -147,8 +147,8 @@ export interface HistoricalContext {
   readonly topicIds: readonly TopicId[];
   /** Past decisions on related topics. */
   readonly relatedDecisions: readonly RelatedDecision[];
-  /** Poll trend data for the issue's topics. */
-  readonly pollTrends: readonly TopicTrend[];
+  /** Survey trend data for the issue's topics. */
+  readonly surveyTrends: readonly TopicTrend[];
   /** Proposals submitted for this issue. */
   readonly proposals: readonly ProposalSummary[];
 }

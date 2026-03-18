@@ -1,5 +1,5 @@
 /**
- * NotificationService — tracks governance events/polls and dispatches
+ * NotificationService — tracks governance events/surveys and dispatches
  * notifications on a schedule based on user preferences.
  */
 
@@ -19,7 +19,7 @@ export interface TrackedEvent {
   votingEnd: string;
 }
 
-export interface TrackedPoll {
+export interface TrackedSurvey {
   id: string;
   assemblyId: string;
   title: string;
@@ -40,7 +40,7 @@ interface TrackedEventRow {
   notified_closed: number;
 }
 
-interface TrackedPollRow {
+interface TrackedSurveyRow {
   id: string;
   assembly_id: string;
   title: string;
@@ -120,19 +120,19 @@ export class NotificationService {
     this.log.info(`Tracking event: ${event.title}`, { eventId: event.id, assemblyId: event.assemblyId });
   }
 
-  /** Track a new poll for notification scheduling. */
-  async trackPoll(poll: TrackedPoll): Promise<void> {
+  /** Track a new survey for notification scheduling. */
+  async trackSurvey(survey: TrackedSurvey): Promise<void> {
     await this.db.run(
-      `INSERT INTO tracked_polls (id, assembly_id, title, schedule, closes_at)
+      `INSERT INTO tracked_surveys (id, assembly_id, title, schedule, closes_at)
        VALUES (?, ?, ?, ?, ?)
        ON CONFLICT (id) DO NOTHING`,
-      [poll.id, poll.assemblyId, poll.title, poll.schedule, poll.closesAt],
+      [survey.id, survey.assemblyId, survey.title, survey.schedule, survey.closesAt],
     );
-    this.log.info(`Tracking poll: ${poll.title}`, { pollId: poll.id, assemblyId: poll.assemblyId });
+    this.log.info(`Tracking survey: ${survey.title}`, { surveyId: survey.id, assemblyId: survey.assemblyId });
   }
 
   /** Mark all notification flags as sent (used by seed to prevent re-notifying historical data). */
-  async markAllNotified(type: "event" | "poll", id: string): Promise<void> {
+  async markAllNotified(type: "event" | "survey", id: string): Promise<void> {
     if (type === "event") {
       await this.db.run(
         "UPDATE tracked_events SET notified_created = 1, notified_voting_open = 1, notified_deadline = 1, notified_closed = 1 WHERE id = ?",
@@ -140,7 +140,7 @@ export class NotificationService {
       );
     } else {
       await this.db.run(
-        "UPDATE tracked_polls SET notified_created = 1, notified_deadline = 1, notified_closed = 1 WHERE id = ?",
+        "UPDATE tracked_surveys SET notified_created = 1, notified_deadline = 1, notified_closed = 1 WHERE id = ?",
         [id],
       );
     }
@@ -187,7 +187,7 @@ export class NotificationService {
     const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     await this.processEventNotifications(now, deadline);
-    await this.processPollNotifications(now, deadline);
+    await this.processSurveyNotifications(now, deadline);
   }
 
   // ── Internal: Event notifications ────────────────────────────────
@@ -236,37 +236,37 @@ export class NotificationService {
     }
   }
 
-  // ── Internal: Poll notifications ─────────────────────────────────
+  // ── Internal: Survey notifications ──────────────────────────────
 
-  private async processPollNotifications(now: string, deadline: string): Promise<void> {
-    // 1. New polls created
-    const newPolls = await this.db.query<TrackedPollRow>(
-      "SELECT * FROM tracked_polls WHERE notified_created = 0",
+  private async processSurveyNotifications(now: string, deadline: string): Promise<void> {
+    // 1. New surveys created
+    const newSurveys = await this.db.query<TrackedSurveyRow>(
+      "SELECT * FROM tracked_surveys WHERE notified_created = 0",
     );
-    for (const poll of newPolls) {
-      await this.notifySurveyCreated(poll);
-      await this.db.run("UPDATE tracked_polls SET notified_created = 1 WHERE id = ?", [poll.id]);
+    for (const survey of newSurveys) {
+      await this.notifySurveyCreated(survey);
+      await this.db.run("UPDATE tracked_surveys SET notified_created = 1 WHERE id = ?", [survey.id]);
     }
 
     // 2. Survey closing soon (within 24h)
-    const deadlinePolls = await this.db.query<TrackedPollRow>(
-      "SELECT * FROM tracked_polls WHERE notified_deadline = 0 AND notified_closed = 0 AND closes_at <= ?",
+    const deadlineSurveys = await this.db.query<TrackedSurveyRow>(
+      "SELECT * FROM tracked_surveys WHERE notified_deadline = 0 AND notified_closed = 0 AND closes_at <= ?",
       [deadline],
     );
-    for (const poll of deadlinePolls) {
-      if (poll.closes_at > now) {
-        await this.notifySurveyDeadline(poll);
+    for (const survey of deadlineSurveys) {
+      if (survey.closes_at > now) {
+        await this.notifySurveyDeadline(survey);
       }
-      await this.db.run("UPDATE tracked_polls SET notified_deadline = 1 WHERE id = ?", [poll.id]);
+      await this.db.run("UPDATE tracked_surveys SET notified_deadline = 1 WHERE id = ?", [survey.id]);
     }
 
     // 3. Survey closed
-    const closedPolls = await this.db.query<TrackedPollRow>(
-      "SELECT * FROM tracked_polls WHERE notified_closed = 0 AND closes_at <= ?",
+    const closedSurveys = await this.db.query<TrackedSurveyRow>(
+      "SELECT * FROM tracked_surveys WHERE notified_closed = 0 AND closes_at <= ?",
       [now],
     );
-    for (const poll of closedPolls) {
-      await this.db.run("UPDATE tracked_polls SET notified_closed = 1 WHERE id = ?", [poll.id]);
+    for (const survey of closedSurveys) {
+      await this.db.run("UPDATE tracked_surveys SET notified_closed = 1 WHERE id = ?", [survey.id]);
     }
   }
 
@@ -321,28 +321,28 @@ export class NotificationService {
     this.log.info(`Notified ${recipients.length} users: results available`, { eventId: event.id });
   }
 
-  private async notifySurveyCreated(poll: TrackedPollRow): Promise<void> {
-    const recipients = await this.resolveRecipients(poll.assembly_id, "notify_new_surveys");
-    const assemblyName = await this.getAssemblyName(poll.assembly_id);
+  private async notifySurveyCreated(survey: TrackedSurveyRow): Promise<void> {
+    const recipients = await this.resolveRecipients(survey.assembly_id, "notify_new_surveys");
+    const assemblyName = await this.getAssemblyName(survey.assembly_id);
     const template = renderTemplate("survey_created", {
-      assemblyName, title: poll.title, baseUrl: this.baseUrl,
+      assemblyName, title: survey.title, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    this.log.info(`Notified ${recipients.length} users: survey created`, { pollId: poll.id });
+    this.log.info(`Notified ${recipients.length} users: survey created`, { surveyId: survey.id });
   }
 
-  private async notifySurveyDeadline(poll: TrackedPollRow): Promise<void> {
-    const recipients = await this.resolveRecipients(poll.assembly_id, "notify_deadlines");
-    const assemblyName = await this.getAssemblyName(poll.assembly_id);
+  private async notifySurveyDeadline(survey: TrackedSurveyRow): Promise<void> {
+    const recipients = await this.resolveRecipients(survey.assembly_id, "notify_deadlines");
+    const assemblyName = await this.getAssemblyName(survey.assembly_id);
     const template = renderTemplate("survey_deadline", {
-      assemblyName, title: poll.title, closesAt: poll.closes_at, baseUrl: this.baseUrl,
+      assemblyName, title: survey.title, closesAt: survey.closes_at, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    this.log.info(`Notified ${recipients.length} users: survey deadline`, { pollId: poll.id });
+    this.log.info(`Notified ${recipients.length} users: survey deadline`, { surveyId: survey.id });
   }
 
   // ── Internal: Recipient resolution ───────────────────────────────

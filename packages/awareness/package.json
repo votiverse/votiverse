@@ -25,7 +25,7 @@
     "@votiverse/delegation": "workspace:*",
     "@votiverse/voting": "workspace:*",
     "@votiverse/prediction": "workspace:*",
-    "@votiverse/polling": "workspace:*",
+    "@votiverse/survey": "workspace:*",
     "@votiverse/content": "workspace:*"
   },
   "devDependencies": {

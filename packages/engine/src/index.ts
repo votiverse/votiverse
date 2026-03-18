@@ -51,12 +51,12 @@ export type {
 } from "@votiverse/prediction";
 
 export type {
-  Poll,
-  PollResults,
+  Survey,
+  SurveyResults,
   TrendData,
-  CreatePollParams,
+  CreateSurveyParams,
   SubmitResponseParams,
-} from "@votiverse/polling";
+} from "@votiverse/survey";
 
 export type {
   ProposalMetadata,

@@ -1,7 +1,7 @@
 {
-  "name": "@votiverse/polling",
+  "name": "@votiverse/survey",
   "version": "0.1.0",
-  "description": "Participant polls — non-delegable sensing mechanism with trend computation",
+  "description": "Participant surveys — non-delegable sensing mechanism with trend computation",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

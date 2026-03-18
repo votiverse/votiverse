@@ -34,7 +34,7 @@ The seed script (`pnpm seed`) creates a rich, diverse dataset for UI/UX evaluati
 - **42 issues** with unique, realistic titles and descriptions
 - **21 delegations** including depth-2 chains and override scenarios
 - **155 pre-cast votes** with varied margins (landslides, tight races, quorum edge cases)
-- **2 polls** with 16 responses across assemblies that have polling enabled
+- **2 surveys** with 16 responses across assemblies that have surveys enabled
 
 To reset the database to fresh seed data at any time, run `pnpm reset`. This wipes the SQLite database, starts the server, runs the seed script, and stops the server — one command to get back to a known state.
 
@@ -70,7 +70,7 @@ To reset the database to fresh seed data at any time, run `pnpm reset`. This wip
 ```
 
 - **`assemblyAccess`**: `"*"` for unrestricted access, or an array of assembly IDs. Default: `"*"`.
-- **`scopes`**: `"participant"` allows governance actions (vote, delegate, poll). `"operational"` additionally allows admin writes (create participants, events, polls, topics). Default: both.
+- **`scopes`**: `"participant"` allows governance actions (vote, delegate, survey). `"operational"` additionally allows admin writes (create participants, events, surveys, topics). Default: both.
 
 ---
 
@@ -134,14 +134,14 @@ Every request (except `/health`) requires `Authorization: Bearer <key>`.
 | `GET` | `/assemblies/:id/predictions/:pid/eval` | Evaluate prediction accuracy |
 | `GET` | `/assemblies/:id/track-record/:pid` | Participant prediction track record |
 
-### Polls
+### Surveys
 
 | Method | Path | Scope | Description |
 |--------|------|-------|-------------|
-| `POST` | `/assemblies/:id/polls` | operational | Create poll |
-| `GET` | `/assemblies/:id/polls` | participant | List polls |
-| `POST` | `/assemblies/:id/polls/:pid/respond` | participant | Submit poll response |
-| `GET` | `/assemblies/:id/polls/:pid/results` | participant | Poll results |
+| `POST` | `/assemblies/:id/surveys` | operational | Create survey |
+| `GET` | `/assemblies/:id/surveys` | participant | List surveys |
+| `POST` | `/assemblies/:id/surveys/:pid/respond` | participant | Submit survey response |
+| `GET` | `/assemblies/:id/surveys/:pid/results` | participant | Survey results |
 | `GET` | `/assemblies/:id/trends/:topic` | participant | Topic trend data |
 
 ### Awareness

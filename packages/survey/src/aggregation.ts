@@ -1,38 +1,38 @@
 /**
- * @votiverse/polling — Aggregation and trend computation
+ * @votiverse/survey — Aggregation and trend computation
  *
- * Computes aggregate results for individual polls and longitudinal
- * trends across polls by topic.
+ * Computes aggregate results for individual surveys and longitudinal
+ * trends across surveys by topic.
  */
 
 import type { TopicId, Timestamp } from "@votiverse/core";
 import type {
-  Poll,
-  PollResponse,
-  PollResults,
+  Survey,
+  SurveyResponse,
+  SurveyResults,
   QuestionResult,
-  PollQuestion,
+  SurveyQuestion,
   TrendPoint,
   TrendData,
   TrendDirection,
 } from "./types.js";
 
 // ---------------------------------------------------------------------------
-// Single-poll aggregation
+// Single-survey aggregation
 // ---------------------------------------------------------------------------
 
 /**
- * Aggregate poll responses into results.
+ * Aggregate survey responses into results.
  */
 export function aggregateResults(
-  poll: Poll,
-  responses: readonly PollResponse[],
+  survey: Survey,
+  responses: readonly SurveyResponse[],
   eligibleCount: number,
-): PollResults {
-  const questionResults = poll.questions.map((q) => aggregateQuestion(q, responses));
+): SurveyResults {
+  const questionResults = survey.questions.map((q) => aggregateQuestion(q, responses));
 
   return {
-    pollId: poll.id,
+    surveyId: survey.id,
     responseCount: responses.length,
     responseRate: eligibleCount > 0 ? responses.length / eligibleCount : 0,
     questionResults,
@@ -40,8 +40,8 @@ export function aggregateResults(
 }
 
 function aggregateQuestion(
-  question: PollQuestion,
-  responses: readonly PollResponse[],
+  question: SurveyQuestion,
+  responses: readonly SurveyResponse[],
 ): QuestionResult {
   const answers = responses.flatMap((r) => r.answers).filter((a) => a.questionId === question.id);
 
@@ -88,7 +88,7 @@ function aggregateQuestion(
  */
 function toNumeric(
   value: number | string | boolean,
-  questionType: PollQuestion["questionType"],
+  questionType: SurveyQuestion["questionType"],
 ): number | null {
   switch (questionType.type) {
     case "likert":
@@ -116,27 +116,27 @@ function toNumeric(
 // ---------------------------------------------------------------------------
 
 /**
- * Computes a trend line for a specific topic across multiple polls.
+ * Computes a trend line for a specific topic across multiple surveys.
  *
- * Each poll's questions tagged with the topic are normalized to a
+ * Each survey's questions tagged with the topic are normalized to a
  * [-1, +1] sentiment scale. The trend is the time series of these
  * normalized scores.
  */
 export function computeTrend(
   topicId: TopicId,
-  polls: readonly Poll[],
-  responsesByPoll: ReadonlyMap<string, readonly PollResponse[]>,
+  surveys: readonly Survey[],
+  responsesBySurvey: ReadonlyMap<string, readonly SurveyResponse[]>,
   eligibleCount: number,
 ): TrendData {
   const points: TrendPoint[] = [];
 
-  for (const poll of polls) {
-    if (poll.status !== "closed") continue;
+  for (const survey of surveys) {
+    if (survey.status !== "closed") continue;
 
-    const relevantQuestions = poll.questions.filter((q) => q.topicIds.includes(topicId));
+    const relevantQuestions = survey.questions.filter((q) => q.topicIds.includes(topicId));
     if (relevantQuestions.length === 0) continue;
 
-    const responses = responsesByPoll.get(poll.id) ?? [];
+    const responses = responsesBySurvey.get(survey.id) ?? [];
     if (responses.length === 0) continue;
 
     // Compute normalized score for each relevant question
@@ -160,7 +160,7 @@ export function computeTrend(
     const confidence = rateConfidence * questionConfidence;
 
     points.push({
-      timestamp: poll.closesAt,
+      timestamp: survey.closesAt,
       score: avgScore,
       responseRate,
       questionCount: scores.length,
@@ -193,7 +193,7 @@ export function computeTrend(
  */
 function normalizeScore(
   result: QuestionResult,
-  questionType: PollQuestion["questionType"],
+  questionType: SurveyQuestion["questionType"],
 ): number | null {
   if (result.mean === undefined) return null;
 

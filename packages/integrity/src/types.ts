@@ -16,7 +16,7 @@ import type { CommitmentId, Timestamp } from "@votiverse/core";
 export type ArtifactType =
   | "vote-tally"
   | "prediction-commitment"
-  | "poll-results"
+  | "survey-results"
   | "delegation-snapshot"
   | "event-batch";
 

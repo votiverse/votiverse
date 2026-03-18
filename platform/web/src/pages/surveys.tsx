@@ -3,11 +3,11 @@ import { useParams } from "react-router";
 import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
-import type { Poll, PollQuestion, PollResults } from "../api/types.js";
-import { derivePollStatus } from "../lib/status.js";
+import type { Survey, SurveyQuestion, SurveyResults } from "../api/types.js";
+import { deriveSurveyStatus } from "../lib/status.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
 
-type PollTab = "open" | "closed";
+type SurveyTab = "open" | "closed";
 
 // ---------------------------------------------------------------------------
 // Colors for result bars (consistent with tally bars in event-detail.tsx)
@@ -24,32 +24,32 @@ const RESULT_COLORS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Polls page
+// Surveys page
 // ---------------------------------------------------------------------------
 
-export function Polls() {
+export function Surveys() {
   const { assemblyId } = useParams();
   const { assembly } = useAssembly(assemblyId);
   const { getParticipantId } = useParticipant();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const [creating, setCreating] = useState(false);
-  const [polls, setPolls] = useState<Poll[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<PollTab>("open");
+  const [tab, setTab] = useState<SurveyTab>("open");
 
-  const pollsEnabled = assembly?.config.features.polls ?? false;
+  const surveysEnabled = assembly?.config.features.surveys ?? false;
 
   useEffect(() => {
     if (!assemblyId) return;
     setLoading(true);
-    api.listPolls(assemblyId, participantId ?? undefined)
-      .then((data) => setPolls(data.polls))
+    api.listSurveys(assemblyId, participantId ?? undefined)
+      .then((data) => setSurveys(data.surveys))
       .catch(() => {/* ignore — falls back to empty list */})
       .finally(() => setLoading(false));
   }, [assemblyId, participantId]);
 
-  const openPolls = useMemo(() => {
-    const open = polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) !== "closed");
+  const openSurveys = useMemo(() => {
+    const open = surveys.filter((p) => deriveSurveyStatus(p.schedule, p.closesAt) !== "closed");
     // Sort: unanswered first (by closest deadline), then answered
     return open.sort((a, b) => {
       const aResponded = a.hasResponded ? 1 : 0;
@@ -58,15 +58,15 @@ export function Polls() {
       // Within same group, closest deadline first
       return a.closesAt - b.closesAt;
     });
-  }, [polls]);
-  const closedPolls = useMemo(() => {
-    const closed = polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) === "closed");
+  }, [surveys]);
+  const closedSurveys = useMemo(() => {
+    const closed = surveys.filter((p) => deriveSurveyStatus(p.schedule, p.closesAt) === "closed");
     // Most recently closed first
     return closed.sort((a, b) => b.closesAt - a.closesAt);
-  }, [polls]);
-  const visiblePolls = tab === "open" ? openPolls : closedPolls;
+  }, [surveys]);
+  const visibleSurveys = tab === "open" ? openSurveys : closedSurveys;
 
-  if (!pollsEnabled && !loading) {
+  if (!surveysEnabled && !loading) {
     return (
       <div className="max-w-4xl mx-auto">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Surveys</h1>
@@ -82,13 +82,13 @@ export function Polls() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Surveys</h1>
-        {pollsEnabled && <Button onClick={() => setCreating(true)}>New Survey</Button>}
+        {surveysEnabled && <Button onClick={() => setCreating(true)}>New Survey</Button>}
       </div>
 
       {/* Open / Closed tabs */}
       <div className="flex gap-1 mb-4 border-b border-gray-200">
         {([["open", "Open"], ["closed", "Closed"]] as const).map(([key, label]) => {
-          const count = key === "open" ? openPolls.length : closedPolls.length;
+          const count = key === "open" ? openSurveys.length : closedSurveys.length;
           return (
             <button
               key={key}
@@ -108,11 +108,11 @@ export function Polls() {
       </div>
 
       {creating && (
-        <CreatePollForm
+        <CreateSurveyForm
           assemblyId={assemblyId!}
           onClose={() => setCreating(false)}
-          onCreated={(poll) => {
-            setPolls([...polls, poll]);
+          onCreated={(survey) => {
+            setSurveys([...surveys, survey]);
             setCreating(false);
           }}
         />
@@ -123,7 +123,7 @@ export function Polls() {
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
         </div>
-      ) : visiblePolls.length === 0 && !creating ? (
+      ) : visibleSurveys.length === 0 && !creating ? (
         <EmptyState
           title={tab === "open" ? "No open surveys" : "No closed surveys"}
           description={tab === "open"
@@ -132,8 +132,8 @@ export function Polls() {
         />
       ) : (
         <div className="space-y-4">
-          {visiblePolls.map((poll) => (
-            <PollCard key={poll.id} assemblyId={assemblyId!} poll={poll} />
+          {visibleSurveys.map((survey) => (
+            <SurveyCard key={survey.id} assemblyId={assemblyId!} survey={survey} />
           ))}
         </div>
       )}
@@ -156,17 +156,17 @@ function emptyQuestion(): QuestionDraft {
 }
 
 // ---------------------------------------------------------------------------
-// Create poll form — supports multiple questions and multiple-choice
+// Create survey form — supports multiple questions and multiple-choice
 // ---------------------------------------------------------------------------
 
-function CreatePollForm({
+function CreateSurveyForm({
   assemblyId,
   onClose,
   onCreated,
 }: {
   assemblyId: string;
   onClose: () => void;
-  onCreated: (poll: Poll) => void;
+  onCreated: (survey: Survey) => void;
 }) {
   const { getParticipantId } = useParticipant();
   const participantId = getParticipantId(assemblyId);
@@ -231,7 +231,7 @@ function CreatePollForm({
 
     const now = Date.now();
     try {
-      const poll = await api.createPoll(assemblyId, {
+      const survey = await api.createSurvey(assemblyId, {
         title: title.trim(),
         topicScope: [],
         questions: questions.map((q) => ({
@@ -244,7 +244,7 @@ function CreatePollForm({
         closesAt: now + 86400000 * 7,
         createdBy: participantId ?? "unknown",
       });
-      onCreated(poll);
+      onCreated(survey);
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Failed to create survey");
     } finally {
@@ -366,24 +366,24 @@ function buildQuestionType(type: string, options: string[]): { type: string; [ke
 }
 
 // ---------------------------------------------------------------------------
-// Poll card — shows questions, response buttons, and results
+// Survey card — shows questions, response buttons, and results
 // ---------------------------------------------------------------------------
 
-function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
+function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey }) {
   const { getParticipantId } = useParticipant();
   const participantId = getParticipantId(assemblyId);
-  const [results, setResults] = useState<PollResults | null>(null);
+  const [results, setResults] = useState<SurveyResults | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
-  const [responded, setResponded] = useState(poll.hasResponded ?? false);
+  const [responded, setResponded] = useState(survey.hasResponded ?? false);
   const [responseError, setResponseError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, unknown>>({});
 
-  const isClosed = derivePollStatus(poll.schedule, poll.closesAt) === "closed";
+  const isClosed = deriveSurveyStatus(survey.schedule, survey.closesAt) === "closed";
   const showButtons = !isClosed && !responded && participantId;
-  const allAnswered = poll.questions.every((q) => q.id in selected);
+  const allAnswered = survey.questions.every((q) => q.id in selected);
 
-  // Auto-load results for closed polls or already-responded polls
+  // Auto-load results for closed surveys or already-responded surveys
   useEffect(() => {
     if (isClosed || responded) {
       loadResults();
@@ -393,13 +393,13 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
 
   const loadResults = useCallback(async () => {
     try {
-      const r = await api.getPollResults(assemblyId, poll.id);
+      const r = await api.getSurveyResults(assemblyId, survey.id);
       setResults(r);
       setResultsError(null);
     } catch (err: unknown) {
       setResultsError(err instanceof Error ? err.message : "Failed to load results");
     }
-  }, [assemblyId, poll.id]);
+  }, [assemblyId, survey.id]);
 
   const selectAnswer = (questionId: string, value: unknown) => {
     setSelected((prev) => ({ ...prev, [questionId]: value }));
@@ -413,11 +413,11 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
     setResponding(true);
     setResponseError(null);
     try {
-      const answers = poll.questions.map((q) => ({
+      const answers = survey.questions.map((q) => ({
         questionId: q.id,
         value: selected[q.id],
       }));
-      await api.submitPollResponse(assemblyId, poll.id, {
+      await api.submitSurveyResponse(assemblyId, survey.id, {
         participantId,
         answers,
       });
@@ -436,7 +436,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
     }
   };
 
-  const closesIn = poll.closesAt - Date.now();
+  const closesIn = survey.closesAt - Date.now();
   const closesLabel = closesIn > 0
     ? `Closes in ${Math.ceil(closesIn / 86400000)}d`
     : undefined;
@@ -448,14 +448,14 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-gray-900">{poll.title}</h3>
-            <span className="text-xs text-gray-400">{poll.questions.length} question{poll.questions.length !== 1 ? "s" : ""}</span>
+            <h3 className="font-medium text-gray-900">{survey.title}</h3>
+            <span className="text-xs text-gray-400">{survey.questions.length} question{survey.questions.length !== 1 ? "s" : ""}</span>
           </div>
           <div className="flex items-center gap-2">
             {closesLabel && !isClosed && (
               <span className="text-xs text-gray-500">{closesLabel}</span>
             )}
-            <StatusBadge status={derivePollStatus(poll.schedule, poll.closesAt)} />
+            <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
           </div>
         </div>
       </CardHeader>
@@ -463,7 +463,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
         {responseError && <ErrorBox message={responseError} />}
         {resultsError && <ErrorBox message={resultsError} />}
 
-        {poll.questions.map((q) => (
+        {survey.questions.map((q) => (
           <div key={q.id} className="bg-gray-50 rounded-md p-3 sm:p-4">
             <p className="text-sm font-medium text-gray-700 mb-3">{q.text}</p>
 
@@ -488,7 +488,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
             {showButtons && answeredCount > 0 ? (
               <>
                 <Button onClick={submitAll} disabled={responding || !allAnswered}>
-                  {responding ? "Submitting..." : `Submit Response${poll.questions.length > 1 ? `s (${answeredCount}/${poll.questions.length})` : ""}`}
+                  {responding ? "Submitting..." : `Submit Response${survey.questions.length > 1 ? `s (${answeredCount}/${survey.questions.length})` : ""}`}
                 </Button>
                 <button
                   type="button"
@@ -508,7 +508,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
         )}
 
         {results && (
-          <ResultsDisplay results={results} questions={poll.questions} />
+          <ResultsDisplay results={results} questions={survey.questions} />
         )}
       </CardBody>
     </Card>
@@ -525,7 +525,7 @@ function QuestionButtons({
   selectedValue,
   onSelect,
 }: {
-  question: PollQuestion;
+  question: SurveyQuestion;
   responding: boolean;
   selectedValue: unknown;
   onSelect: (value: unknown) => void;
@@ -632,8 +632,8 @@ function ResultsDisplay({
   results,
   questions,
 }: {
-  results: PollResults;
-  questions: PollQuestion[];
+  results: SurveyResults;
+  questions: SurveyQuestion[];
 }) {
   return (
     <div className="space-y-4">

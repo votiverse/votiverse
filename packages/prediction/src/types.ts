@@ -14,7 +14,7 @@ import type {
   PredictionId,
   ProposalId,
   OutcomeId,
-  PollId,
+  SurveyId,
   Timestamp,
 } from "@votiverse/core";
 
@@ -136,7 +136,7 @@ export interface Prediction {
 /** Source of an outcome measurement. */
 export type OutcomeSource =
   | { readonly type: "official"; readonly provider: string }
-  | { readonly type: "poll-derived"; readonly pollId: PollId }
+  | { readonly type: "poll-derived"; readonly pollId: SurveyId }
   | { readonly type: "community"; readonly participantId: ParticipantId }
   | { readonly type: "automated"; readonly provider: string };
 

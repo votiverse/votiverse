@@ -23,7 +23,7 @@ function targetLink(assemblyId: string, target: CommunityNote["target"]): string
     case "candidacy":
       return `/assembly/${assemblyId}/candidacies`;
     case "survey":
-      return `/assembly/${assemblyId}/polls`;
+      return `/assembly/${assemblyId}/surveys`;
     default:
       return `/assembly/${assemblyId}/notes`;
   }

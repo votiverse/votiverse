@@ -12,8 +12,8 @@ function computeTabs(assemblyId: string, config: Partial<GovernanceConfig>) {
   ];
 
   const delegationMode = config.delegation?.delegationMode ?? "none";
-  if (config.features?.polls) {
-    tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
+  if (config.features?.surveys) {
+    tabs.push({ to: `/assembly/${assemblyId}/surveys`, label: "Surveys" });
   }
   if (delegationMode !== "none") {
     tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
@@ -45,7 +45,7 @@ describe("Assembly tabs logic", () => {
       communityNotes: false,
       noteVisibilityThreshold: 0.3,
       noteMinEvaluations: 3,
-      polls: false,
+      surveys: false,
       surveyResponseAnonymity: "anonymous",
       awarenessIntensity: "minimal",
       blockchainIntegrity: false,
@@ -81,10 +81,10 @@ describe("Assembly tabs logic", () => {
     expect(labels).toContain("Candidates");
   });
 
-  it("shows Surveys tab when polls enabled", () => {
+  it("shows Surveys tab when surveys enabled", () => {
     const config = {
       ...baseConfig,
-      features: { ...baseConfig.features!, polls: true },
+      features: { ...baseConfig.features!, surveys: true },
     };
     const tabs = computeTabs("asm-1", config);
     expect(tabs.map((t) => t.label)).toContain("Surveys");
@@ -106,7 +106,7 @@ describe("Assembly tabs logic", () => {
         ...baseConfig.features!,
         predictions: "mandatory",
         communityNotes: true,
-        polls: true,
+        surveys: true,
       },
     };
     const tabs = computeTabs("asm-1", config);

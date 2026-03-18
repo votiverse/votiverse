@@ -7,7 +7,7 @@ import {
   generateVotingEventId,
   generateDelegationId,
   generatePredictionId,
-  generatePollId,
+  generateSurveyId,
   generateProposalId,
   generateCommitmentId,
   now,
@@ -62,9 +62,9 @@ describe("ID generation", () => {
     expect(id1).not.toBe(id2);
   });
 
-  it("generates unique PollIds", () => {
-    const id1 = generatePollId();
-    const id2 = generatePollId();
+  it("generates unique SurveyIds", () => {
+    const id1 = generateSurveyId();
+    const id2 = generateSurveyId();
     expect(id1).not.toBe(id2);
   });
 

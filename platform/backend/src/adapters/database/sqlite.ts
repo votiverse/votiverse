@@ -68,8 +68,8 @@ export class SQLiteAdapter implements DatabaseAdapter {
       CREATE INDEX IF NOT EXISTS idx_tracked_events_assembly
         ON tracked_events(assembly_id);
 
-      -- Polls tracked for notification scheduling (populated by proxy interceptor)
-      CREATE TABLE IF NOT EXISTS tracked_polls (
+      -- Surveys tracked for notification scheduling (populated by proxy interceptor)
+      CREATE TABLE IF NOT EXISTS tracked_surveys (
         id                   TEXT PRIMARY KEY,
         assembly_id          TEXT NOT NULL,
         title                TEXT NOT NULL,
@@ -80,8 +80,8 @@ export class SQLiteAdapter implements DatabaseAdapter {
         notified_deadline    INTEGER NOT NULL DEFAULT 0,
         notified_closed      INTEGER NOT NULL DEFAULT 0
       );
-      CREATE INDEX IF NOT EXISTS idx_tracked_polls_assembly
-        ON tracked_polls(assembly_id);
+      CREATE INDEX IF NOT EXISTS idx_tracked_surveys_assembly
+        ON tracked_surveys(assembly_id);
 
       -- User notification preferences (key-value per user)
       CREATE TABLE IF NOT EXISTS notification_preferences (
@@ -113,8 +113,8 @@ export class SQLiteAdapter implements DatabaseAdapter {
         PRIMARY KEY (assembly_id, id)
       );
 
-      -- Local poll cache (metadata is immutable after creation)
-      CREATE TABLE IF NOT EXISTS polls_cache (
+      -- Local survey cache (metadata is immutable after creation)
+      CREATE TABLE IF NOT EXISTS surveys_cache (
         id            TEXT NOT NULL,
         assembly_id   TEXT NOT NULL,
         title         TEXT NOT NULL,
@@ -207,13 +207,13 @@ export class SQLiteAdapter implements DatabaseAdapter {
       CREATE INDEX IF NOT EXISTS idx_assets_assembly
         ON assets(assembly_id);
 
-      -- Poll response tracking (one-way latch: once responded, never reverted)
-      CREATE TABLE IF NOT EXISTS poll_responses (
+      -- Survey response tracking (one-way latch: once responded, never reverted)
+      CREATE TABLE IF NOT EXISTS survey_responses (
         assembly_id    TEXT NOT NULL,
-        poll_id        TEXT NOT NULL,
+        survey_id      TEXT NOT NULL,
         participant_id TEXT NOT NULL,
         responded_at   TEXT NOT NULL DEFAULT (datetime('now')),
-        PRIMARY KEY (assembly_id, poll_id, participant_id)
+        PRIMARY KEY (assembly_id, survey_id, participant_id)
       );
     `);
   }

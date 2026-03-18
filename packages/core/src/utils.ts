@@ -15,7 +15,7 @@ import type {
   NoteId,
   OutcomeId,
   ParticipantId,
-  PollId,
+  SurveyId,
   PredictionId,
   ProposalId,
   QuestionId,
@@ -64,9 +64,9 @@ export function generatePredictionId(): PredictionId {
   return randomUUID() as PredictionId;
 }
 
-/** Generates a new unique PollId. */
-export function generatePollId(): PollId {
-  return randomUUID() as PollId;
+/** Generates a new unique SurveyId. */
+export function generateSurveyId(): SurveyId {
+  return randomUUID() as SurveyId;
 }
 
 /** Generates a new unique ProposalId. */

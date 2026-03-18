@@ -1,24 +1,24 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore } from "@votiverse/core";
-import type { ParticipantId, PollId, TopicId, Timestamp } from "@votiverse/core";
+import type { ParticipantId, SurveyId, TopicId, Timestamp } from "@votiverse/core";
 import { getPreset } from "@votiverse/config";
-import { PollingService } from "../../src/polling-service.js";
+import { SurveyService } from "../../src/survey-service.js";
 
 const ts = (n: number) => n as Timestamp;
 const tid = (s: string) => s as TopicId;
 
-describe("PollingService", () => {
+describe("SurveyService", () => {
   let store: InMemoryEventStore;
-  let service: PollingService;
+  let service: SurveyService;
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new PollingService(store, getPreset("LIQUID_ACCOUNTABLE"));
+    service = new SurveyService(store, getPreset("LIQUID_ACCOUNTABLE"));
   });
 
   describe("create()", () => {
-    it("creates a poll and records an event", async () => {
-      const poll = await service.create({
+    it("creates a survey and records an event", async () => {
+      const survey = await service.create({
         title: "Q1 Feedback",
         topicScope: [tid("education")],
         questions: [
@@ -34,17 +34,17 @@ describe("PollingService", () => {
         createdBy: "admin" as ParticipantId,
       });
 
-      expect(poll.id).toBeTruthy();
-      expect(poll.questions).toHaveLength(1);
-      expect(poll.questions[0]!.id).toBeTruthy();
+      expect(survey.id).toBeTruthy();
+      expect(survey.questions).toHaveLength(1);
+      expect(survey.questions[0]!.id).toBeTruthy();
 
       const events = await store.getAll();
       expect(events).toHaveLength(1);
       expect(events[0]!.type).toBe("PollCreated");
     });
 
-    it("throws when polls are disabled", async () => {
-      const disabled = new PollingService(store, getPreset("TOWN_HALL"));
+    it("throws when surveys are disabled", async () => {
+      const disabled = new SurveyService(store, getPreset("TOWN_HALL"));
       await expect(
         disabled.create({
           title: "Test",
@@ -100,7 +100,7 @@ describe("PollingService", () => {
 
   describe("respond()", () => {
     it("records a response", async () => {
-      const poll = await service.create({
+      const survey = await service.create({
         title: "Test",
         topicScope: [],
         questions: [
@@ -117,9 +117,9 @@ describe("PollingService", () => {
       });
 
       const response = await service.respond({
-        pollId: poll.id,
+        surveyId: survey.id,
         participantId: "alice" as ParticipantId,
-        answers: [{ questionId: poll.questions[0]!.id, value: 4 }],
+        answers: [{ questionId: survey.questions[0]!.id, value: 4 }],
       });
 
       expect(response.participantHash).toBeTruthy();
@@ -127,7 +127,7 @@ describe("PollingService", () => {
     });
 
     it("rejects duplicate responses from same participant", async () => {
-      const poll = await service.create({
+      const survey = await service.create({
         title: "Test",
         topicScope: [],
         questions: [
@@ -144,22 +144,22 @@ describe("PollingService", () => {
       });
 
       await service.respond({
-        pollId: poll.id,
+        surveyId: survey.id,
         participantId: "alice" as ParticipantId,
-        answers: [{ questionId: poll.questions[0]!.id, value: true }],
+        answers: [{ questionId: survey.questions[0]!.id, value: true }],
       });
 
       await expect(
         service.respond({
-          pollId: poll.id,
+          surveyId: survey.id,
           participantId: "alice" as ParticipantId,
-          answers: [{ questionId: poll.questions[0]!.id, value: false }],
+          answers: [{ questionId: survey.questions[0]!.id, value: false }],
         }),
       ).rejects.toThrow("already responded");
     });
 
     it("allows different participants to respond", async () => {
-      const poll = await service.create({
+      const survey = await service.create({
         title: "Test",
         topicScope: [],
         questions: [
@@ -176,23 +176,23 @@ describe("PollingService", () => {
       });
 
       await service.respond({
-        pollId: poll.id,
+        surveyId: survey.id,
         participantId: "alice" as ParticipantId,
-        answers: [{ questionId: poll.questions[0]!.id, value: true }],
+        answers: [{ questionId: survey.questions[0]!.id, value: true }],
       });
 
       await service.respond({
-        pollId: poll.id,
+        surveyId: survey.id,
         participantId: "bob" as ParticipantId,
-        answers: [{ questionId: poll.questions[0]!.id, value: false }],
+        answers: [{ questionId: survey.questions[0]!.id, value: false }],
       });
 
-      const responses = await service.getResponses(poll.id);
+      const responses = await service.getResponses(survey.id);
       expect(responses).toHaveLength(2);
     });
 
     it("rejects answers for non-existent questions", async () => {
-      const poll = await service.create({
+      const survey = await service.create({
         title: "Test",
         topicScope: [],
         questions: [
@@ -210,7 +210,7 @@ describe("PollingService", () => {
 
       await expect(
         service.respond({
-          pollId: poll.id,
+          surveyId: survey.id,
           participantId: "alice" as ParticipantId,
           answers: [
             {
@@ -225,7 +225,7 @@ describe("PollingService", () => {
 
   describe("results()", () => {
     it("aggregates responses", async () => {
-      const poll = await service.create({
+      const survey = await service.create({
         title: "Test",
         topicScope: [],
         questions: [
@@ -242,17 +242,17 @@ describe("PollingService", () => {
       });
 
       await service.respond({
-        pollId: poll.id,
+        surveyId: survey.id,
         participantId: "alice" as ParticipantId,
-        answers: [{ questionId: poll.questions[0]!.id, value: 4 }],
+        answers: [{ questionId: survey.questions[0]!.id, value: 4 }],
       });
       await service.respond({
-        pollId: poll.id,
+        surveyId: survey.id,
         participantId: "bob" as ParticipantId,
-        answers: [{ questionId: poll.questions[0]!.id, value: 2 }],
+        answers: [{ questionId: survey.questions[0]!.id, value: 2 }],
       });
 
-      const results = await service.results(poll.id, 5);
+      const results = await service.results(survey.id, 5);
       expect(results.responseCount).toBe(2);
       expect(results.responseRate).toBeCloseTo(0.4);
       expect(results.questionResults[0]!.mean).toBe(3);
@@ -265,7 +265,7 @@ describe("PollingService", () => {
       // accepts participantId, not a delegation. The package hashes
       // the participant internally. There is no API path for delegation.
       const params = {
-        pollId: "poll-1" as PollId,
+        surveyId: "survey-1" as SurveyId,
         participantId: "alice" as ParticipantId,
         answers: [],
       };

@@ -1,7 +1,7 @@
 /**
- * @votiverse/polling — PollingService
+ * @votiverse/survey — SurveyService
  *
- * High-level service for poll CRUD, response collection, aggregation,
+ * High-level service for survey CRUD, response collection, aggregation,
  * and trend computation.
  */
 
@@ -9,17 +9,17 @@ import { createHash } from "node:crypto";
 import type {
   EventStore,
   ParticipantId,
-  PollId,
+  SurveyId,
   Timestamp,
   TopicId,
-  PollCreatedEvent,
-  PollResponseSubmittedEvent,
+  SurveyCreatedEvent,
+  SurveyResponseSubmittedEvent,
 } from "@votiverse/core";
 import type { TimeProvider } from "@votiverse/core";
 import {
   createEvent,
   generateEventId,
-  generatePollId,
+  generateSurveyId,
   generateQuestionId,
   systemTime,
   NotFoundError,
@@ -28,27 +28,27 @@ import {
 } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import type {
-  Poll,
-  PollQuestion,
-  PollResponse,
-  PollResults,
+  Survey,
+  SurveyQuestion,
+  SurveyResponse,
+  SurveyResults,
   TrendData,
-  CreatePollParams,
+  CreateSurveyParams,
   SubmitResponseParams,
-  PollAnswer,
-  PollStatus,
+  SurveyAnswer,
+  SurveyStatus,
 } from "./types.js";
 import { aggregateResults, computeTrend } from "./aggregation.js";
 
 /**
- * Service for managing participant polls.
+ * Service for managing participant surveys.
  *
- * Poll responses are non-delegable — every participant responds for
+ * Survey responses are non-delegable — every participant responds for
  * themselves or not at all. The service enforces this by accepting
  * ParticipantIds (verified by the engine layer) and hashing them
  * internally for deduplication.
  */
-export class PollingService {
+export class SurveyService {
   private readonly timeProvider: TimeProvider;
 
   constructor(
@@ -60,32 +60,32 @@ export class PollingService {
   }
 
   /**
-   * Create a new poll. Records a PollCreated event.
+   * Create a new survey. Records a PollCreated event.
    */
-  async create(params: CreatePollParams): Promise<Poll> {
-    if (!this.config.features.polls) {
-      throw new ValidationError("polls", "Polls are disabled in the current configuration");
+  async create(params: CreateSurveyParams): Promise<Survey> {
+    if (!this.config.features.surveys) {
+      throw new ValidationError("surveys", "Surveys are disabled in the current configuration");
     }
 
     if (params.questions.length === 0) {
-      throw new ValidationError("questions", "Poll must have at least one question");
+      throw new ValidationError("questions", "Survey must have at least one question");
     }
 
     if (params.closesAt <= params.schedule) {
       throw new ValidationError("closesAt", "Close time must be after schedule time");
     }
 
-    const pollId = generatePollId();
-    const questions: PollQuestion[] = params.questions.map((q) => ({
+    const surveyId = generateSurveyId();
+    const questions: SurveyQuestion[] = params.questions.map((q) => ({
       ...q,
       id: generateQuestionId(),
     }));
 
     const currentTime = this.timeProvider.now();
-    const status: PollStatus = currentTime >= params.schedule ? "open" : "scheduled";
+    const status: SurveyStatus = currentTime >= params.schedule ? "open" : "scheduled";
 
-    // The core PollCreatedPayload.questions is string[]. We encode
-    // poll metadata (closesAt, title, createdBy) as the first element
+    // The core SurveyCreatedPayload.questions is string[]. We encode
+    // survey metadata (closesAt, title, createdBy) as the first element
     // and question data as subsequent elements.
     const metadata = JSON.stringify({
       __meta: true,
@@ -94,10 +94,10 @@ export class PollingService {
       createdBy: params.createdBy,
     });
 
-    const event = createEvent<PollCreatedEvent>(
+    const event = createEvent<SurveyCreatedEvent>(
       "PollCreated",
       {
-        pollId,
+        pollId: surveyId,
         questions: [metadata, ...questions.map((q) => JSON.stringify(q))],
         schedule: params.schedule,
         topicScope: params.topicScope,
@@ -109,7 +109,7 @@ export class PollingService {
     await this.eventStore.append(event);
 
     return {
-      id: pollId,
+      id: surveyId,
       title: params.title,
       topicScope: params.topicScope,
       questions,
@@ -121,45 +121,45 @@ export class PollingService {
   }
 
   /**
-   * Submit a response to a poll.
+   * Submit a response to a survey.
    *
    * Non-delegable: the participantId is hashed for deduplication.
    * Duplicate responses from the same participant are rejected.
    */
-  async respond(params: SubmitResponseParams): Promise<PollResponse> {
-    const poll = await this.getPoll(params.pollId);
-    if (!poll) {
-      throw new NotFoundError("Poll", params.pollId);
+  async respond(params: SubmitResponseParams): Promise<SurveyResponse> {
+    const survey = await this.getSurvey(params.surveyId);
+    if (!survey) {
+      throw new NotFoundError("Survey", params.surveyId);
     }
 
-    // Check that the poll is open
+    // Check that the survey is open
     const currentTime = this.timeProvider.now();
-    if (currentTime < poll.schedule) {
-      throw new InvalidStateError("Poll is not yet open for responses");
+    if (currentTime < survey.schedule) {
+      throw new InvalidStateError("Survey is not yet open for responses");
     }
-    if (currentTime > poll.closesAt) {
-      throw new InvalidStateError("Poll has closed");
+    if (currentTime > survey.closesAt) {
+      throw new InvalidStateError("Survey has closed");
     }
 
     // Hash participant ID for deduplication
     const participantHash = hashParticipant(params.participantId);
 
     // Check for duplicate responses
-    const existingResponses = await this.getResponses(params.pollId);
+    const existingResponses = await this.getResponses(params.surveyId);
     if (existingResponses.some((r) => r.participantHash === participantHash)) {
       throw new ValidationError(
         "participant",
-        "This participant has already responded to this poll",
+        "This participant has already responded to this survey",
       );
     }
 
-    // Validate answers match poll questions
-    validateAnswers(params.answers, poll.questions);
+    // Validate answers match survey questions
+    validateAnswers(params.answers, survey.questions);
 
-    const event = createEvent<PollResponseSubmittedEvent>(
+    const event = createEvent<SurveyResponseSubmittedEvent>(
       "PollResponseSubmitted",
       {
-        pollId: params.pollId,
+        pollId: params.surveyId,
         participantHash,
         responses: params.answers.map((a) => JSON.stringify(a)),
       },
@@ -170,7 +170,7 @@ export class PollingService {
     await this.eventStore.append(event);
 
     return {
-      pollId: params.pollId,
+      surveyId: params.surveyId,
       participantHash,
       answers: params.answers,
       submittedAt: currentTime,
@@ -178,54 +178,54 @@ export class PollingService {
   }
 
   /**
-   * Get aggregated results for a poll.
+   * Get aggregated results for a survey.
    */
-  async results(pollId: PollId, eligibleCount: number): Promise<PollResults> {
-    const poll = await this.getPoll(pollId);
-    if (!poll) {
-      throw new NotFoundError("Poll", pollId);
+  async results(surveyId: SurveyId, eligibleCount: number): Promise<SurveyResults> {
+    const survey = await this.getSurvey(surveyId);
+    if (!survey) {
+      throw new NotFoundError("Survey", surveyId);
     }
-    const responses = await this.getResponses(pollId);
-    return aggregateResults(poll, responses, eligibleCount);
+    const responses = await this.getResponses(surveyId);
+    return aggregateResults(survey, responses, eligibleCount);
   }
 
   /**
-   * Compute trend data for a topic across all closed polls.
+   * Compute trend data for a topic across all closed surveys.
    */
   async trends(topicId: TopicId, eligibleCount: number): Promise<TrendData> {
-    const polls = await this.getAllPolls();
-    const responsesByPoll = new Map<string, readonly PollResponse[]>();
-    for (const poll of polls) {
-      const responses = await this.getResponses(poll.id);
-      responsesByPoll.set(poll.id, responses);
+    const surveys = await this.getAllSurveys();
+    const responsesBySurvey = new Map<string, readonly SurveyResponse[]>();
+    for (const survey of surveys) {
+      const responses = await this.getResponses(survey.id);
+      responsesBySurvey.set(survey.id, responses);
     }
-    return computeTrend(topicId, polls, responsesByPoll, eligibleCount);
+    return computeTrend(topicId, surveys, responsesBySurvey, eligibleCount);
   }
 
   /**
-   * Get a poll by ID, reconstructed from events.
+   * Get a survey by ID, reconstructed from events.
    */
-  async getPoll(pollId: PollId): Promise<Poll | undefined> {
-    const polls = await this.getAllPolls();
-    return polls.find((p) => p.id === pollId);
+  async getSurvey(surveyId: SurveyId): Promise<Survey | undefined> {
+    const surveys = await this.getAllSurveys();
+    return surveys.find((s) => s.id === surveyId);
   }
 
   /**
-   * Get all polls.
+   * Get all surveys.
    */
-  async getAllPolls(): Promise<readonly Poll[]> {
+  async getAllSurveys(): Promise<readonly Survey[]> {
     const events = await this.eventStore.query({
       types: ["PollCreated"],
     });
 
     return events.map((event) => {
-      const e = event as PollCreatedEvent;
+      const e = event as SurveyCreatedEvent;
 
       // Parse metadata and questions. First element may be metadata.
       let title = "";
       let closesAt = (e.payload.schedule + 7 * 86400000) as Timestamp;
       let createdBy = "" as ParticipantId;
-      const questions: PollQuestion[] = [];
+      const questions: SurveyQuestion[] = [];
 
       for (const raw of e.payload.questions) {
         const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -235,13 +235,13 @@ export class PollingService {
             closesAt) as Timestamp;
           createdBy = ((parsed["createdBy"] as string) ?? "") as ParticipantId;
         } else {
-          questions.push(parsed as unknown as PollQuestion);
+          questions.push(parsed as unknown as SurveyQuestion);
         }
       }
 
       // Determine status from timestamps
       const currentTime = this.timeProvider.now();
-      let status: PollStatus = "scheduled";
+      let status: SurveyStatus = "scheduled";
       if (currentTime >= e.payload.schedule) status = "open";
       if (currentTime >= closesAt) status = "closed";
 
@@ -259,29 +259,29 @@ export class PollingService {
   }
 
   /**
-   * Check whether a participant has already responded to a poll.
+   * Check whether a participant has already responded to a survey.
    */
-  async hasResponded(pollId: PollId, participantId: ParticipantId): Promise<boolean> {
+  async hasResponded(surveyId: SurveyId, participantId: ParticipantId): Promise<boolean> {
     const hash = hashParticipant(participantId);
-    const responses = await this.getResponses(pollId);
+    const responses = await this.getResponses(surveyId);
     return responses.some((r) => r.participantHash === hash);
   }
 
   /**
-   * Get all responses for a poll.
+   * Get all responses for a survey.
    */
-  async getResponses(pollId: PollId): Promise<readonly PollResponse[]> {
+  async getResponses(surveyId: SurveyId): Promise<readonly SurveyResponse[]> {
     const events = await this.eventStore.query({
       types: ["PollResponseSubmitted"],
     });
 
-    const responses: PollResponse[] = [];
+    const responses: SurveyResponse[] = [];
     for (const event of events) {
-      const e = event as PollResponseSubmittedEvent;
-      if (e.payload.pollId === pollId) {
-        const answers: PollAnswer[] = e.payload.responses.map((r) => JSON.parse(r) as PollAnswer);
+      const e = event as SurveyResponseSubmittedEvent;
+      if (e.payload.pollId === surveyId) {
+        const answers: SurveyAnswer[] = e.payload.responses.map((r) => JSON.parse(r) as SurveyAnswer);
         responses.push({
-          pollId,
+          surveyId,
           participantHash: e.payload.participantHash,
           answers,
           submittedAt: e.timestamp,
@@ -301,7 +301,7 @@ function hashParticipant(participantId: ParticipantId): string {
   return createHash("sha256").update(participantId).digest("hex");
 }
 
-function validateAnswers(answers: readonly PollAnswer[], questions: readonly PollQuestion[]): void {
+function validateAnswers(answers: readonly SurveyAnswer[], questions: readonly SurveyQuestion[]): void {
   const questionIds = new Set(questions.map((q) => q.id));
   for (const answer of answers) {
     if (!questionIds.has(answer.questionId)) {

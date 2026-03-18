@@ -10,7 +10,7 @@ import type {
   ParticipantId,
   TopicId,
   IssueId,
-  PollId,
+  SurveyId,
   PredictionId,
   ProposalId,
   Timestamp,
@@ -41,7 +41,7 @@ interface PlaybackState {
   topicIds: Map<string, TopicId>;
   issueIds: Map<string, IssueId>; // keyed by "eventIdx:issueIdx"
   predictionIds: Map<string, PredictionId>; // keyed by "participantName:eventIdx:issueIdx"
-  pollIds: Map<number, PollId>; // keyed by eventIndex
+  surveyIds: Map<number, SurveyId>; // keyed by eventIndex
   concentrationSnapshots: ConcentrationSnapshot[];
 }
 
@@ -73,7 +73,7 @@ export async function playback(
     topicIds: new Map(),
     issueIds: new Map(),
     predictionIds: new Map(),
-    pollIds: new Map(),
+    surveyIds: new Map(),
     concentrationSnapshots: [],
   };
 
@@ -240,10 +240,10 @@ async function executeAction(state: PlaybackState, action: SimulationAction): Pr
       break;
     }
 
-    case "poll-respond": {
-      // Polls are created automatically during voting event creation
-      // For simulation, we skip poll responses since the polling package
-      // requires a real poll to exist first. The poll integration is
+    case "survey-respond": {
+      // Surveys are created automatically during voting event creation
+      // For simulation, we skip survey responses since the survey package
+      // requires a real survey to exist first. The survey integration is
       // tested via evaluateFromTrend in the prediction package.
       break;
     }

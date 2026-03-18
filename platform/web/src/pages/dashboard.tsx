@@ -193,8 +193,8 @@ function DashboardContent({ participantName }: { participantName: string | null 
           <div className="space-y-3">
             {pendingSurveys.map((survey) => (
               <Link
-                key={survey.pollId}
-                to={`/assembly/${survey.assemblyId}/polls`}
+                key={survey.surveyId}
+                to={`/assembly/${survey.assemblyId}/surveys`}
                 className="block"
               >
                 <Card className="hover:border-brand-200 hover:shadow transition-all">
@@ -206,7 +206,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
                             {survey.assemblyName}
                           </span>
                         </div>
-                        <p className="text-sm font-medium text-gray-900">{survey.pollTitle}</p>
+                        <p className="text-sm font-medium text-gray-900">{survey.surveyTitle}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{survey.questionCount} question{survey.questionCount !== 1 ? "s" : ""}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">

@@ -7,7 +7,7 @@ import type { UserService } from "../../services/user-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { TopicCacheService } from "../../services/topic-cache.js";
-import type { PollCacheService } from "../../services/poll-cache.js";
+import type { SurveyCacheService } from "../../services/survey-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
@@ -17,7 +17,7 @@ export function meRoutes(
   membershipService: MembershipService,
   assemblyCacheService: AssemblyCacheService,
   topicCacheService: TopicCacheService,
-  pollCacheService: PollCacheService,
+  surveyCacheService: SurveyCacheService,
   notificationService: NotificationService,
 ) {
   const app = new Hono();
@@ -67,10 +67,10 @@ export function meRoutes(
   });
 
   /**
-   * POST /internal/tracked-polls — seed-only: track an existing VCP poll
+   * POST /internal/tracked-surveys — seed-only: track an existing VCP survey
    * with all notification flags pre-set (already notified).
    */
-  app.post("/internal/tracked-polls", async (c) => {
+  app.post("/internal/tracked-surveys", async (c) => {
     const body = await c.req.json<{
       id: string;
       assemblyId: string;
@@ -78,7 +78,7 @@ export function meRoutes(
       schedule: string;
       closesAt: string;
     }>();
-    await notificationService.trackPoll({
+    await notificationService.trackSurvey({
       id: body.id,
       assemblyId: body.assemblyId,
       title: body.title,
@@ -86,7 +86,7 @@ export function meRoutes(
       closesAt: body.closesAt,
     });
     // Mark all notification flags as already sent
-    await notificationService.markAllNotified("poll", body.id);
+    await notificationService.markAllNotified("survey", body.id);
     return c.json({ status: "ok" }, 201);
   });
 
@@ -139,11 +139,11 @@ export function meRoutes(
   });
 
   /**
-   * POST /internal/polls-cache — seed-only: cache polls for an assembly.
+   * POST /internal/surveys-cache — seed-only: cache surveys for an assembly.
    */
-  app.post("/internal/polls-cache", async (c) => {
+  app.post("/internal/surveys-cache", async (c) => {
     const body = await c.req.json<{
-      polls: Array<{
+      surveys: Array<{
         id: string;
         assemblyId: string;
         title: string;
@@ -154,10 +154,10 @@ export function meRoutes(
         createdBy: string;
       }>;
     }>();
-    for (const p of body.polls) {
-      await pollCacheService.upsert(p);
+    for (const s of body.surveys) {
+      await surveyCacheService.upsert(s);
     }
-    return c.json({ status: "ok", count: body.polls.length }, 201);
+    return c.json({ status: "ok", count: body.surveys.length }, 201);
   });
 
   /** GET /me — current user profile with memberships. */

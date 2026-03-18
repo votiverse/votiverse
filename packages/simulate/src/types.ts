@@ -33,7 +33,7 @@ export interface SimulationScenario {
   readonly population: PopulationSpec;
   /** Voting events to run. */
   readonly votingEvents: readonly VotingEventSpec[];
-  /** The "reality" that polls sense and predictions try to forecast. */
+  /** The "reality" that surveys sense and predictions try to forecast. */
   readonly groundTruth: GroundTruthSpec;
 }
 
@@ -75,8 +75,8 @@ export interface AgentProfile {
   readonly trustHeuristic: TrustHeuristic;
   /** How accurately the agent predicts outcomes. */
   readonly forecastingAbility: ForecastingAbility;
-  /** How accurately the agent reports ground truth in polls (0-1). */
-  readonly pollReliability: number;
+  /** How accurately the agent reports ground truth in surveys (0-1). */
+  readonly surveyReliability: number;
   /** Optional adversarial strategy. */
   readonly adversarial?: AdversarialStrategy;
 }
@@ -120,7 +120,7 @@ export interface IssueSpec {
 // ---------------------------------------------------------------------------
 
 /**
- * Defines the "reality" that polls sense and predictions forecast.
+ * Defines the "reality" that surveys sense and predictions forecast.
  * Each topic has a numeric value that evolves over the simulation.
  */
 export interface GroundTruthSpec {
@@ -163,7 +163,7 @@ export type SimulationAction =
   | CreateVotingEventAction
   | DelegateAction
   | VoteAction
-  | PollRespondAction
+  | SurveyRespondAction
   | CommitPredictionAction
   | RecordOutcomeAction;
 
@@ -199,8 +199,8 @@ export interface VoteAction {
   readonly choice: string;
 }
 
-export interface PollRespondAction {
-  readonly type: "poll-respond";
+export interface SurveyRespondAction {
+  readonly type: "survey-respond";
   readonly participantName: string;
   readonly eventIndex: number;
   readonly answers: readonly { questionText: string; value: number | string | boolean }[];

@@ -5,7 +5,7 @@
  *   GET /assemblies — from assemblies_cache, filtered by user memberships
  *   GET /assemblies/:id — from assemblies_cache
  *   GET /assemblies/:id/topics — from topics_cache (falls through to VCP on cache miss)
- *   GET /assemblies/:id/polls — from polls_cache + poll_responses (falls through on miss)
+ *   GET /assemblies/:id/surveys — from surveys_cache + survey_responses (falls through on miss)
  *
  * Proxied to VCP (all other assembly-scoped routes):
  *   resolves user → participant, injects X-Participant-Id, intercepts POST responses for caching
@@ -15,7 +15,7 @@ import { Hono } from "hono";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { TopicCacheService } from "../../services/topic-cache.js";
-import type { PollCacheService } from "../../services/poll-cache.js";
+import type { SurveyCacheService } from "../../services/survey-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import type { VCPClient } from "../../services/vcp-client.js";
 import type { BackendConfig } from "../../config/schema.js";
@@ -26,7 +26,7 @@ export function proxyRoutes(
   membershipService: MembershipService,
   assemblyCacheService: AssemblyCacheService,
   topicCacheService: TopicCacheService,
-  pollCacheService: PollCacheService,
+  surveyCacheService: SurveyCacheService,
   notificationService: NotificationService,
   vcpClient: VCPClient,
   config: BackendConfig,
@@ -153,20 +153,20 @@ export function proxyRoutes(
   });
 
   /**
-   * GET /assemblies/:assemblyId/polls — served from local poll cache.
+   * GET /assemblies/:assemblyId/surveys — served from local survey cache.
    * Falls through to VCP proxy if cache is empty (first access).
-   * Enriches with hasResponded from local poll_responses table.
+   * Enriches with hasResponded from local survey_responses table.
    */
-  app.get("/assemblies/:assemblyId/polls", async (c) => {
+  app.get("/assemblies/:assemblyId/surveys", async (c) => {
     const assemblyId = c.req.param("assemblyId");
     const user = getUser(c);
     const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
 
-    const hasCached = await pollCacheService.hasPolls(assemblyId);
+    const hasCached = await surveyCacheService.hasSurveys(assemblyId);
     if (hasCached) {
-      const cachedPolls = await pollCacheService.listByAssembly(assemblyId);
-      const respondedIds = await pollCacheService.respondedPollIds(assemblyId, participantId);
-      const polls = cachedPolls.map((p) => ({
+      const cachedSurveys = await surveyCacheService.listByAssembly(assemblyId);
+      const respondedIds = await surveyCacheService.respondedSurveyIds(assemblyId, participantId);
+      const surveys = cachedSurveys.map((p) => ({
         id: p.id,
         title: p.title,
         questions: p.questions,
@@ -176,29 +176,29 @@ export function proxyRoutes(
         createdBy: p.createdBy,
         hasResponded: respondedIds.has(p.id),
       }));
-      return c.json({ polls });
+      return c.json({ surveys });
     }
 
     // Cache miss — proxy to VCP, cache the response, and return
-    const response = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/polls?participantId=${participantId}`, participantId);
+    const response = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/surveys?participantId=${participantId}`, participantId);
 
     if (response.status === 200) {
       try {
         const body = (response as ResponseWithBody).__bufferedBody;
         if (body) {
-          const data = JSON.parse(body) as { polls: Array<{ id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string; hasResponded?: boolean }> };
-          for (const p of data.polls ?? []) {
-            await pollCacheService.upsert({
+          const data = JSON.parse(body) as { surveys: Array<{ id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string; hasResponded?: boolean }> };
+          for (const p of data.surveys ?? []) {
+            await surveyCacheService.upsert({
               id: p.id, assemblyId, title: p.title, questions: p.questions,
               topicIds: p.topicIds, schedule: p.schedule, closesAt: p.closesAt, createdBy: p.createdBy,
             });
             if (p.hasResponded) {
-              await pollCacheService.recordResponse(assemblyId, p.id, participantId);
+              await surveyCacheService.recordResponse(assemblyId, p.id, participantId);
             }
           }
         }
       } catch (err) {
-        logger.warn("Failed to cache polls from VCP response", { error: String(err) });
+        logger.warn("Failed to cache surveys from VCP response", { error: String(err) });
       }
     }
 
@@ -209,7 +209,7 @@ export function proxyRoutes(
    * Assembly-scoped routes — resolve user → participant, then proxy.
    * Catches all methods and paths under /assemblies/:assemblyId/
    *
-   * Intercepts POST responses for events and polls to track them for notifications.
+   * Intercepts POST responses for events and surveys to track them for notifications.
    */
   app.all("/assemblies/:assemblyId/*", async (c) => {
     const user = getUser(c);
@@ -224,15 +224,15 @@ export function proxyRoutes(
 
     const response = await proxyToVcp(c, config, c.req.method, path, participantId);
 
-    // Intercept successful POST responses to track events/polls and cache data
+    // Intercept successful POST responses to track events/surveys and cache data
     if (c.req.method === "POST" && (response.status === 200 || response.status === 201)) {
       const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
       if (response.status === 201) {
         await interceptForNotifications(response, assemblyId, subpath, notificationService);
         await interceptForTopicCache(response, assemblyId, subpath, topicCacheService);
-        await interceptForPollCache(response, assemblyId, subpath, pollCacheService);
+        await interceptForSurveyCache(response, assemblyId, subpath, surveyCacheService);
       }
-      await interceptForPollResponse(response, assemblyId, subpath, participantId, pollCacheService);
+      await interceptForSurveyResponse(response, assemblyId, subpath, participantId, surveyCacheService);
     }
 
     return response;
@@ -297,7 +297,7 @@ interface ResponseWithBody extends Response {
 }
 
 /**
- * Intercept successful POST responses to track events and polls for notifications.
+ * Intercept successful POST responses to track events and surveys for notifications.
  */
 async function interceptForNotifications(
   response: Response,
@@ -322,12 +322,12 @@ async function interceptForNotifications(
       });
     }
 
-    // POST /assemblies/:id/polls → track for notification
-    if (/^\/polls\/?$/.test(subpath) && data.id) {
-      await notificationService.trackPoll({
+    // POST /assemblies/:id/surveys → track for notification
+    if (/^\/surveys\/?$/.test(subpath) && data.id) {
+      await notificationService.trackSurvey({
         id: data.id,
         assemblyId,
-        title: data.title ?? "Untitled Poll",
+        title: data.title ?? "Untitled Survey",
         schedule: data.schedule ?? "",
         closesAt: data.closesAt ?? "",
       });
@@ -369,23 +369,23 @@ async function interceptForTopicCache(
 }
 
 /**
- * Intercept successful POST /polls to cache the new poll metadata.
+ * Intercept successful POST /surveys to cache the new survey metadata.
  */
-async function interceptForPollCache(
+async function interceptForSurveyCache(
   response: Response,
   assemblyId: string,
   subpath: string,
-  pollCacheService: PollCacheService,
+  surveyCacheService: SurveyCacheService,
 ): Promise<void> {
   try {
-    if (!/^\/polls\/?$/.test(subpath)) return;
+    if (!/^\/surveys\/?$/.test(subpath)) return;
 
     const body = (response as ResponseWithBody).__bufferedBody;
     if (!body) return;
 
     const data = JSON.parse(body) as { id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string };
     if (data.id) {
-      await pollCacheService.upsert({
+      await surveyCacheService.upsert({
         id: data.id,
         assemblyId,
         title: data.title,
@@ -397,27 +397,27 @@ async function interceptForPollCache(
       });
     }
   } catch (err) {
-    logger.warn("Failed to cache poll from POST response", { error: String(err) });
+    logger.warn("Failed to cache survey from POST response", { error: String(err) });
   }
 }
 
 /**
- * Intercept successful POST /polls/:pid/respond to record the response.
+ * Intercept successful POST /surveys/:sid/respond to record the response.
  */
-async function interceptForPollResponse(
+async function interceptForSurveyResponse(
   _response: Response,
   assemblyId: string,
   subpath: string,
   participantId: string,
-  pollCacheService: PollCacheService,
+  surveyCacheService: SurveyCacheService,
 ): Promise<void> {
   try {
-    const match = /^\/polls\/([^/]+)\/respond\/?$/.exec(subpath);
+    const match = /^\/surveys\/([^/]+)\/respond\/?$/.exec(subpath);
     if (!match) return;
 
-    const pollId = match[1]!;
-    await pollCacheService.recordResponse(assemblyId, pollId, participantId);
+    const surveyId = match[1]!;
+    await surveyCacheService.recordResponse(assemblyId, surveyId, participantId);
   } catch (err) {
-    logger.warn("Failed to record poll response in cache", { error: String(err) });
+    logger.warn("Failed to record survey response in cache", { error: String(err) });
   }
 }

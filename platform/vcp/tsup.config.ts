@@ -15,7 +15,7 @@ export default defineConfig({
     "@votiverse/delegation",
     "@votiverse/voting",
     "@votiverse/prediction",
-    "@votiverse/polling",
+    "@votiverse/survey",
     "@votiverse/awareness",
   ],
 });

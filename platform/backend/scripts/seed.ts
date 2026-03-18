@@ -188,41 +188,41 @@ export async function main() {
     }
   }
 
-  // 6. Populate poll cache
-  let cachedPolls = 0;
+  // 6. Populate survey cache
+  let cachedSurveys = 0;
   for (const asm of assemblies) {
     try {
-      const { polls } = await vcpGet<{ polls: Array<{ id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string }> }>(
-        `/assemblies/${asm.id}/polls`,
+      const { surveys } = await vcpGet<{ surveys: Array<{ id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string }> }>(
+        `/assemblies/${asm.id}/surveys`,
       );
-      if (polls.length > 0) {
+      if (surveys.length > 0) {
         await backendPost(
-          "/internal/polls-cache",
+          "/internal/surveys-cache",
           {
-            polls: polls.map((p) => ({
-              id: p.id,
+            surveys: surveys.map((s) => ({
+              id: s.id,
               assemblyId: asm.id,
-              title: p.title,
-              questions: p.questions,
-              topicIds: p.topicIds ?? [],
-              schedule: p.schedule,
-              closesAt: p.closesAt,
-              createdBy: p.createdBy,
+              title: s.title,
+              questions: s.questions,
+              topicIds: s.topicIds ?? [],
+              schedule: s.schedule,
+              closesAt: s.closesAt,
+              createdBy: s.createdBy,
             })),
           },
           firstToken,
         );
-        cachedPolls += polls.length;
+        cachedSurveys += surveys.length;
       }
     } catch {
-      // Assembly may not have polls
+      // Assembly may not have surveys
     }
   }
 
-  // 7. Sync tracked events and polls from VCP (pre-mark all as notified)
+  // 7. Sync tracked events and surveys from VCP (pre-mark all as notified)
   // This prevents the scheduler from sending notifications about historical seeded data.
   let trackedEvents = 0;
-  let trackedPolls = 0;
+  let trackedSurveys = 0;
 
   for (const assembly of assemblies) {
     // Sync events
@@ -248,27 +248,27 @@ export async function main() {
       // Assembly may not have events
     }
 
-    // Sync polls
+    // Sync surveys
     try {
-      const { polls } = await vcpGet<{ polls: Array<{ id: string; title: string; schedule: number; closesAt: number }> }>(
-        `/assemblies/${assembly.id}/polls`,
+      const { surveys } = await vcpGet<{ surveys: Array<{ id: string; title: string; schedule: number; closesAt: number }> }>(
+        `/assemblies/${assembly.id}/surveys`,
       );
-      for (const poll of polls) {
+      for (const survey of surveys) {
         await backendPost(
-          "/internal/tracked-polls",
+          "/internal/tracked-surveys",
           {
-            id: poll.id,
+            id: survey.id,
             assemblyId: assembly.id,
-            title: poll.title,
-            schedule: new Date(poll.schedule).toISOString(),
-            closesAt: new Date(poll.closesAt).toISOString(),
+            title: survey.title,
+            schedule: new Date(survey.schedule).toISOString(),
+            closesAt: new Date(survey.closesAt).toISOString(),
           },
           firstToken,
         );
-        trackedPolls++;
+        trackedSurveys++;
       }
     } catch {
-      // Assembly may not have polls
+      // Assembly may not have surveys
     }
   }
 
@@ -382,9 +382,9 @@ This recommendation does not bind your vote — consider both arguments carefull
   console.log(`  Cross-assembly:   ${crossAssembly}`);
   console.log(`  Cached assemblies:${cachedAssemblies}`);
   console.log(`  Cached topics:    ${cachedTopics}`);
-  console.log(`  Cached polls:     ${cachedPolls}`);
+  console.log(`  Cached surveys:   ${cachedSurveys}`);
   console.log(`  Tracked events:   ${trackedEvents}`);
-  console.log(`  Tracked polls:    ${trackedPolls}`);
+  console.log(`  Tracked surveys:  ${trackedSurveys}`);
   console.log(`  Content items:    ${contentItems}`);
   console.log(`  Default password: ${DEFAULT_PASSWORD}`);
   console.log();

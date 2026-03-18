@@ -7,7 +7,7 @@
  */
 
 export type EventStatus = "upcoming" | "deliberation" | "curation" | "voting" | "closed";
-export type PollStatus = "scheduled" | "open" | "closed";
+export type SurveyStatus = "scheduled" | "open" | "closed";
 
 /**
  * Derive voting event status from its timeline and optional assembly timeline config.
@@ -39,8 +39,8 @@ export function deriveEventStatus(
   return "closed";
 }
 
-/** Derive poll status from its schedule and close time. */
-export function derivePollStatus(schedule: number | string, closesAt: number | string): PollStatus {
+/** Derive survey status from its schedule and close time. */
+export function deriveSurveyStatus(schedule: number | string, closesAt: number | string): SurveyStatus {
   const now = Date.now();
   const open = typeof schedule === "number" ? schedule : new Date(schedule).getTime();
   const close = typeof closesAt === "number" ? closesAt : new Date(closesAt).getTime();

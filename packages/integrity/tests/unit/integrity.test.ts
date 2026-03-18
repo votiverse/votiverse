@@ -134,7 +134,7 @@ describe("End-to-end commitment flow", () => {
     const anchor = new NoOpAnchor();
     const data = { pollId: "p-1", responses: 42 };
 
-    const commitment = await commitArtifact("poll-results", data, store, anchor);
+    const commitment = await commitArtifact("survey-results", data, store, anchor);
     expect(commitment.blockReference).toBeNull();
 
     const result = await verifyArtifact(data, commitment, anchor);
@@ -144,14 +144,14 @@ describe("End-to-end commitment flow", () => {
   it("getCommitments retrieves all stored commitments", async () => {
     const anchor = new InMemoryAnchor();
     await commitArtifact("vote-tally", { a: 1 }, store, anchor);
-    await commitArtifact("poll-results", { b: 2 }, store, anchor);
+    await commitArtifact("survey-results", { b: 2 }, store, anchor);
     await commitArtifact("delegation-snapshot", { c: 3 }, store, anchor);
 
     const commitments = await getCommitments(store);
     expect(commitments).toHaveLength(3);
     expect(commitments.map((c) => c.artifactType)).toEqual([
       "vote-tally",
-      "poll-results",
+      "survey-results",
       "delegation-snapshot",
     ]);
   });

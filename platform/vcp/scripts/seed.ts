@@ -3,7 +3,7 @@
  *
  * Creates 4 organizations with 5 assemblies using different governance presets,
  * ~63 participants, 13 voting events (varied states), ~42 issues, delegations,
- * pre-cast votes, and polls.
+ * pre-cast votes, and surveys.
  *
  * Usage: pnpm seed (with VCP server running on port 3000)
  */
@@ -34,7 +34,7 @@ import { TOPICS } from "./seed-data/topics.js";
 import { EVENTS } from "./seed-data/events.js";
 import { DELEGATIONS } from "./seed-data/delegations.js";
 import { VOTES } from "./seed-data/votes.js";
-import { POLLS, POLL_RESPONSES } from "./seed-data/polls.js";
+import { SURVEYS, SURVEY_RESPONSES } from "./seed-data/surveys.js";
 import { PROPOSALS, CANDIDACIES, NOTES, NOTE_EVALUATIONS, PROPOSAL_ENDORSEMENTS } from "./seed-data/content.js";
 
 export async function main() {
@@ -227,44 +227,44 @@ export async function main() {
   await resetDevClock();
   console.log(`\n  Cast ${VOTES.length} votes total\n`);
 
-  // ── Step 7: Create polls and responses ─────────────────────────────
+  // ── Step 7: Create surveys and responses ───────────────────────────
 
-  console.log("═══ POLLS ═══\n");
-  const pollIds = new Map<string, string>();
-  const pollQuestionIds = new Map<string, string[]>();
+  console.log("═══ SURVEYS ═══\n");
+  const surveyIds = new Map<string, string>();
+  const surveyQuestionIds = new Map<string, string[]>();
 
-  for (const def of POLLS) {
+  for (const def of SURVEYS) {
     const assemblyId = aid(def.assemblyKey);
     const creatorId = pid(def.assemblyKey, def.createdByName);
 
-    const resolvedPollScope = def.topicKeys
+    const resolvedSurveyScope = def.topicKeys
       ? def.topicKeys.map((tk) => tid(def.assemblyKey, tk))
       : def.topicScope;
-    const poll = await post(`/assemblies/${assemblyId}/polls`, {
+    const survey = await post(`/assemblies/${assemblyId}/surveys`, {
       title: def.title,
-      topicScope: resolvedPollScope,
+      topicScope: resolvedSurveyScope,
       questions: def.questions,
       schedule: Date.now() + def.scheduleOffset,
       closesAt: Date.now() + def.closesAtOffset,
       createdBy: creatorId,
     });
 
-    pollIds.set(def.key, poll.id as string);
+    surveyIds.set(def.key, survey.id as string);
 
     // Extract question IDs from response
-    const questions = poll.questions as Array<{ id: string }>;
-    pollQuestionIds.set(def.key, questions.map((q) => q.id));
+    const questions = survey.questions as Array<{ id: string }>;
+    surveyQuestionIds.set(def.key, questions.map((q) => q.id));
 
     console.log(`  ✓ ${def.title} (${def.assemblyKey}, ${questions.length} questions)`);
   }
 
-  // Submit poll responses
+  // Submit survey responses
   let responseCount = 0;
-  for (const def of POLL_RESPONSES) {
+  for (const def of SURVEY_RESPONSES) {
     const assemblyId = aid(def.assemblyKey);
-    const pollId = pollIds.get(def.pollKey);
-    const qIds = pollQuestionIds.get(def.pollKey);
-    if (!pollId || !qIds) continue;
+    const surveyId = surveyIds.get(def.surveyKey);
+    const qIds = surveyQuestionIds.get(def.surveyKey);
+    if (!surveyId || !qIds) continue;
 
     const answers = def.answers.map((value, i) => ({
       questionId: qIds[i],
@@ -272,13 +272,13 @@ export async function main() {
     }));
 
     const responderPid = pid(def.assemblyKey, def.participantName);
-    await postAs(`/assemblies/${assemblyId}/polls/${pollId}/respond`, {
-      pollId,
+    await postAs(`/assemblies/${assemblyId}/surveys/${surveyId}/respond`, {
+      surveyId,
       answers,
     }, responderPid);
     responseCount++;
   }
-  console.log(`\n  Created ${POLLS.length} polls with ${responseCount} responses\n`);
+  console.log(`\n  Created ${SURVEYS.length} surveys with ${responseCount} responses\n`);
 
   // ── Step 8: Submit proposals ──────────────────────────────────────
   // Proposals must be submitted during the deliberation phase.
@@ -437,8 +437,8 @@ export async function main() {
   console.log("  Issues:        ", EVENTS.reduce((sum, e) => sum + e.issues.length, 0));
   console.log("  Delegations:   ", DELEGATIONS.length);
   console.log("  Votes:         ", VOTES.length);
-  console.log("  Polls:         ", POLLS.length);
-  console.log("  Poll Responses:", responseCount);
+  console.log("  Surveys:       ", SURVEYS.length);
+  console.log("  Survey Responses:", responseCount);
   console.log("  Proposals:     ", PROPOSALS.length);
   console.log("  Endorsements:  ", PROPOSAL_ENDORSEMENTS.length);
   console.log("  Candidacies:   ", CANDIDACIES.length);

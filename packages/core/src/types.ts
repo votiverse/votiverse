@@ -32,7 +32,8 @@ export type DelegationId = string & { readonly __brand: "DelegationId" };
 export type PredictionId = string & { readonly __brand: "PredictionId" };
 
 /** Unique identifier for a poll. */
-export type PollId = string & { readonly __brand: "PollId" };
+/** Unique identifier for a survey (formerly "poll" — see Paper II §3.1). */
+export type SurveyId = string & { readonly __brand: "SurveyId" };
 
 /** Unique identifier for a proposal. */
 export type ProposalId = string & { readonly __brand: "ProposalId" };

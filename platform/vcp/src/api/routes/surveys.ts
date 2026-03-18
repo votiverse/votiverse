@@ -1,39 +1,39 @@
 /**
- * Polling routes.
+ * Survey routes.
  */
 
 import { Hono } from "hono";
-import type { TopicId, PollId, ParticipantId } from "@votiverse/core";
-import type { CreatePollParams, SubmitResponseParams } from "@votiverse/polling";
+import type { TopicId, SurveyId, ParticipantId } from "@votiverse/core";
+import type { CreateSurveyParams, SubmitResponseParams } from "@votiverse/survey";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
-export function pollRoutes(manager: AssemblyManager) {
+export function surveyRoutes(manager: AssemblyManager) {
   const app = new Hono();
 
-  /** GET /assemblies/:id/polls — list all polls. Optional ?participantId= to include hasResponded. */
-  app.get("/assemblies/:id/polls", async (c) => {
+  /** GET /assemblies/:id/surveys — list all surveys. Optional ?participantId= to include hasResponded. */
+  app.get("/assemblies/:id/surveys", async (c) => {
     const assemblyId = c.req.param("id");
     const participantId = c.req.query("participantId") as ParticipantId | undefined;
 
     const { engine } = await manager.getEngine(assemblyId);
-    const polls = await engine.polls.list();
+    const surveys = await engine.surveys.list();
 
     const items = await Promise.all(
-      polls.map(async (poll) => {
+      surveys.map(async (survey) => {
         const item: Record<string, unknown> = {
-          id: poll.id,
-          title: poll.title,
-          questions: poll.questions,
-          topicIds: poll.topicScope,
-          schedule: poll.schedule,
-          closesAt: poll.closesAt,
-          createdBy: poll.createdBy,
+          id: survey.id,
+          title: survey.title,
+          questions: survey.questions,
+          topicIds: survey.topicScope,
+          schedule: survey.schedule,
+          closesAt: survey.closesAt,
+          createdBy: survey.createdBy,
         };
         if (participantId) {
-          item.hasResponded = await engine.polls.hasResponded(
-            poll.id,
+          item.hasResponded = await engine.surveys.hasResponded(
+            survey.id,
             participantId,
           );
         }
@@ -42,34 +42,34 @@ export function pollRoutes(manager: AssemblyManager) {
     );
 
     const { data, pagination } = paginate(items, parsePagination(c));
-    return c.json({ polls: data, pagination });
+    return c.json({ surveys: data, pagination });
   });
 
-  /** POST /assemblies/:id/polls — create poll. */
-  app.post("/assemblies/:id/polls", async (c) => {
+  /** POST /assemblies/:id/surveys — create survey. */
+  app.post("/assemblies/:id/surveys", async (c) => {
     const scopeError = requireScope(c, "operational");
     if (scopeError) return scopeError;
 
     const assemblyId = c.req.param("id");
-    const body = await c.req.json<CreatePollParams>();
+    const body = await c.req.json<CreateSurveyParams>();
 
     const { engine } = await manager.getEngine(assemblyId);
-    const poll = await engine.polls.create(body);
+    const survey = await engine.surveys.create(body);
 
     return c.json({
-      id: poll.id,
-      title: poll.title,
-      questions: poll.questions,
-      topicIds: poll.topicScope,
-      schedule: poll.schedule,
-      closesAt: poll.closesAt,
-      createdBy: poll.createdBy,
+      id: survey.id,
+      title: survey.title,
+      questions: survey.questions,
+      topicIds: survey.topicScope,
+      schedule: survey.schedule,
+      closesAt: survey.closesAt,
+      createdBy: survey.createdBy,
     }, 201);
   });
 
-  /** POST /assemblies/:id/polls/:pid/respond — submit response. Sovereignty enforced. */
+  /** POST /assemblies/:id/surveys/:pid/respond — submit response. Sovereignty enforced. */
   app.post(
-    "/assemblies/:id/polls/:pid/respond",
+    "/assemblies/:id/surveys/:pid/respond",
     requireParticipant(manager),
     async (c) => {
       const assemblyId = c.req.param("id");
@@ -78,9 +78,9 @@ export function pollRoutes(manager: AssemblyManager) {
       const authenticatedPid = c.get("participantId") as string;
 
       const { engine } = await manager.getEngine(assemblyId);
-      await engine.polls.respond({
+      await engine.surveys.respond({
         ...body,
-        pollId: pid as PollId,
+        surveyId: pid as SurveyId,
         participantId: authenticatedPid as ParticipantId,
       });
 
@@ -88,14 +88,14 @@ export function pollRoutes(manager: AssemblyManager) {
     },
   );
 
-  /** GET /assemblies/:id/polls/:pid/results — poll results. */
-  app.get("/assemblies/:id/polls/:pid/results", async (c) => {
+  /** GET /assemblies/:id/surveys/:pid/results — survey results. */
+  app.get("/assemblies/:id/surveys/:pid/results", async (c) => {
     const assemblyId = c.req.param("id");
     const pid = c.req.param("pid");
     const eligibleCount = parseInt(c.req.query("eligibleCount") ?? "0", 10);
 
     const { engine } = await manager.getEngine(assemblyId);
-    const results = await engine.polls.results(pid as PollId, eligibleCount);
+    const results = await engine.surveys.results(pid as SurveyId, eligibleCount);
 
     // Convert Map → plain object for JSON serialization (Maps serialize as {})
     return c.json({
@@ -114,7 +114,7 @@ export function pollRoutes(manager: AssemblyManager) {
     const eligibleCount = parseInt(c.req.query("eligibleCount") ?? "0", 10);
 
     const { engine } = await manager.getEngine(assemblyId);
-    const trends = await engine.polls.trends(topicId as TopicId, eligibleCount);
+    const trends = await engine.surveys.trends(topicId as TopicId, eligibleCount);
 
     return c.json(trends);
   });

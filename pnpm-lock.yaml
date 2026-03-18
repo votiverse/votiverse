@@ -38,12 +38,12 @@ importers:
       '@votiverse/delegation':
         specifier: workspace:*
         version: link:../delegation
-      '@votiverse/polling':
-        specifier: workspace:*
-        version: link:../polling
       '@votiverse/prediction':
         specifier: workspace:*
         version: link:../prediction
+      '@votiverse/survey':
+        specifier: workspace:*
+        version: link:../survey
       '@votiverse/voting':
         specifier: workspace:*
         version: link:../voting
@@ -190,12 +190,12 @@ importers:
       '@votiverse/identity':
         specifier: workspace:*
         version: link:../identity
-      '@votiverse/polling':
-        specifier: workspace:*
-        version: link:../polling
       '@votiverse/prediction':
         specifier: workspace:*
         version: link:../prediction
+      '@votiverse/survey':
+        specifier: workspace:*
+        version: link:../survey
       '@votiverse/voting':
         specifier: workspace:*
         version: link:../voting
@@ -233,28 +233,6 @@ importers:
         version: 4.1.0(@types/node@22.19.15)(jsdom@29.0.0)(vite@8.0.0(@types/node@22.19.15)(esbuild@0.27.4)(jiti@2.6.1)(tsx@4.21.0))
 
   packages/integrity:
-    dependencies:
-      '@votiverse/config':
-        specifier: workspace:*
-        version: link:../config
-      '@votiverse/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      '@types/node':
-        specifier: ^22.15.0
-        version: 22.19.15
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.0
-        version: 4.1.0(@types/node@22.19.15)(jsdom@29.0.0)(vite@8.0.0(@types/node@22.19.15)(esbuild@0.27.4)(jiti@2.6.1)(tsx@4.21.0))
-
-  packages/polling:
     dependencies:
       '@votiverse/config':
         specifier: workspace:*
@@ -315,6 +293,28 @@ importers:
       '@votiverse/prediction':
         specifier: workspace:*
         version: link:../prediction
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.19.15
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.0(@types/node@22.19.15)(jsdom@29.0.0)(vite@8.0.0(@types/node@22.19.15)(esbuild@0.27.4)(jiti@2.6.1)(tsx@4.21.0))
+
+  packages/survey:
+    dependencies:
+      '@votiverse/config':
+        specifier: workspace:*
+        version: link:../config
+      '@votiverse/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
@@ -423,12 +423,12 @@ importers:
       '@votiverse/identity':
         specifier: workspace:*
         version: link:../../packages/identity
-      '@votiverse/polling':
-        specifier: workspace:*
-        version: link:../../packages/polling
       '@votiverse/prediction':
         specifier: workspace:*
         version: link:../../packages/prediction
+      '@votiverse/survey':
+        specifier: workspace:*
+        version: link:../../packages/survey
       '@votiverse/voting':
         specifier: workspace:*
         version: link:../../packages/voting

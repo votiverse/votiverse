@@ -140,7 +140,7 @@ export function AssemblyDashboard() {
               </CardHeader>
               <CardBody className="space-y-3">
                 <ConfigRow label="Predictions" value={humanizePredictions(config.features.predictions)} />
-                <ConfigRow label="Surveys" value={humanizeBoolean(config.features.polls, "enabled-disabled")} />
+                <ConfigRow label="Surveys" value={humanizeBoolean(config.features.surveys, "enabled-disabled")} />
                 <ConfigRow label="Insights" value={humanizeAwareness(config.features.awarenessIntensity)} />
                 <ConfigRow label="Community Notes" value={humanizeBoolean(config.features.communityNotes, "enabled-disabled")} />
                 <ConfigRow label="Blockchain" value={humanizeBoolean(config.features.blockchainIntegrity, "enabled-disabled")} />
@@ -307,7 +307,7 @@ function summarizeRules(config: GovernanceConfig): string[] {
   if (config.features.communityNotes) {
     rules.push("Community notes help verify claims in proposals and candidate profiles");
   }
-  if (config.features.polls) {
+  if (config.features.surveys) {
     rules.push("Surveys capture member observations as evidence for accountability");
   }
 
