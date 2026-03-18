@@ -383,6 +383,15 @@ function IssueVotingCard({
             ))}
           </div>
         )}
+        {/* Proposals link */}
+        <div className="mt-2">
+          <Link
+            to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            View proposals for this issue
+          </Link>
+        </div>
       </CardHeader>
       <CardBody className="space-y-4">
         {/* Closed event: historical participation record */}
