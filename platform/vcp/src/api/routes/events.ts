@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { requireScope } from "../middleware/auth.js";
+import { requireScope, requireParticipant } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 interface CreateEventBody {
@@ -72,6 +72,16 @@ export function eventRoutes(manager: AssemblyManager) {
     const issues = votingEvent.issueIds.map((id) => engine.events.getIssue(id as IssueId)!);
     await manager.persistIssues(assemblyId, issues);
 
+    // Record event creator (if participant identity is available)
+    const creatorId = c.req.header("X-Participant-Id");
+    if (creatorId) {
+      const db = manager.getDatabase();
+      await db.run(
+        `INSERT OR IGNORE INTO voting_event_creators (assembly_id, event_id, participant_id) VALUES (?, ?, ?)`,
+        [assemblyId, votingEvent.id, creatorId],
+      );
+    }
+
     return c.json({
       id: votingEvent.id,
       title: votingEvent.title,
@@ -121,6 +131,13 @@ export function eventRoutes(manager: AssemblyManager) {
       };
     });
 
+    // Look up creator
+    const db = manager.getDatabase();
+    const creatorRow = await db.queryOne<{ participant_id: string }>(
+      `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
+      [assemblyId, eid],
+    );
+
     return c.json({
       id: votingEvent.id,
       title: votingEvent.title,
@@ -132,6 +149,7 @@ export function eventRoutes(manager: AssemblyManager) {
         votingStart: new Date(votingEvent.timeline.votingStart).toISOString(),
         votingEnd: new Date(votingEvent.timeline.votingEnd).toISOString(),
       },
+      createdBy: creatorRow?.participant_id ?? undefined,
       createdAt: new Date(votingEvent.createdAt).toISOString(),
     });
   });

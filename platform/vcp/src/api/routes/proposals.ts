@@ -4,7 +4,7 @@
  */
 
 import { Hono } from "hono";
-import type { ParticipantId, IssueId, ProposalId, ContentHash } from "@votiverse/core";
+import type { ParticipantId, IssueId, ProposalId, ContentHash, ProposalEvaluation } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
@@ -38,8 +38,8 @@ export function proposalRoutes(manager: AssemblyManager) {
       // Persist to VCP database
       const db = manager.getDatabase();
       await db.run(
-        `INSERT INTO proposals (id, assembly_id, issue_id, choice_key, author_id, title, current_version, status, submitted_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO proposals (id, assembly_id, issue_id, choice_key, author_id, title, current_version, endorsement_count, dispute_count, featured, status, submitted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)`,
         [proposal.id, assemblyId, proposal.issueId, proposal.choiceKey ?? null, proposal.authorId, proposal.title, proposal.currentVersion, proposal.status, proposal.submittedAt],
       );
       await db.run(
@@ -201,6 +201,218 @@ export function proposalRoutes(manager: AssemblyManager) {
     },
   );
 
+  /** POST /assemblies/:id/proposals/:pid/evaluate — endorse or dispute. */
+  app.post(
+    "/assemblies/:id/proposals/:pid/evaluate",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const proposalId = c.req.param("pid");
+      const body = await c.req.json<{ evaluation: string }>();
+      const participantId = c.get("participantId") as string;
+
+      const { engine } = await manager.getEngine(assemblyId);
+
+      // Check previous evaluation for materialized count update
+      const db = manager.getDatabase();
+      const prev = await db.queryOne<{ evaluation: string }>(
+        `SELECT evaluation FROM proposal_endorsements WHERE assembly_id = ? AND proposal_id = ? AND participant_id = ?`,
+        [assemblyId, proposalId, participantId],
+      );
+
+      await engine.proposals.evaluate(
+        proposalId as ProposalId,
+        participantId as ParticipantId,
+        body.evaluation as ProposalEvaluation,
+      );
+
+      // Update materialized counts
+      if (prev) {
+        const oldCol = prev.evaluation === "endorse" ? "endorsement_count" : "dispute_count";
+        const newCol = body.evaluation === "endorse" ? "endorsement_count" : "dispute_count";
+        if (oldCol !== newCol) {
+          await db.run(
+            `UPDATE proposals SET ${oldCol} = ${oldCol} - 1, ${newCol} = ${newCol} + 1 WHERE assembly_id = ? AND id = ?`,
+            [assemblyId, proposalId],
+          );
+        }
+      } else {
+        const col = body.evaluation === "endorse" ? "endorsement_count" : "dispute_count";
+        await db.run(
+          `UPDATE proposals SET ${col} = ${col} + 1 WHERE assembly_id = ? AND id = ?`,
+          [assemblyId, proposalId],
+        );
+      }
+
+      // Upsert endorsement record
+      await db.run(
+        `INSERT OR REPLACE INTO proposal_endorsements (assembly_id, proposal_id, participant_id, evaluation, evaluated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [assemblyId, proposalId, participantId, body.evaluation, Date.now()],
+      );
+
+      return c.json({ status: "ok" });
+    },
+  );
+
+  /** POST /assemblies/:id/proposals/:pid/feature — mark as featured (creator only). */
+  app.post(
+    "/assemblies/:id/proposals/:pid/feature",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const proposalId = c.req.param("pid");
+      const participantId = c.get("participantId") as string;
+
+      const db = manager.getDatabase();
+
+      // Check proposal exists and get its issue
+      const proposal = await db.queryOne<Record<string, unknown>>(
+        `SELECT issue_id FROM proposals WHERE assembly_id = ? AND id = ?`,
+        [assemblyId, proposalId],
+      );
+      if (!proposal) {
+        return c.json({ error: { code: "NOT_FOUND", message: "Proposal not found" } }, 404);
+      }
+
+      // Verify caller is event creator
+      const issueId = proposal["issue_id"] as string;
+      const issue = await db.queryOne<{ voting_event_id: string }>(
+        `SELECT voting_event_id FROM issues WHERE assembly_id = ? AND id = ?`,
+        [assemblyId, issueId],
+      );
+      if (issue) {
+        const creator = await db.queryOne<{ participant_id: string }>(
+          `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
+          [assemblyId, issue.voting_event_id],
+        );
+        if (!creator || creator.participant_id !== participantId) {
+          return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can feature proposals" } }, 403);
+        }
+      }
+
+      await db.run(
+        `UPDATE proposals SET featured = 1 WHERE assembly_id = ? AND id = ?`,
+        [assemblyId, proposalId],
+      );
+
+      return c.json({ status: "featured" });
+    },
+  );
+
+  /** POST /assemblies/:id/proposals/:pid/unfeature — remove featured flag (creator only). */
+  app.post(
+    "/assemblies/:id/proposals/:pid/unfeature",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const proposalId = c.req.param("pid");
+      const participantId = c.get("participantId") as string;
+
+      const db = manager.getDatabase();
+      const proposal = await db.queryOne<Record<string, unknown>>(
+        `SELECT issue_id FROM proposals WHERE assembly_id = ? AND id = ?`,
+        [assemblyId, proposalId],
+      );
+      if (!proposal) {
+        return c.json({ error: { code: "NOT_FOUND", message: "Proposal not found" } }, 404);
+      }
+
+      const issueId = proposal["issue_id"] as string;
+      const issue = await db.queryOne<{ voting_event_id: string }>(
+        `SELECT voting_event_id FROM issues WHERE assembly_id = ? AND id = ?`,
+        [assemblyId, issueId],
+      );
+      if (issue) {
+        const creator = await db.queryOne<{ participant_id: string }>(
+          `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
+          [assemblyId, issue.voting_event_id],
+        );
+        if (!creator || creator.participant_id !== participantId) {
+          return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can unfeature proposals" } }, 403);
+        }
+      }
+
+      await db.run(
+        `UPDATE proposals SET featured = 0 WHERE assembly_id = ? AND id = ?`,
+        [assemblyId, proposalId],
+      );
+
+      return c.json({ status: "unfeatured" });
+    },
+  );
+
+  /**
+   * GET /assemblies/:id/proposals/booklet?issueId=...
+   * Returns featured proposals per choiceKey, or auto-falls back to highest-scored.
+   */
+  app.get("/assemblies/:id/proposals/booklet", async (c) => {
+    const assemblyId = c.req.param("id");
+    const issueId = c.req.query("issueId");
+    if (!issueId) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "issueId query param required" } }, 400);
+    }
+
+    const db = manager.getDatabase();
+
+    // Get all non-withdrawn proposals for this issue
+    const rows = await db.query<Record<string, unknown>>(
+      `SELECT * FROM proposals WHERE assembly_id = ? AND issue_id = ? AND status != 'withdrawn' ORDER BY (endorsement_count - dispute_count) DESC, submitted_at ASC`,
+      [assemblyId, issueId],
+    );
+
+    // Compute status (locked or submitted) from timeline
+    const { engine } = await manager.getEngine(assemblyId);
+    const now = manager.timeProvider.now() as number;
+    const votingStartMap = new Map<string, number>();
+    const issue = engine.events.getIssue(issueId as IssueId);
+    if (issue) {
+      const ve = engine.events.get(issue.votingEventId);
+      if (ve) votingStartMap.set(issueId, ve.timeline.votingStart as number);
+    }
+
+    const proposals = rows.map((r) => mapProposalRow(r, votingStartMap, now));
+
+    // Group by choiceKey
+    const byChoice = new Map<string, typeof proposals>();
+    for (const p of proposals) {
+      const key = (p.choiceKey as string) ?? "general";
+      const list = byChoice.get(key) ?? [];
+      list.push(p);
+      byChoice.set(key, list);
+    }
+
+    // For each choiceKey: pick featured if any, else highest-scored
+    const booklet: Record<string, unknown> = {};
+    for (const [key, list] of byChoice) {
+      const featured = list.find((p) => p.featured);
+      booklet[key] = {
+        featured: featured ?? list[0] ?? null,
+        all: list,
+      };
+    }
+
+    // Get recommendation if any
+    const eventId = issue?.votingEventId;
+    let recommendation = null;
+    if (eventId) {
+      const recRow = await db.queryOne<Record<string, unknown>>(
+        `SELECT * FROM booklet_recommendations WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
+        [assemblyId, eventId, issueId],
+      );
+      if (recRow) {
+        recommendation = {
+          authorId: recRow["author_id"],
+          contentHash: recRow["content_hash"],
+          createdAt: recRow["created_at"],
+          updatedAt: recRow["updated_at"],
+        };
+      }
+    }
+
+    return c.json({ issueId, positions: booklet, recommendation });
+  });
+
   return app;
 }
 
@@ -229,6 +441,9 @@ function mapProposalRow(row: Record<string, unknown>, votingStartMap?: Map<strin
     authorId: row["author_id"],
     title: row["title"],
     currentVersion: row["current_version"],
+    endorsementCount: row["endorsement_count"] ?? 0,
+    disputeCount: row["dispute_count"] ?? 0,
+    featured: (row["featured"] as number) === 1,
     status,
     submittedAt: row["submitted_at"],
     withdrawnAt: row["withdrawn_at"] ?? undefined,
