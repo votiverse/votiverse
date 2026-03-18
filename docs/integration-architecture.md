@@ -560,40 +560,40 @@ Different clients may manage different Assemblies on the same VCP. Client A's As
 
 ---
 
-## 8. Uniweb Integration (Proximify-Specific)
+## 8. Client Integration (Proximify-Specific)
 
-This section describes how Proximify's own Uniweb-based web application integrates with the VCP. This is one specific client implementation — not a requirement for other clients.
+This section describes how Proximify's own Client-based web application integrates with the VCP. This is one specific client implementation — not a requirement for other clients.
 
-### 8.1 Uniweb with a client backend
+### 8.1 App with a client backend
 
-The Uniweb instance at votiverse.org (and any managed white-label instances) communicates with the VCP through a client backend. The Uniweb front-end authenticates users via JWT, and the client backend proxies governance requests to the VCP with participant identity injection — exactly like any other client in the 3-tier architecture.
+The Client instance at votiverse.org (and any managed white-label instances) communicates with the VCP through a client backend. The Client front-end authenticates users via JWT, and the client backend proxies governance requests to the VCP with participant identity injection — exactly like any other client in the 3-tier architecture.
 
-The client backend adds the application layer that the VCP does not provide: user authentication, user-to-participant mapping, RBAC enforcement, and organizational structure. The Uniweb front-end adds UI rendering and content management.
+The client backend adds the application layer that the VCP does not provide: user authentication, user-to-participant mapping, RBAC enforcement, and organizational structure. The Client front-end adds UI rendering and content management.
 
 ### 8.2 Entity mapping
 
-Uniweb's data model maps to the VCP's domain types:
+Client's data model maps to the VCP's domain types:
 
-| Uniweb Concept | VCP Concept | Notes |
+| Client Concept | VCP Concept | Notes |
 |---|---|---|
-| Hierarchical unit | Organization | Uniweb handles hierarchy; VCP sees flat org. |
-| Unit with Assembly entity type | Assembly | Assembly config stored in VCP. Content in Uniweb. |
-| Member entity/profile | ParticipantId | VCP receives an opaque ID. Uniweb owns the profile. |
-| Entity with proposal schema | Proposal + PredictionClaim | Uniweb stores rich content. VCP stores structured governance data. |
-| Entity with booklet schema | VotingEvent + Issues | Uniweb renders the booklet. VCP manages the lifecycle. |
-| Entity with poll schema | Poll + Questions | Uniweb renders the form. VCP stores responses and computes trends. |
-| RBAC roles | Organization/Assembly roles | Uniweb enforces access. VCP trusts the authorization. |
-| Entity views (profile, CV, etc.) | Not mapped | VCP doesn't need Uniweb's view system. |
+| Hierarchical unit | Organization | Client handles hierarchy; VCP sees flat org. |
+| Unit with Assembly entity type | Assembly | Assembly config stored in VCP. Content in Client. |
+| Member entity/profile | ParticipantId | VCP receives an opaque ID. Client owns the profile. |
+| Entity with proposal schema | Proposal + PredictionClaim | Client stores rich content. VCP stores structured governance data. |
+| Entity with booklet schema | VotingEvent + Issues | Client renders the booklet. VCP manages the lifecycle. |
+| Entity with poll schema | Poll + Questions | Client renders the form. VCP stores responses and computes trends. |
+| RBAC roles | Organization/Assembly roles | Client enforces access. VCP trusts the authorization. |
+| Entity views (profile, CV, etc.) | Not mapped | VCP doesn't need Client's view system. |
 
 ### 8.3 Data ownership boundary
 
-The VCP stores the minimum governance data it needs to compute: prediction claims, poll questions and responses, vote choices, delegation relationships, issue identifiers. Everything else — display names, formatted text, media, organizational structure — lives in Uniweb and is not duplicated in the VCP.
+The VCP stores the minimum governance data it needs to compute: prediction claims, poll questions and responses, vote choices, delegation relationships, issue identifiers. Everything else — display names, formatted text, media, organizational structure — lives in Client and is not duplicated in the VCP.
 
-The VCP is authoritative for governance state (tallies, delegation weights, prediction evaluations). Uniweb is authoritative for content (proposal text, booklet formatting, user profiles).
+The VCP is authoritative for governance state (tallies, delegation weights, prediction evaluations). Client is authoritative for content (proposal text, booklet formatting, user profiles).
 
 ### 8.4 Managed white-label instances
 
-Proximify may deploy additional managed Uniweb instances for organizations that want their own branded experience (vote.university.edu, participate.city.gov). Each managed instance connects to a VCP as a separate client with its own API key. By default, managed instances connect to Proximify's VCP. Organizations that require data sovereignty can have their Uniweb instance pointed at their own VCP — either self-operated or Proximify-managed on the organization's infrastructure.
+Proximify may deploy additional managed Client instances for organizations that want their own branded experience (vote.university.edu, participate.city.gov). Each managed instance connects to a VCP as a separate client with its own API key. By default, managed instances connect to Proximify's VCP. Organizations that require data sovereignty can have their Client instance pointed at their own VCP — either self-operated or Proximify-managed on the organization's infrastructure.
 
 ---
 

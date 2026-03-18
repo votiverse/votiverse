@@ -789,14 +789,14 @@ Performance optimization, storage adapter implementations (PostgreSQL), error ha
 
 The Votiverse engine is headless. It does not include a user interface.
 
-The primary UI for Votiverse will be built on the **Uniweb Platform** by Proximify Inc. This UI is a separate, proprietary codebase that consumes the engine's TypeScript API (likely via an HTTP API layer built on top of the engine).
+The primary UI for Votiverse will be built on a standalone app with a frontend and a backend (the Client). This UI is a separate codebase that consumes the engine's TypeScript API (likely via an HTTP API layer built on top of the engine).
 
 The open-source engine and the proprietary UI form an **open-core model**:
 
-- **Open source (this repo):** governance engine, CLI, all core logic, documentation.
-- **Proprietary (separate repo):** Uniweb-based web application, visual configuration tools, hosted service infrastructure.
+- **Open source (this repo):** governance engine, CLI, all core logic, documentation. It also include a reference web application with frontend and backend.
+- **Proprietary (separate repo):** Client web and mobile application, deployment tools, hosted service infrastructure.
 
-This separation ensures that the governance logic is inspectable, auditable, and forkable by anyone, while the commercial product built on top funds ongoing development.
+This separation ensures that the governance logic is inspectable, auditable, and forkable by anyone.
 
 Third parties are free to build their own UI on top of the open-source engine. The CLI serves as both a reference implementation and a tool for deployments that don't need a visual interface.
 

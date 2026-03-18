@@ -714,7 +714,7 @@ This configurability is what allows the same platform to serve a sports club and
 
 ### 13.2 Technical Foundation
 
-Votiverse is built on the **Uniweb Platform**, developed by Proximify Inc. (Ottawa, Canada). Uniweb provides:
+Votiverse is supported by Proximify Inc.’s 13 years of experience in platform development, including the creation of the Uniweb Platform. That experience informs Votiverse’s technical foundation, which includes:
 
 - flexible data models for structured content,
 - customizable interfaces,

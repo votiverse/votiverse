@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS participants (
 
 The integration architecture (Section 4.1) states: *"The VCP does not authenticate end users. Clients authenticate users through their own systems... The VCP holds no personally identifiable information."*
 
-The VCP architecture (Section 13.4) states: *"The VCP stores ParticipantId values (opaque identifiers) but no personally identifiable information. Names, emails, and authentication credentials live in Uniweb. If the VCP database were fully exposed, an attacker would see governance events linked to opaque IDs — they would not know who those IDs represent."*
+The VCP architecture (Section 13.4) states: *"The VCP stores ParticipantId values (opaque identifiers) but no personally identifiable information. Names, emails, and authentication credentials live in Client Backend. If the VCP database were fully exposed, an attacker would see governance events linked to opaque IDs — they would not know who those IDs represent."*
 
 **Current state:** If the VCP database were fully exposed, an attacker would know every participant's full name, their email address (if provided), which assemblies they belong to, how they voted, who they delegated to, and their complete governance activity — all linked to real identities. This is the exact scenario the architecture was designed to prevent.
 

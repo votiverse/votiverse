@@ -25,7 +25,7 @@ The VCP handles four distinct workload types. Each has different characteristics
 
 ### 2.1 Synchronous API Requests
 
-**What:** HTTP requests from Uniweb instances and CLI clients. Cast votes, create delegations, submit poll responses, query tallies, fetch awareness data.
+**What:** HTTP requests from client backend apps. Cast votes, create delegations, submit poll responses, query tallies, fetch awareness data.
 
 **Characteristics:**
 - Latency-tolerant: this is humans making governance decisions, not credit card transactions. A response within 2–3 seconds is perfectly adequate. Sub-second is nice but not a design requirement.
@@ -77,7 +77,7 @@ The VCP handles four distinct workload types. Each has different characteristics
 
 ### 2.4 Outbound Communication
 
-**What:** Notifications pushed to Uniweb instances (via webhooks) and optionally to participants (via email, triggered through Uniweb).
+**What:** Notifications pushed to Client instances (via webhooks) and optionally to participants (via email, triggered through Client).
 
 **Characteristics:**
 - At-least-once delivery guarantee for webhooks.
@@ -239,11 +239,11 @@ Requirements:
 
 ### 4.2 Authentication and Authorization
 
-**Client authentication.** Each Uniweb instance and CLI client authenticates with an API key or OAuth2 client credentials. The VCP issues credentials when a client is registered. Every request must include valid credentials.
+**Client authentication.** Each Client instance and CLI client authenticates with an API key or OAuth2 client credentials. The VCP issues credentials when a client is registered. Every request must include valid credentials.
 
 **Participant identity.** The VCP receives an opaque `ParticipantId` from the client. The client is responsible for authenticating the user and mapping their identity to a ParticipantId. The VCP trusts the client's assertion. The VCP holds no PII.
 
-**Authorization.** The VCP enforces Assembly-level authorization: the authenticated client must have access to the Assembly referenced in the request. Within an Assembly, the VCP trusts the client's role assertions (admin, member) because RBAC is a Uniweb concern. The VCP enforces governance rules (non-delegable polls, override rule, quorum) — these are engine-level constraints, not RBAC.
+**Authorization.** The VCP enforces Assembly-level authorization: the authenticated client must have access to the Assembly referenced in the request. Within an Assembly, the VCP trusts the client's role assertions (admin, member) because RBAC is a Client concern. The VCP enforces governance rules (non-delegable polls, override rule, quorum) — these are engine-level constraints, not RBAC.
 
 ### 4.3 Rate Limiting
 
@@ -274,7 +274,7 @@ The full REST API as sketched in the [integration architecture](integration-arch
 A vote is cast:
 
 ```
-Client (Uniweb) → POST /assemblies/:id/votes { participantId, issueId, choice }
+Client (Client) → POST /assemblies/:id/votes { participantId, issueId, choice }
   ↓
 API middleware: authenticate client, validate payload, check rate limit
   ↓
@@ -326,7 +326,7 @@ CREATE TABLE assemblies (
     status          VARCHAR(50) NOT NULL DEFAULT 'active'
 );
 
--- Client registry (Uniweb instances, CLI)
+-- Client registry (Client instances, CLI)
 CREATE TABLE clients (
     id              UUID PRIMARY KEY,
     name            VARCHAR(200) NOT NULL,
@@ -800,7 +800,7 @@ The only change: workers move to a separate instance. The API server keeps the s
 
 ### 11.4 Stage 3: Load-Balanced API (Scale)
 
-When API traffic from multiple Uniweb instances justifies horizontal scaling. This is the "moderate scale" target: 100+ Organizations, 500+ Assemblies, 50,000+ participants. Estimated cost: $500–1,500/month.
+When API traffic from multiple Client instances justifies horizontal scaling. This is the "moderate scale" target: 100+ Organizations, 500+ Assemblies, 50,000+ participants. Estimated cost: $500–1,500/month.
 
 ```
                     ┌─────────────────┐
@@ -844,7 +844,7 @@ Don't scale preemptively. Scale in response to observed signals:
 | Signal | Action |
 |--------|--------|
 | API response times regularly exceed 3–5 seconds | Move to Stage 2 (separate workers) |
-| Multiple Uniweb instances connecting | Move to Stage 3 (load-balanced API) |
+| Multiple Client instances connecting | Move to Stage 3 (load-balanced API) |
 | SQS queue depth regularly exceeds 50 | Add worker instances |
 | RDS CPU regularly exceeds 70% | Upgrade instance size |
 | Need for high availability (civic/institutional clients) | Enable RDS Multi-AZ |
@@ -928,7 +928,7 @@ Structured JSON logs to CloudWatch Logs. Log fields: timestamp, level, service (
 
 ### 13.4 No PII in the Engine
 
-The VCP stores `ParticipantId` values (opaque identifiers) but no personally identifiable information. Names, emails, and authentication credentials live in Uniweb. If the VCP database were fully exposed, an attacker would see governance events (votes, delegations, poll responses) linked to opaque IDs — they would not know who those IDs represent without also compromising Uniweb.
+The VCP stores `ParticipantId` values (opaque identifiers) but no personally identifiable information. Names, emails, and authentication credentials live in Client. If the VCP database were fully exposed, an attacker would see governance events (votes, delegations, poll responses) linked to opaque IDs — they would not know who those IDs represent without also compromising Client.
 
 ---
 
