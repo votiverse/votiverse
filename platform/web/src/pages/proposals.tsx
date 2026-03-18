@@ -7,7 +7,7 @@ import type { Proposal, ProposalDraft } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
-import { FileText, MessageSquareText } from "lucide-react";
+import { FileText, MessageSquareText, ThumbsUp, ThumbsDown } from "lucide-react";
 import { lazy, Suspense } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
@@ -87,6 +87,13 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
   const [expanded, setExpanded] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [fullContent, setFullContent] = useState<Proposal | null>(null);
+  const [endorsements, setEndorsements] = useState(proposal.endorsementCount ?? 0);
+  const [disputes, setDisputes] = useState(proposal.disputeCount ?? 0);
+  const [evaluating, setEvaluating] = useState(false);
+  const { getParticipantId } = useIdentity();
+  const participantId = getParticipantId(assemblyId);
+  const isAuthor = participantId === proposal.authorId;
+  const canEndorse = proposal.status === "submitted" && participantId && !isAuthor;
 
   const statusColor = proposal.status === "locked" ? "blue" : proposal.status === "withdrawn" ? "gray" : "green";
 
@@ -100,7 +107,19 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
     setExpanded(!expanded);
   };
 
+  const handleEvaluate = async (evaluation: "endorse" | "dispute") => {
+    if (!canEndorse || evaluating) return;
+    setEvaluating(true);
+    try {
+      await api.evaluateProposal(assemblyId, proposal.id, evaluation);
+      if (evaluation === "endorse") setEndorsements((n) => n + 1);
+      else setDisputes((n) => n + 1);
+    } catch { /* ignore */ }
+    setEvaluating(false);
+  };
+
   const markdown = fullContent?.content?.markdown ?? proposal.content?.markdown;
+  const score = endorsements - disputes;
 
   return (
     <Card>
@@ -117,7 +136,15 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
               </p>
             </div>
           </div>
-          <Badge color={statusColor}>{proposal.status}</Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            {(endorsements > 0 || disputes > 0) && (
+              <span className={`text-xs font-medium ${score > 0 ? "text-green-600" : score < 0 ? "text-red-600" : "text-gray-500"}`}>
+                {score > 0 ? "+" : ""}{score}
+              </span>
+            )}
+            {proposal.featured && <Badge color="yellow">Featured</Badge>}
+            <Badge color={statusColor}>{proposal.status}</Badge>
+          </div>
         </div>
 
         {expanded && (
@@ -130,7 +157,7 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
           </div>
         )}
 
-        <div className="mt-3 flex gap-4">
+        <div className="mt-3 flex items-center gap-4">
           <button
             className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1.5"
             onClick={handleExpand}
@@ -145,6 +172,32 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
             <MessageSquareText size={14} />
             Notes
           </button>
+          {canEndorse && (
+            <div className="flex items-center gap-1 ml-auto">
+              <button
+                onClick={() => handleEvaluate("endorse")}
+                disabled={evaluating}
+                className="p-1.5 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors disabled:opacity-50"
+                title="Endorse"
+              >
+                <ThumbsUp size={14} />
+              </button>
+              <span className="text-xs text-gray-400 tabular-nums min-w-[2ch] text-center">
+                {endorsements > 0 ? endorsements : ""}
+              </span>
+              <button
+                onClick={() => handleEvaluate("dispute")}
+                disabled={evaluating}
+                className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                title="Dispute"
+              >
+                <ThumbsDown size={14} />
+              </button>
+              <span className="text-xs text-gray-400 tabular-nums min-w-[2ch] text-center">
+                {disputes > 0 ? disputes : ""}
+              </span>
+            </div>
+          )}
         </div>
 
         {showNotes && (
@@ -236,10 +289,11 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
 
 function DraftForm({ assemblyId, issueId, onCreated }: { assemblyId: string; issueId: string; onCreated: () => void }) {
   const [title, setTitle] = useState("");
+  const [choiceKey, setChoiceKey] = useState("for");
 
   const handleCreate = async () => {
     if (!title.trim()) return;
-    await api.createProposalDraft(assemblyId, { issueId, title });
+    await api.createProposalDraft(assemblyId, { issueId, choiceKey, title });
     onCreated();
   };
 
@@ -247,13 +301,24 @@ function DraftForm({ assemblyId, issueId, onCreated }: { assemblyId: string; iss
     <Card className="mb-6">
       <CardBody>
         <h3 className="font-medium text-gray-900 mb-3">New Proposal Draft</h3>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full border rounded px-3 py-2 text-sm mb-3"
-          placeholder="Proposal title"
-        />
+        <div className="flex gap-3 mb-3">
+          <select
+            value={choiceKey}
+            onChange={(e) => setChoiceKey(e.target.value)}
+            className="border rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="for">For</option>
+            <option value="against">Against</option>
+            <option value="general">General</option>
+          </select>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex-1 border rounded px-3 py-2 text-sm"
+            placeholder="Proposal title"
+          />
+        </div>
         <Button onClick={handleCreate} disabled={!title.trim()}>Create Draft</Button>
       </CardBody>
     </Card>
