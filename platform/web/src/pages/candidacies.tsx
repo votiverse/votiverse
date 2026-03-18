@@ -140,7 +140,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
             className="text-sm text-blue-600 hover:text-blue-800"
             onClick={handleExpand}
           >
-            {expanded ? "Collapse" : "View profile"}
+            {expanded ? "Collapse" : "Read statement"}
           </button>
           <button
             className="text-sm text-gray-500 hover:text-gray-700"

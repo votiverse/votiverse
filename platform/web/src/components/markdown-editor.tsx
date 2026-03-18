@@ -9,7 +9,7 @@
  * - Read-only markdown renderer mode
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import "./markdown-editor.css";
 import StarterKit from "@tiptap/starter-kit";
@@ -45,6 +45,8 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [linkInputOpen, setLinkInputOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
 
   const editor = useEditor({
     extensions: [
@@ -209,6 +211,21 @@ export function MarkdownEditor({
         >
           &mdash;
         </ToolbarButton>
+        <ToolbarButton
+          onClick={() => {
+            if (editor.isActive("link")) {
+              editor.chain().focus().unsetLink().run();
+              setLinkInputOpen(false);
+            } else {
+              setLinkInputOpen(!linkInputOpen);
+              setLinkUrl(editor.getAttributes("link").href ?? "");
+            }
+          }}
+          active={editor.isActive("link")}
+          title="Link"
+        >
+          Link
+        </ToolbarButton>
         <ToolbarDivider />
         <ToolbarButton onClick={handleImageButton} title="Insert image">
           Image
@@ -217,6 +234,54 @@ export function MarkdownEditor({
           Import
         </ToolbarButton>
       </div>
+
+      {/* Inline link input */}
+      {linkInputOpen && (
+        <div className="flex items-center gap-2 px-2 py-1.5 border-b bg-blue-50">
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="https://example.com"
+            className="flex-1 text-xs border rounded px-2 py-1 bg-white"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (linkUrl.trim()) {
+                  editor.chain().focus().setLink({ href: linkUrl.trim() }).run();
+                }
+                setLinkInputOpen(false);
+                setLinkUrl("");
+              } else if (e.key === "Escape") {
+                setLinkInputOpen(false);
+                setLinkUrl("");
+                editor.chain().focus().run();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (linkUrl.trim()) {
+                editor.chain().focus().setLink({ href: linkUrl.trim() }).run();
+              }
+              setLinkInputOpen(false);
+              setLinkUrl("");
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1"
+          >
+            Apply
+          </button>
+          <button
+            type="button"
+            onClick={() => { setLinkInputOpen(false); setLinkUrl(""); editor.chain().focus().run(); }}
+            className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Editor area */}
       <div
