@@ -79,19 +79,23 @@ describe("VotingService", () => {
       expect(votes[0]!.participantId).toBe(pid("alice"));
     });
 
-    it("keeps only the latest vote per participant", async () => {
-      await service.cast({
+    it("keeps only the latest vote per participant (when vote change allowed)", async () => {
+      // Use a config with allowVoteChange: true
+      const changeStore = new InMemoryEventStore();
+      const changeService = new VotingService(changeStore, getPreset("TOWN_HALL"));
+
+      await changeService.cast({
         participantId: pid("alice"),
         issueId: iid("issue-1"),
         choice: "for",
       });
-      await service.cast({
+      await changeService.cast({
         participantId: pid("alice"),
         issueId: iid("issue-1"),
         choice: "against",
       });
 
-      const votes = await service.getVotes(iid("issue-1"));
+      const votes = await changeService.getVotes(iid("issue-1"));
       expect(votes).toHaveLength(1);
       expect(votes[0]!.choice).toBe("against");
     });
@@ -372,6 +376,60 @@ describe("VotingService", () => {
       expect(records).toHaveLength(5);
       const pids = records.map((r) => r.participantId).sort();
       expect(pids).toEqual(["a", "b", "c", "d", "e"]);
+    });
+  });
+
+  describe("allowVoteChange enforcement", () => {
+    it("allows re-voting when allowVoteChange is true (default)", async () => {
+      // LIQUID_STANDARD has allowVoteChange: false (live results)
+      // But default service uses LIQUID_STANDARD — let's use a config with allowVoteChange: true
+      const changeStore = new InMemoryEventStore();
+      const changeService = new VotingService(changeStore, deriveConfig(getPreset("TOWN_HALL"), {}));
+      // TOWN_HALL has allowVoteChange: true
+
+      await changeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
+      // Re-vote should succeed
+      await changeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "against" });
+
+      const events = await changeStore.getAll();
+      expect(events).toHaveLength(2);
+    });
+
+    it("rejects re-voting when allowVoteChange is false", async () => {
+      // LIQUID_STANDARD has allowVoteChange: false
+      const noChangeStore = new InMemoryEventStore();
+      const noChangeService = new VotingService(noChangeStore, getPreset("LIQUID_STANDARD"));
+
+      await noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
+
+      // Re-vote should be rejected
+      await expect(
+        noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "against" }),
+      ).rejects.toThrow("Vote changes are not allowed");
+    });
+
+    it("allows different participants to vote even when allowVoteChange is false", async () => {
+      const noChangeStore = new InMemoryEventStore();
+      const noChangeService = new VotingService(noChangeStore, getPreset("LIQUID_STANDARD"));
+
+      await noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
+      // Different participant — should succeed
+      await noChangeService.cast({ participantId: pid("bob"), issueId: iid("issue-1"), choice: "against" });
+
+      const events = await noChangeStore.getAll();
+      expect(events).toHaveLength(2);
+    });
+
+    it("allows voting on different issues even when allowVoteChange is false", async () => {
+      const noChangeStore = new InMemoryEventStore();
+      const noChangeService = new VotingService(noChangeStore, getPreset("LIQUID_STANDARD"));
+
+      await noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
+      // Same participant, different issue — should succeed
+      await noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-2"), choice: "against" });
+
+      const events = await noChangeStore.getAll();
+      expect(events).toHaveLength(2);
     });
   });
 });

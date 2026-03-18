@@ -75,14 +75,38 @@ export function proposalRoutes(manager: AssemblyManager) {
       sql += ` AND issue_id = ?`;
       params.push(issueId);
     }
-    if (status) {
+    if (status && status !== "locked") {
+      // Filter by stored status (submitted or withdrawn)
+      // 'locked' is computed, not stored — filtered after computation
       sql += ` AND status = ?`;
       params.push(status);
     }
     sql += ` ORDER BY submitted_at DESC`;
 
     const rows = await db.query<Record<string, unknown>>(sql, params);
-    const proposals = rows.map(mapProposalRow);
+
+    // Build votingStart map for status computation
+    const { engine } = await manager.getEngine(assemblyId);
+    const now = manager.timeProvider.now() as number;
+    const votingStartMap = new Map<string, number>();
+    for (const row of rows) {
+      const iid = row["issue_id"] as string;
+      if (!votingStartMap.has(iid)) {
+        const issue = engine.events.getIssue(iid as IssueId);
+        if (issue) {
+          const ve = engine.events.get(issue.votingEventId);
+          if (ve) votingStartMap.set(iid, ve.timeline.votingStart as number);
+        }
+      }
+    }
+
+    let proposals = rows.map((r) => mapProposalRow(r, votingStartMap, now));
+
+    // Post-filter for 'locked' status (computed, not stored)
+    if (status === "locked") {
+      proposals = proposals.filter((p) => p.status === "locked");
+    }
+
     const { data, pagination } = paginate(proposals, parsePagination(c));
     return c.json({ proposals: data, pagination });
   });
@@ -101,6 +125,17 @@ export function proposalRoutes(manager: AssemblyManager) {
       return c.json({ error: { code: "NOT_FOUND", message: "Proposal not found" } }, 404);
     }
 
+    // Compute status from timeline
+    const { engine } = await manager.getEngine(assemblyId);
+    const now = manager.timeProvider.now() as number;
+    const votingStartMap = new Map<string, number>();
+    const iid = row["issue_id"] as string;
+    const issue = engine.events.getIssue(iid as IssueId);
+    if (issue) {
+      const ve = engine.events.get(issue.votingEventId);
+      if (ve) votingStartMap.set(iid, ve.timeline.votingStart as number);
+    }
+
     // Include version records
     const versions = await db.query<Record<string, unknown>>(
       `SELECT version_number, content_hash, created_at FROM proposal_versions
@@ -108,7 +143,7 @@ export function proposalRoutes(manager: AssemblyManager) {
       [assemblyId, proposalId],
     );
 
-    return c.json({ ...mapProposalRow(row), versions });
+    return c.json({ ...mapProposalRow(row, votingStartMap, now), versions });
   });
 
   /** POST /assemblies/:id/proposals/:pid/version — register new version. */
@@ -169,7 +204,24 @@ export function proposalRoutes(manager: AssemblyManager) {
   return app;
 }
 
-function mapProposalRow(row: Record<string, unknown>) {
+/**
+ * Map a proposal DB row to the API response shape.
+ * Status is computed: 'withdrawn' if explicitly withdrawn, 'locked' if
+ * votingStart has passed for the linked issue, 'submitted' otherwise.
+ */
+function mapProposalRow(row: Record<string, unknown>, votingStartMap?: Map<string, number>, now?: number) {
+  const dbStatus = row["status"] as string;
+  let status = dbStatus;
+
+  // Compute locked status from timeline (unless already withdrawn)
+  if (dbStatus !== "withdrawn" && votingStartMap && now !== undefined) {
+    const issueId = row["issue_id"] as string;
+    const votingStart = votingStartMap.get(issueId);
+    if (votingStart !== undefined && now >= votingStart) {
+      status = "locked";
+    }
+  }
+
   return {
     id: row["id"],
     issueId: row["issue_id"],
@@ -177,9 +229,8 @@ function mapProposalRow(row: Record<string, unknown>) {
     authorId: row["author_id"],
     title: row["title"],
     currentVersion: row["current_version"],
-    status: row["status"],
+    status,
     submittedAt: row["submitted_at"],
-    lockedAt: row["locked_at"] ?? undefined,
     withdrawnAt: row["withdrawn_at"] ?? undefined,
   };
 }

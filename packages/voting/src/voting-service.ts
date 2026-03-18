@@ -5,7 +5,7 @@
  */
 
 import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteChoice } from "@votiverse/core";
-import { createEvent, generateEventId, now, ValidationError } from "@votiverse/core";
+import { createEvent, generateEventId, now, ValidationError, GovernanceRuleViolation } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
   buildActiveDelegations,
@@ -39,6 +39,21 @@ export class VotingService {
   async cast(params: CastVoteParams): Promise<void> {
     if (params.issueChoices) {
       this.validateChoice(params.choice, params.issueChoices);
+    }
+
+    // Enforce allowVoteChange — reject re-votes when disabled
+    if (!this.config.ballot.allowVoteChange) {
+      const existing = await this.eventStore.query({ types: ["VoteCast"] });
+      const hasVoted = existing.some(
+        (e) => (e as VoteCastEvent).payload.participantId === params.participantId &&
+               (e as VoteCastEvent).payload.issueId === params.issueId,
+      );
+      if (hasVoted) {
+        throw new GovernanceRuleViolation(
+          "Vote changes are not allowed in this assembly",
+          "VOTE_CHANGE_DISABLED",
+        );
+      }
     }
 
     const event = createEvent<VoteCastEvent>(
