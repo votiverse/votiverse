@@ -24,6 +24,9 @@ import { predictionRoutes } from "./routes/predictions.js";
 import { pollRoutes } from "./routes/polls.js";
 import { awarenessRoutes } from "./routes/awareness.js";
 import { topicRoutes } from "./routes/topics.js";
+import { proposalRoutes } from "./routes/proposals.js";
+import { candidacyRoutes } from "./routes/candidacies.js";
+import { noteRoutes } from "./routes/notes.js";
 import { authRoutes } from "./routes/auth.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { devRoutes } from "./routes/dev.js";
@@ -132,6 +135,9 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   app.route("/", predictionRoutes(manager));
   app.route("/", pollRoutes(manager));
   app.route("/", topicRoutes(manager));
+  app.route("/", proposalRoutes(manager));
+  app.route("/", candidacyRoutes(manager));
+  app.route("/", noteRoutes(manager));
   app.route("/", awarenessRoutes(manager));
   app.route("/", metricsRoutes());
   // Dev-only routes (test clock) — never in production

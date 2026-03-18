@@ -152,6 +152,88 @@ export class SQLiteAdapter implements DatabaseAdapter {
         PRIMARY KEY (assembly_id, issue_id)
       );
 
+      -- Proposals (governance metadata only — content lives in client backend)
+      CREATE TABLE IF NOT EXISTS proposals (
+        id              TEXT NOT NULL,
+        assembly_id     TEXT NOT NULL,
+        issue_id        TEXT NOT NULL,
+        choice_key      TEXT,
+        author_id       TEXT NOT NULL,
+        title           TEXT NOT NULL,
+        current_version INTEGER NOT NULL DEFAULT 1,
+        status          TEXT NOT NULL DEFAULT 'submitted',
+        submitted_at    INTEGER NOT NULL,
+        locked_at       INTEGER,
+        withdrawn_at    INTEGER,
+        PRIMARY KEY (assembly_id, id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_proposals_issue
+        ON proposals(assembly_id, issue_id);
+
+      CREATE TABLE IF NOT EXISTS proposal_versions (
+        assembly_id     TEXT NOT NULL,
+        proposal_id     TEXT NOT NULL,
+        version_number  INTEGER NOT NULL,
+        content_hash    TEXT NOT NULL,
+        created_at      INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, proposal_id, version_number)
+      );
+
+      -- Candidacies (governance metadata only)
+      CREATE TABLE IF NOT EXISTS candidacies (
+        id                       TEXT NOT NULL,
+        assembly_id              TEXT NOT NULL,
+        participant_id           TEXT NOT NULL,
+        topic_scope              TEXT NOT NULL DEFAULT '[]',
+        vote_transparency_opt_in INTEGER NOT NULL DEFAULT 0,
+        current_version          INTEGER NOT NULL DEFAULT 1,
+        status                   TEXT NOT NULL DEFAULT 'active',
+        declared_at              INTEGER NOT NULL,
+        withdrawn_at             INTEGER,
+        PRIMARY KEY (assembly_id, id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_candidacies_participant
+        ON candidacies(assembly_id, participant_id);
+
+      CREATE TABLE IF NOT EXISTS candidacy_versions (
+        assembly_id     TEXT NOT NULL,
+        candidacy_id    TEXT NOT NULL,
+        version_number  INTEGER NOT NULL,
+        content_hash    TEXT NOT NULL,
+        topic_scope     TEXT,
+        vote_transparency_opt_in INTEGER,
+        created_at      INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, candidacy_id, version_number)
+      );
+
+      -- Community notes (governance metadata only)
+      CREATE TABLE IF NOT EXISTS community_notes (
+        id                    TEXT NOT NULL,
+        assembly_id           TEXT NOT NULL,
+        author_id             TEXT NOT NULL,
+        content_hash          TEXT NOT NULL,
+        target_type           TEXT NOT NULL,
+        target_id             TEXT NOT NULL,
+        target_version_number INTEGER,
+        endorsement_count     INTEGER NOT NULL DEFAULT 0,
+        dispute_count         INTEGER NOT NULL DEFAULT 0,
+        status                TEXT NOT NULL DEFAULT 'proposed',
+        created_at            INTEGER NOT NULL,
+        withdrawn_at          INTEGER,
+        PRIMARY KEY (assembly_id, id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_notes_target
+        ON community_notes(assembly_id, target_type, target_id);
+
+      CREATE TABLE IF NOT EXISTS note_evaluations (
+        assembly_id     TEXT NOT NULL,
+        note_id         TEXT NOT NULL,
+        participant_id  TEXT NOT NULL,
+        evaluation      TEXT NOT NULL,
+        evaluated_at    INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, note_id, participant_id)
+      );
+
       -- Auto-increment trigger for sequence numbers
       CREATE TRIGGER IF NOT EXISTS events_sequence_num
         AFTER INSERT ON events

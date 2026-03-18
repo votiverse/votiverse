@@ -83,6 +83,11 @@ export class AssemblyManager {
     private readonly queue: QueueAdapter,
   ) {}
 
+  /** Access the underlying database adapter (for direct queries in routes). */
+  getDatabase(): DatabaseAdapter {
+    return this.db;
+  }
+
   /** Register a new Assembly. */
   async createAssembly(id: string, params: CreateAssemblyParams): Promise<AssemblyInfo> {
     await this.db.run(
