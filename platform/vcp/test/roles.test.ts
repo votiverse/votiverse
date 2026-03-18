@@ -163,9 +163,9 @@ describe("Assembly roles", () => {
       issues: [{ title: "Issue", description: "Test", topicIds: [] }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id],
       timeline: {
-        deliberationStart: now - 7 * DAY,
-        votingStart: now + 3 * DAY,
-        votingEnd: now + 10 * DAY,
+        deliberationStart: now - 3 * DAY,
+        votingStart: now + 7 * DAY,
+        votingEnd: now + 14 * DAY,
       },
     });
     const event = (await eventRes.json()) as { issueIds: string[] };
@@ -198,9 +198,9 @@ describe("Assembly roles", () => {
       issues: [{ title: "Issue", description: "Test", topicIds: [] }],
       eligibleParticipantIds: [alice.id, bob.id],
       timeline: {
-        deliberationStart: now - 7 * DAY,
-        votingStart: now + 3 * DAY,
-        votingEnd: now + 10 * DAY,
+        deliberationStart: now - 3 * DAY,
+        votingStart: now + 7 * DAY,
+        votingEnd: now + 14 * DAY,
       },
     });
     const event = (await eventRes.json()) as { issueIds: string[] };

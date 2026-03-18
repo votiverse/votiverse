@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { computeTimeline } from "../../engine/event-phases.js";
 import { requireScope, requireParticipant } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
@@ -19,11 +20,14 @@ interface CreateEventBody {
     choices?: string[];
   }>;
   eligibleParticipantIds: string[];
-  timeline: {
+  /** Full explicit timeline (backward compat). */
+  timeline?: {
     deliberationStart: string | number;
     votingStart: string | number;
     votingEnd: string | number;
   };
+  /** Start date — system computes the full timeline from assembly config. */
+  startDate?: string | number;
 }
 
 function toTimestamp(value: string | number): ReturnType<typeof timestamp> {
@@ -42,14 +46,38 @@ export function eventRoutes(manager: AssemblyManager) {
     const assemblyId = c.req.param("id");
     const body = await c.req.json<CreateEventBody>();
 
-    if (!body.title || !body.issues || !body.timeline) {
+    if (!body.title || !body.issues || (!body.timeline && !body.startDate)) {
       return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "title, issues, and timeline are required" } },
+        { error: { code: "VALIDATION_ERROR", message: "title, issues, and either timeline or startDate are required" } },
         400,
       );
     }
 
     const { engine } = await manager.getEngine(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
+
+    // Compute timeline: either from explicit values or from startDate + assembly config
+    let eventTimeline: { deliberationStart: ReturnType<typeof timestamp>; votingStart: ReturnType<typeof timestamp>; votingEnd: ReturnType<typeof timestamp> };
+    if (body.startDate && info) {
+      const start = typeof body.startDate === "number" ? body.startDate : new Date(body.startDate).getTime();
+      const computed = computeTimeline(start, info.config.timeline);
+      eventTimeline = {
+        deliberationStart: timestamp(computed.deliberationStart),
+        votingStart: timestamp(computed.votingStart),
+        votingEnd: timestamp(computed.votingEnd),
+      };
+    } else if (body.timeline) {
+      eventTimeline = {
+        deliberationStart: toTimestamp(body.timeline.deliberationStart),
+        votingStart: toTimestamp(body.timeline.votingStart),
+        votingEnd: toTimestamp(body.timeline.votingEnd),
+      };
+    } else {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "Either timeline or startDate is required" } },
+        400,
+      );
+    }
 
     const votingEvent = await engine.events.create({
       title: body.title,
@@ -61,11 +89,7 @@ export function eventRoutes(manager: AssemblyManager) {
         ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: body.eligibleParticipantIds as ParticipantId[],
-      timeline: {
-        deliberationStart: toTimestamp(body.timeline.deliberationStart),
-        votingStart: toTimestamp(body.timeline.votingStart),
-        votingEnd: toTimestamp(body.timeline.votingEnd),
-      },
+      timeline: eventTimeline,
     });
 
     // Persist issue details

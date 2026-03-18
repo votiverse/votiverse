@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import type { ParticipantId, IssueId, ProposalId, ContentHash, ProposalEvaluation } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { getEventPhase } from "../../engine/event-phases.js";
 import { requireParticipant, requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
@@ -27,6 +28,28 @@ export function proposalRoutes(manager: AssemblyManager) {
       const authorId = c.get("participantId") as string;
 
       const { engine } = await manager.getEngine(assemblyId);
+
+      // Check if we're in the curation phase — no new proposals accepted
+      const issue = engine.events.getIssue(body.issueId as IssueId);
+      if (issue) {
+        const ve = engine.events.get(issue.votingEventId);
+        const info = await manager.getAssemblyInfo(assemblyId);
+        if (ve && info) {
+          const now = manager.timeProvider.now() as number;
+          const phase = getEventPhase(now, {
+            deliberationStart: ve.timeline.deliberationStart as number,
+            votingStart: ve.timeline.votingStart as number,
+            votingEnd: ve.timeline.votingEnd as number,
+          }, info.config.timeline);
+          if (phase === "curation") {
+            return c.json(
+              { error: { code: "CURATION_PHASE", message: "New proposals are not accepted during the curation phase" } },
+              409,
+            );
+          }
+        }
+      }
+
       const proposal = await engine.proposals.submit({
         issueId: body.issueId as IssueId,
         choiceKey: body.choiceKey,
@@ -85,22 +108,29 @@ export function proposalRoutes(manager: AssemblyManager) {
 
     const rows = await db.query<Record<string, unknown>>(sql, params);
 
-    // Build votingStart map for status computation
+    // Build lock-time map: proposals lock at curation start (or votingStart if no curation)
     const { engine } = await manager.getEngine(assemblyId);
+    const info = await manager.getAssemblyInfo(assemblyId);
     const now = manager.timeProvider.now() as number;
-    const votingStartMap = new Map<string, number>();
+    const DAY_MS = 86_400_000;
+    const lockTimeMap = new Map<string, number>();
     for (const row of rows) {
       const iid = row["issue_id"] as string;
-      if (!votingStartMap.has(iid)) {
+      if (!lockTimeMap.has(iid)) {
         const issue = engine.events.getIssue(iid as IssueId);
         if (issue) {
           const ve = engine.events.get(issue.votingEventId);
-          if (ve) votingStartMap.set(iid, ve.timeline.votingStart as number);
+          if (ve && info) {
+            // Lock at deliberation end (= curation start) if curation is configured
+            const deliberationEnd = (ve.timeline.deliberationStart as number) + info.config.timeline.deliberationDays * DAY_MS;
+            const lockTime = info.config.timeline.curationDays > 0 ? deliberationEnd : (ve.timeline.votingStart as number);
+            lockTimeMap.set(iid, lockTime);
+          }
         }
       }
     }
 
-    let proposals = rows.map((r) => mapProposalRow(r, votingStartMap, now));
+    let proposals = rows.map((r) => mapProposalRow(r, lockTimeMap, now));
 
     // Post-filter for 'locked' status (computed, not stored)
     if (status === "locked") {
@@ -285,8 +315,35 @@ export function proposalRoutes(manager: AssemblyManager) {
 
       const { engine } = await manager.getEngine(assemblyId);
 
-      // Check previous evaluation for materialized count update
+      // Check if we're in the curation phase — endorsements frozen
       const db = manager.getDatabase();
+      const proposalRow = await db.queryOne<{ issue_id: string }>(
+        `SELECT issue_id FROM proposals WHERE assembly_id = ? AND id = ?`,
+        [assemblyId, proposalId],
+      );
+      if (proposalRow) {
+        const issue = engine.events.getIssue(proposalRow.issue_id as IssueId);
+        if (issue) {
+          const ve = engine.events.get(issue.votingEventId);
+          const info = await manager.getAssemblyInfo(assemblyId);
+          if (ve && info) {
+            const now = manager.timeProvider.now() as number;
+            const phase = getEventPhase(now, {
+              deliberationStart: ve.timeline.deliberationStart as number,
+              votingStart: ve.timeline.votingStart as number,
+              votingEnd: ve.timeline.votingEnd as number,
+            }, info.config.timeline);
+            if (phase !== "deliberation") {
+              return c.json(
+                { error: { code: "ENDORSEMENTS_FROZEN", message: "Endorsements are only accepted during the deliberation phase" } },
+                409,
+              );
+            }
+          }
+        }
+      }
+
+      // Check previous evaluation for materialized count update
       const prev = await db.queryOne<{ evaluation: string }>(
         `SELECT evaluation FROM proposal_endorsements WHERE assembly_id = ? AND proposal_id = ? AND participant_id = ?`,
         [assemblyId, proposalId, participantId],
@@ -495,15 +552,23 @@ export function proposalRoutes(manager: AssemblyManager) {
  * Status is computed: 'withdrawn' if explicitly withdrawn, 'locked' if
  * votingStart has passed for the linked issue, 'submitted' otherwise.
  */
-function mapProposalRow(row: Record<string, unknown>, votingStartMap?: Map<string, number>, now?: number) {
+/**
+ * Map a proposal DB row to the API response shape.
+ * Status is computed: 'withdrawn' if explicitly withdrawn, 'locked' if
+ * curation or voting has started for the linked issue, 'submitted' otherwise.
+ *
+ * @param lockTimeMap - maps issueId to the timestamp when proposals lock
+ *   (curation start if curationDays > 0, otherwise votingStart)
+ */
+function mapProposalRow(row: Record<string, unknown>, lockTimeMap?: Map<string, number>, now?: number) {
   const dbStatus = row["status"] as string;
   let status = dbStatus;
 
   // Compute locked status from timeline (unless already withdrawn)
-  if (dbStatus !== "withdrawn" && votingStartMap && now !== undefined) {
+  if (dbStatus !== "withdrawn" && lockTimeMap && now !== undefined) {
     const issueId = row["issue_id"] as string;
-    const votingStart = votingStartMap.get(issueId);
-    if (votingStart !== undefined && now >= votingStart) {
+    const lockTime = lockTimeMap.get(issueId);
+    if (lockTime !== undefined && now >= lockTime) {
       status = "locked";
     }
   }
