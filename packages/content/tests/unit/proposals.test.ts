@@ -256,4 +256,99 @@ describe("ProposalService", () => {
       expect(list).toHaveLength(2);
     });
   });
+
+  describe("evaluate", () => {
+    it("endorses a proposal and updates counts", async () => {
+      const proposal = await service.submit({
+        issueId: issueId("issue-1"),
+        authorId: participantId("alice"),
+        title: "Test",
+        contentHash: contentHash("h1"),
+      });
+
+      await service.evaluate(proposal.id, participantId("bob"), "endorse");
+      await service.evaluate(proposal.id, participantId("carol"), "endorse");
+      await service.evaluate(proposal.id, participantId("dave"), "dispute");
+
+      const retrieved = await service.getById(proposal.id);
+      expect(retrieved!.endorsementCount).toBe(2);
+      expect(retrieved!.disputeCount).toBe(1);
+    });
+
+    it("rejects self-endorsement", async () => {
+      const proposal = await service.submit({
+        issueId: issueId("issue-1"),
+        authorId: participantId("alice"),
+        title: "Test",
+        contentHash: contentHash("h1"),
+      });
+
+      await expect(
+        service.evaluate(proposal.id, participantId("alice"), "endorse"),
+      ).rejects.toThrow("Cannot evaluate your own proposal");
+    });
+
+    it("rejects endorsement of a withdrawn proposal", async () => {
+      const proposal = await service.submit({
+        issueId: issueId("issue-1"),
+        authorId: participantId("alice"),
+        title: "Test",
+        contentHash: contentHash("h1"),
+      });
+      await service.withdraw(proposal.id, "alice");
+
+      await expect(
+        service.evaluate(proposal.id, participantId("bob"), "endorse"),
+      ).rejects.toThrow("withdrawn");
+    });
+
+    it("changing evaluation updates counts correctly", async () => {
+      const proposal = await service.submit({
+        issueId: issueId("issue-1"),
+        authorId: participantId("alice"),
+        title: "Test",
+        contentHash: contentHash("h1"),
+      });
+
+      await service.evaluate(proposal.id, participantId("bob"), "endorse");
+      let retrieved = await service.getById(proposal.id);
+      expect(retrieved!.endorsementCount).toBe(1);
+      expect(retrieved!.disputeCount).toBe(0);
+
+      // Change evaluation
+      await service.evaluate(proposal.id, participantId("bob"), "dispute");
+      retrieved = await service.getById(proposal.id);
+      expect(retrieved!.endorsementCount).toBe(0);
+      expect(retrieved!.disputeCount).toBe(1);
+    });
+
+    it("counts endorsements correctly in listByIssue", async () => {
+      const proposal = await service.submit({
+        issueId: issueId("issue-1"),
+        authorId: participantId("alice"),
+        title: "Test",
+        contentHash: contentHash("h1"),
+      });
+
+      await service.evaluate(proposal.id, participantId("bob"), "endorse");
+      await service.evaluate(proposal.id, participantId("carol"), "dispute");
+
+      const list = await service.listByIssue(issueId("issue-1"));
+      expect(list[0].endorsementCount).toBe(1);
+      expect(list[0].disputeCount).toBe(1);
+    });
+
+    it("initializes endorsement counts to zero", async () => {
+      const proposal = await service.submit({
+        issueId: issueId("issue-1"),
+        authorId: participantId("alice"),
+        title: "Test",
+        contentHash: contentHash("h1"),
+      });
+
+      expect(proposal.endorsementCount).toBe(0);
+      expect(proposal.disputeCount).toBe(0);
+      expect(proposal.featured).toBe(false);
+    });
+  });
 });
