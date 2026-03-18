@@ -112,7 +112,7 @@ export function Notes() {
           description="Notes can be added to proposals and candidates to provide context, evidence, or corrections."
         />
       ) : (
-        <div className="space-y-3">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
           {sortedNotes.map((note) => (
             <NoteCard
               key={note.id}
