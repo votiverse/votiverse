@@ -207,7 +207,6 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
         className="w-full border rounded px-3 py-2 text-sm"
         placeholder="Add context, evidence, or a correction..."
       />
-      <p className="text-[10px] text-gray-400 mt-1">URLs are auto-linked. Use [text](url) for named links.</p>
       <div className="mt-2">
         <Button onClick={handleSubmit} disabled={submitting || !markdown.trim()}>
           {submitting ? "Posting..." : "Post Note"}
