@@ -97,4 +97,5 @@ No component library — all UI components are built with Tailwind utility class
 
 - [Root README](../../README.md) — project overview and quick start
 - [VCP README](../vcp/README.md) — governance server setup and API reference
-- [Web Client Report](../../docs/web-client-report.md) — implementation details and known limitations
+- [Testing Guide](../../docs/testing.md) — seed data, dev clock, test scenarios
+- [Web Testing](./TESTING.md) — test identities, assembly matrix, delegation graphs

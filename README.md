@@ -202,19 +202,15 @@ console.log('Concentration:', result.results.concentrationOverTime);
 
 | Document | Description |
 |----------|-------------|
-| [Whitepaper](docs/whitepaper.md) | Governance model, formal properties, prediction tracking, participant polling, awareness layer |
-| [Architecture](docs/architecture.md) | Engine internals: 12 packages, dependency graph, event-sourced data model, decisions log |
-| [Integration Architecture](docs/integration-architecture.md) | VCP API contract: what the platform provides vs. what clients provide, REST endpoints |
-| [VCP Architecture](docs/vcp-architecture.md) | VCP internal design: adapter pattern, database schema, workers, scheduler, AWS deployment |
+| [Paper I — Whitepaper](docs/papers/paper-i-whitepaper.md) | Governance model, formal properties, prediction tracking, participant polling, awareness layer |
+| [Paper II — Self-Sustaining Governance](docs/papers/paper-ii-self-sustaining-governance.md) | Proposals, delegate candidacies, community notes, surveys as evidence, immutability |
+| [Architecture](docs/architecture.md) | Engine internals: 13 packages, dependency graph, event-sourced data model |
+| [Integration Architecture](docs/integration-architecture.md) | 3-tier system architecture, VCP/backend boundary, API contract |
+| [VCP Architecture](docs/vcp-architecture.md) | VCP internal design: adapter pattern, database schema, workers, scheduler |
+| [Content Architecture](docs/design/content-architecture.md) | Proposals, candidacies, community notes — VCP metadata vs. backend content |
 | [Product Workflow](docs/product-workflow.md) | How organizations use Votiverse: entity model, workflows, user experience |
-| [Phase 2 Report](docs/phase2-report.md) | Prediction and polling implementation decisions |
-| [Phase 3 Report](docs/phase3-report.md) | Awareness layer implementation and integration review |
-| [Phase 4 Report](docs/phase4-report.md) | Simulation framework design and testing |
-| [Phase 5 Report](docs/phase5-report.md) | Integrity package and blockchain anchoring |
-| [Phase 6 Report](docs/phase6-report.md) | Production hardening: documentation, tooling, code quality |
-| [VCP Phase 1 Report](docs/vcp-phase1-report.md) | VCP implementation: server, adapters, API, engine integration |
-| [Web Client Report](docs/web-client-report.md) | Web client implementation: views, design, participant selector |
 | [Research Background](docs/research/background.md) | Liquid democracy and delegative democracy literature |
+| [Testing Guide](docs/testing.md) | Seed data, dev clock, unit/integration tests, manual scenarios |
 
 ---
 

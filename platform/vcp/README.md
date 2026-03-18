@@ -181,7 +181,7 @@ Application code never references a specific technology directly. Set `VCP_DATAB
 
 The engine integration uses `SQLiteEventStore`, which implements the `@votiverse/core` EventStore interface over the VCP's database. Each assembly gets its own logically scoped event stream. Engine instances are cached per assembly and rehydrated from persisted events on first access.
 
-For full details, see [VCP Phase 1 Report](../../docs/vcp-phase1-report.md).
+For full details, see [VCP Architecture](../../docs/vcp-architecture.md).
 
 ---
 

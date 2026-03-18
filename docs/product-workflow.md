@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-This document describes how organizations and individuals use Votiverse — the entities they create, the workflows they follow, and the experience at each step. It complements the [whitepaper](whitepaper.md) (which defines the governance model) and the [architecture document](architecture.md) (which defines the technical implementation).
+This document describes how organizations and individuals use Votiverse — the entities they create, the workflows they follow, and the experience at each step. It complements the [whitepaper](papers/paper-i-whitepaper.md) (which defines the governance model) and the [architecture document](architecture.md) (which defines the technical implementation).
 
 The whitepaper answers *why*. The architecture answers *how it's built*. This document answers *how it's used*.
 

@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-The Votiverse Cloud Platform (VCP) is the headless governance engine service that turns the `@votiverse/engine` library into an HTTP API. It handles governance computation, event sourcing, delegation graphs, voting, polls, predictions, and awareness. The VCP holds no PII — it receives only opaque participant IDs from upstream client backends.
+The Votiverse Cloud Platform (VCP) is the headless governance engine service that turns the `@votiverse/engine` library into an HTTP API. It handles governance computation, event sourcing, delegation graphs, voting, polls, predictions, and awareness. The VCP holds no PII and no rich content — it receives only opaque participant IDs from upstream client backends, and stores only governance metadata and content hashes (never markdown documents or binary assets). Rich content lives in the client backend; the `contentHash` provides integrity verification. See `docs/design/content-architecture.md` for the content boundary design.
 
 In the production architecture, the VCP sits behind a **client backend** (`platform/backend/`) that owns user authentication, session management, and user-to-participant identity mapping. The client backend proxies governance requests to the VCP with the correct `X-Participant-Id` header. Web and mobile clients never talk to the VCP directly.
 

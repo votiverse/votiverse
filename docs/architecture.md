@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-Votiverse is implemented as a **headless governance engine** — a set of composable libraries that encode the governance model described in the [whitepaper](whitepaper.md). The engine has no opinion about presentation. It exposes a programmatic API that any client — web application, CLI tool, mobile app, or third-party integration — can drive.
+Votiverse is implemented as a **headless governance engine** — a set of composable libraries that encode the governance model described in the [whitepaper](papers/paper-i-whitepaper.md). The engine has no opinion about presentation. It exposes a programmatic API that any client — web application, CLI tool, mobile app, or third-party integration — can drive.
 
 The codebase is organized as a **TypeScript monorepo** managed with **pnpm workspaces**. Each major subsystem is a separate package published under the `@votiverse` npm scope. Packages have explicit dependencies on each other, forming a directed acyclic graph with clear layering.
 
@@ -31,22 +31,30 @@ The codebase is organized as a **TypeScript monorepo** managed with **pnpm works
 ```
 votiverse/
 ├── docs/
-│   ├── whitepaper.md
 │   ├── architecture.md          ← this document
-│   └── research/
+│   ├── integration-architecture.md ← 3-tier system architecture, VCP/backend boundary
+│   ├── papers/                  ← governance papers (Paper I whitepaper, Paper II extensions)
+│   ├── design/                  ← approved design documents
+│   ├── research/                ← background research
+│   └── archive/                 ← historical phase reports and audits
 ├── packages/
 │   ├── config/                  ← governance configuration schemas and validation
 │   ├── core/                    ← shared types, event definitions, utilities
+│   ├── content/                 ← proposal/candidacy/note metadata, lifecycle, evaluation
 │   ├── delegation/              ← delegation graph, resolution, weight computation
 │   ├── voting/                  ← vote tallying, ballot methods, quorum checks
 │   ├── prediction/              ← prediction lifecycle, outcome recording, accuracy
-│   ├── polling/                 ← participant polls, trend computation
+│   ├── polling/                 ← participant polls/surveys, trend computation
 │   ├── awareness/               ← governance awareness layer, alerts, signals
 │   ├── identity/                ← identity abstraction, provider interface
 │   ├── integrity/               ← blockchain commitments, verification
 │   ├── simulate/                ← AI-driven simulation framework
 │   ├── engine/                  ← orchestration layer, wires everything together
 │   └── cli/                     ← command-line interface for engine operations
+├── platform/
+│   ├── vcp/                     ← VCP HTTP API (governance metadata, events, computation)
+│   ├── backend/                 ← client backend (auth, content storage, VCP proxy)
+│   └── web/                     ← React web UI
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 ├── package.json                 ← root scripts, dev dependencies
@@ -72,27 +80,43 @@ Dependencies flow strictly downward. No circular dependencies are permitted.
                           │ engine  │
                           └────┬────┘
                                │
-            ┌──────────┬───────┼───────┬──────────┐
-            │          │       │       │          │
-       ┌────▼───┐ ┌───▼───┐ ┌▼────┐ ┌▼────────┐ ┌▼─────────┐
-       │awareness│ │voting │ │polls│ │prediction│ │integrity │
-       └────┬────┘ └───┬───┘ └──┬──┘ └────┬────┘ └─────┬────┘
-            │          │        │          │            │
-            └──────┬───┴────┬───┘          │            │
-                   │        │              │            │
-              ┌────▼────┐   │         ┌────▼────┐      │
-              │delegation│   │         │prediction│      │
-              └────┬────┘   │         └────┬────┘      │
-                   │        │              │            │
-              ┌────▼────┐ ┌─▼──────┐      │            │
-              │identity │ │ config │      │            │
-              └────┬────┘ └───┬────┘      │            │
-                   │          │           │            │
-                   └────┬─────┴───────────┴────────────┘
-                        │
-                   ┌────▼────┐
-                   │  core   │
-                   └─────────┘
+       ┌──────────┬────────┬───┼───────┬──────────┬──────────┐
+       │          │        │   │       │          │          │
+  ┌────▼───┐ ┌───▼───┐ ┌──▼─┐│┌▼────┐ ┌▼────────┐ ┌▼─────────┐
+  │awareness│ │voting │ │cont│││polls│ │prediction│ │integrity │
+  └────┬────┘ └───┬───┘ │ent ││└──┬──┘ └────┬────┘ └─────┬────┘
+       │          │      └──┬─┘│   │         │            │
+       └───┬──────┴─────────┼──┘   │         │            │
+           │                │      │         │            │
+      ┌────▼────┐           │      │         │            │
+      │delegation│           │      │         │            │
+      └────┬────┘           │      │         │            │
+           │                │      │         │            │
+      ┌────▼────┐      ┌───▼──────▼─────────▼────────────▼─┐
+      │identity │      │              config                │
+      └────┬────┘      └─────────────────┬──────────────────┘
+           │                             │
+           └──────────┬──────────────────┘
+                      │
+                 ┌────▼────┐
+                 │  core   │
+                 └─────────┘
+```
+
+Text form:
+```
+cli → engine → [awareness, voting, content, polling, prediction, integrity]
+                awareness → [delegation, voting, prediction, polling, config, core, content]
+                content → [config, core]
+                voting → [delegation, config, core]
+                polling → [identity, config, core]
+                prediction → [config, core]
+                delegation → [identity, config, core]
+                integrity → [config, core]
+                identity → [core]
+                config → [core]
+                simulate → [engine]
+                core → (nothing)
 ```
 
 ---

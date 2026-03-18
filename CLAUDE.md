@@ -6,15 +6,20 @@ This file is the primary reference for AI-assisted development on Votiverse. Rea
 
 ## Project Summary
 
-Votiverse is a configurable governance engine — a headless TypeScript library that implements democratic decision-making with delegation, prediction tracking, participant polling, and a governance awareness layer. The core engine is consumed by CLI tools and by the web platform.
+Votiverse is a configurable governance engine — a headless TypeScript library that implements democratic decision-making with delegation, prediction tracking, participant surveys, and a governance awareness layer. The core engine is consumed by CLI tools and by the web platform.
 
-The repository has two major layers:
-- **`packages/`** — the engine: pure TypeScript library packages (`@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, etc.)
-- **`platform/`** — the platform: the VCP HTTP server (`platform/vcp/`), the client backend (`platform/backend/`), and the React web UI (`platform/web/`)
+The repository has three layers:
+- **`packages/`** — the engine: pure TypeScript library packages (`@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, `@votiverse/content`, etc.). Pure computation — no HTTP, no infrastructure.
+- **`platform/vcp/`** — the Votiverse Cloud Platform: a governance-as-a-service HTTP API that wraps the engine. Stores governance metadata and events. Holds no PII, no rich content. Can serve multiple client backends.
+- **`platform/backend/`** — the client backend: owns user identity (JWT auth), rich content (proposal documents, candidacy profiles, community notes, assets), and proxies governance requests to the VCP with identity injection.
+- **`platform/web/`** — the React web UI: communicates exclusively with the backend, never with the VCP directly.
 
 **Read these documents for full context:**
-- `docs/architecture.md` — technical architecture, module specs, API design, development phases
-- `docs/whitepaper.md` — governance model, formal properties, design rationale
+- `docs/architecture.md` — engine internals: package specs, dependency graph, data model
+- `docs/integration-architecture.md` — 3-tier system architecture, VCP/backend boundary, API contract
+- `docs/papers/paper-i-whitepaper.md` — governance model, formal properties, design rationale
+- `docs/papers/paper-ii-self-sustaining-governance.md` — proposals, candidacies, community notes, self-sustaining governance
+- `docs/design/content-architecture.md` — design for proposals, candidacies, community notes, asset storage
 - `docs/testing.md` — comprehensive testing guide: seed data, dev clock, unit tests, integration tests, manual scenarios
 - `platform/web/TESTING.md` — test identities, assembly-by-feature matrix, delegation graphs, seeded data reference
 
@@ -67,6 +72,8 @@ These decisions are final. Do not reconsider them without explicit instruction f
 - **No circular dependencies between packages.** Dependencies flow strictly downward. See the dependency graph in `docs/architecture.md`.
 - **Time is injectable via TimeProvider.** All time-dependent operations (vote acceptance, event status, poll windows, delegation maxAge) use a `TimeProvider` interface from `@votiverse/core`. Default is `systemTime` (real clock). Tests use `TestClock` which can be advanced programmatically. The VCP exposes dev-only `/dev/clock` endpoints for Stripe-style test clock control. Never use `Date.now()` directly in engine or VCP code — use `timeProvider.now()`.
 - **Voting windows are enforced by the engine.** The engine's `voting.cast()` rejects votes outside the `votingStart`–`votingEnd` window with `GovernanceRuleViolation`. This is not just a UI concern — it's enforced at the engine level.
+- **The VCP stores governance metadata; the backend stores content.** The VCP is a governance computation and integrity engine. It stores event payloads, governance metadata, and content hashes — never markdown documents, binary assets, or PII. Rich content (proposal documents, candidacy profiles, community note text, uploaded files) lives in the client backend. The `contentHash` in the VCP provides integrity verification: anyone can hash backend-served content and compare it to the VCP's record. This separation keeps the VCP lean, deployment-agnostic, and capable of serving multiple client backends.
+- **The backend orchestrates; the VCP computes.** The backend is the entry point for all user actions. It manages drafts, stores content, and calls the VCP to record governance events and perform governance computation. The VCP never initiates contact with the backend.
 
 ---
 
@@ -113,8 +120,9 @@ Always use the latest stable versions of all dependencies. Check npm before inst
 ## Package Dependency Rules
 
 ```
-cli → engine → [awareness, voting, polling, prediction, integrity]
-                awareness → [delegation, voting, prediction, polling, config, core]
+cli → engine → [awareness, voting, polling, prediction, integrity, content]
+                awareness → [delegation, voting, prediction, polling, config, core, content]
+                content → [config, core]
                 voting → [delegation, config, core]
                 polling → [identity, config, core]
                 prediction → [config, core]
@@ -179,7 +187,7 @@ cli → engine → [awareness, voting, polling, prediction, integrity]
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
 
-**Current status:** Engine packages (Phases 1–2) are complete. The platform layer (`platform/vcp` and `platform/web`) implements a full working UI on top of the engine. Topics, delegations, polls, voting, predictions, and awareness are all functional in the web UI.
+**Current status:** Engine packages (Phases 1–6) are complete. The platform layer implements a full working UI on top of the engine. Topics, delegations, polls, voting, predictions, and awareness are all functional in the web UI. The content architecture (proposals, delegate candidacies, community notes) is designed (`docs/design/content-architecture.md`) but not yet implemented — that is Phase 7.
 
 ### Phase 1: Foundation
 1. `@votiverse/core` — base types, event definitions, EventStore interface, Result type, error base class
@@ -238,6 +246,51 @@ Work proceeds in phases. Complete one phase fully before starting the next. At t
 4. Logging and monitoring hooks
 5. Documentation polish — all package READMEs, API docs
 6. **STOP. Write status report. Wait for review.**
+
+### Phase 7: Content — Proposals, Candidacies, and Community Notes
+
+See `docs/design/content-architecture.md` for the full design. The VCP stores governance metadata and content hashes; the backend stores rich content (markdown, assets).
+
+**A. Foundation types and events**
+1. Add `CandidacyId`, `NoteId`, `AssetId`, `ContentHash` branded types to `@votiverse/core`
+2. Add new event types and payload interfaces to `@votiverse/core/events.ts`
+3. Add `delegationMode`, `allowVoteChange`, `noteVisibilityThreshold`, `noteMinEvaluations`, `surveyResponseAnonymity` to `@votiverse/config`
+4. Replace `DelegationConfig.enabled` with `delegationMode` in all presets and tests
+5. Update config validation
+
+**B. Content package**
+6. Create `@votiverse/content` package scaffold
+7. Implement content hash utility (with tests)
+8. Implement proposal metadata lifecycle (with tests)
+9. Implement candidacy metadata lifecycle (with tests)
+10. Implement community note lifecycle + evaluation + visibility (with tests)
+11. Property-based tests for immutability guarantees
+
+**C. Engine + awareness integration**
+12. Wire content into `@votiverse/engine` API
+13. Implement proposal locking on voting window open
+14. Implement vote transparency for opted-in candidates
+15. Extend awareness layer (DelegateProfile, HistoricalContext, engagement prompts)
+16. Integration tests
+
+**D. VCP layer**
+17. VCP database schema additions
+18. VCP API routes for proposals, candidacies, notes (metadata only)
+19. VCP integration tests
+
+**E. Backend layer**
+20. Backend database schema additions (content + drafts + assets)
+21. Asset store adapter (PostgreSQL initially)
+22. Backend API routes (drafts, content, assets, VCP proxy for evaluations)
+23. Backend integration tests
+
+**F. Web UI**
+24. Markdown editor component (with asset upload)
+25. Proposal creation/viewing pages
+26. Candidacy profile pages
+27. Community notes display + evaluation UI
+28. Updated delegation discovery (candidacy mode)
+29. **STOP. Write status report. Wait for review.**
 
 ---
 
@@ -411,9 +464,10 @@ Keep commits atomic. One logical change per commit.
 ## When Unsure
 
 If you encounter an architectural ambiguity not covered by this file or the architecture doc:
-1. Check the whitepaper for the conceptual intent.
-2. If still unclear, write a comment in the code with `// DECISION NEEDED:` and proceed with a principled approach.
-3. Flag the decision in the phase status report.
+1. Check the papers (`docs/papers/`) for the conceptual intent — Paper I for the governance model, Paper II for proposals, candidacies, and community notes.
+2. Check the design docs (`docs/design/`) for approved architectural decisions.
+3. If still unclear, write a comment in the code with `// DECISION NEEDED:` and proceed with a principled approach.
+4. Flag the decision in the phase status report.
 
 Do not spend tokens deliberating on decisions that can be easily changed later. Make the principled choice, document it, and move on.
 

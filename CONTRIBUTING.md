@@ -6,7 +6,7 @@ Thank you for your interest in Votiverse. This project is in its early specifica
 
 Votiverse is currently a **specification and design project**, not a codebase. The most valuable contributions at this stage are:
 
-**Critique and analysis.** Read the [whitepaper](docs/whitepaper.md) and challenge it. Where does the model break? What failure modes are missing? What assumptions are wrong? A strong specification is built by finding its weaknesses early.
+**Critique and analysis.** Read the [whitepaper](docs/papers/paper-i-whitepaper.md) and challenge it. Where does the model break? What failure modes are missing? What assumptions are wrong? A strong specification is built by finding its weaknesses early.
 
 **Governance model extensions.** The whitepaper defines five primitives (direct vote, delegation, topic scope, revocability, transitivity). Are there primitives we're missing? Are there governance configurations that the current model can't express?
 

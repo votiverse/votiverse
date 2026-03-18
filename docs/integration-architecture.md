@@ -54,9 +54,11 @@ For the VCP's internal design — module structure, adapter pattern, database sc
 This document focuses on the **API contract** and the **integration boundary**: what the VCP provides, what clients are responsible for, and how they communicate.
 
 It complements:
-- The [whitepaper](whitepaper.md) — the governance model.
+- The [whitepaper](papers/paper-i-whitepaper.md) — the governance model (Paper I).
+- [Paper II](papers/paper-ii-self-sustaining-governance.md) — proposals, candidacies, community notes, self-sustaining governance.
 - The [architecture document](architecture.md) — the engine internals (packages, data model, algorithms).
 - The [VCP architecture](vcp-architecture.md) — the Cloud Platform's internal design and deployment.
+- The [content architecture](design/content-architecture.md) — proposals, candidacies, community notes, and the VCP/backend content boundary.
 - The [product workflow](product-workflow.md) — the user-facing experience.
 
 ---
@@ -175,8 +177,21 @@ The client backend maintains a mapping between its own user accounts and VCP par
 ### 4.3 User interface
 All user-facing presentation — dashboards, booklet displays, delegation chain visualizations, poll response forms, trend charts, track record displays — is built by the end-user application (web, Tauri, mobile). The client backend proxies governance data from the VCP; how it is rendered is entirely up to the front-end application.
 
-### 4.4 Content management
-Proposals, booklets, and arguments may contain rich content — formatted text, media, attachments. The VCP stores only the structured governance data it needs to compute (prediction claims, poll questions, issue identifiers, vote choices). Rich content management is the client's domain.
+### 4.4 Content management and the content hash bridge
+
+The VCP stores **governance metadata** — the minimum information needed for computation, enforcement, and integrity verification. The client backend stores **rich content** — markdown documents, binary assets, draft state. This separation keeps the VCP lean and capable of serving multiple client backends.
+
+Specifically:
+- **Proposals** — The VCP tracks: id, issueId, choiceKey, authorId, title, status, version, `contentHash`. The backend stores: full markdown document, assets, draft state, version history.
+- **Delegate candidacies** — The VCP tracks: id, participantId, topicScope, voteTransparencyOptIn, status, version, `contentHash`. The backend stores: full profile document, assets, version history.
+- **Community notes** — The VCP tracks: id, authorId, target reference, `contentHash`, status, evaluation events (endorse/dispute). The backend stores: full note text, assets.
+- **Assets** (images, videos, PDFs) — entirely a backend concern. The VCP never handles binary files.
+
+The **`contentHash`** in the VCP provides the integrity bridge: anyone can hash backend-served content and compare it to the VCP's record to verify it hasn't been tampered with. When blockchain anchoring is applied, these content hashes are what gets anchored — the VCP provides verifiable commitments to "this content existed at this time in this state" without storing the content itself.
+
+**Draft management** is entirely backend-owned. The VCP learns about content only when it is submitted (proposals during the deliberation phase) or declared (candidacies). Pre-submission editing leaves no trace in the VCP's event log.
+
+See `docs/design/content-architecture.md` for the full design.
 
 ### 4.5 Access control
 Access control operates at two levels:
