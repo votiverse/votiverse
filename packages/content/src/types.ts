@@ -52,6 +52,9 @@ export interface ProposalMetadata {
   readonly currentVersion: number;
   readonly versions: readonly VersionRecord[];
   readonly status: ProposalStatus;
+  readonly endorsementCount: number;
+  readonly disputeCount: number;
+  readonly featured: boolean;
   readonly submittedAt: Timestamp;
   readonly lockedAt?: Timestamp;
   readonly withdrawnAt?: Timestamp;

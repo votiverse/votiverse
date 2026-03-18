@@ -9,10 +9,14 @@ import type {
   EventStore,
   ProposalId,
   IssueId,
+  ParticipantId,
   ProposalSubmittedEvent,
   ProposalVersionCreatedEvent,
   ProposalLockedEvent,
   ProposalWithdrawnEvent,
+  ProposalEndorsedEvent,
+  ProposalEvaluation,
+  DomainEvent,
   Timestamp,
   TimeProvider,
 } from "@votiverse/core";
@@ -22,6 +26,7 @@ import {
   generateProposalId,
   NotFoundError,
   InvalidStateError,
+  ValidationError,
 } from "@votiverse/core";
 import type { ProposalMetadata, SubmitProposalParams, CreateProposalVersionParams, VersionRecord } from "./types.js";
 
@@ -68,6 +73,9 @@ export class ProposalService {
       currentVersion: 1,
       versions: [{ versionNumber: 1, contentHash: params.contentHash, createdAt: ts }],
       status: "submitted",
+      endorsementCount: 0,
+      disputeCount: 0,
+      featured: false,
       submittedAt: ts,
     };
   }
@@ -157,6 +165,32 @@ export class ProposalService {
   }
 
   /**
+   * Evaluate (endorse or dispute) a proposal. One evaluation per participant.
+   * A new evaluation supersedes any previous one by the same participant.
+   * Authors cannot evaluate their own proposals.
+   */
+  async evaluate(proposalId: ProposalId, participantId: ParticipantId, evaluation: ProposalEvaluation): Promise<void> {
+    const proposal = await this.getById(proposalId);
+    if (!proposal) {
+      throw new NotFoundError("proposal", proposalId);
+    }
+    if (proposal.status === "withdrawn") {
+      throw new InvalidStateError("Cannot evaluate a withdrawn proposal");
+    }
+    if (proposal.authorId === participantId) {
+      throw new ValidationError("participantId", "Cannot evaluate your own proposal");
+    }
+
+    const event = createEvent<ProposalEndorsedEvent>(
+      "ProposalEndorsed",
+      { proposalId, participantId, evaluation },
+      generateEventId(),
+      this.timeProvider.now(),
+    );
+    await this.eventStore.append(event);
+  }
+
+  /**
    * Replay events to reconstruct a proposal's current state.
    */
   async getById(proposalId: ProposalId): Promise<ProposalMetadata | undefined> {
@@ -181,17 +215,44 @@ interface MutableProposal {
   id: ProposalId;
   issueId: IssueId;
   choiceKey?: string;
-  authorId: import("@votiverse/core").ParticipantId;
+  authorId: ParticipantId;
   title: string;
   currentVersion: number;
   versions: VersionRecord[];
   status: import("./types.js").ProposalStatus;
+  evaluations: Map<string, ProposalEvaluation>;
+  featured: boolean;
   submittedAt: Timestamp;
   lockedAt?: Timestamp;
   withdrawnAt?: Timestamp;
 }
 
-function replayProposal(proposalId: ProposalId, events: readonly import("@votiverse/core").DomainEvent[]): ProposalMetadata | undefined {
+function materializeProposal(p: MutableProposal): ProposalMetadata {
+  let endorsements = 0;
+  let disputes = 0;
+  for (const eval_ of p.evaluations.values()) {
+    if (eval_ === "endorse") endorsements++;
+    else disputes++;
+  }
+  return {
+    id: p.id,
+    issueId: p.issueId,
+    choiceKey: p.choiceKey,
+    authorId: p.authorId,
+    title: p.title,
+    currentVersion: p.currentVersion,
+    versions: p.versions,
+    status: p.status,
+    endorsementCount: endorsements,
+    disputeCount: disputes,
+    featured: p.featured,
+    submittedAt: p.submittedAt,
+    lockedAt: p.lockedAt,
+    withdrawnAt: p.withdrawnAt,
+  };
+}
+
+function replayProposal(proposalId: ProposalId, events: readonly DomainEvent[]): ProposalMetadata | undefined {
   let proposal: MutableProposal | undefined;
 
   for (const event of events) {
@@ -205,6 +266,8 @@ function replayProposal(proposalId: ProposalId, events: readonly import("@votive
         currentVersion: 1,
         versions: [{ versionNumber: 1, contentHash: event.payload.contentHash, createdAt: event.timestamp }],
         status: "submitted",
+        evaluations: new Map(),
+        featured: false,
         submittedAt: event.timestamp,
       };
     } else if (event.type === "ProposalVersionCreated" && event.payload.proposalId === proposalId && proposal) {
@@ -220,13 +283,15 @@ function replayProposal(proposalId: ProposalId, events: readonly import("@votive
     } else if (event.type === "ProposalWithdrawn" && event.payload.proposalId === proposalId && proposal) {
       proposal.status = "withdrawn";
       proposal.withdrawnAt = event.timestamp;
+    } else if (event.type === "ProposalEndorsed" && event.payload.proposalId === proposalId && proposal) {
+      proposal.evaluations.set(event.payload.participantId, event.payload.evaluation);
     }
   }
 
-  return proposal;
+  return proposal ? materializeProposal(proposal) : undefined;
 }
 
-function replayProposalsByIssue(issueId: IssueId, events: readonly import("@votiverse/core").DomainEvent[]): ProposalMetadata[] {
+function replayProposalsByIssue(issueId: IssueId, events: readonly DomainEvent[]): ProposalMetadata[] {
   const proposals = new Map<string, MutableProposal>();
 
   for (const event of events) {
@@ -240,6 +305,8 @@ function replayProposalsByIssue(issueId: IssueId, events: readonly import("@voti
         currentVersion: 1,
         versions: [{ versionNumber: 1, contentHash: event.payload.contentHash, createdAt: event.timestamp }],
         status: "submitted",
+        evaluations: new Map(),
+        featured: false,
         submittedAt: event.timestamp,
       });
     } else if (event.type === "ProposalVersionCreated") {
@@ -264,8 +331,13 @@ function replayProposalsByIssue(issueId: IssueId, events: readonly import("@voti
         p.status = "withdrawn";
         p.withdrawnAt = event.timestamp;
       }
+    } else if (event.type === "ProposalEndorsed") {
+      const p = proposals.get(event.payload.proposalId);
+      if (p) {
+        p.evaluations.set(event.payload.participantId, event.payload.evaluation);
+      }
     }
   }
 
-  return [...proposals.values()];
+  return [...proposals.values()].map(materializeProposal);
 }
