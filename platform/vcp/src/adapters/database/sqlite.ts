@@ -154,21 +154,54 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
       -- Proposals (governance metadata only — content lives in client backend)
       CREATE TABLE IF NOT EXISTS proposals (
-        id              TEXT NOT NULL,
-        assembly_id     TEXT NOT NULL,
-        issue_id        TEXT NOT NULL,
-        choice_key      TEXT,
-        author_id       TEXT NOT NULL,
-        title           TEXT NOT NULL,
-        current_version INTEGER NOT NULL DEFAULT 1,
-        status          TEXT NOT NULL DEFAULT 'submitted',
-        submitted_at    INTEGER NOT NULL,
-        locked_at       INTEGER,
-        withdrawn_at    INTEGER,
+        id                TEXT NOT NULL,
+        assembly_id       TEXT NOT NULL,
+        issue_id          TEXT NOT NULL,
+        choice_key        TEXT,
+        author_id         TEXT NOT NULL,
+        title             TEXT NOT NULL,
+        current_version   INTEGER NOT NULL DEFAULT 1,
+        endorsement_count INTEGER NOT NULL DEFAULT 0,
+        dispute_count     INTEGER NOT NULL DEFAULT 0,
+        featured          INTEGER NOT NULL DEFAULT 0,
+        status            TEXT NOT NULL DEFAULT 'submitted',
+        submitted_at      INTEGER NOT NULL,
+        locked_at         INTEGER,
+        withdrawn_at      INTEGER,
         PRIMARY KEY (assembly_id, id)
       );
       CREATE INDEX IF NOT EXISTS idx_proposals_issue
         ON proposals(assembly_id, issue_id);
+
+      -- Proposal endorsements (one per participant per proposal)
+      CREATE TABLE IF NOT EXISTS proposal_endorsements (
+        assembly_id     TEXT NOT NULL,
+        proposal_id     TEXT NOT NULL,
+        participant_id  TEXT NOT NULL,
+        evaluation      TEXT NOT NULL,
+        evaluated_at    INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, proposal_id, participant_id)
+      );
+
+      -- Booklet recommendations (organizer editorial per issue)
+      CREATE TABLE IF NOT EXISTS booklet_recommendations (
+        assembly_id   TEXT NOT NULL,
+        event_id      TEXT NOT NULL,
+        issue_id      TEXT NOT NULL,
+        author_id     TEXT NOT NULL,
+        content_hash  TEXT NOT NULL,
+        created_at    INTEGER NOT NULL,
+        updated_at    INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, event_id, issue_id)
+      );
+
+      -- Voting event creators (tracks who created each event for curation rights)
+      CREATE TABLE IF NOT EXISTS voting_event_creators (
+        assembly_id     TEXT NOT NULL,
+        event_id        TEXT NOT NULL,
+        participant_id  TEXT NOT NULL,
+        PRIMARY KEY (assembly_id, event_id)
+      );
 
       CREATE TABLE IF NOT EXISTS proposal_versions (
         assembly_id     TEXT NOT NULL,
