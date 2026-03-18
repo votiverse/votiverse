@@ -58,4 +58,32 @@ export type {
   SubmitResponseParams,
 } from "@votiverse/polling";
 
+export type {
+  ProposalMetadata,
+  SubmitProposalParams,
+  CreateProposalVersionParams,
+  CandidacyMetadata,
+  DeclareCandidacyParams,
+  CreateCandidacyVersionParams,
+  NoteMetadata,
+  CreateNoteParams,
+  NoteVisibility,
+  ProposalStatus,
+  CandidacyStatus,
+  NoteStatus,
+  NoteTarget,
+  VersionRecord,
+} from "@votiverse/content";
+
+export { computeContentHash, computeNoteVisibility } from "@votiverse/content";
+
+export type {
+  ProposalId,
+  CandidacyId,
+  NoteId,
+  ContentHash,
+  NoteTargetType,
+  NoteEvaluation,
+} from "@votiverse/core";
+
 export { getPreset } from "@votiverse/config";

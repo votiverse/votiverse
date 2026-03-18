@@ -26,7 +26,8 @@
     "@votiverse/delegation": "workspace:*",
     "@votiverse/voting": "workspace:*",
     "@votiverse/prediction": "workspace:*",
-    "@votiverse/polling": "workspace:*"
+    "@votiverse/polling": "workspace:*",
+    "@votiverse/content": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

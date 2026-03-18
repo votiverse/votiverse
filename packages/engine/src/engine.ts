@@ -67,6 +67,25 @@ import type {
   PollResults,
   TrendData,
 } from "@votiverse/polling";
+import { ProposalService, CandidacyService, NoteService } from "@votiverse/content";
+import type {
+  ProposalMetadata,
+  SubmitProposalParams,
+  CreateProposalVersionParams,
+  CandidacyMetadata,
+  DeclareCandidacyParams,
+  CreateCandidacyVersionParams,
+  NoteMetadata,
+  CreateNoteParams,
+  NoteVisibility,
+} from "@votiverse/content";
+import type {
+  CandidacyId,
+  NoteId,
+  NoteEvaluation,
+  NoteTargetType,
+  ProposalId,
+} from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
 // Engine initialization options
@@ -121,6 +140,9 @@ export class VotiverseEngine {
   private readonly votingService: VotingService;
   private readonly predictionService: PredictionService;
   private readonly pollingService: PollingService;
+  private readonly proposalService: ProposalService;
+  private readonly candidacyService: CandidacyService;
+  private readonly noteService: NoteService;
 
   /** Injectable time source for testing. */
   readonly timeProvider: TimeProvider;
@@ -142,6 +164,9 @@ export class VotiverseEngine {
     this.votingService = new VotingService(this.eventStore, this.governanceConfig);
     this.predictionService = new PredictionService(this.eventStore, this.governanceConfig);
     this.pollingService = new PollingService(this.eventStore, this.governanceConfig, this.timeProvider);
+    this.proposalService = new ProposalService(this.eventStore, this.timeProvider);
+    this.candidacyService = new CandidacyService(this.eventStore, this.timeProvider);
+    this.noteService = new NoteService(this.eventStore, this.governanceConfig, this.timeProvider);
   }
 
   /**
@@ -457,6 +482,9 @@ export class VotiverseEngine {
           }
         }
       }
+      // Lock proposals on first vote (idempotent — lockForIssue returns 0 if already locked)
+      await this.proposalService.lockForIssue(issueId);
+
       return this.votingService.cast({
         participantId,
         issueId,
@@ -560,6 +588,105 @@ export class VotiverseEngine {
 
     hasResponded: (pollId: PollId, participantId: ParticipantId): Promise<boolean> =>
       this.pollingService.hasResponded(pollId, participantId),
+  };
+
+  // -----------------------------------------------------------------------
+  // Content API (proposals, candidacies, community notes)
+  // -----------------------------------------------------------------------
+
+  /** Proposal operations. */
+  readonly proposals = {
+    /**
+     * Submit a proposal. Enforces the deliberation window:
+     * rejected if now >= votingStart for the linked issue.
+     */
+    submit: async (params: SubmitProposalParams): Promise<ProposalMetadata> => {
+      const issue = this.issues.get(params.issueId);
+      if (!issue) {
+        throw new NotFoundError("Issue", params.issueId);
+      }
+      const votingEvent = this.votingEvents.get(issue.votingEventId);
+      if (votingEvent) {
+        const currentTime = this.timeProvider.now();
+        if (currentTime >= votingEvent.timeline.votingStart) {
+          throw new GovernanceRuleViolation(
+            "Cannot submit proposals after voting has started",
+            "DELIBERATION_CLOSED",
+          );
+        }
+      }
+      return this.proposalService.submit(params);
+    },
+
+    /**
+     * Create a new version of a submitted proposal.
+     * Enforces the deliberation window.
+     */
+    createVersion: async (params: CreateProposalVersionParams): Promise<ProposalMetadata> => {
+      // Check timeline via the proposal's issue
+      const proposal = await this.proposalService.getById(params.proposalId);
+      if (proposal) {
+        const issue = this.issues.get(proposal.issueId);
+        if (issue) {
+          const votingEvent = this.votingEvents.get(issue.votingEventId);
+          if (votingEvent && this.timeProvider.now() >= votingEvent.timeline.votingStart) {
+            throw new GovernanceRuleViolation(
+              "Cannot version proposals after voting has started",
+              "DELIBERATION_CLOSED",
+            );
+          }
+        }
+      }
+      return this.proposalService.createVersion(params);
+    },
+
+    withdraw: (proposalId: ProposalId, authorId: string): Promise<void> =>
+      this.proposalService.withdraw(proposalId, authorId),
+
+    get: (proposalId: ProposalId): Promise<ProposalMetadata | undefined> =>
+      this.proposalService.getById(proposalId),
+
+    listByIssue: (issueId: IssueId): Promise<ProposalMetadata[]> =>
+      this.proposalService.listByIssue(issueId),
+  };
+
+  /** Delegate candidacy operations. */
+  readonly candidacies = {
+    declare: (params: DeclareCandidacyParams): Promise<CandidacyMetadata> =>
+      this.candidacyService.declare(params),
+
+    createVersion: (params: CreateCandidacyVersionParams): Promise<CandidacyMetadata> =>
+      this.candidacyService.createVersion(params),
+
+    withdraw: (candidacyId: CandidacyId, participantId: ParticipantId): Promise<void> =>
+      this.candidacyService.withdraw(candidacyId, participantId),
+
+    get: (candidacyId: CandidacyId): Promise<CandidacyMetadata | undefined> =>
+      this.candidacyService.getById(candidacyId),
+
+    getByParticipant: (participantId: ParticipantId): Promise<CandidacyMetadata | undefined> =>
+      this.candidacyService.getByParticipant(participantId),
+  };
+
+  /** Community note operations. */
+  readonly notes = {
+    create: (params: CreateNoteParams): Promise<NoteMetadata> =>
+      this.noteService.create(params),
+
+    evaluate: (noteId: NoteId, participantId: ParticipantId, evaluation: NoteEvaluation): Promise<void> =>
+      this.noteService.evaluate(noteId, participantId, evaluation),
+
+    withdraw: (noteId: NoteId, authorId: ParticipantId): Promise<void> =>
+      this.noteService.withdraw(noteId, authorId),
+
+    get: (noteId: NoteId): Promise<NoteMetadata | undefined> =>
+      this.noteService.getById(noteId),
+
+    listByTarget: (targetType: NoteTargetType, targetId: string): Promise<NoteMetadata[]> =>
+      this.noteService.listByTarget(targetType, targetId),
+
+    computeVisibility: (note: NoteMetadata): NoteVisibility =>
+      this.noteService.computeVisibility(note),
   };
 
   // -----------------------------------------------------------------------
