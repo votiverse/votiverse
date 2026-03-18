@@ -364,6 +364,60 @@ export function listProposals(
   return request("GET", `/assemblies/${assemblyId}/proposals${qs}`);
 }
 
+export function evaluateProposal(
+  assemblyId: string,
+  proposalId: string,
+  evaluation: "endorse" | "dispute",
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/evaluate`, { evaluation });
+}
+
+export function featureProposal(
+  assemblyId: string,
+  proposalId: string,
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/feature`);
+}
+
+export function unfeatureProposal(
+  assemblyId: string,
+  proposalId: string,
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/unfeature`);
+}
+
+export function getBookletProposals(
+  assemblyId: string,
+  issueId: string,
+): Promise<import("./types.js").BookletData> {
+  return request("GET", `/assemblies/${assemblyId}/proposals/booklet?issueId=${issueId}`);
+}
+
+export function getRecommendation(
+  assemblyId: string,
+  eventId: string,
+  issueId: string,
+): Promise<{ recommendation: import("./types.js").BookletRecommendation | null }> {
+  return request("GET", `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`);
+}
+
+export function setRecommendation(
+  assemblyId: string,
+  eventId: string,
+  issueId: string,
+  markdown: string,
+): Promise<{ status: string; contentHash: string }> {
+  return request("POST", `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`, { markdown });
+}
+
+export function deleteRecommendation(
+  assemblyId: string,
+  eventId: string,
+  issueId: string,
+): Promise<{ status: string }> {
+  return request("DELETE", `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`);
+}
+
 // ---- Candidacies ----
 
 export function declareCandidacy(

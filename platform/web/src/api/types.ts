@@ -79,6 +79,7 @@ export interface VotingEvent {
     votingStart: string;
     votingEnd: string;
   };
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -289,6 +290,9 @@ export interface Proposal {
   authorId: string;
   title: string;
   currentVersion: number;
+  endorsementCount: number;
+  disputeCount: number;
+  featured: boolean;
   status: "submitted" | "locked" | "withdrawn";
   submittedAt: number;
   lockedAt?: number;
@@ -304,6 +308,25 @@ export interface Proposal {
     contentHash: string;
     createdAt: number;
   }>;
+}
+
+export interface BookletPosition {
+  featured: Proposal | null;
+  all: Proposal[];
+}
+
+export interface BookletRecommendation {
+  markdown?: string;
+  contentHash: string;
+  authorId?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface BookletData {
+  issueId: string;
+  positions: Record<string, BookletPosition>;
+  recommendation: BookletRecommendation | null;
 }
 
 // ---- Candidacies ----
