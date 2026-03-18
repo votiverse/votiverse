@@ -99,6 +99,54 @@ instead of building the right abstractions.
 `,
   },
 
+  // OSC Dependency Policy (voting: -2d to +12d) — in active voting
+  {
+    assemblyKey: "osc",
+    eventKey: "osc-deps",
+    issueIndex: 0,
+    choiceKey: "for",
+    authorName: "Sofia Reyes",
+    title: "License Checks Protect the Project",
+    markdown: `# License Checks Protect the Project
+
+## Why This Matters
+Automated license scanning in CI prevents legal surprises. A single GPL-incompatible
+dependency in our stack could force us to re-license or rewrite critical modules.
+
+## Evidence
+- The Node.js Foundation requires license audits for all hosted projects
+- Two incidents in 2025 where transitive dependencies introduced AGPL code undetected
+- Estimated cost of retroactive compliance: 2-4 engineer-weeks per incident
+
+## Recommendation
+Vote **For** to mandate license compatibility checks on all new dependencies.
+The upfront cost is a one-time CI configuration; the risk of not doing it is unbounded.
+`,
+  },
+  {
+    assemblyKey: "osc",
+    eventKey: "osc-deps",
+    issueIndex: 0,
+    choiceKey: "against",
+    authorName: "Tyler Nguyen",
+    title: "License Enforcement Slows Innovation",
+    markdown: `# License Enforcement Slows Innovation
+
+## The Problem with Mandates
+Blanket license checks create friction for every dependency update. Contributors will
+avoid adding useful libraries because the compliance overhead isn't worth it for small utilities.
+
+## Current Reality
+- 95% of our dependencies are MIT/Apache — license risk is theoretical, not practical
+- The two 2025 incidents were caught in code review, not by automated tools
+- False positives from license scanners waste more time than manual review
+
+## Alternative
+Instead of mandatory CI gates, adopt a quarterly manual audit of new dependencies.
+This catches real issues without blocking day-to-day development velocity.
+`,
+  },
+
   // Youth Digital Citizenship (deliberation: -3d, votingStart: +4d) — in deliberation
   {
     assemblyKey: "youth",
