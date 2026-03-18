@@ -316,19 +316,19 @@ export const PROPOSAL_ENDORSEMENTS: ProposalEndorsementDef[] = [
   // OSC Roadmap — "Accelerate API Stabilization" (index 0) — mostly endorsed
   { assemblyKey: "osc", proposalRef: 0, participantName: "Sofia Reyes", evaluation: "endorse" },
   { assemblyKey: "osc", proposalRef: 0, participantName: "Tyler Nguyen", evaluation: "endorse" },
-  { assemblyKey: "osc", proposalRef: 0, participantName: "Priya Sharma", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 0, participantName: "Anika Patel", evaluation: "endorse" },
   { assemblyKey: "osc", proposalRef: 0, participantName: "Leo Fernandez", evaluation: "dispute" },
 
   // OSC Roadmap — "Feature Velocity Over Stability" (index 1) — mixed
   { assemblyKey: "osc", proposalRef: 1, participantName: "Sofia Reyes", evaluation: "dispute" },
-  { assemblyKey: "osc", proposalRef: 1, participantName: "Priya Sharma", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 1, participantName: "Jordan Blake", evaluation: "endorse" },
   { assemblyKey: "osc", proposalRef: 1, participantName: "Leo Fernandez", evaluation: "endorse" },
 
   // OSC Deps — "License Checks Protect" (index 2) — strong endorsement
   { assemblyKey: "osc", proposalRef: 2, participantName: "Mei-Ling Wu", evaluation: "endorse" },
   { assemblyKey: "osc", proposalRef: 2, participantName: "Kai Andersen", evaluation: "endorse" },
   { assemblyKey: "osc", proposalRef: 2, participantName: "Leo Fernandez", evaluation: "endorse" },
-  { assemblyKey: "osc", proposalRef: 2, participantName: "Priya Sharma", evaluation: "endorse" },
+  { assemblyKey: "osc", proposalRef: 2, participantName: "Rina Kurosawa", evaluation: "endorse" },
   { assemblyKey: "osc", proposalRef: 2, participantName: "Tyler Nguyen", evaluation: "dispute" },
 
   // OSC Deps — "License Enforcement Slows Innovation" (index 3) — moderate dispute
