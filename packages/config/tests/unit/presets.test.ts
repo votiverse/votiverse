@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { PRESETS, getPreset, getPresetNames, validateConfig } from "../../src/index.js";
+import { PRESETS, DEFAULT_PRESET, getPreset, getPresetNames, validateConfig } from "../../src/index.js";
 import type { PresetName } from "../../src/index.js";
 
 describe("Named presets", () => {
-  it("provides six named presets", () => {
+  it("provides seven named presets", () => {
     const names = getPresetNames();
-    expect(names).toHaveLength(6);
+    expect(names).toHaveLength(7);
+    expect(names).toContain("MODERN_DEMOCRACY");
     expect(names).toContain("TOWN_HALL");
     expect(names).toContain("SWISS_MODEL");
     expect(names).toContain("LIQUID_STANDARD");
@@ -14,10 +15,14 @@ describe("Named presets", () => {
     expect(names).toContain("CIVIC_PARTICIPATORY");
   });
 
+  it("DEFAULT_PRESET is MODERN_DEMOCRACY", () => {
+    expect(DEFAULT_PRESET).toBe("MODERN_DEMOCRACY");
+  });
+
   it("getPreset returns the correct preset", () => {
-    const townHall = getPreset("TOWN_HALL");
-    expect(townHall.name).toBe("Town Hall");
-    expect(townHall.delegation.delegationMode).toBe("none");
+    const modernDemocracy = getPreset("MODERN_DEMOCRACY");
+    expect(modernDemocracy.name).toBe("Modern Democracy");
+    expect(modernDemocracy.delegation.delegationMode).toBe("candidacy");
   });
 
   it("PRESETS object matches getPreset results", () => {
@@ -28,6 +33,7 @@ describe("Named presets", () => {
 
   describe("all presets pass validation", () => {
     for (const name of [
+      "MODERN_DEMOCRACY",
       "TOWN_HALL",
       "SWISS_MODEL",
       "LIQUID_STANDARD",
@@ -44,7 +50,52 @@ describe("Named presets", () => {
     }
   });
 
-  describe("preset properties match whitepaper", () => {
+  describe("preset display names", () => {
+    it("MODERN_DEMOCRACY: Modern Democracy", () => {
+      expect(PRESETS.MODERN_DEMOCRACY.name).toBe("Modern Democracy");
+    });
+
+    it("TOWN_HALL: Direct Democracy", () => {
+      expect(PRESETS.TOWN_HALL.name).toBe("Direct Democracy");
+    });
+
+    it("SWISS_MODEL: Swiss Votation", () => {
+      expect(PRESETS.SWISS_MODEL.name).toBe("Swiss Votation");
+    });
+
+    it("LIQUID_STANDARD: Liquid Open", () => {
+      expect(PRESETS.LIQUID_STANDARD.name).toBe("Liquid Open");
+    });
+
+    it("LIQUID_ACCOUNTABLE: Full Accountability", () => {
+      expect(PRESETS.LIQUID_ACCOUNTABLE.name).toBe("Full Accountability");
+    });
+
+    it("BOARD_PROXY: Board Proxy", () => {
+      expect(PRESETS.BOARD_PROXY.name).toBe("Board Proxy");
+    });
+
+    it("CIVIC_PARTICIPATORY: Civic Participatory", () => {
+      expect(PRESETS.CIVIC_PARTICIPATORY.name).toBe("Civic Participatory");
+    });
+  });
+
+  describe("preset properties", () => {
+    it("MODERN_DEMOCRACY: candidacy delegation, secret ballot, community notes, surveys, predictions encouraged", () => {
+      const config = PRESETS.MODERN_DEMOCRACY;
+      expect(config.delegation.delegationMode).toBe("candidacy");
+      expect(config.delegation.topicScoped).toBe(true);
+      expect(config.delegation.transitive).toBe(true);
+      expect(config.delegation.revocableAnytime).toBe(true);
+      expect(config.ballot.secrecy).toBe("secret");
+      expect(config.ballot.resultsVisibility).toBe("sealed");
+      expect(config.ballot.allowVoteChange).toBe(true);
+      expect(config.features.predictions).toBe("encouraged");
+      expect(config.features.communityNotes).toBe(true);
+      expect(config.features.polls).toBe(true);
+      expect(config.features.awarenessIntensity).toBe("standard");
+    });
+
     it("TOWN_HALL: no delegation, secret ballot, simple majority", () => {
       const config = PRESETS.TOWN_HALL;
       expect(config.delegation.delegationMode).toBe("none");
@@ -97,6 +148,57 @@ describe("Named presets", () => {
     });
   });
 
+  describe("preset timelines", () => {
+    it("MODERN_DEMOCRACY: 7/2/7", () => {
+      const t = PRESETS.MODERN_DEMOCRACY.timeline;
+      expect(t.deliberationDays).toBe(7);
+      expect(t.curationDays).toBe(2);
+      expect(t.votingDays).toBe(7);
+    });
+
+    it("TOWN_HALL: 7/0/7 (no curation)", () => {
+      const t = PRESETS.TOWN_HALL.timeline;
+      expect(t.deliberationDays).toBe(7);
+      expect(t.curationDays).toBe(0);
+      expect(t.votingDays).toBe(7);
+    });
+
+    it("SWISS_MODEL: 7/2/7", () => {
+      const t = PRESETS.SWISS_MODEL.timeline;
+      expect(t.deliberationDays).toBe(7);
+      expect(t.curationDays).toBe(2);
+      expect(t.votingDays).toBe(7);
+    });
+
+    it("LIQUID_STANDARD: 5/0/5", () => {
+      const t = PRESETS.LIQUID_STANDARD.timeline;
+      expect(t.deliberationDays).toBe(5);
+      expect(t.curationDays).toBe(0);
+      expect(t.votingDays).toBe(5);
+    });
+
+    it("LIQUID_ACCOUNTABLE: 7/3/7", () => {
+      const t = PRESETS.LIQUID_ACCOUNTABLE.timeline;
+      expect(t.deliberationDays).toBe(7);
+      expect(t.curationDays).toBe(3);
+      expect(t.votingDays).toBe(7);
+    });
+
+    it("BOARD_PROXY: 3/0/3", () => {
+      const t = PRESETS.BOARD_PROXY.timeline;
+      expect(t.deliberationDays).toBe(3);
+      expect(t.curationDays).toBe(0);
+      expect(t.votingDays).toBe(3);
+    });
+
+    it("CIVIC_PARTICIPATORY: 14/3/14", () => {
+      const t = PRESETS.CIVIC_PARTICIPATORY.timeline;
+      expect(t.deliberationDays).toBe(14);
+      expect(t.curationDays).toBe(3);
+      expect(t.votingDays).toBe(14);
+    });
+  });
+
   it("presets are frozen (immutable)", () => {
     const preset = PRESETS.TOWN_HALL;
     expect(Object.isFrozen(preset)).toBe(true);
@@ -104,6 +206,17 @@ describe("Named presets", () => {
     expect(Object.isFrozen(preset.ballot)).toBe(true);
     expect(Object.isFrozen(preset.features)).toBe(true);
     expect(Object.isFrozen(preset.thresholds)).toBe(true);
+    expect(Object.isFrozen(preset.timeline)).toBe(true);
+  });
+
+  it("MODERN_DEMOCRACY preset is frozen", () => {
+    const preset = PRESETS.MODERN_DEMOCRACY;
+    expect(Object.isFrozen(preset)).toBe(true);
+    expect(Object.isFrozen(preset.delegation)).toBe(true);
+    expect(Object.isFrozen(preset.ballot)).toBe(true);
+    expect(Object.isFrozen(preset.features)).toBe(true);
+    expect(Object.isFrozen(preset.thresholds)).toBe(true);
+    expect(Object.isFrozen(preset.timeline)).toBe(true);
   });
 
   it("PRESETS map is frozen", () => {

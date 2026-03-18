@@ -61,6 +61,16 @@ describe("deriveConfig", () => {
     expect(derived.thresholds.concentrationAlertThreshold).toBe(0.05);
   });
 
+  it("overrides nested timeline properties", () => {
+    const base = getPreset("MODERN_DEMOCRACY");
+    const derived = deriveConfig(base, {
+      timeline: { deliberationDays: 14, curationDays: 5 },
+    });
+    expect(derived.timeline.deliberationDays).toBe(14);
+    expect(derived.timeline.curationDays).toBe(5);
+    expect(derived.timeline.votingDays).toBe(base.timeline.votingDays);
+  });
+
   it("produces a new config that can be validated", () => {
     const base = getPreset("LIQUID_STANDARD");
     const derived = deriveConfig(base, {

@@ -256,6 +256,32 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
     });
   }
 
+  // --- Timeline ---
+
+  if (!Number.isInteger(config.timeline.deliberationDays) || config.timeline.deliberationDays < 1) {
+    issues.push({
+      field: "timeline.deliberationDays",
+      message: "Deliberation days must be an integer >= 1",
+      severity: "error",
+    });
+  }
+
+  if (!Number.isInteger(config.timeline.curationDays) || config.timeline.curationDays < 0) {
+    issues.push({
+      field: "timeline.curationDays",
+      message: "Curation days must be an integer >= 0 (0 = no curation phase)",
+      severity: "error",
+    });
+  }
+
+  if (!Number.isInteger(config.timeline.votingDays) || config.timeline.votingDays < 1) {
+    issues.push({
+      field: "timeline.votingDays",
+      message: "Voting days must be an integer >= 1",
+      severity: "error",
+    });
+  }
+
   return {
     valid: issues.every((i) => i.severity !== "error"),
     issues,

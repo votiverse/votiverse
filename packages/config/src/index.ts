@@ -12,6 +12,7 @@ export type {
   BallotConfig,
   FeatureConfig,
   ThresholdConfig,
+  TimelineConfig,
   PresetName,
   BallotSecrecy,
   DelegateVoteVisibility,
@@ -25,7 +26,7 @@ export type {
 } from "./types.js";
 
 // Presets
-export { PRESETS, getPreset, getPresetNames } from "./presets.js";
+export { PRESETS, DEFAULT_PRESET, getPreset, getPresetNames } from "./presets.js";
 
 // Validation
 export type { ValidationIssue, ValidationResult } from "./validation.js";

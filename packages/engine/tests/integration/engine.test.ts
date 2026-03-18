@@ -286,7 +286,7 @@ describe("VotiverseEngine — integration", () => {
 
     it("returns available presets", () => {
       const names = engine.config.getPresetNames();
-      expect(names).toHaveLength(6);
+      expect(names).toHaveLength(7);
     });
 
     it("derives a new config from current", () => {

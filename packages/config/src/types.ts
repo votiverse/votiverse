@@ -141,6 +141,32 @@ export interface ThresholdConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Timeline configuration
+// ---------------------------------------------------------------------------
+
+/** Controls the duration of each phase in the voting event lifecycle. */
+export interface TimelineConfig {
+  /**
+   * Days for the deliberation phase.
+   * During this phase, proposals can be submitted, endorsed, and community-noted.
+   * Must be >= 1.
+   */
+  readonly deliberationDays: number;
+  /**
+   * Days for the curation phase.
+   * During this phase, admins curate the voting booklet and write recommendations.
+   * No new proposals accepted; endorsements frozen.
+   * 0 = no curation phase; system auto-selects highest-endorsed proposals.
+   */
+  readonly curationDays: number;
+  /**
+   * Days for the voting phase.
+   * Must be >= 1.
+   */
+  readonly votingDays: number;
+}
+
+// ---------------------------------------------------------------------------
 // Complete governance configuration
 // ---------------------------------------------------------------------------
 
@@ -162,6 +188,8 @@ export interface GovernanceConfig {
   readonly features: FeatureConfig;
   /** Alert and limit thresholds. */
   readonly thresholds: ThresholdConfig;
+  /** Timeline durations for voting events. */
+  readonly timeline: TimelineConfig;
 }
 
 // ---------------------------------------------------------------------------
@@ -170,6 +198,7 @@ export interface GovernanceConfig {
 
 /** Names of the built-in governance presets. */
 export type PresetName =
+  | "MODERN_DEMOCRACY"
   | "TOWN_HALL"
   | "SWISS_MODEL"
   | "LIQUID_STANDARD"

@@ -159,7 +159,7 @@ describe("CLI end-to-end: voting event with delegations", () => {
 
     const statusOut = new TestOutput();
     await cmdStatus(statusOut);
-    expect(statusOut.messages.some((m) => m.includes("Liquid Standard"))).toBe(true);
+    expect(statusOut.messages.some((m) => m.includes("Liquid Open"))).toBe(true);
     expect(statusOut.messages.some((m) => m.includes("Participants: 1"))).toBe(true);
   });
 

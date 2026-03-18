@@ -316,4 +316,107 @@ describe("validateConfig", () => {
       expect(thresholdErrors).toHaveLength(0);
     });
   });
+
+  describe("timeline", () => {
+    it("errors when deliberationDays is 0", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { deliberationDays: 0 },
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(
+        result.issues.some((i) => i.field === "timeline.deliberationDays" && i.severity === "error"),
+      ).toBe(true);
+    });
+
+    it("errors when deliberationDays is negative", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { deliberationDays: -1 },
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+    });
+
+    it("errors when deliberationDays is not an integer", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { deliberationDays: 3.5 },
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(
+        result.issues.some((i) => i.field === "timeline.deliberationDays" && i.severity === "error"),
+      ).toBe(true);
+    });
+
+    it("accepts deliberationDays of 1", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { deliberationDays: 1 },
+      });
+      const result = validateConfig(config);
+      const errors = result.issues.filter(
+        (i) => i.field === "timeline.deliberationDays" && i.severity === "error",
+      );
+      expect(errors).toHaveLength(0);
+    });
+
+    it("errors when curationDays is negative", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { curationDays: -1 },
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(
+        result.issues.some((i) => i.field === "timeline.curationDays" && i.severity === "error"),
+      ).toBe(true);
+    });
+
+    it("errors when curationDays is not an integer", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { curationDays: 1.5 },
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+    });
+
+    it("accepts curationDays of 0 (no curation phase)", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { curationDays: 0 },
+      });
+      const result = validateConfig(config);
+      const errors = result.issues.filter(
+        (i) => i.field === "timeline.curationDays" && i.severity === "error",
+      );
+      expect(errors).toHaveLength(0);
+    });
+
+    it("errors when votingDays is 0", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { votingDays: 0 },
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+      expect(
+        result.issues.some((i) => i.field === "timeline.votingDays" && i.severity === "error"),
+      ).toBe(true);
+    });
+
+    it("errors when votingDays is not an integer", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { votingDays: 2.5 },
+      });
+      const result = validateConfig(config);
+      expect(result.valid).toBe(false);
+    });
+
+    it("accepts votingDays of 1", () => {
+      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
+        timeline: { votingDays: 1 },
+      });
+      const result = validateConfig(config);
+      const errors = result.issues.filter(
+        (i) => i.field === "timeline.votingDays" && i.severity === "error",
+      );
+      expect(errors).toHaveLength(0);
+    });
+  });
 });

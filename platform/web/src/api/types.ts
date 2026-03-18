@@ -58,6 +58,11 @@ export interface GovernanceConfig {
   thresholds: {
     concentrationAlertThreshold: number;
   };
+  timeline: {
+    deliberationDays: number;
+    curationDays: number;
+    votingDays: number;
+  };
 }
 
 export interface Participant {

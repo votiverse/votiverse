@@ -14,7 +14,7 @@ describe("diffConfig", () => {
     const diffs = diffConfig(base, modified);
     expect(diffs).toContainEqual({
       path: "name",
-      oldValue: "Town Hall",
+      oldValue: "Direct Democracy",
       newValue: "My Custom Config",
     });
   });

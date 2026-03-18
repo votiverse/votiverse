@@ -12,6 +12,7 @@ import type {
   BallotConfig,
   FeatureConfig,
   ThresholdConfig,
+  TimelineConfig,
 } from "./types.js";
 
 /** Deep partial override for DelegationConfig, with nested visibility support. */
@@ -27,6 +28,7 @@ export interface ConfigOverrides {
   readonly ballot?: Partial<BallotConfig>;
   readonly features?: Partial<FeatureConfig>;
   readonly thresholds?: Partial<ThresholdConfig>;
+  readonly timeline?: Partial<TimelineConfig>;
 }
 
 /**
@@ -58,6 +60,10 @@ export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides)
     thresholds: {
       ...base.thresholds,
       ...overrides.thresholds,
+    },
+    timeline: {
+      ...base.timeline,
+      ...overrides.timeline,
     },
   };
 }
