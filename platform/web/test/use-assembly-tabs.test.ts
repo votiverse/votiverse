@@ -21,8 +21,8 @@ function computeTabs(assemblyId: string, config: Partial<GovernanceConfig>) {
   if (config.features?.polls) {
     tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
   }
-  if (config.features?.predictions && config.features.predictions !== "disabled") {
-    tabs.push({ to: `/assembly/${assemblyId}/predictions`, label: "Track Record" });
+  if (config.features?.communityNotes) {
+    tabs.push({ to: `/assembly/${assemblyId}/notes`, label: "Notes" });
   }
   tabs.push({ to: `/assembly/${assemblyId}`, label: "Group" });
   return tabs;
@@ -90,13 +90,13 @@ describe("Assembly tabs logic", () => {
     expect(tabs.map((t) => t.label)).toContain("Surveys");
   });
 
-  it("shows Track Record when predictions not disabled", () => {
+  it("shows Notes tab when communityNotes enabled", () => {
     const config = {
       ...baseConfig,
-      features: { ...baseConfig.features!, predictions: "mandatory" },
+      features: { ...baseConfig.features!, communityNotes: true },
     };
     const tabs = computeTabs("asm-1", config);
-    expect(tabs.map((t) => t.label)).toContain("Track Record");
+    expect(tabs.map((t) => t.label)).toContain("Notes");
   });
 
   it("LIQUID_ACCOUNTABLE config shows all relevant tabs", () => {
@@ -111,6 +111,6 @@ describe("Assembly tabs logic", () => {
     };
     const tabs = computeTabs("asm-1", config);
     const labels = tabs.map((t) => t.label);
-    expect(labels).toEqual(["Votes", "Delegates", "Candidates", "Surveys", "Track Record", "Group"]);
+    expect(labels).toEqual(["Votes", "Delegates", "Candidates", "Surveys", "Notes", "Group"]);
   });
 });

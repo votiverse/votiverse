@@ -9,7 +9,7 @@ import {
   Vote,
   Users,
   BarChart3,
-  TrendingUp,
+  MessageSquareText,
   Settings,
   LayoutGrid,
   User,
@@ -289,7 +289,7 @@ const NAV_ICONS: Record<string, typeof Home> = {
   Votes: Vote,
   Delegates: Users,
   Surveys: BarChart3,
-  "Track Record": TrendingUp,
+  Notes: MessageSquareText,
   Group: Settings,
 };
 
@@ -299,7 +299,7 @@ const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Elemen
   Votes: TabVote,
   Delegates: TabUsers,
   Surveys: TabChart,
-  "Track Record": TabTrend,
+  Notes: TabNotes,
   Group: TabSettings,
 };
 
@@ -319,8 +319,8 @@ function TabChart({ active }: { active: boolean }) {
   return <BarChart3 size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
-function TabTrend({ active }: { active: boolean }) {
-  return <TrendingUp size={20} strokeWidth={active ? 2.5 : 1.5} />;
+function TabNotes({ active }: { active: boolean }) {
+  return <MessageSquareText size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
 function TabSettings({ active }: { active: boolean }) {

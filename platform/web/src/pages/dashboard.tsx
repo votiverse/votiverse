@@ -131,66 +131,60 @@ function DashboardContent({ participantName }: { participantName: string | null 
         </div>
       )}
 
-      {/* Pending votes — grouped by vote (event) */}
-      {pendingVotes.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Pending Votes</h2>
-          <div className="space-y-3">
-            {groupByEvent(pendingVotes).map((group) => (
-              <Link
-                key={`${group.assemblyId}-${group.eventId}`}
-                to={`/assembly/${group.assemblyId}/events/${group.eventId}`}
-                className="block"
-              >
-                <Card className="hover:border-brand-200 hover:shadow transition-all">
-                  <CardBody className="py-3">
-                    {/* Event header */}
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded uppercase tracking-wide">
-                            {group.assemblyName}
-                          </span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-900">{group.eventTitle}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        {group.pendingCount > 0 ? (
-                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                            {group.pendingCount} vote{group.pendingCount !== 1 ? "s" : ""} needed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                            All voted
-                          </span>
-                        )}
-                        <span className="text-[10px] text-gray-400">
-                          <Countdown target={group.votingEnd} className="text-[10px]" />
-                        </span>
-                      </div>
-                    </div>
-                    {/* Question list */}
-                    <div className="space-y-1 ml-1">
-                      {group.questions.map((q) => (
-                        <div key={q.issueId} className="flex items-center justify-between gap-2 py-0.5">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="text-gray-300 text-xs">•</span>
-                            <span className="text-xs text-gray-600 truncate">{q.issueTitle}</span>
+      {/* Active votes — grouped by event, pending-first */}
+      {pendingVotes.length > 0 && (() => {
+        const groups = groupByEvent(pendingVotes);
+        // Sort: events needing action first, then fully-handled
+        groups.sort((a, b) => (a.pendingCount > 0 ? 0 : 1) - (b.pendingCount > 0 ? 0 : 1));
+        return (
+          <div className="mb-8">
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Active Votes</h2>
+            <div className="space-y-3">
+              {groups.map((group) => (
+                <Link
+                  key={`${group.assemblyId}-${group.eventId}`}
+                  to={`/assembly/${group.assemblyId}/events/${group.eventId}`}
+                  className="block"
+                >
+                  <Card className="hover:border-brand-200 hover:shadow transition-all">
+                    <CardBody className="py-3">
+                      {/* Event header */}
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                              {group.assemblyName}
+                            </span>
                           </div>
-                          <VoteStatusChip vote={q} />
+                          <p className="text-sm font-medium text-gray-900">{group.eventTitle}</p>
                         </div>
-                      ))}
-                    </div>
-                  </CardBody>
-                </Card>
-              </Link>
-            ))}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <EventGroupBadge group={group} />
+                          <span className="text-[10px] text-gray-400">
+                            <Countdown target={group.votingEnd} className="text-[10px]" />
+                          </span>
+                        </div>
+                      </div>
+                      {/* Question list */}
+                      <div className="space-y-1 ml-1">
+                        {group.questions.map((q) => (
+                          <div key={q.issueId} className="flex items-center justify-between gap-2 py-0.5">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="text-gray-300 text-xs">•</span>
+                              <span className="text-xs text-gray-600 truncate">{q.issueTitle}</span>
+                            </div>
+                            <VoteStatusChip vote={q} />
+                          </div>
+                        ))}
+                      </div>
+                    </CardBody>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Pending surveys */}
       {pendingSurveys.length > 0 && (
@@ -280,6 +274,44 @@ function DashboardContent({ participantName }: { participantName: string | null 
   );
 }
 
+/** Badge for an event group: pending, all voted, all delegated, or mix. */
+function EventGroupBadge({ group }: { group: VoteGroup }) {
+  if (group.pendingCount > 0) {
+    return (
+      <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+        {group.pendingCount} vote{group.pendingCount !== 1 ? "s" : ""} needed
+      </span>
+    );
+  }
+  // All handled — distinguish voted vs delegated
+  const votedCount = group.questions.filter((q) => q.hasVoted).length;
+  const delegatedCount = group.questions.filter((q) => q.isDelegated).length;
+  const checkIcon = (
+    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+  if (delegatedCount === group.questions.length) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+        {checkIcon} All delegated
+      </span>
+    );
+  }
+  if (votedCount === group.questions.length) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+        {checkIcon} All voted
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+      {checkIcon} All handled
+    </span>
+  );
+}
+
 function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: boolean; delegateTargetName: string | null } }) {
   if (vote.hasVoted) {
     return (
@@ -301,7 +333,7 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
   }
   return (
     <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-      Vote needed
+      Needs your vote
     </span>
   );
 }

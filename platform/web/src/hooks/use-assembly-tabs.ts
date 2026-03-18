@@ -22,8 +22,8 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     if (config?.features.polls) {
       tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
     }
-    if (config?.features.predictions && config.features.predictions !== "disabled") {
-      tabs.push({ to: `/assembly/${assemblyId}/predictions`, label: "Track Record" });
+    if (config?.features.communityNotes) {
+      tabs.push({ to: `/assembly/${assemblyId}/notes`, label: "Notes" });
     }
     tabs.push({ to: `/assembly/${assemblyId}`, label: "Group" });
     return tabs;

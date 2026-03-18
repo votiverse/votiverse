@@ -50,6 +50,10 @@ export function EventsList() {
   const { fullEvents, loading: loadingFull } = useFullEvents(assemblyId, eventIds);
 
   const STATUS_ORDER: Record<string, number> = { voting: 0, deliberation: 1 };
+  const votedIssueIds = useMemo(
+    () => new Set(historyData?.history.map((h) => h.issueId) ?? []),
+    [historyData],
+  );
   const sortedEvents = useMemo(() => {
     const enriched = events.map((e) => fullEvents[e.id] ?? e);
     return enriched.sort((a, b) => {
@@ -58,11 +62,19 @@ export function EventsList() {
       const aO = STATUS_ORDER[aStatus] ?? 2;
       const bO = STATUS_ORDER[bStatus] ?? 2;
       if (aO !== bO) return aO - bO;
-      if (aO === 0) return new Date(a.timeline?.votingEnd ?? 0).getTime() - new Date(b.timeline?.votingEnd ?? 0).getTime();
+      if (aO === 0) {
+        // Within voting: events with pending (un-voted) issues first
+        const aIssues = a.issueIds ?? a.issues?.map((i) => i.id) ?? [];
+        const bIssues = b.issueIds ?? b.issues?.map((i) => i.id) ?? [];
+        const aAllVoted = aIssues.length > 0 && aIssues.every((id) => votedIssueIds.has(id));
+        const bAllVoted = bIssues.length > 0 && bIssues.every((id) => votedIssueIds.has(id));
+        if (aAllVoted !== bAllVoted) return aAllVoted ? 1 : -1;
+        return new Date(a.timeline?.votingEnd ?? 0).getTime() - new Date(b.timeline?.votingEnd ?? 0).getTime();
+      }
       if (aO === 1) return new Date(a.timeline?.votingStart ?? 0).getTime() - new Date(b.timeline?.votingStart ?? 0).getTime();
       return new Date(b.timeline?.votingEnd ?? 0).getTime() - new Date(a.timeline?.votingEnd ?? 0).getTime();
     });
-  }, [events, fullEvents]);
+  }, [events, fullEvents, votedIssueIds]);
 
   if (loading || loadingFull) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
@@ -122,8 +134,8 @@ function EventCard({ assemblyId, event: evt, history }: { assemblyId: string; ev
               <div className="flex items-center gap-2">
                 <Badge color="gray">{issueCount} question{issueCount !== 1 ? "s" : ""}</Badge>
               </div>
-              {votedCount !== null && issueCount > 0 && status === "voting" && (
-                <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-green-600" : "text-amber-600"}`}>
+              {votedCount !== null && issueCount > 0 && (status === "voting" || status === "closed") && (
+                <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-green-600" : votedCount > 0 ? "text-amber-600" : "text-gray-400"}`}>
                   Voted {votedCount}/{issueCount}
                 </span>
               )}

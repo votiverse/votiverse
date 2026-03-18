@@ -44,6 +44,7 @@ const AWARENESS_LABELS: Record<string, string> = {
   "standard": "Standard",
   "minimal": "Basic",
   "detailed": "Detailed",
+  "aggressive": "Full",
 };
 
 const RESULTS_VISIBILITY_LABELS: Record<string, string> = {

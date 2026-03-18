@@ -96,11 +96,22 @@ export function AssemblyDashboard() {
                 <ConfigRow label="Participation" value={humanizeParticipation(config.ballot.participationMode)} />
                 <ConfigRow label="Results" value={humanizeResultsVisibility(config.ballot.resultsVisibility)} />
                 <ConfigRow label="Quorum" value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
-                <ConfigRow label="Delegation" value={humanizeBoolean(config.delegation.delegationMode !== "none", "enabled-disabled")} />
+                <ConfigRow label="Vote Changes" value={config.ballot.allowVoteChange ? "Allowed" : "Final — no changes"} />
+                <ConfigRow label="Delegation" value={
+                  config.delegation.delegationMode === "none" ? "Disabled"
+                    : config.delegation.delegationMode === "candidacy" ? "Declared candidates"
+                    : "Open to any member"
+                } />
                 {config.delegation.delegationMode !== "none" && (
                   <>
                     <ConfigRow label="Topic-Scoped" value={humanizeBoolean(config.delegation.topicScoped)} />
                     <ConfigRow label="Transitive" value={humanizeBoolean(config.delegation.transitive)} />
+                    {config.delegation.maxChainDepth !== null && (
+                      <ConfigRow label="Max Chain Depth" value={String(config.delegation.maxChainDepth)} />
+                    )}
+                    {config.delegation.maxDelegatesPerParticipant !== null && (
+                      <ConfigRow label="Max Delegates" value={String(config.delegation.maxDelegatesPerParticipant)} />
+                    )}
                   </>
                 )}
               </CardBody>

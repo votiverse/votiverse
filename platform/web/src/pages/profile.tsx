@@ -13,7 +13,7 @@ interface AssemblyProfileData {
 }
 
 export function Profile() {
-  const { storeUserId, participantName, memberships } = useIdentity();
+  const { storeUserId, participantName, email, memberships } = useIdentity();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export function Profile() {
             <Avatar name={participantName ?? "?"} size="lg" />
             <div>
               <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
-              <p className="text-xs text-gray-400 font-mono">{storeUserId}</p>
+              {email && <p className="text-xs text-gray-400">{email}</p>}
             </div>
           </div>
         </CardBody>
@@ -107,7 +107,7 @@ export function Profile() {
           <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
             <CardBody className="text-center py-4">
               <div className="text-2xl font-semibold text-gray-900">{totalDelegators}</div>
-              <div className="text-xs text-gray-500 mt-0.5">Delegate to You</div>
+              <div className="text-xs text-gray-500 mt-0.5">Delegators</div>
             </CardBody>
           </Card>
         </Link>
@@ -139,7 +139,7 @@ export function Profile() {
                 {profile.delegatorsCount > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">
-                      {profile.delegatorsCount} member{profile.delegatorsCount !== 1 ? "s" : ""} delegate to you
+                      {profile.delegatorsCount} member{profile.delegatorsCount !== 1 ? "s" : ""} delegate{profile.delegatorsCount === 1 ? "s" : ""} to you
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {profile.delegators.map((d) => (
@@ -159,7 +159,7 @@ export function Profile() {
                         <Avatar name={d.targetName ?? "?"} size="xs" className="!w-4 !h-4" />
                         <span>
                           {d.targetName ?? d.targetId.slice(0, 8)}
-                          {d.topicScope.length === 0 ? " (global)" : ` (${d.topicScope.length} topics)`}
+                          {d.topicScope.length === 0 ? " (global)" : ` (${d.topicScope.length} topic${d.topicScope.length !== 1 ? "s" : ""})`}
                         </span>
                       </div>
                     ))}

@@ -120,7 +120,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
               )}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              v{candidacy.currentVersion} &middot; declared {new Date(candidacy.declaredAt).toLocaleDateString()}
+              Declared {new Date(candidacy.declaredAt).toLocaleDateString()}
             </p>
           </div>
         </div>

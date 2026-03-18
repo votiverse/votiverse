@@ -88,7 +88,20 @@ export function EventDetail() {
   }), [assembly]);
 
   const resultsVisibility = assembly?.config.ballot.resultsVisibility ?? "sealed";
+  const allowVoteChange = assembly?.config.ballot.allowVoteChange ?? true;
   const attention = useAttention();
+
+  // Fetch voting history at event level — used for issue sorting and summary
+  const { data: historyData } = useApi(
+    () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
+    [assemblyId, participantId],
+  );
+
+  // Set of issue IDs the user has voted on (used for sorting + summary)
+  const votedIssueIds = useMemo(
+    () => new Set(historyData?.history.map((h) => h.issueId) ?? []),
+    [historyData],
+  );
 
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? "Vote not found"} onRetry={refetch} />;
@@ -105,6 +118,13 @@ export function EventDetail() {
   };
 
   const issues = event.issues ?? [];
+
+  // Sort issues: un-voted first, then voted — so items needing attention are at the top
+  const sortedIssues = [...issues.map((issue, idx) => ({ issue, idx }))].sort((a, b) => {
+    const aVoted = votedIssueIds.has(a.issue.id) ? 1 : 0;
+    const bVoted = votedIssueIds.has(b.issue.id) ? 1 : 0;
+    return aVoted - bVoted;
+  });
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -126,15 +146,14 @@ export function EventDetail() {
       {/* Issue summary for current user */}
       {participantId && issues.length > 0 && (
         <IssueSummary
-          assemblyId={assemblyId!}
-          participantId={participantId}
-          issues={issues}
+          votedCount={issues.filter((i) => votedIssueIds.has(i.id)).length}
+          totalCount={issues.length}
         />
       )}
 
-      {/* Issue cards */}
+      {/* Issue cards — sorted: un-voted first, voted last */}
       <div className="space-y-4 sm:space-y-6">
-        {issues.map((issue, idx) => {
+        {sortedIssues.map(({ issue, idx }) => {
           const tally = tallyData?.tallies?.[idx];
           const weightDist = weightsData?.weights?.[idx];
           return (
@@ -154,6 +173,7 @@ export function EventDetail() {
               participation={participationByIssue.get(issue.id) ?? null}
               delegationConfig={delegationConfig}
               resultsVisibility={resultsVisibility}
+              allowVoteChange={allowVoteChange}
               participants={participants}
               topics={topicsData?.topics ?? []}
               onVoted={refreshAll}
@@ -231,29 +251,17 @@ function EventTimeline({ timeline, status }: {
   );
 }
 
-function IssueSummary({ assemblyId, participantId, issues }: {
-  assemblyId: string;
-  participantId: string;
-  issues: Array<{ id: string }>;
+function IssueSummary({ votedCount, totalCount }: {
+  votedCount: number;
+  totalCount: number;
 }) {
-  const { data: history } = useApi(
-    () => api.getVotingHistory(assemblyId, participantId),
-    [assemblyId, participantId],
-  );
-
-  if (!history) return null;
-
-  const votedIssueIds = new Set(history.history.map((h) => h.issueId));
-  const votedCount = issues.filter((i) => votedIssueIds.has(i.id)).length;
-  const pendingCount = issues.length - votedCount;
-
-  if (pendingCount === 0) {
+  if (votedCount === totalCount) {
     return (
       <div className="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
         <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span className="text-sm text-green-700 font-medium">You've voted on all {issues.length} questions</span>
+        <span className="text-sm text-green-700 font-medium">You've voted on all {totalCount} questions</span>
       </div>
     );
   }
@@ -264,7 +272,7 @@ function IssueSummary({ assemblyId, participantId, issues }: {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
       <span className="text-sm text-amber-700 font-medium">
-        {pendingCount} of {issues.length} question{issues.length !== 1 ? "s" : ""} need{pendingCount === 1 ? "s" : ""} your vote
+        Voted on {votedCount} of {totalCount} question{totalCount !== 1 ? "s" : ""}
       </span>
     </div>
   );
@@ -289,6 +297,7 @@ function IssueVotingCard({
   participation,
   delegationConfig,
   resultsVisibility,
+  allowVoteChange,
   participants,
   topics,
   onVoted,
@@ -307,6 +316,7 @@ function IssueVotingCard({
   participation: ParticipationRecord | null;
   delegationConfig: DelegationConfig;
   resultsVisibility: string;
+  allowVoteChange: boolean;
   participants: Array<{ id: string; name: string }>;
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
   onVoted: () => void;
@@ -316,7 +326,9 @@ function IssueVotingCard({
   const issueStatus = useIssueStatus(assemblyId, participantId, issueId);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(!issueStatus.hasVoted);
+  // null = derive from issueStatus; boolean = user override (e.g. "Change vote" click)
+  const [expandedOverride, setExpandedOverride] = useState<boolean | null>(null);
+  const expanded = expandedOverride ?? !issueStatus.hasVoted;
 
   const votingOpen = eventStatus === "voting";
 
@@ -326,7 +338,7 @@ function IssueVotingCard({
     setVoteError(null);
     try {
       await api.castVote(assemblyId, { participantId, issueId, choice });
-      setExpanded(false);
+      setExpandedOverride(false);
       issueStatus.refetch();
       onVoted();
     } catch (err: unknown) {
@@ -415,7 +427,8 @@ function IssueVotingCard({
             voting={voting}
             voteError={voteError}
             expanded={expanded}
-            onSetExpanded={setExpanded}
+            allowVoteChange={allowVoteChange}
+            onSetExpanded={setExpandedOverride}
             onVote={handleVote}
             onDelegationCreated={() => { issueStatus.refetch(); onVoted(); }}
           />
@@ -466,6 +479,7 @@ function VotingSection({
   voting,
   voteError,
   expanded,
+  allowVoteChange,
   onSetExpanded,
   onVote,
   onDelegationCreated,
@@ -483,7 +497,8 @@ function VotingSection({
   voting: boolean;
   voteError: string | null;
   expanded: boolean;
-  onSetExpanded: (v: boolean) => void;
+  allowVoteChange: boolean;
+  onSetExpanded: (v: boolean | null) => void;
   onVote: (choice: string) => void;
   onDelegationCreated: () => void;
 }) {
@@ -508,12 +523,16 @@ function VotingSection({
               )}
             </span>
           </div>
-          <button
-            onClick={() => onSetExpanded(true)}
-            className="text-xs text-green-600 hover:text-green-800 underline min-h-[32px] flex items-center"
-          >
-            Change vote
-          </button>
+          {allowVoteChange ? (
+            <button
+              onClick={() => onSetExpanded(true)}
+              className="text-xs text-green-600 hover:text-green-800 underline min-h-[32px] flex items-center"
+            >
+              Change vote
+            </button>
+          ) : (
+            <span className="text-xs text-gray-400 min-h-[32px] flex items-center">Final</span>
+          )}
         </div>
       </div>
     );

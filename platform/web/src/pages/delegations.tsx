@@ -263,7 +263,7 @@ function IncomingSection({
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
         <span>
-          {myIncoming.length} member{myIncoming.length !== 1 ? "s" : ""} delegate to you
+          {myIncoming.length} member{myIncoming.length !== 1 ? "s" : ""} delegate{myIncoming.length === 1 ? "s" : ""} to you
         </span>
       </button>
 

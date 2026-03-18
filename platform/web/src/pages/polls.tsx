@@ -435,7 +435,7 @@ function PollCard({ assemblyId, poll }: { assemblyId: string; poll: Poll }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-gray-900">{poll.title}</h3>
-            <span className="text-xs text-gray-400">{poll.questions.length}Q</span>
+            <span className="text-xs text-gray-400">{poll.questions.length} question{poll.questions.length !== 1 ? "s" : ""}</span>
           </div>
           <div className="flex items-center gap-2">
             {closesLabel && !isClosed && (
