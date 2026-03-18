@@ -248,6 +248,12 @@ Votiverse was started by **Diego Macrini** (Ottawa, Canada) as an attempt to bui
 
 ## License
 
-This work is licensed under [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/).
+**Code** (engine, VCP, web client) is licensed under the 
+[GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html) 
+(AGPL-3.0). You are free to use, modify, and distribute this software, 
+including commercially, as long as you make your modifications available 
+under the same license — including when running it as a network service.
 
-You are free to share and adapt this material for any purpose, including commercially, as long as you give appropriate credit and distribute contributions under the same license.
+**Documentation** (whitepaper, architecture documents, papers) is licensed 
+under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) 
+(CC BY-SA 4.0).
