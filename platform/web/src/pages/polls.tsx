@@ -48,8 +48,22 @@ export function Polls() {
       .finally(() => setLoading(false));
   }, [assemblyId, participantId]);
 
-  const openPolls = useMemo(() => polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) !== "closed"), [polls]);
-  const closedPolls = useMemo(() => polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) === "closed"), [polls]);
+  const openPolls = useMemo(() => {
+    const open = polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) !== "closed");
+    // Sort: unanswered first (by closest deadline), then answered
+    return open.sort((a, b) => {
+      const aResponded = a.hasResponded ? 1 : 0;
+      const bResponded = b.hasResponded ? 1 : 0;
+      if (aResponded !== bResponded) return aResponded - bResponded;
+      // Within same group, closest deadline first
+      return a.closesAt - b.closesAt;
+    });
+  }, [polls]);
+  const closedPolls = useMemo(() => {
+    const closed = polls.filter((p) => derivePollStatus(p.schedule, p.closesAt) === "closed");
+    // Most recently closed first
+    return closed.sort((a, b) => b.closesAt - a.closesAt);
+  }, [polls]);
   const visiblePolls = tab === "open" ? openPolls : closedPolls;
 
   if (!pollsEnabled && !loading) {
