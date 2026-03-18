@@ -407,6 +407,67 @@ export function contentRoutes(
     });
   });
 
+  // -----------------------------------------------------------------------
+  // Internal seed endpoint — bulk content storage (bypasses VCP)
+  // -----------------------------------------------------------------------
+
+  /**
+   * POST /internal/content-seed — store content directly (seed only).
+   * Expects an array of content items with type, id, assemblyId, markdown, etc.
+   */
+  app.post("/internal/content-seed", async (c) => {
+    const body = await c.req.json<{
+      items: Array<{
+        type: "proposal" | "candidacy" | "note";
+        id: string;
+        assemblyId: string;
+        versionNumber?: number;
+        markdown: string;
+        assets?: string[];
+      }>;
+    }>();
+
+    let stored = 0;
+    for (const item of body.items) {
+      const contentHash = computeContentHash(item.markdown, item.assets ?? []);
+      const now = Date.now();
+
+      if (item.type === "proposal") {
+        await contentService.storeProposalContent({
+          proposalId: item.id,
+          assemblyId: item.assemblyId,
+          versionNumber: item.versionNumber ?? 1,
+          markdown: item.markdown,
+          assets: item.assets ?? [],
+          contentHash,
+          createdAt: now,
+        });
+      } else if (item.type === "candidacy") {
+        await contentService.storeCandidacyContent({
+          candidacyId: item.id,
+          assemblyId: item.assemblyId,
+          versionNumber: item.versionNumber ?? 1,
+          markdown: item.markdown,
+          assets: item.assets ?? [],
+          contentHash,
+          createdAt: now,
+        });
+      } else if (item.type === "note") {
+        await contentService.storeNoteContent({
+          noteId: item.id,
+          assemblyId: item.assemblyId,
+          markdown: item.markdown,
+          assets: item.assets ?? [],
+          contentHash,
+          createdAt: now,
+        });
+      }
+      stored++;
+    }
+
+    return c.json({ status: "ok", stored }, 201);
+  });
+
   return app;
 }
 

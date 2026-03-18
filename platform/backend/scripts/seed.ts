@@ -272,6 +272,57 @@ export async function main() {
     }
   }
 
+  // 8. Seed content — fetch proposals/candidacies/notes from VCP, store markdown in backend
+  let contentItems = 0;
+  try {
+    const { PROPOSALS, CANDIDACIES, NOTES } = await import("../../vcp/scripts/seed-data/content.js");
+
+    const items: Array<{ type: string; id: string; assemblyId: string; versionNumber?: number; markdown: string }> = [];
+
+    for (const asm of assemblies) {
+      // Proposals
+      try {
+        const { proposals } = await vcpGet<{ proposals: Array<{ id: string; title: string }> }>(`/assemblies/${asm.id}/proposals`);
+        for (const prop of proposals) {
+          const def = (PROPOSALS as Array<{ title: string; markdown: string }>).find((p) => p.title === prop.title);
+          if (def) items.push({ type: "proposal", id: prop.id, assemblyId: asm.id, versionNumber: 1, markdown: def.markdown });
+        }
+      } catch { /* no proposals */ }
+
+      // Candidacies
+      try {
+        const { candidacies } = await vcpGet<{ candidacies: Array<{ id: string; participantId: string }> }>(`/assemblies/${asm.id}/candidacies`);
+        const { participants: asmP } = await vcpGet<{ participants: Array<{ id: string; name: string }> }>(`/assemblies/${asm.id}/participants`);
+        const nameMap = new Map(asmP.map((p) => [p.id, p.name]));
+        for (const cand of candidacies) {
+          const name = nameMap.get(cand.participantId);
+          const def = (CANDIDACIES as Array<{ participantName: string; markdown: string }>).find((c) => c.participantName === name);
+          if (def) items.push({ type: "candidacy", id: cand.id, assemblyId: asm.id, versionNumber: 1, markdown: def.markdown });
+        }
+      } catch { /* no candidacies */ }
+
+      // Notes
+      try {
+        const { notes } = await vcpGet<{ notes: Array<{ id: string }> }>(`/assemblies/${asm.id}/notes`);
+        const asmNotes = (NOTES as Array<{ assemblyKey: string; markdown: string }>).filter((n) => {
+          const asmKey = asm.name.toLowerCase().includes("youth") ? "youth" : asm.name.toLowerCase().includes("osc") ? "osc" : "";
+          return n.assemblyKey === asmKey;
+        });
+        for (let i = 0; i < notes.length && i < asmNotes.length; i++) {
+          items.push({ type: "note", id: notes[i]!.id, assemblyId: asm.id, markdown: asmNotes[i]!.markdown });
+        }
+      } catch { /* no notes */ }
+    }
+
+    if (items.length > 0) {
+      await backendPost("/internal/content-seed", { items }, firstToken);
+      contentItems = items.length;
+      console.log(`  Content: ${contentItems} items (proposals, candidacies, notes)`);
+    }
+  } catch (err) {
+    console.log(`  (Content seeding skipped: ${err instanceof Error ? err.message : String(err)})`);
+  }
+
   console.log(`\n═══ SEED COMPLETE ═══\n`);
   console.log(`  Users:            ${created}`);
   console.log(`  Cross-assembly:   ${crossAssembly}`);
@@ -280,6 +331,7 @@ export async function main() {
   console.log(`  Cached polls:     ${cachedPolls}`);
   console.log(`  Tracked events:   ${trackedEvents}`);
   console.log(`  Tracked polls:    ${trackedPolls}`);
+  console.log(`  Content items:    ${contentItems}`);
   console.log(`  Default password: ${DEFAULT_PASSWORD}`);
   console.log();
 }
