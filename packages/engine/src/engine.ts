@@ -85,6 +85,7 @@ import type {
   NoteEvaluation,
   NoteTargetType,
   ProposalId,
+  ProposalEvaluation,
 } from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
@@ -642,6 +643,9 @@ export class VotiverseEngine {
 
     withdraw: (proposalId: ProposalId, authorId: string): Promise<void> =>
       this.proposalService.withdraw(proposalId, authorId),
+
+    evaluate: (proposalId: ProposalId, participantId: ParticipantId, evaluation: ProposalEvaluation): Promise<void> =>
+      this.proposalService.evaluate(proposalId, participantId, evaluation),
 
     get: (proposalId: ProposalId): Promise<ProposalMetadata | undefined> =>
       this.proposalService.getById(proposalId),

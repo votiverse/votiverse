@@ -322,3 +322,202 @@ describe("Content lifecycle — community notes", () => {
     expect(body.notes).toHaveLength(2);
   });
 });
+
+describe("Proposal endorsements and curation", () => {
+  let vcp: TestVCP;
+  let asmId: string;
+  let alice: { id: string };
+  let bob: { id: string };
+  let carol: { id: string };
+  let dave: { id: string };
+  let issueId: string;
+  let eventId: string;
+  let proposalId: string;
+
+  beforeEach(async () => {
+    vcp = await createTestVCP();
+
+    const asmRes = await vcp.request("POST", "/assemblies", {
+      name: "Endorsement Test",
+      preset: "LIQUID_ACCOUNTABLE",
+    });
+    asmId = ((await asmRes.json()) as { id: string }).id;
+
+    const participants: Array<{ id: string }> = [];
+    for (const name of ["Alice", "Bob", "Carol", "Dave"]) {
+      const res = await vcp.request("POST", `/assemblies/${asmId}/participants`, { name });
+      participants.push((await res.json()) as { id: string });
+    }
+    [alice, bob, carol, dave] = participants as [{ id: string }, { id: string }, { id: string }, { id: string }];
+
+    // Create event with Alice as creator (via X-Participant-Id header)
+    const now = vcp.clock.now() as number;
+    const eventRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/events`, {
+      title: "Endorsement Vote",
+      description: "Test",
+      issues: [{ title: "Should we endorse?", description: "Test", topicIds: [] }],
+      eligibleParticipantIds: [alice.id, bob.id, carol.id, dave.id],
+      timeline: {
+        deliberationStart: now - 7 * DAY,
+        votingStart: now + 3 * DAY,
+        votingEnd: now + 10 * DAY,
+      },
+    });
+    const event = (await eventRes.json()) as { id: string; issueIds: string[] };
+    eventId = event.id;
+    issueId = event.issueIds[0]!;
+
+    // Submit a proposal
+    const propRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/proposals`, {
+      issueId,
+      choiceKey: "for",
+      title: "Endorse This",
+      contentHash: "abc123",
+    });
+    proposalId = ((await propRes.json()) as { id: string }).id;
+  });
+
+  afterEach(() => { vcp.cleanup(); });
+
+  it("endorses a proposal and updates materialized counts", async () => {
+    await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/evaluate`, {
+      evaluation: "endorse",
+    });
+    await vcp.requestAs(carol.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/evaluate`, {
+      evaluation: "endorse",
+    });
+    await vcp.requestAs(dave.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/evaluate`, {
+      evaluation: "dispute",
+    });
+
+    const getRes = await vcp.request("GET", `/assemblies/${asmId}/proposals/${proposalId}`);
+    const body = (await getRes.json()) as { endorsementCount: number; disputeCount: number; featured: boolean };
+    expect(body.endorsementCount).toBe(2);
+    expect(body.disputeCount).toBe(1);
+    expect(body.featured).toBe(false);
+  });
+
+  it("rejects self-endorsement", async () => {
+    const res = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/evaluate`, {
+      evaluation: "endorse",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("changing endorsement updates counts", async () => {
+    await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/evaluate`, {
+      evaluation: "endorse",
+    });
+    await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/evaluate`, {
+      evaluation: "dispute",
+    });
+
+    const getRes = await vcp.request("GET", `/assemblies/${asmId}/proposals/${proposalId}`);
+    const body = (await getRes.json()) as { endorsementCount: number; disputeCount: number };
+    expect(body.endorsementCount).toBe(0);
+    expect(body.disputeCount).toBe(1);
+  });
+
+  it("event creator can feature and unfeature proposals", async () => {
+    // Feature
+    const featureRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/feature`);
+    expect(featureRes.status).toBe(200);
+
+    let getRes = await vcp.request("GET", `/assemblies/${asmId}/proposals/${proposalId}`);
+    let body = (await getRes.json()) as { featured: boolean };
+    expect(body.featured).toBe(true);
+
+    // Unfeature
+    const unfeatureRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/unfeature`);
+    expect(unfeatureRes.status).toBe(200);
+
+    getRes = await vcp.request("GET", `/assemblies/${asmId}/proposals/${proposalId}`);
+    body = (await getRes.json()) as { featured: boolean };
+    expect(body.featured).toBe(false);
+  });
+
+  it("non-creator cannot feature proposals", async () => {
+    const res = await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/feature`);
+    expect(res.status).toBe(403);
+  });
+
+  it("booklet returns featured proposal per position (auto-fallback to highest scored)", async () => {
+    // Submit a second proposal for the "against" position
+    const prop2Res = await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/proposals`, {
+      issueId,
+      choiceKey: "against",
+      title: "Against This",
+      contentHash: "def456",
+    });
+    const prop2Id = ((await prop2Res.json()) as { id: string }).id;
+
+    // Endorse the "for" proposal
+    await vcp.requestAs(carol.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/evaluate`, {
+      evaluation: "endorse",
+    });
+
+    // Get booklet
+    const bookletRes = await vcp.request("GET", `/assemblies/${asmId}/proposals/booklet?issueId=${issueId}`);
+    expect(bookletRes.status).toBe(200);
+    const booklet = (await bookletRes.json()) as {
+      issueId: string;
+      positions: Record<string, { featured: { id: string }; all: unknown[] }>;
+      recommendation: unknown;
+    };
+    expect(booklet.issueId).toBe(issueId);
+    // "for" position auto-selects highest scored (the endorsed one)
+    expect(booklet.positions["for"]?.featured.id).toBe(proposalId);
+    // "against" position auto-selects (only one)
+    expect(booklet.positions["against"]?.featured.id).toBe(prop2Id);
+    expect(booklet.recommendation).toBeNull();
+  });
+
+  it("recommendation CRUD works for event creator", async () => {
+    // Create recommendation
+    const createRes = await vcp.requestAs(alice.id, "POST",
+      `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
+      { contentHash: "rec-hash-1" },
+    );
+    expect(createRes.status).toBe(201);
+
+    // Get recommendation
+    const getRes = await vcp.request("GET",
+      `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
+    );
+    const body = (await getRes.json()) as { recommendation: { authorId: string; contentHash: string } };
+    expect(body.recommendation).not.toBeNull();
+    expect(body.recommendation.contentHash).toBe("rec-hash-1");
+    expect(body.recommendation.authorId).toBe(alice.id);
+
+    // Update recommendation
+    await vcp.requestAs(alice.id, "POST",
+      `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
+      { contentHash: "rec-hash-2" },
+    );
+    const getRes2 = await vcp.request("GET",
+      `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
+    );
+    const body2 = (await getRes2.json()) as { recommendation: { contentHash: string } };
+    expect(body2.recommendation.contentHash).toBe("rec-hash-2");
+
+    // Delete recommendation
+    const delRes = await vcp.requestAs(alice.id, "DELETE",
+      `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
+    );
+    expect(delRes.status).toBe(200);
+
+    const getRes3 = await vcp.request("GET",
+      `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
+    );
+    const body3 = (await getRes3.json()) as { recommendation: unknown };
+    expect(body3.recommendation).toBeNull();
+  });
+
+  it("non-creator cannot set recommendation", async () => {
+    const res = await vcp.requestAs(bob.id, "POST",
+      `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
+      { contentHash: "rec" },
+    );
+    expect(res.status).toBe(403);
+  });
+});

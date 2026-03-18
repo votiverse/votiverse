@@ -111,6 +111,78 @@ export function proposalRoutes(manager: AssemblyManager) {
     return c.json({ proposals: data, pagination });
   });
 
+  /**
+   * GET /assemblies/:id/proposals/booklet?issueId=...
+   * Returns featured proposals per choiceKey, or auto-falls back to highest-scored.
+   * MUST be registered before the /:pid catch-all route.
+   */
+  app.get("/assemblies/:id/proposals/booklet", async (c) => {
+    const assemblyId = c.req.param("id");
+    const issueIdQ = c.req.query("issueId");
+    if (!issueIdQ) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "issueId query param required" } }, 400);
+    }
+
+    const db = manager.getDatabase();
+
+    // Get all non-withdrawn proposals for this issue
+    const rows = await db.query<Record<string, unknown>>(
+      `SELECT * FROM proposals WHERE assembly_id = ? AND issue_id = ? AND status != 'withdrawn' ORDER BY (endorsement_count - dispute_count) DESC, submitted_at ASC`,
+      [assemblyId, issueIdQ],
+    );
+
+    // Compute status (locked or submitted) from timeline
+    const { engine } = await manager.getEngine(assemblyId);
+    const now = manager.timeProvider.now() as number;
+    const votingStartMap = new Map<string, number>();
+    const iss = engine.events.getIssue(issueIdQ as IssueId);
+    if (iss) {
+      const ve = engine.events.get(iss.votingEventId);
+      if (ve) votingStartMap.set(issueIdQ, ve.timeline.votingStart as number);
+    }
+
+    const bookletProposals = rows.map((r) => mapProposalRow(r, votingStartMap, now));
+
+    // Group by choiceKey
+    const byChoice = new Map<string, typeof bookletProposals>();
+    for (const p of bookletProposals) {
+      const key = (p.choiceKey as string) ?? "general";
+      const list = byChoice.get(key) ?? [];
+      list.push(p);
+      byChoice.set(key, list);
+    }
+
+    // For each choiceKey: pick featured if any, else highest-scored
+    const booklet: Record<string, unknown> = {};
+    for (const [key, list] of byChoice) {
+      const featured = list.find((p) => p.featured);
+      booklet[key] = {
+        featured: featured ?? list[0] ?? null,
+        all: list,
+      };
+    }
+
+    // Get recommendation if any
+    const bookletEventId = iss?.votingEventId;
+    let recommendation = null;
+    if (bookletEventId) {
+      const recRow = await db.queryOne<Record<string, unknown>>(
+        `SELECT * FROM booklet_recommendations WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
+        [assemblyId, bookletEventId, issueIdQ],
+      );
+      if (recRow) {
+        recommendation = {
+          authorId: recRow["author_id"],
+          contentHash: recRow["content_hash"],
+          createdAt: recRow["created_at"],
+          updatedAt: recRow["updated_at"],
+        };
+      }
+    }
+
+    return c.json({ issueId: issueIdQ, positions: booklet, recommendation });
+  });
+
   /** GET /assemblies/:id/proposals/:pid — get proposal metadata. */
   app.get("/assemblies/:id/proposals/:pid", async (c) => {
     const assemblyId = c.req.param("id");
@@ -341,77 +413,6 @@ export function proposalRoutes(manager: AssemblyManager) {
       return c.json({ status: "unfeatured" });
     },
   );
-
-  /**
-   * GET /assemblies/:id/proposals/booklet?issueId=...
-   * Returns featured proposals per choiceKey, or auto-falls back to highest-scored.
-   */
-  app.get("/assemblies/:id/proposals/booklet", async (c) => {
-    const assemblyId = c.req.param("id");
-    const issueId = c.req.query("issueId");
-    if (!issueId) {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "issueId query param required" } }, 400);
-    }
-
-    const db = manager.getDatabase();
-
-    // Get all non-withdrawn proposals for this issue
-    const rows = await db.query<Record<string, unknown>>(
-      `SELECT * FROM proposals WHERE assembly_id = ? AND issue_id = ? AND status != 'withdrawn' ORDER BY (endorsement_count - dispute_count) DESC, submitted_at ASC`,
-      [assemblyId, issueId],
-    );
-
-    // Compute status (locked or submitted) from timeline
-    const { engine } = await manager.getEngine(assemblyId);
-    const now = manager.timeProvider.now() as number;
-    const votingStartMap = new Map<string, number>();
-    const issue = engine.events.getIssue(issueId as IssueId);
-    if (issue) {
-      const ve = engine.events.get(issue.votingEventId);
-      if (ve) votingStartMap.set(issueId, ve.timeline.votingStart as number);
-    }
-
-    const proposals = rows.map((r) => mapProposalRow(r, votingStartMap, now));
-
-    // Group by choiceKey
-    const byChoice = new Map<string, typeof proposals>();
-    for (const p of proposals) {
-      const key = (p.choiceKey as string) ?? "general";
-      const list = byChoice.get(key) ?? [];
-      list.push(p);
-      byChoice.set(key, list);
-    }
-
-    // For each choiceKey: pick featured if any, else highest-scored
-    const booklet: Record<string, unknown> = {};
-    for (const [key, list] of byChoice) {
-      const featured = list.find((p) => p.featured);
-      booklet[key] = {
-        featured: featured ?? list[0] ?? null,
-        all: list,
-      };
-    }
-
-    // Get recommendation if any
-    const eventId = issue?.votingEventId;
-    let recommendation = null;
-    if (eventId) {
-      const recRow = await db.queryOne<Record<string, unknown>>(
-        `SELECT * FROM booklet_recommendations WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
-        [assemblyId, eventId, issueId],
-      );
-      if (recRow) {
-        recommendation = {
-          authorId: recRow["author_id"],
-          contentHash: recRow["content_hash"],
-          createdAt: recRow["created_at"],
-          updatedAt: recRow["updated_at"],
-        };
-      }
-    }
-
-    return c.json({ issueId, positions: booklet, recommendation });
-  });
 
   /** POST /assemblies/:id/events/:eid/issues/:iid/recommendation — set organizer recommendation. */
   app.post(
