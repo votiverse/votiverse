@@ -12,17 +12,17 @@ function computeTabs(assemblyId: string, config: Partial<GovernanceConfig>) {
   ];
 
   const delegationMode = config.delegation?.delegationMode ?? "none";
-  if (delegationMode !== "none") {
-    tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
-  }
-  if (delegationMode === "candidacy") {
-    tabs.push({ to: `/assembly/${assemblyId}/candidacies`, label: "Candidates" });
-  }
   if (config.features?.polls) {
     tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
   }
+  if (delegationMode !== "none") {
+    tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
+  }
   if (config.features?.communityNotes) {
     tabs.push({ to: `/assembly/${assemblyId}/notes`, label: "Notes" });
+  }
+  if (delegationMode === "candidacy") {
+    tabs.push({ to: `/assembly/${assemblyId}/candidacies`, label: "Candidates" });
   }
   tabs.push({ to: `/assembly/${assemblyId}`, label: "Group" });
   return tabs;
@@ -111,6 +111,6 @@ describe("Assembly tabs logic", () => {
     };
     const tabs = computeTabs("asm-1", config);
     const labels = tabs.map((t) => t.label);
-    expect(labels).toEqual(["Votes", "Delegates", "Candidates", "Surveys", "Notes", "Group"]);
+    expect(labels).toEqual(["Votes", "Surveys", "Delegates", "Notes", "Candidates", "Group"]);
   });
 });

@@ -13,17 +13,17 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     const tabs: AssemblyTab[] = [
       { to: `/assembly/${assemblyId}/events`, label: "Votes" },
     ];
-    if (config?.delegation.delegationMode !== "none") {
-      tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
-    }
-    if (config?.delegation.delegationMode === "candidacy") {
-      tabs.push({ to: `/assembly/${assemblyId}/candidacies`, label: "Candidates" });
-    }
     if (config?.features.polls) {
       tabs.push({ to: `/assembly/${assemblyId}/polls`, label: "Surveys" });
     }
+    if (config?.delegation.delegationMode !== "none") {
+      tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
+    }
     if (config?.features.communityNotes) {
       tabs.push({ to: `/assembly/${assemblyId}/notes`, label: "Notes" });
+    }
+    if (config?.delegation.delegationMode === "candidacy") {
+      tabs.push({ to: `/assembly/${assemblyId}/candidacies`, label: "Candidates" });
     }
     tabs.push({ to: `/assembly/${assemblyId}`, label: "Group" });
     return tabs;
