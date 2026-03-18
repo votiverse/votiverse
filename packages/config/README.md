@@ -27,7 +27,7 @@ const config = getPreset("LIQUID_STANDARD");
 // Customize a preset
 const custom = deriveConfig(getPreset("SWISS_MODEL"), {
   name: "Our Co-op",
-  delegation: { enabled: true, topicScoped: true },
+  delegation: { delegationMode: "open", topicScoped: true },
   ballot: { quorum: 0.3 },
 });
 

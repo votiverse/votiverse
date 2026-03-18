@@ -187,7 +187,7 @@ cli → engine → [awareness, voting, polling, prediction, integrity, content]
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
 
-**Current status:** Engine packages (Phases 1–6) are complete. The platform layer implements a full working UI on top of the engine. Topics, delegations, polls, voting, predictions, and awareness are all functional in the web UI. The content architecture (proposals, delegate candidacies, community notes) is designed (`docs/design/content-architecture.md`) but not yet implemented — that is Phase 7.
+**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, polls, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. 645 tests across engine (459), VCP (107), backend (63), and web (16).
 
 ### Phase 1: Foundation
 1. `@votiverse/core` — base types, event definitions, EventStore interface, Result type, error base class
@@ -362,7 +362,7 @@ platform/
 │   │       ├── server.ts        ← Hono app, middleware, route mounting
 │   │       ├── middleware/      ← auth (JWT), error-handler, request-id
 │   │       └── routes/          ← auth, me, proxy (to VCP)
-│   ├── test/                    ← integration tests (13 tests)
+│   ├── test/                    ← integration tests
 │   └── scripts/
 │       ├── seed.ts              ← creates users + memberships from VCP data
 │       └── reset.ts             ← wipes backend DB, seeds from VCP

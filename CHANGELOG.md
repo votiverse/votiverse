@@ -2,6 +2,31 @@
 
 All notable changes to the Votiverse project.
 
+## Phase 7: Content Architecture — March 2026
+
+### Added
+- **`@votiverse/content` package** — 13th engine package: proposal, candidacy, and community note metadata lifecycle with content hash verification (SHA-256)
+- **New config parameters** — `delegationMode` (open/candidacy/none), `allowVoteChange`, `noteVisibilityThreshold`, `noteMinEvaluations`, `surveyResponseAnonymity`
+- **VCP content routes** — proposals, candidacies, community notes (metadata + contentHash only; 6 new DB tables, 15 endpoints)
+- **Backend content storage** — drafts, versioned content, assets (5 new DB tables); VCP-first orchestration on all writes
+- **Vote transparency enforcement** — opted-in delegate candidates' votes visible to delegators under any ballot secrecy mode
+- **TipTap WYSIWYG editor** — rich markdown editing with toolbar, code-split (377KB main + 931KB editor chunk)
+- **Word/DOCX import** — mammoth.js integration via Import button in editor
+- **Member search with candidacy discovery** — typeahead search for delegation nomination; declared candidates featured on focus in candidacy mode
+- **Community notes UI** — create, endorse/dispute, visibility badges, inline on proposals and candidacies
+- **Seed data** — 3 proposals, 3 candidacies, 3 notes with 9 evaluations across OSC and Youth assemblies
+
+### Changed
+- `DelegationConfig.enabled: boolean` → `delegationMode: 'open' | 'candidacy' | 'none'` (clean break, all presets/tests updated)
+- `LIQUID_ACCOUNTABLE` preset now uses `delegationMode: 'candidacy'`
+- Awareness layer extended: `DelegateProfile.candidacy`, `HistoricalContext.proposals`, 4 new engagement prompt reasons
+- Proposal auto-locking on first vote cast (deliberation window enforcement)
+- Documentation reorganized: 14 historical reports archived, whitepaper moved to `docs/papers/`
+
+### Tests
+- Engine: 459 (was 389), VCP: 107 (was 84), Backend: 63 (was 46), Web: 16 (new)
+- **Total: 645 tests**
+
 ## VCP Multi-Tenancy & Backend Independence — March 2026
 
 ### Added

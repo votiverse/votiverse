@@ -218,7 +218,7 @@ console.log('Concentration:', result.results.concentrationOverTime);
 
 Votiverse is a complete, locally runnable governance platform:
 
-- **Engine** — 12 packages, 319 tests, all formal properties verified (sovereignty, one-person-one-vote, monotonicity, revocability, override rule, cycle resolution, scope precedence, poll non-transferability)
+- **Engine** — 13 packages, 459 tests, all formal properties verified (sovereignty, one-person-one-vote, monotonicity, revocability, override rule, cycle resolution, scope precedence, poll non-transferability)
 - **Cloud Platform** — 27 REST endpoints, SQLite persistence, adapter pattern for future PostgreSQL/AWS migration, 16 integration tests
 - **Web Client** — 9 views covering assemblies, voting, delegations, polls, and awareness, with participant identity switching
 - **Total: 335 tests passing**
