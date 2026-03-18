@@ -8,6 +8,7 @@
  * Usage: pnpm seed (with VCP server running on port 3000)
  */
 
+import { createHash } from "node:crypto";
 import {
   post,
   postAs,
@@ -34,6 +35,7 @@ import { EVENTS } from "./seed-data/events.js";
 import { DELEGATIONS } from "./seed-data/delegations.js";
 import { VOTES } from "./seed-data/votes.js";
 import { POLLS, POLL_RESPONSES } from "./seed-data/polls.js";
+import { PROPOSALS, CANDIDACIES, NOTES, NOTE_EVALUATIONS } from "./seed-data/content.js";
 
 export async function main() {
   console.log(`\nSeeding VCP at ${BASE_URL}...\n`);
@@ -261,6 +263,102 @@ export async function main() {
   }
   console.log(`\n  Created ${POLLS.length} polls with ${responseCount} responses\n`);
 
+  // ── Step 8: Submit proposals ──────────────────────────────────────
+  // Proposals must be submitted during the deliberation phase.
+  // We use the dev clock to set time to the deliberation midpoint.
+
+  console.log("═══ PROPOSALS ═══\n");
+  const proposalIds: string[] = [];
+  const proposalTimelines = new Map(EVENTS.map((e) => [e.key, { deliberationStart: e.deliberationStart, votingStart: e.votingStart }]));
+
+  for (const def of PROPOSALS) {
+    const assemblyId = aid(def.assemblyKey);
+    const timeline = proposalTimelines.get(def.eventKey);
+    if (timeline) {
+      // Set clock to midpoint of deliberation phase
+      const midpoint = seedNow + (timeline.deliberationStart + timeline.votingStart) / 2;
+      await setDevClock(midpoint);
+    }
+
+    const authorPid = pid(def.assemblyKey, def.authorName);
+    const issueId = iid(def.eventKey, def.issueIndex);
+    const contentHash = createHash("sha256").update(def.markdown + "\0").digest("hex");
+
+    const proposal = await postAs(`/assemblies/${assemblyId}/proposals`, {
+      issueId,
+      choiceKey: def.choiceKey,
+      title: def.title,
+      contentHash,
+    }, authorPid);
+
+    proposalIds.push(proposal.id as string);
+    console.log(`  ✓ "${def.title}" by ${def.authorName} (${def.assemblyKey})`);
+  }
+  await resetDevClock();
+  console.log(`\n  Submitted ${PROPOSALS.length} proposals\n`);
+
+  // ── Step 9: Declare candidacies ─────────────────────────────────────
+
+  console.log("═══ CANDIDACIES ═══\n");
+  const candidacyIds: string[] = [];
+
+  for (const def of CANDIDACIES) {
+    const assemblyId = aid(def.assemblyKey);
+    const participantPid = pid(def.assemblyKey, def.participantName);
+    const resolvedScope = def.topicKeys.map((tk) => tid(def.assemblyKey, tk));
+    const contentHash = createHash("sha256").update(def.markdown + "\0").digest("hex");
+
+    const candidacy = await postAs(`/assemblies/${assemblyId}/candidacies`, {
+      topicScope: resolvedScope,
+      voteTransparencyOptIn: def.voteTransparencyOptIn,
+      contentHash,
+    }, participantPid);
+
+    candidacyIds.push(candidacy.id as string);
+    const scopeLabel = def.topicKeys.length > 0 ? def.topicKeys.join(", ") : "global";
+    console.log(`  ✓ ${def.participantName} (${scopeLabel}) [${def.voteTransparencyOptIn ? "transparent" : "private"}]`);
+  }
+  console.log(`\n  Declared ${CANDIDACIES.length} candidacies\n`);
+
+  // ── Step 10: Create community notes ─────────────────────────────────
+
+  console.log("═══ COMMUNITY NOTES ═══\n");
+  const noteIds: string[] = [];
+
+  for (const def of NOTES) {
+    const assemblyId = aid(def.assemblyKey);
+    const authorPid = pid(def.assemblyKey, def.authorName);
+    const contentHash = createHash("sha256").update(def.markdown + "\0").digest("hex");
+
+    // Resolve target ID from proposal or candidacy arrays
+    const targetId = def.targetType === "proposal"
+      ? proposalIds[def.targetRef]!
+      : candidacyIds[def.targetRef]!;
+
+    const note = await postAs(`/assemblies/${assemblyId}/notes`, {
+      contentHash,
+      targetType: def.targetType,
+      targetId,
+    }, authorPid);
+
+    noteIds.push(note.id as string);
+    console.log(`  ✓ ${def.authorName} on ${def.targetType} → "${def.markdown.slice(0, 60)}..."`);
+  }
+
+  // Evaluate notes
+  let evalCount = 0;
+  for (const def of NOTE_EVALUATIONS) {
+    const assemblyId = aid(def.assemblyKey);
+    const evaluatorPid = pid(def.assemblyKey, def.participantName);
+    const noteId = noteIds[def.noteRef]!;
+
+    await postAs(`/assemblies/${assemblyId}/notes/${noteId}/evaluate`, {
+      evaluation: def.evaluation,
+    }, evaluatorPid);
+    evalCount++;
+  }
+  console.log(`\n  Created ${NOTES.length} notes with ${evalCount} evaluations\n`);
+
   // ── Summary ────────────────────────────────────────────────────────
 
   console.log("═══ SEED COMPLETE ═══\n");
@@ -273,6 +371,10 @@ export async function main() {
   console.log("  Votes:         ", VOTES.length);
   console.log("  Polls:         ", POLLS.length);
   console.log("  Poll Responses:", responseCount);
+  console.log("  Proposals:     ", PROPOSALS.length);
+  console.log("  Candidacies:   ", CANDIDACIES.length);
+  console.log("  Notes:         ", NOTES.length);
+  console.log("  Evaluations:   ", evalCount);
   console.log();
 
   // Cross-assembly users for testing (login via backend with email: slug@example.com, password: password)
