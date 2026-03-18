@@ -224,6 +224,54 @@ export class ContentService {
   }
 
   // -----------------------------------------------------------------------
+  // Booklet recommendations
+  // -----------------------------------------------------------------------
+
+  async storeRecommendation(params: {
+    assemblyId: string;
+    eventId: string;
+    issueId: string;
+    markdown: string;
+  }): Promise<{ contentHash: string }> {
+    const contentHash = computeContentHash(params.markdown);
+    const now = Date.now();
+    await this.db.run(
+      `INSERT INTO booklet_recommendation_content (assembly_id, event_id, issue_id, markdown, content_hash, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(assembly_id, event_id, issue_id)
+       DO UPDATE SET markdown = ?, content_hash = ?, updated_at = ?`,
+      [params.assemblyId, params.eventId, params.issueId, params.markdown, contentHash, now, now, params.markdown, contentHash, now],
+    );
+    return { contentHash };
+  }
+
+  async getRecommendation(assemblyId: string, eventId: string, issueId: string): Promise<{
+    markdown: string;
+    contentHash: string;
+    createdAt: number;
+    updatedAt: number;
+  } | undefined> {
+    const row = await this.db.queryOne<Record<string, unknown>>(
+      `SELECT * FROM booklet_recommendation_content WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
+      [assemblyId, eventId, issueId],
+    );
+    if (!row) return undefined;
+    return {
+      markdown: row["markdown"] as string,
+      contentHash: row["content_hash"] as string,
+      createdAt: row["created_at"] as number,
+      updatedAt: row["updated_at"] as number,
+    };
+  }
+
+  async deleteRecommendation(assemblyId: string, eventId: string, issueId: string): Promise<void> {
+    await this.db.run(
+      `DELETE FROM booklet_recommendation_content WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
+      [assemblyId, eventId, issueId],
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // Assets
   // -----------------------------------------------------------------------
 

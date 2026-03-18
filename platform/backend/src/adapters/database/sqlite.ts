@@ -180,6 +180,18 @@ export class SQLiteAdapter implements DatabaseAdapter {
         PRIMARY KEY (assembly_id, note_id)
       );
 
+      -- Booklet recommendation content (backend-owned, linked to VCP metadata)
+      CREATE TABLE IF NOT EXISTS booklet_recommendation_content (
+        assembly_id  TEXT NOT NULL,
+        event_id     TEXT NOT NULL,
+        issue_id     TEXT NOT NULL,
+        markdown     TEXT NOT NULL,
+        content_hash TEXT NOT NULL,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, event_id, issue_id)
+      );
+
       -- Binary assets (images, videos, PDFs)
       CREATE TABLE IF NOT EXISTS assets (
         id           TEXT PRIMARY KEY,
