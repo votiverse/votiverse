@@ -112,7 +112,7 @@ export function Notes() {
           description="Notes can be added to proposals and candidates to provide context, evidence, or corrections."
         />
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+        <div className="space-y-3">
           {sortedNotes.map((note) => (
             <NoteCard
               key={note.id}
@@ -204,7 +204,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
     : "border-l-gray-200 bg-gray-50/30";
 
   return (
-    <div className={`border-l-[3px] rounded-r-lg pl-4 pr-4 py-3 ${accentClass}`}>
+    <div className={`border-l-[3px] rounded-lg border border-gray-200 bg-white pl-4 pr-4 py-3 ${accentClass}`}>
         {/* Header: author + linked target + metadata */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
