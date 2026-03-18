@@ -87,6 +87,35 @@ export class VCPClient {
     const { body } = await this.request<{ participants: VCPParticipant[] }>("GET", `/assemblies/${assemblyId}/participants`);
     return body.participants;
   }
+
+  async createAssembly(params: {
+    name: string;
+    organizationId?: string;
+    config?: unknown;
+    preset?: string;
+    creatorParticipantId?: string;
+  }): Promise<VCPAssembly> {
+    const { body } = await this.request<VCPAssembly>("POST", "/assemblies", { body: params });
+    return body;
+  }
+
+  async listRoles(assemblyId: string): Promise<VCPRole[]> {
+    const { body } = await this.request<{ roles: VCPRole[] }>("GET", `/assemblies/${assemblyId}/roles`);
+    return body.roles;
+  }
+
+  async bootstrapRole(assemblyId: string, participantId: string): Promise<void> {
+    await this.request("POST", `/assemblies/${assemblyId}/roles/bootstrap`, {
+      body: { participantId },
+    });
+  }
+}
+
+export interface VCPRole {
+  participantId: string;
+  role: string;
+  grantedBy: string;
+  grantedAt: number;
 }
 
 export class VCPError extends Error {

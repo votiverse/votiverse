@@ -104,6 +104,43 @@ export class MembershipService {
   }
 
   /**
+   * Get user display names for a list of participant IDs in an assembly.
+   * Returns a Map from participantId to user name.
+   */
+  async getParticipantNames(assemblyId: string, participantIds: string[]): Promise<Map<string, string>> {
+    if (participantIds.length === 0) return new Map();
+
+    // Look up users via the memberships table
+    const placeholders = participantIds.map(() => "?").join(",");
+    const rows = await this.db.query<{ participant_id: string; user_id: string }>(
+      `SELECT participant_id, user_id FROM memberships WHERE assembly_id = ? AND participant_id IN (${placeholders})`,
+      [assemblyId, ...participantIds],
+    );
+
+    const result = new Map<string, string>();
+    for (const row of rows) {
+      // Get user name
+      const user = await this.db.queryOne<{ name: string }>(
+        "SELECT name FROM users WHERE id = ?",
+        [row.user_id],
+      );
+      if (user) {
+        result.set(row.participant_id, user.name);
+      }
+    }
+    return result;
+  }
+
+  /** Get the number of members in an assembly. */
+  async getAssemblyMemberCount(assemblyId: string): Promise<number> {
+    const row = await this.db.queryOne<{ cnt: number }>(
+      "SELECT COUNT(*) as cnt FROM memberships WHERE assembly_id = ?",
+      [assemblyId],
+    );
+    return row?.cnt ?? 0;
+  }
+
+  /**
    * Create a membership record directly (used by seed script).
    * Does NOT call VCP — assumes participant already exists.
    */

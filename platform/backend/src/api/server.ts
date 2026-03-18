@@ -25,6 +25,7 @@ import { meRoutes } from "./routes/me.js";
 import { proxyRoutes } from "./routes/proxy.js";
 import { contentRoutes } from "./routes/content.js";
 import type { ContentService } from "../services/content-service.js";
+import type { VCPClient } from "../services/vcp-client.js";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 
 export interface AppDependencies {
@@ -37,11 +38,12 @@ export interface AppDependencies {
   pollCacheService: PollCacheService;
   notificationService: NotificationService;
   contentService: ContentService;
+  vcpClient: VCPClient;
   config: BackendConfig;
 }
 
 export function createApp(deps: AppDependencies): Hono {
-  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, config } = deps;
+  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, vcpClient, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -85,7 +87,7 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
   app.route("/", contentRoutes(membershipService, contentService, config));
-  app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, config));
+  app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, vcpClient, config));
 
   return app;
 }

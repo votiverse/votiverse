@@ -71,7 +71,7 @@ export async function createTestBackend(): Promise<TestBackend> {
   const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl);
   const contentService = new ContentService(db);
 
-  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, config: TEST_CONFIG });
+  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, vcpClient, config: TEST_CONFIG });
 
   const cleanup = () => {
     void db.close();

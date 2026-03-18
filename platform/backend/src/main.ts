@@ -99,7 +99,7 @@ async function main() {
   const contentService = new ContentService(database);
 
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, config });
+  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, vcpClient, config });
 
   // Start HTTP server
   const server = serve({

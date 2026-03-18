@@ -17,6 +17,7 @@ import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { TopicCacheService } from "../../services/topic-cache.js";
 import type { PollCacheService } from "../../services/poll-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
+import type { VCPClient } from "../../services/vcp-client.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
@@ -27,6 +28,7 @@ export function proxyRoutes(
   topicCacheService: TopicCacheService,
   pollCacheService: PollCacheService,
   notificationService: NotificationService,
+  vcpClient: VCPClient,
   config: BackendConfig,
 ) {
   const app = new Hono();
@@ -57,6 +59,53 @@ export function proxyRoutes(
       );
     }
     return c.json(assembly);
+  });
+
+  /**
+   * GET /assemblies/:id/profile — group profile with roles enriched with user names.
+   * Must be registered before the /:assemblyId/* catch-all.
+   */
+  app.get("/assemblies/:id/profile", async (c) => {
+    const id = c.req.param("id");
+    const assembly = await assemblyCacheService.get(id);
+    if (!assembly) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: `Assembly "${id}" not found` } },
+        404,
+      );
+    }
+
+    // Fetch roles from VCP
+    let roles: Array<{ participantId: string; role: string; grantedBy: string; grantedAt: number }> = [];
+    try {
+      roles = await vcpClient.listRoles(id);
+    } catch {
+      // VCP may not have roles yet (pre-migration assemblies)
+    }
+
+    // Enrich roles with user names via membership lookups
+    const participants = await membershipService.getParticipantNames(id, roles.map((r) => r.participantId));
+
+    const enrichedRoles = roles.map((r) => ({
+      participantId: r.participantId,
+      role: r.role,
+      name: participants.get(r.participantId) ?? null,
+      grantedAt: r.grantedAt,
+    }));
+
+    // Separate owners and admins for display
+    const owners = enrichedRoles.filter((r) => r.role === "owner");
+    const admins = enrichedRoles.filter((r) => r.role === "admin" && !owners.some((o) => o.participantId === r.participantId));
+
+    // Get member count
+    const memberships = await membershipService.getAssemblyMemberCount(id);
+
+    return c.json({
+      ...assembly,
+      owners,
+      admins,
+      memberCount: memberships,
+    });
   });
 
   /**
