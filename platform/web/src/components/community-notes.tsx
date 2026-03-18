@@ -3,6 +3,7 @@ import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Button, Badge } from "./ui.js";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // NoteContent — renders plain text with auto-linked URLs and markdown links
@@ -154,20 +155,20 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
       </div>
 
       {note.status !== "withdrawn" && (
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-3 mt-2">
           <button
-            className="text-xs text-green-600 hover:text-green-800 disabled:opacity-50"
+            className="text-xs text-green-600 hover:text-green-800 disabled:opacity-50 inline-flex items-center gap-1"
             onClick={() => handleEvaluate("endorse")}
             disabled={evaluating}
           >
-            Helpful
+            <ThumbsUp size={12} /> Helpful
           </button>
           <button
-            className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
+            className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50 inline-flex items-center gap-1"
             onClick={() => handleEvaluate("dispute")}
             disabled={evaluating}
           >
-            Not helpful
+            <ThumbsDown size={12} /> Not helpful
           </button>
         </div>
       )}
