@@ -135,9 +135,11 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
   const isVisible = note.visibility?.visible;
 
   return (
-    <div className={`border rounded-lg p-3 text-sm ${
-      note.status === "withdrawn" ? "bg-gray-50 opacity-60" :
-      isVisible ? "bg-green-50 border-green-200" : "bg-white"
+    <div className={`border-l-[3px] rounded-r-lg pl-3 pr-3 py-2.5 text-sm ${
+      note.status === "withdrawn" ? "border-l-gray-200 bg-gray-50/50 opacity-60" :
+      isVisible ? "border-l-green-400 bg-green-50/40" :
+      total > 0 ? "border-l-amber-300 bg-amber-50/30" :
+      "border-l-gray-200 bg-gray-50/30"
     }`}>
       {note.content?.markdown && (
         <p className="text-gray-700"><NoteContent text={note.content.markdown} /></p>

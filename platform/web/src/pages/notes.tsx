@@ -4,7 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
-import { Card, CardBody, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
+import { Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { NoteContent } from "../components/community-notes.js";
 import { Avatar } from "../components/avatar.js";
 
@@ -206,9 +206,13 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
   const isOwnNote = note.authorId === participantId;
   const markdown = note.content?.markdown ?? fullNote?.content?.markdown;
 
+  const accentClass = isWithdrawn ? "border-l-gray-200 bg-gray-50/50 opacity-60"
+    : isVisible ? "border-l-green-400 bg-green-50/40"
+    : total > 0 ? "border-l-amber-300 bg-amber-50/30"
+    : "border-l-gray-200 bg-gray-50/30";
+
   return (
-    <Card className={isWithdrawn ? "opacity-60" : ""}>
-      <CardBody>
+    <div className={`border-l-[3px] rounded-r-lg pl-4 pr-4 py-3 ${accentClass}`}>
         {/* Header: author + linked target + metadata */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -279,7 +283,6 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
             )}
           </div>
         </div>
-      </CardBody>
-    </Card>
+    </div>
   );
 }
