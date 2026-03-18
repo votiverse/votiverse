@@ -169,11 +169,29 @@ export function votingRoutes(manager: AssemblyManager) {
     const delegationVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
 
     // Access control: in private delegation mode, you can only query your own participation
+    // Exception: vote transparency — delegators can query their transparent delegate's records
     if (delegationVisibility.mode === "private" && participantId && participantId !== callerId) {
-      return c.json(
-        { error: { code: "FORBIDDEN", message: "Cannot view another participant's participation in private visibility mode" } },
-        403,
-      );
+      let allowed = false;
+      if (callerId) {
+        try {
+          const callerDelegations = await engine.delegation.listActive(callerId as ParticipantId);
+          const delegatesToTarget = callerDelegations.some((d) => d.targetId === participantId);
+          if (delegatesToTarget) {
+            const candidacy = await engine.candidacies.getByParticipant(participantId as ParticipantId);
+            if (candidacy?.status === "active" && candidacy.voteTransparencyOptIn) {
+              allowed = true;
+            }
+          }
+        } catch {
+          // Lookup failure — fall through to deny
+        }
+      }
+      if (!allowed) {
+        return c.json(
+          { error: { code: "FORBIDDEN", message: "Cannot view another participant's participation in private visibility mode" } },
+          403,
+        );
+      }
     }
 
     // Materialize if not yet done (idempotent)
@@ -188,8 +206,33 @@ export function votingRoutes(manager: AssemblyManager) {
       rawRecords.push(...records);
     }
 
+    // Build a set of participant IDs that the caller delegates to (for vote transparency)
+    const callerDelegateIds = new Set<string>();
+    if (callerId) {
+      const allDelegations = await engine.delegation.listActive(callerId as ParticipantId);
+      for (const d of allDelegations) {
+        callerDelegateIds.add(d.targetId);
+      }
+    }
+
+    // Cache: candidacy lookups (participant → voteTransparencyOptIn)
+    const transparencyCache = new Map<string, boolean>();
+    async function isTransparentCandidate(pid: string): Promise<boolean> {
+      if (transparencyCache.has(pid)) return transparencyCache.get(pid)!;
+      try {
+        const candidacy = await engine.candidacies.getByParticipant(pid as ParticipantId);
+        const transparent = candidacy?.status === "active" && candidacy.voteTransparencyOptIn === true;
+        transparencyCache.set(pid, transparent);
+        return transparent;
+      } catch {
+        transparencyCache.set(pid, false);
+        return false;
+      }
+    }
+
     // Apply secrecy filtering to effectiveChoice
-    const participation = rawRecords.map((record) => {
+    const participation = [];
+    for (const record of rawRecords) {
       const isOwnRecord = callerId === record.participantId;
       let filteredChoice: unknown = record.effectiveChoice;
 
@@ -204,15 +247,36 @@ export function votingRoutes(manager: AssemblyManager) {
             filteredChoice = null;
           }
           // "public" or "delegators-only": you ARE the delegator, so you can see
+        } else if (
+          // Vote transparency: caller delegates to this participant,
+          // and the participant is an opted-in candidate
+          callerId && callerDelegateIds.has(record.participantId) &&
+          await isTransparentCandidate(record.participantId)
+        ) {
+          // Candidate opted into transparency — reveal their vote to delegators.
+          // If they voted directly, show the choice.
+          // If they delegated or abstained, show that status (choice stays null).
+          if (record.status === "direct") {
+            filteredChoice = record.effectiveChoice;
+          } else {
+            // Didn't vote directly — reveal status but not choice
+            // (they may have delegated further or abstained)
+            filteredChoice = null;
+          }
         } else {
-          // Not your record — never reveal choices under secret/anonymous-auditable
+          // Not your record, not your transparent delegate — hide choice
           filteredChoice = null;
         }
       }
 
       // In private delegation mode, strip structural info from other people's records
-      if (delegationVisibility.mode === "private" && !isOwnRecord) {
-        return {
+      // Exception: transparent delegates — their delegators can see their vote
+      const isTransparentDelegate = callerId !== undefined &&
+        callerDelegateIds.has(record.participantId) &&
+        transparencyCache.get(record.participantId) === true;
+
+      if (delegationVisibility.mode === "private" && !isOwnRecord && !isTransparentDelegate) {
+        participation.push({
           participantId: record.participantId,
           issueId: record.issueId,
           status: record.status,
@@ -220,14 +284,15 @@ export function votingRoutes(manager: AssemblyManager) {
           delegateId: null,
           terminalVoterId: null,
           chain: [],
-        };
+        });
+        continue;
       }
 
-      return {
+      participation.push({
         ...record,
         effectiveChoice: filteredChoice,
-      };
-    });
+      });
+    }
 
     return c.json({ eventId: eid, participation });
   });
