@@ -341,6 +341,31 @@ export function contentRoutes(
     return c.json({ ...vcpData, contentHash }, 201);
   });
 
+  /** GET notes list with content joined from backend. */
+  app.get("/assemblies/:assemblyId/notes", async (c) => {
+    const assemblyId = c.req.param("assemblyId");
+    const user = getUser(c);
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    // Forward query params (targetType, targetId) to VCP
+    const qs = c.req.url.includes("?") ? c.req.url.slice(c.req.url.indexOf("?")) : "";
+    const vcpRes = await callVcp(config, "GET", `/assemblies/${assemblyId}/notes${qs}`, undefined, participantId);
+    if (!vcpRes.ok) {
+      return new Response(await vcpRes.text(), { status: vcpRes.status, headers: vcpRes.headers });
+    }
+    const { notes } = await vcpRes.json() as { notes: Array<Record<string, unknown>> };
+
+    // Join content for each note
+    const enriched = await Promise.all(
+      notes.map(async (note) => {
+        const content = await contentService.getNoteContent(assemblyId, note["id"] as string);
+        return { ...note, content: content ? mapContentRow(content) : null };
+      }),
+    );
+
+    return c.json({ notes: enriched });
+  });
+
   /** GET note with full content. */
   app.get("/assemblies/:assemblyId/notes/:noteId", async (c) => {
     const assemblyId = c.req.param("assemblyId");
