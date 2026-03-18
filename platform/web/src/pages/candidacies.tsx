@@ -116,7 +116,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
                 <Badge color="gray">Global</Badge>
               )}
               {candidacy.voteTransparencyOptIn && (
-                <Badge color="green">Transparent votes</Badge>
+                <Badge color="green">Public votes</Badge>
               )}
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -205,7 +205,7 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
             onChange={(e) => setVoteTransparency(e.target.checked)}
             className="rounded"
           />
-          Opt into vote transparency (delegators can see how I vote)
+          Make my votes public (delegators can see how I vote)
         </label>
         <Button onClick={handleDeclare} disabled={submitting || !markdown.trim()}>
           {submitting ? "Declaring..." : "Declare Candidacy"}

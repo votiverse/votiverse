@@ -193,7 +193,7 @@ function CandidateRow({
           <span className="text-sm font-medium text-gray-900 truncate">{name}</span>
           <Badge color="blue">Candidate</Badge>
           {candidacy.voteTransparencyOptIn && (
-            <Badge color="green">Transparent</Badge>
+            <Badge color="green">Public votes</Badge>
           )}
         </div>
         {topics.length > 0 && (
