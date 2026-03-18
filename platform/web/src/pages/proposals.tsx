@@ -7,7 +7,9 @@ import type { Proposal, ProposalDraft } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
-import { MarkdownEditor, MarkdownViewer } from "../components/markdown-editor.js";
+import { lazy, Suspense } from "react";
+const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
+const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
 
 export function Proposals() {
   const { assemblyId } = useParams();
@@ -120,7 +122,7 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
         {expanded && (
           <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <MarkdownViewer content={markdown} />
+              <Suspense fallback={<p className="text-sm text-gray-400">Loading...</p>}><MarkdownViewer content={markdown} /></Suspense>
             ) : (
               <p className="text-sm text-gray-400 italic">Proposal content not yet available.</p>
             )}
@@ -200,13 +202,15 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
               className="w-full border rounded px-3 py-2 text-sm"
               placeholder="Proposal title"
             />
-            <MarkdownEditor
-              value={markdown}
-              onChange={setMarkdown}
-              placeholder="Write your proposal — use headings, lists, and bold text to structure your argument..."
-              assemblyId={assemblyId}
-              minHeight={250}
-            />
+            <Suspense fallback={<p className="text-sm text-gray-400">Loading editor...</p>}>
+              <MarkdownEditor
+                value={markdown}
+                onChange={setMarkdown}
+                placeholder="Write your proposal — use headings, lists, and bold text to structure your argument..."
+                assemblyId={assemblyId}
+                minHeight={250}
+              />
+            </Suspense>
           </div>
         ) : (
           <div>

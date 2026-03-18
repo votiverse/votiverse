@@ -8,7 +8,9 @@ import type { Candidacy } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
-import { MarkdownEditor, MarkdownViewer } from "../components/markdown-editor.js";
+import { lazy, Suspense } from "react";
+const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
+const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
 
 export function Candidacies() {
   const { assemblyId } = useParams();
@@ -126,7 +128,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
         {expanded && (
           <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <MarkdownViewer content={markdown} />
+              <Suspense fallback={<p className="text-sm text-gray-400">Loading...</p>}><MarkdownViewer content={markdown} /></Suspense>
             ) : (
               <p className="text-sm text-gray-400 italic">Profile content not yet available.</p>
             )}
@@ -187,13 +189,15 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
         <p className="text-sm text-gray-500 mb-4">
           Introduce yourself, your qualifications, and how you plan to represent delegators.
         </p>
-        <MarkdownEditor
-          value={markdown}
-          onChange={setMarkdown}
-          placeholder="Introduce yourself — qualifications, positions, and why delegates should trust you..."
-          assemblyId={assemblyId}
-          minHeight={250}
-        />
+        <Suspense fallback={<p className="text-sm text-gray-400">Loading editor...</p>}>
+          <MarkdownEditor
+            value={markdown}
+            onChange={setMarkdown}
+            placeholder="Introduce yourself — qualifications, positions, and why delegates should trust you..."
+            assemblyId={assemblyId}
+            minHeight={250}
+          />
+        </Suspense>
         <label className="flex items-center gap-2 text-sm text-gray-700 mb-4">
           <input
             type="checkbox"

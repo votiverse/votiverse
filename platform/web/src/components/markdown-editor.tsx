@@ -55,26 +55,51 @@ export function MarkdownEditor({
       Placeholder.configure({ placeholder }),
     ],
     content: value,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...(value ? { contentType: "markdown" as any } : {}),
     onUpdate: ({ editor: e }) => {
       try {
+        // getMarkdown() is added by the Markdown extension at runtime
         const md = (e as unknown as { getMarkdown(): string }).getMarkdown();
         onChange(md);
       } catch {
-        // Fallback: get text content if markdown extension not ready
         onChange(e.getText());
       }
     },
   });
 
   const handleImageUpload = useCallback(async (file: File) => {
-    if (!editor || !assemblyId) return;
+    if (!editor) return;
 
-    // For now, embed as base64 data URL. When asset upload is wired,
-    // this will POST to /assemblies/:id/assets and use asset:// URI.
+    if (assemblyId) {
+      // Upload to backend asset store, use the returned URL
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const token = (await import("../api/auth.js")).getAccessToken();
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+        const res = await fetch(`${baseUrl}/assemblies/${assemblyId}/assets`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+
+        if (res.ok) {
+          const asset = await res.json() as { id: string; filename: string };
+          // Use asset:// URI — resolved by the rendering layer
+          editor.chain().focus().setImage({ src: `asset://${asset.id}`, alt: asset.filename }).run();
+          return;
+        }
+      } catch {
+        // Fall through to base64
+      }
+    }
+
+    // Fallback: embed as base64
     const reader = new FileReader();
     reader.onload = () => {
-      const src = reader.result as string;
-      editor.chain().focus().setImage({ src }).run();
+      editor.chain().focus().setImage({ src: reader.result as string }).run();
     };
     reader.readAsDataURL(file);
   }, [editor, assemblyId]);
