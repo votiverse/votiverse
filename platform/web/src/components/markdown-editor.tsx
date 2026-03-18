@@ -263,6 +263,8 @@ export function MarkdownViewer({ content }: MarkdownViewerProps) {
       Link.configure({ openOnClick: true }),
     ],
     content,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contentType: "markdown" as any,
     editable: false,
   });
 
