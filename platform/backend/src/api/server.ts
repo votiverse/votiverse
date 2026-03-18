@@ -23,6 +23,8 @@ import { metricsRoutes } from "./routes/metrics.js";
 import { authRoutes } from "./routes/auth.js";
 import { meRoutes } from "./routes/me.js";
 import { proxyRoutes } from "./routes/proxy.js";
+import { contentRoutes } from "./routes/content.js";
+import type { ContentService } from "../services/content-service.js";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 
 export interface AppDependencies {
@@ -34,11 +36,12 @@ export interface AppDependencies {
   topicCacheService: TopicCacheService;
   pollCacheService: PollCacheService;
   notificationService: NotificationService;
+  contentService: ContentService;
   config: BackendConfig;
 }
 
 export function createApp(deps: AppDependencies): Hono {
-  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, config } = deps;
+  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -80,6 +83,8 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService));
   app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService));
+  // Content routes BEFORE proxy — these are backend-owned and must take precedence
+  app.route("/", contentRoutes(membershipService, contentService, config));
   app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, config));
 
   return app;

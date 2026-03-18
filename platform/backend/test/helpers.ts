@@ -13,6 +13,7 @@ import { PollCacheService } from "../src/services/poll-cache.js";
 import { VCPClient } from "../src/services/vcp-client.js";
 import { NotificationService } from "../src/services/notification-service.js";
 import { ConsoleNotificationAdapter } from "../src/services/notification-adapter.js";
+import { ContentService } from "../src/services/content-service.js";
 import { createApp } from "../src/api/server.js";
 import type { BackendConfig } from "../src/config/schema.js";
 
@@ -68,8 +69,9 @@ export async function createTestBackend(): Promise<TestBackend> {
   const membershipService = new MembershipService(db, vcpClient, assemblyCacheService);
   const notificationAdapter = new ConsoleNotificationAdapter();
   const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl);
+  const contentService = new ContentService(db);
 
-  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, config: TEST_CONFIG });
+  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, config: TEST_CONFIG });
 
   const cleanup = () => {
     void db.close();

@@ -18,6 +18,7 @@ import { VCPClient } from "./services/vcp-client.js";
 import { NotificationService } from "./services/notification-service.js";
 import { ConsoleNotificationAdapter, FileNotificationAdapter, SmtpNotificationAdapter } from "./services/notification-adapter.js";
 import type { NotificationAdapter } from "./services/notification-adapter.js";
+import { ContentService } from "./services/content-service.js";
 import { createApp } from "./api/server.js";
 
 async function main() {
@@ -94,8 +95,11 @@ async function main() {
     config.vcpBaseUrl,
   );
 
+  // Wire content service
+  const contentService = new ContentService(database);
+
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, config });
+  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, pollCacheService, notificationService, contentService, config });
 
   // Start HTTP server
   const server = serve({

@@ -127,6 +127,74 @@ export class SQLiteAdapter implements DatabaseAdapter {
         PRIMARY KEY (assembly_id, id)
       );
 
+      -- Proposal drafts (backend-only, mutable, discarded on submit)
+      CREATE TABLE IF NOT EXISTS proposal_drafts (
+        id            TEXT PRIMARY KEY,
+        assembly_id   TEXT NOT NULL,
+        issue_id      TEXT NOT NULL,
+        choice_key    TEXT,
+        author_id     TEXT NOT NULL,
+        title         TEXT NOT NULL,
+        markdown      TEXT NOT NULL DEFAULT '',
+        assets        TEXT NOT NULL DEFAULT '[]',
+        created_at    INTEGER NOT NULL,
+        updated_at    INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_proposal_drafts_author
+        ON proposal_drafts(assembly_id, author_id);
+
+      -- Proposal content (immutable versions, keyed by VCP proposal ID)
+      CREATE TABLE IF NOT EXISTS proposal_content (
+        proposal_id    TEXT NOT NULL,
+        assembly_id    TEXT NOT NULL,
+        version_number INTEGER NOT NULL,
+        markdown       TEXT NOT NULL,
+        assets         TEXT NOT NULL DEFAULT '[]',
+        content_hash   TEXT NOT NULL,
+        change_summary TEXT,
+        created_at     INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, proposal_id, version_number)
+      );
+
+      -- Candidacy content (immutable versions, keyed by VCP candidacy ID)
+      CREATE TABLE IF NOT EXISTS candidacy_content (
+        candidacy_id   TEXT NOT NULL,
+        assembly_id    TEXT NOT NULL,
+        version_number INTEGER NOT NULL,
+        markdown       TEXT NOT NULL,
+        assets         TEXT NOT NULL DEFAULT '[]',
+        content_hash   TEXT NOT NULL,
+        change_summary TEXT,
+        created_at     INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, candidacy_id, version_number)
+      );
+
+      -- Note content (immutable, keyed by VCP note ID)
+      CREATE TABLE IF NOT EXISTS note_content (
+        note_id      TEXT NOT NULL,
+        assembly_id  TEXT NOT NULL,
+        markdown     TEXT NOT NULL,
+        assets       TEXT NOT NULL DEFAULT '[]',
+        content_hash TEXT NOT NULL,
+        created_at   INTEGER NOT NULL,
+        PRIMARY KEY (assembly_id, note_id)
+      );
+
+      -- Binary assets (images, videos, PDFs)
+      CREATE TABLE IF NOT EXISTS assets (
+        id           TEXT PRIMARY KEY,
+        assembly_id  TEXT NOT NULL,
+        filename     TEXT NOT NULL,
+        mime_type    TEXT NOT NULL,
+        size_bytes   INTEGER NOT NULL,
+        hash         TEXT NOT NULL,
+        uploaded_by  TEXT NOT NULL,
+        uploaded_at  INTEGER NOT NULL,
+        data         BLOB
+      );
+      CREATE INDEX IF NOT EXISTS idx_assets_assembly
+        ON assets(assembly_id);
+
       -- Poll response tracking (one-way latch: once responded, never reverted)
       CREATE TABLE IF NOT EXISTS poll_responses (
         assembly_id    TEXT NOT NULL,
