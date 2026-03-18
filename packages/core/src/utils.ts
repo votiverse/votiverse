@@ -6,10 +6,13 @@
 
 import { randomUUID } from "node:crypto";
 import type {
+  AssetId,
+  CandidacyId,
   CommitmentId,
   DelegationId,
   EventId,
   IssueId,
+  NoteId,
   OutcomeId,
   ParticipantId,
   PollId,
@@ -84,6 +87,21 @@ export function generateOutcomeId(): OutcomeId {
 /** Generates a new unique QuestionId. */
 export function generateQuestionId(): QuestionId {
   return randomUUID() as QuestionId;
+}
+
+/** Generates a new unique CandidacyId. */
+export function generateCandidacyId(): CandidacyId {
+  return randomUUID() as CandidacyId;
+}
+
+/** Generates a new unique NoteId. */
+export function generateNoteId(): NoteId {
+  return randomUUID() as NoteId;
+}
+
+/** Generates a new unique AssetId. */
+export function generateAssetId(): AssetId {
+  return randomUUID() as AssetId;
 }
 
 // ---------------------------------------------------------------------------

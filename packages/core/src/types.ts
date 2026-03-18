@@ -46,6 +46,18 @@ export type OutcomeId = string & { readonly __brand: "OutcomeId" };
 /** Unique identifier for a poll question. */
 export type QuestionId = string & { readonly __brand: "QuestionId" };
 
+/** Unique identifier for a delegate candidacy. */
+export type CandidacyId = string & { readonly __brand: "CandidacyId" };
+
+/** Unique identifier for a community note. */
+export type NoteId = string & { readonly __brand: "NoteId" };
+
+/** Unique identifier for a stored binary asset. */
+export type AssetId = string & { readonly __brand: "AssetId" };
+
+/** SHA-256 content hash for integrity verification. */
+export type ContentHash = string & { readonly __brand: "ContentHash" };
+
 // ---------------------------------------------------------------------------
 // Timestamp
 // ---------------------------------------------------------------------------
