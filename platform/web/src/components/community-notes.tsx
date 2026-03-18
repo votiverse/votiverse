@@ -4,6 +4,61 @@ import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Button, Badge } from "./ui.js";
 
+// ---------------------------------------------------------------------------
+// NoteContent — renders plain text with auto-linked URLs and markdown links
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders note text with:
+ * - Markdown links: [text](url) → <a href="url">text</a>
+ * - Bare URLs: https://... → <a href="url">url</a>
+ * Everything else is plain text with preserved whitespace.
+ */
+export function NoteContent({ text }: { text: string }) {
+  // Combined regex: markdown links first (greedy), then bare URLs
+  const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g;
+  const parts: Array<{ type: "text" | "link"; value: string; href?: string }> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
+    }
+    if (match[1] && match[2]) {
+      // Markdown link: [text](url)
+      parts.push({ type: "link", value: match[1], href: match[2] });
+    } else if (match[3]) {
+      // Bare URL
+      parts.push({ type: "link", value: match[3], href: match[3] });
+    }
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push({ type: "text", value: text.slice(lastIndex) });
+  }
+
+  return (
+    <span className="whitespace-pre-wrap">
+      {parts.map((part, i) =>
+        part.type === "link" ? (
+          <a
+            key={i}
+            href={part.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+          >
+            {part.value}
+          </a>
+        ) : (
+          <span key={i}>{part.value}</span>
+        ),
+      )}
+    </span>
+  );
+}
+
 export function NotesList({ assemblyId, targetType, targetId }: {
   assemblyId: string;
   targetType: string;
@@ -84,7 +139,7 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
       isVisible ? "bg-green-50 border-green-200" : "bg-white"
     }`}>
       {note.content?.markdown && (
-        <p className="text-gray-700 whitespace-pre-wrap">{note.content.markdown}</p>
+        <p className="text-gray-700"><NoteContent text={note.content.markdown} /></p>
       )}
       {!note.content?.markdown && (
         <p className="text-gray-400 italic">Note content not available</p>
@@ -152,6 +207,7 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
         className="w-full border rounded px-3 py-2 text-sm"
         placeholder="Add context, evidence, or a correction..."
       />
+      <p className="text-[10px] text-gray-400 mt-1">URLs are auto-linked. Use [text](url) for named links.</p>
       <div className="mt-2">
         <Button onClick={handleSubmit} disabled={submitting || !markdown.trim()}>
           {submitting ? "Posting..." : "Post Note"}

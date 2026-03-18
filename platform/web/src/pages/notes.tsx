@@ -5,6 +5,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Card, CardBody, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
+import { NoteContent } from "../components/community-notes.js";
 import { Avatar } from "../components/avatar.js";
 
 const TARGET_TYPE_LABELS: Record<string, string> = {
@@ -218,7 +219,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onEvaluated }: {
           <div className="mt-2">
             {loadingContent && <p className="text-sm text-gray-400">Loading...</p>}
             {markdown ? (
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{markdown}</p>
+              <p className="text-sm text-gray-700"><NoteContent text={markdown} /></p>
             ) : !loadingContent ? (
               <p className="text-sm text-gray-400 italic">Content not available</p>
             ) : null}
