@@ -413,6 +413,94 @@ export function proposalRoutes(manager: AssemblyManager) {
     return c.json({ issueId, positions: booklet, recommendation });
   });
 
+  /** POST /assemblies/:id/events/:eid/issues/:iid/recommendation — set organizer recommendation. */
+  app.post(
+    "/assemblies/:id/events/:eid/issues/:iid/recommendation",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const eventId = c.req.param("eid");
+      const issueId = c.req.param("iid");
+      const participantId = c.get("participantId") as string;
+      const body = await c.req.json<{ contentHash: string }>();
+
+      // Verify caller is event creator
+      const db = manager.getDatabase();
+      const creator = await db.queryOne<{ participant_id: string }>(
+        `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
+        [assemblyId, eventId],
+      );
+      if (!creator || creator.participant_id !== participantId) {
+        return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can set recommendations" } }, 403);
+      }
+
+      const now = Date.now();
+      await db.run(
+        `INSERT INTO booklet_recommendations (assembly_id, event_id, issue_id, author_id, content_hash, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(assembly_id, event_id, issue_id)
+         DO UPDATE SET content_hash = ?, author_id = ?, updated_at = ?`,
+        [assemblyId, eventId, issueId, participantId, body.contentHash, now, now, body.contentHash, participantId, now],
+      );
+
+      return c.json({ status: "ok", contentHash: body.contentHash }, 201);
+    },
+  );
+
+  /** GET /assemblies/:id/events/:eid/issues/:iid/recommendation — get recommendation. */
+  app.get("/assemblies/:id/events/:eid/issues/:iid/recommendation", async (c) => {
+    const assemblyId = c.req.param("id");
+    const eventId = c.req.param("eid");
+    const issueId = c.req.param("iid");
+
+    const db = manager.getDatabase();
+    const row = await db.queryOne<Record<string, unknown>>(
+      `SELECT * FROM booklet_recommendations WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
+      [assemblyId, eventId, issueId],
+    );
+
+    if (!row) {
+      return c.json({ recommendation: null });
+    }
+
+    return c.json({
+      recommendation: {
+        authorId: row["author_id"],
+        contentHash: row["content_hash"],
+        createdAt: row["created_at"],
+        updatedAt: row["updated_at"],
+      },
+    });
+  });
+
+  /** DELETE /assemblies/:id/events/:eid/issues/:iid/recommendation — remove recommendation. */
+  app.delete(
+    "/assemblies/:id/events/:eid/issues/:iid/recommendation",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const eventId = c.req.param("eid");
+      const issueId = c.req.param("iid");
+      const participantId = c.get("participantId") as string;
+
+      const db = manager.getDatabase();
+      const creator = await db.queryOne<{ participant_id: string }>(
+        `SELECT participant_id FROM voting_event_creators WHERE assembly_id = ? AND event_id = ?`,
+        [assemblyId, eventId],
+      );
+      if (!creator || creator.participant_id !== participantId) {
+        return c.json({ error: { code: "FORBIDDEN", message: "Only the event creator can remove recommendations" } }, 403);
+      }
+
+      await db.run(
+        `DELETE FROM booklet_recommendations WHERE assembly_id = ? AND event_id = ? AND issue_id = ?`,
+        [assemblyId, eventId, issueId],
+      );
+
+      return c.json({ status: "deleted" });
+    },
+  );
+
   return app;
 }
 
