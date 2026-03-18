@@ -57,7 +57,7 @@ The design of Votiverse is guided by seven principles.
 
 **Participation without burden.** No one should be forced to have an opinion on everything, and no one should be prevented from having an opinion on anything. The system must make it easy to engage selectively.
 
-**Sensing as participation.** Governance should not only ask people to decide — it should ask them to observe. Every participant, regardless of expertise or engagement level, is a sensor embedded in their local reality. Structured, accountable polling of lived experience is a form of participation that is as valuable as voting and far more inclusive. It is easier to identify a problem than to know how to solve it, and a system that listens to what people experience will make better decisions than one that only counts what they choose.
+**Sensing as participation.** Governance should not only ask people to decide — it should ask them to observe. Every participant, regardless of expertise or engagement level, is a sensor embedded in their local reality. Structured, accountable surveying of lived experience is a form of participation that is as valuable as voting and far more inclusive. It is easier to identify a problem than to know how to solve it, and a system that listens to what people experience will make better decisions than one that only counts what they choose.
 
 **Expertise without permanent power.** People should be able to channel their vote through those they trust on specific topics. But that trust must be revocable, granular, and never locked into a fixed term. A delegate's influence should last exactly as long as it is deserved.
 
@@ -67,7 +67,7 @@ The design of Votiverse is guided by seven principles.
 
 **Configurability over prescription.** Different groups have different needs. A soccer parents' committee, a cooperative, and a nation-state require different governance configurations. Votiverse provides the primitives; organizations compose them to suit their context.
 
-**Scale independence.** The same fundamental mechanisms — voting, delegation, structured proposals, prediction tracking, participant polling — should work whether the group has twelve members or twelve million. The platform must be designed so that its core model does not break at scale, even as the specific configuration adapts.
+**Scale independence.** The same fundamental mechanisms — voting, delegation, structured proposals, prediction tracking, participant surveys — should work whether the group has twelve members or twelve million. The platform must be designed so that its core model does not break at scale, even as the specific configuration adapts.
 
 ---
 
@@ -103,7 +103,7 @@ What Votiverse can do is create better conditions at every scale:
 
 This is an honest assessment. We believe the platform helps at every scale, but we do not pretend it turns passive citizens into active deliberators at the scale of a nation. What it does is make the *cost* of disengagement visible and the *path back* to engagement easier.
 
-There is a further honesty required. Votiverse is a system for collective decision-making, and collective decisions create winners and losers. A policy that reduces average commute times may make things worse for specific neighborhoods. A reform that improves aggregate health outcomes may disadvantage specific groups. The system does not guarantee Pareto improvements — outcomes where everyone benefits and no one is harmed. What it provides is better information about what is happening (through polls and outcome tracking), better accountability for what was promised (through prediction tracking), and better mechanisms for course correction when things go wrong. That is a meaningful improvement over the status quo, but it is not a promise that every individual will be better off after every decision. No honest governance system can make that promise.
+There is a further honesty required. Votiverse is a system for collective decision-making, and collective decisions create winners and losers. A policy that reduces average commute times may make things worse for specific neighborhoods. A reform that improves aggregate health outcomes may disadvantage specific groups. The system does not guarantee Pareto improvements — outcomes where everyone benefits and no one is harmed. What it provides is better information about what is happening (through surveys and outcome tracking), better accountability for what was promised (through prediction tracking), and better mechanisms for course correction when things go wrong. That is a meaningful improvement over the status quo, but it is not a promise that every individual will be better off after every decision. No honest governance system can make that promise.
 
 ### 3.4 Sensing and Deciding: Two Different Asks
 
@@ -113,11 +113,11 @@ The scale problem becomes less daunting once we recognize that governance asks p
 
 **Sensing** asks: "what is happening?" Is your neighborhood safer? Has traffic improved? Are prices higher? Is the school better than last year? This is observation — raw, local, personal. It requires no expertise, no policy knowledge, no deliberation. It requires only that you report what you experience in your daily life. Almost anyone can do this. A participant who is fully disengaged from the deliberative process — the purest "NPC" — is still a perfectly good sensor. In fact, they may be a *better* sensor than an engaged policy expert, because they are not filtering observations through a theoretical framework. They report what they see.
 
-This distinction is fundamental to Votiverse's design. The platform separates sensing from deciding. Votes and delegations handle deciding. Participant polls (detailed in Section 9) handle sensing. And critically, sensing feeds deciding: poll data — community observations, trend lines, ground-level feedback — flows into the awareness layer and is surfaced at the point of decision when new proposals are introduced.
+This distinction is fundamental to Votiverse's design. The platform separates sensing from deciding. Votes and delegations handle deciding. Participant surveys (detailed in Section 9) handle sensing. And critically, sensing feeds deciding: survey data — community observations, trend lines, ground-level feedback — flows into the awareness layer and is surfaced at the point of decision when new proposals are introduced.
 
-**Why this matters for the scale problem.** Even at the scales where most participants disengage from decision-making, their sensory contribution remains valuable. A system where millions of people report whether their lived experience is improving or deteriorating — on a predictable schedule, through structured polls, with accountable and transparent methodology — produces an information signal that is already vastly superior to what exists today. Currently, the feedback channels between citizens and governance are opinion polls controlled by agencies that choose the sample and frame the questions, news media with editorial agendas, and unstructured social media noise. None of these are accountable, open, or longitudinal. Votiverse polls are all three.
+**Why this matters for the scale problem.** Even at the scales where most participants disengage from decision-making, their sensory contribution remains valuable. A system where millions of people report whether their lived experience is improving or deteriorating — on a predictable schedule, through structured surveys, with accountable and transparent methodology — produces an information signal that is already vastly superior to what exists today. Currently, the feedback channels between citizens and governance are opinion surveys controlled by agencies that choose the sample and frame the questions, news media with editorial agendas, and unstructured social media noise. None of these are accountable, open, or longitudinal. Votiverse surveys are all three.
 
-The sensing layer also creates a natural feedback loop for evaluating governance quality. When a proposal predicted crime reduction and quarterly polls show rising insecurity, that signal does not require anyone to perform policy analysis. The trend speaks for itself. It is available to delegates making decisions, to participants considering whether to override a delegation, and to the awareness layer compiling institutional memory. Even if most people never look at the data directly, it shapes the information environment in which delegates and proponents operate — and that alone produces better outcomes than a system with no structured feedback at all.
+The sensing layer also creates a natural feedback loop for evaluating governance quality. When a proposal predicted crime reduction and quarterly surveys show rising insecurity, that signal does not require anyone to perform policy analysis. The trend speaks for itself. It is available to delegates making decisions, to participants considering whether to override a delegation, and to the awareness layer compiling institutional memory. Even if most people never look at the data directly, it shapes the information environment in which delegates and proponents operate — and that alone produces better outcomes than a system with no structured feedback at all.
 
 This is perhaps the strongest response to the NPC critique. The question is not "can we make everyone an active deliberator?" — we probably cannot, at scale. The question is "can we extract useful information from everyone, including the disengaged, and feed it back into the system in a way that improves decision quality?" That is a much more tractable problem, and the answer is yes.
 
@@ -174,7 +174,7 @@ The delegation primitives determine how voting power flows through the network. 
 | **Voting method** | Simple majority, supermajority (configurable threshold), ranked choice, approval voting, or other methods. |
 | **Quorum** | Minimum participation required for a vote to be valid, expressed as a percentage of eligible participants. |
 | **Participation mode** | Voluntary (default), mandatory (all participants must vote or explicitly abstain), or mandatory-with-delegation (delegation counts as participation). |
-| **Poll transferability** | Always non-transferable (polls cannot be delegated, as described in Section 9). |
+| **Survey transferability** | Always non-transferable (surveys cannot be delegated, as described in Section 9). |
 | **Prediction requirements** | Predictions optional, encouraged, or mandatory on proposals. |
 | **Community notes** | Enabled or disabled. |
 | **Awareness layer intensity** | Minimal, standard, or aggressive anomaly detection. |
@@ -210,7 +210,7 @@ Examples of named presets:
 | **Liquid Standard** | Topic-specific delegation, transitive, revocable anytime, delegate votes visible to delegators, predictions optional. | Medium organizations, tech communities, professional associations. |
 | **Liquid Accountable** | Liquid Standard plus mandatory predictions, full awareness layer, delegate track records public. | Organizations that prioritize long-term accountability. |
 | **Board Proxy** | Single-delegate proxy, non-transitive, revocable before meeting, secret ballot. | Corporate boards, formal governance bodies. |
-| **Civic Participatory** | Liquid delegation with chain depth cap, verified identity, mandatory predictions, community notes, polls enabled, blockchain integrity. | Municipal deployments, participatory budgeting, citizen assemblies. |
+| **Civic Participatory** | Liquid delegation with chain depth cap, verified identity, mandatory predictions, community notes, surveys enabled, blockchain integrity. | Municipal deployments, participatory budgeting, citizen assemblies. |
 
 Presets are starting points, not straitjackets. An organization can select a preset and then adjust individual parameters — for example, starting with "Swiss Model" but enabling delegation for specific topic categories.
 
@@ -454,53 +454,53 @@ Notes that achieve sufficient positive evaluation from a diverse set of raters b
 
 ---
 
-## 9. Participant Polls: Voters as Distributed Sensors
+## 9. Participant Surveys: Voters as Distributed Sensors
 
 ### 9.1 The Sensing Mechanism
 
-Section 3.4 established that sensing and deciding are fundamentally different tasks, and that even disengaged participants are valuable sensors. This section describes the operational mechanism through which sensing is implemented: **participant polls**.
+Section 3.4 established that sensing and deciding are fundamentally different tasks, and that even disengaged participants are valuable sensors. This section describes the operational mechanism through which sensing is implemented: **participant surveys**.
 
-Polls are the channel through which observations flow upward from participants to the system. Everything else in Votiverse — proposals, booklets, arguments, predictions — flows downward: here is an issue, here is the information, now decide. Polls reverse the direction: what are you experiencing? What are you observing? What does reality look like from where you stand?
+Surveys are the channel through which observations flow upward from participants to the system. Everything else in Votiverse — proposals, booklets, arguments, predictions — flows downward: here is an issue, here is the information, now decide. Surveys reverse the direction: what are you experiencing? What are you observing? What does reality look like from where you stand?
 
-Participants are **distributed sensors** embedded in their local realities — personal, familial, communal. A parent knows whether the school has improved. A commuter knows whether traffic has changed. A small business owner knows whether the regulatory reform helped or hurt. No centralized data-gathering system captures this as efficiently as structured, accountable polling of the people who live inside the reality being governed.
+Participants are **distributed sensors** embedded in their local realities — personal, familial, communal. A parent knows whether the school has improved. A commuter knows whether traffic has changed. A small business owner knows whether the regulatory reform helped or hurt. No centralized data-gathering system captures this as efficiently as structured, accountable surveying of the people who live inside the reality being governed.
 
-### 9.2 Polls Are Not Votes
+### 9.2 Surveys Are Not Votes
 
-Polls are a separate primitive from votes. The distinction is fundamental:
+Surveys are a separate primitive from votes. The distinction is fundamental:
 
-A **vote** expresses a decision. It can be delegated, because someone you trust can exercise judgment on your behalf. A **poll** expresses an observation. It cannot be delegated, because the entire point is *your* experience from *your* position. If you delegate a poll response, you have destroyed the information. No one else can report what you are seeing.
+A **vote** expresses a decision. It can be delegated, because someone you trust can exercise judgment on your behalf. A **survey** expresses an observation. It cannot be delegated, because the entire point is *your* experience from *your* position. If you delegate a survey response, you have destroyed the information. No one else can report what you are seeing.
 
-Poll responses are therefore **non-transferable**. Every participant responds for themselves or not at all. This is the one place in the system where delegation is structurally excluded.
+Survey responses are therefore **non-transferable**. Every participant responds for themselves or not at all. This is the one place in the system where delegation is structurally excluded.
 
 ### 9.3 Accountable and Open
 
-Existing opinion polls suffer from three forms of gating. The polling agency decides who to ask. The agency decides how to frame the questions. The agency decides what to publish. The sample is opaque, the methodology is debatable, and the results are easily weaponized — "62% of people think X" becomes a rhetorical tool whose provenance cannot be inspected.
+Existing opinion surveys suffer from three forms of gating. The surveying agency decides who to ask. The agency decides how to frame the questions. The agency decides what to publish. The sample is opaque, the methodology is debatable, and the results are easily weaponized — "62% of people think X" becomes a rhetorical tool whose provenance cannot be inspected.
 
-Votiverse polls are the structural opposite:
+Votiverse surveys are the structural opposite:
 
 **Open participation.** Every eligible participant can respond. There is no selected sample. The "sample" is the entire community, and the response rate is itself a data point.
 
-**Visible questions.** The poll questions are public. Anyone can see what is being asked, how it is framed, and who proposed it.
+**Visible questions.** The survey questions are public. Anyone can see what is being asked, how it is framed, and who proposed it.
 
 **Transparent results.** Raw results are available to all participants, not filtered through editorial interpretation. Aggregate breakdowns (by topic, by delegation cluster, by participation history) are available for analysis.
 
-**Accountable provenance.** Who proposed the poll questions, and under what process, is part of the record. Questions are not injected anonymously into the information environment.
+**Accountable provenance.** Who proposed the survey questions, and under what process, is part of the record. Questions are not injected anonymously into the information environment.
 
 ### 9.4 Structured Cadence
 
-If polls are reactive and ad-hoc — triggered by controversy, available at any time — they will be dominated by the angry and the motivated. This is the selection bias that plagues online comment sections, town halls, and voluntary surveys: the people who show up are not representative of the people who are affected.
+If surveys are reactive and ad-hoc — triggered by controversy, available at any time — they will be dominated by the angry and the motivated. This is the selection bias that plagues online comment sections, town halls, and voluntary questionnaires: the people who show up are not representative of the people who are affected.
 
-Votiverse addresses this through **predictable scheduling**. Polls occur on a regular cadence — tied to voting events, or at fixed intervals defined by the organization. Participants know in advance when polls will happen, just as Swiss citizens know when votation days are coming. The ritual of scheduled participation draws a broader cross-section than spontaneous engagement.
+Votiverse addresses this through **predictable scheduling**. Surveys occur on a regular cadence — tied to voting events, or at fixed intervals defined by the organization. Participants know in advance when surveys will happen, just as Swiss citizens know when votation days are coming. The ritual of scheduled participation draws a broader cross-section than spontaneous engagement.
 
 Additional design constraints to limit noise and manipulation:
 
-**Frequency limits.** Organizations configure how often polls occur. Too many polls cause fatigue and reduce response rates. Too few miss important signals. The right cadence depends on the organization's scale and decision frequency.
+**Frequency limits.** Organizations configure how often surveys occur. Too many surveys cause fatigue and reduce response rates. Too few miss important signals. The right cadence depends on the organization's scale and decision frequency.
 
-**Question governance.** Who can propose poll questions, and how they are reviewed, is configurable. Options range from administrator-only (simple organizations) to community-proposed with review (larger deployments). The key constraint is that questions must be neutral in framing — the system is gathering observations, not manufacturing consensus.
+**Question governance.** Who can propose survey questions, and how they are reviewed, is configurable. Options range from administrator-only (simple organizations) to community-proposed with review (larger deployments). The key constraint is that questions must be neutral in framing — the system is gathering observations, not manufacturing consensus.
 
-**Brevity.** Polls should be short. A handful of well-chosen questions yields better data than a long survey that most participants abandon. The goal is a lightweight signal, not a comprehensive study.
+**Brevity.** Surveys should be short. A handful of well-chosen questions yields better data than a lengthy questionnaire that most participants abandon. The goal is a lightweight signal, not a comprehensive study.
 
-### 9.5 Polls as Ground Truth for Predictions
+### 9.5 Surveys as Ground Truth for Predictions
 
 Participant polls connect directly to the prediction tracking system. When a proposal predicted "15% improvement in youth sports participation," the outcome can be measured through official statistics. But it can also be sensed through structured polls: "Has youth sports participation in your area increased, decreased, or stayed the same since the facility was built?"
 

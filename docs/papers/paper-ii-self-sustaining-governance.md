@@ -10,7 +10,7 @@ The Votiverse whitepaper (Paper I) described a configurable governance platform 
 
 This paper extends the theoretical model based on what emerged from building a working platform — a governance engine, cloud platform, and web client with 335 tests across 12 packages. The central finding is that a governance system operating at community scale cannot depend on external administrators, fact-checkers, or oracles for its integrity. It must be **self-sustaining**: generating its own evidence, verifying its own claims, and maintaining its own accountability structures through the actions of its participants.
 
-We develop this thesis through four themes. First, we show that delegate candidacies and policy proposals share a common structure — both are scrutinizable claims submitted for community evaluation — and that this unification enables a single accountability infrastructure. Second, we argue that participant-generated surveys (called "polls" in Paper I) are the primary evidence base for prediction verification, formalizing the sensing mechanism as the system's feedback loop. Third, we identify the immutability guarantees a governance platform must offer as preconditions for self-maintenance, not merely desirable properties. Fourth, we introduce new configuration parameters — delegation mode, result visibility, vote mutability, note thresholds, and survey anonymity — that emerged from the interaction between these themes.
+We develop this thesis through four themes. First, we show that delegate candidacies and policy proposals share a common structure — both are scrutinizable claims submitted for community evaluation — and that this unification enables a single accountability infrastructure. Second, we argue that participant-generated surveys are the primary evidence base for prediction verification, formalizing the sensing mechanism as the system's feedback loop. Third, we identify the immutability guarantees a governance platform must offer as preconditions for self-maintenance, not merely desirable properties. Fourth, we introduce new configuration parameters — delegation mode, result visibility, vote mutability, note thresholds, and survey anonymity — that emerged from the interaction between these themes.
 
 ---
 
@@ -135,17 +135,13 @@ A candidacy profile is, in this model, a living document with an immutable histo
 
 ## 3. Surveys as Evidence
 
-### 3.1 A note on terminology
-
-Paper I used the term "polls" for the sensing mechanism — structured questions that capture participant observations on a recurring basis. In the implementation, we renamed this to **surveys** to avoid confusion with voting. "Poll" is ambiguous: it can mean an opinion poll, an informal vote, or the act of polling a data source. "Survey" is unambiguous — it denotes a structured instrument for gathering observations. This paper uses "surveys" throughout; the mechanism is identical to what Paper I described as "participant polls."
-
-### 3.2 The evidence problem
+### 3.1 The evidence problem
 
 Paper I proposed prediction tracking as the mechanism for institutional learning: proposals carry predictions, predictions are evaluated against outcomes, and accurate predictors earn credibility over time. The paper described AI-assisted outcome gathering as the primary means of evaluation — multiple AI providers querying external data to determine whether a prediction held.
 
 Implementation revealed a limitation of this approach: **AI-gathered evidence is external to the governance system.** It depends on the availability and quality of external data, on the AI providers' ability to interpret it, and on the participants' trust in AI systems. For many community governance decisions, external data doesn't exist. Whether park maintenance improved, whether communication got better, whether the new scheduling system works — these are observations that only participants can make.
 
-### 3.3 Participant-generated evidence
+### 3.2 Participant-generated evidence
 
 Votiverse already has a mechanism for capturing participant observations: surveys. Surveys ask questions like "How has park maintenance been this quarter?" and aggregate responses into trend data over time.
 
@@ -153,7 +149,7 @@ The key observation is that **completed surveys are the primary evidence base fo
 
 This means surveys are not a secondary feature. They are the feedback loop that makes prediction tracking functional. Without surveys, predictions are claims that are never checked. With surveys, the system generates its own evidence and can evaluate its own proposals retrospectively.
 
-### 3.4 The epistemological status of survey evidence
+### 3.3 The epistemological status of survey evidence
 
 This claim deserves scrutiny. Participant-reported experience is subjective, locally biased, and susceptible to framing effects. A survey asking "Has park maintenance improved?" may elicit different responses depending on when it is asked, how the question is worded, and what mood the respondent is in. Individual survey responses are noisy. They are not measurements in the scientific sense.
 
@@ -163,7 +159,7 @@ Aggregated subjective observation has three properties that compensate for indiv
 
 None of this makes survey evidence equivalent to controlled measurement. But it makes survey evidence *far superior* to the current default in community governance: no evidence, or evidence that is anecdotal, unsystematic, and unfalsifiable. The system does not need perfect data to be useful. It needs structured data that is better than what existed before and honest about its limitations.
 
-### 3.5 Linkable surveys
+### 3.4 Linkable surveys
 
 For the feedback loop to close, completed surveys must be **linkable artifacts** — referenceable from proposals, community notes, and delegate profiles. A proposal for field maintenance can cite the survey showing that 72% of members rated current conditions as poor. A community note on a delegate can reference the survey trend showing that the delegate's prediction about budget outcomes did not align with members' observed experience.
 
@@ -179,7 +175,7 @@ Proposals make predictions
 
 The system generates, stores, evaluates, and surfaces its own evidence without requiring external data sources, AI providers, or human fact-checkers. It is self-sustaining.
 
-### 3.6 Surveys as the mechanism of sensing
+### 3.5 Surveys as the mechanism of sensing
 
 Paper I drew a fundamental distinction between **sensing** and **deciding** — two different things governance asks of participants. Deciding (what should we do?) is cognitively demanding, scales poorly, and is the legitimate domain of delegation. Sensing (what is happening?) is observational, requires no expertise, and cannot be delegated because the whole point is each participant's local experience.
 
@@ -189,7 +185,7 @@ The flow is: deciding generates predictions → sensing generates observations �
 
 This elevates sensing from a "nice to have for engagement" — one possible reading of Paper I — to a structural requirement for self-sustaining governance.
 
-### 3.7 Survey integrity and anonymity
+### 3.6 Survey integrity and anonymity
 
 If surveys serve as evidence, their integrity becomes critical. Survey responses must be:
 
