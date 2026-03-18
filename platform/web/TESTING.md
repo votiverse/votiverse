@@ -320,6 +320,74 @@ For timeline decay details and reseeding instructions, see [`docs/testing.md`](.
 
 ---
 
+## Content Pages (Proposals, Candidacies, Notes)
+
+### New pages
+
+| Route | Description |
+|---|---|
+| `/assembly/:id/proposals` | List all proposals across events in the assembly |
+| `/assembly/:id/candidacies` | List all candidacies across elections in the assembly |
+
+### Assembly tab visibility
+
+- **Candidates tab** appears only for assemblies with `delegationMode: 'candidacy'` — currently **Youth Advisory Panel** only.
+- **Proposals** are accessible from within events that are in Deliberation phase (via "View Proposals" button).
+
+### Member search with candidacy discovery
+
+The delegation page includes a member search feature. When searching for members, candidacy declarations are surfaced alongside delegation options, enabling candidacy discovery within the delegation workflow.
+
+### TipTap markdown editor
+
+Proposal drafts and candidacy declarations use a TipTap rich-text editor with:
+- Markdown rendering (headings, lists, bold, italic, links)
+- **Import button** — imports Word/DOCX files directly into the editor
+
+### Community notes
+
+Community notes appear on proposals and candidacies in assemblies with `communityNotes: true` (Youth Advisory Panel). Each note has evaluations (helpful / not helpful) from other participants.
+
+### Seeded content
+
+| Type | Assembly | Items | Authors |
+|---|---|---|---|
+| Proposals | OSC | 2 (on H2 2026 Roadmap Proposals) | Mei-Ling Wu, Leo Fernandez |
+| Proposals | Youth | 1 (on Digital Citizenship Curriculum) | Aisha Moyo |
+| Candidacies | OSC | 2 (Lead Maintainer, Release Manager) | Mei-Ling Wu, Leo Fernandez |
+| Candidacies | Youth | 1 | Aisha Moyo |
+| Community Notes | Youth | 3 (on Youth Program Priorities 2026) | Various, with 9 evaluations |
+
+### Content testing scenarios
+
+**Scenario: Draft and submit a proposal**
+1. Log in as **Nina Kowalski** (`nina-kowalski@example.com`) → Youth Advisory Panel
+2. Go to Events → Digital Citizenship Curriculum (Deliberation)
+3. Click "View Proposals" → "New Draft"
+4. Write title and body in the TipTap editor (or import a .docx file)
+5. Click "Submit" → proposal appears in the list
+
+**Scenario: View candidacies**
+1. Log in as **Sofia Reyes** (`sofia-reyes@example.com`) → OSC Governance Board
+2. Go to Events → 2026 Maintainer Elections → "View Candidates"
+3. Verify Mei-Ling Wu and Leo Fernandez candidacies appear
+
+**Scenario: Community notes on Youth proposals**
+1. Log in as any Youth member → Youth Advisory Panel
+2. Go to Events → Youth Program Priorities 2026 → View Proposals
+3. Community notes should be visible with evaluation counts
+
+### Web client tests (16 tests)
+
+Tests in `platform/web/test/`:
+
+| File | Tests | Focus |
+|---|---|---|
+| `member-search.test.ts` | — | Member search filtering and candidacy discovery |
+| `assembly-tabs.test.ts` | — | Tab visibility based on assembly configuration |
+
+---
+
 ## Common Testing Scenarios
 
 ### Scenario 1: Delegation Override
