@@ -388,6 +388,51 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
+  // ── Maple Heights Condo Board (MODERN_DEMOCRACY) ────────────────────────
+
+  {
+    key: "maple-roof",
+    assemblyKey: "maple",
+    title: "Emergency Roof Repair",
+    description: "Urgent vote on authorizing roof repairs and choosing a funding source after March storm damage.",
+    deliberationStart: -25 * DAY,
+    votingStart: -18 * DAY,
+    votingEnd: -4 * DAY,
+    issues: [
+      {
+        title: "Authorize $45,000 Emergency Roof Repair",
+        description: "Approve emergency funds for immediate roof repairs to units 12-18 following the March 2 storm damage assessment by Apex Roofing.",
+      },
+      {
+        title: "Funding Source for Roof Repair",
+        description: "Choose how to fund the $45,000 repair: draw from the reserve fund (current balance: $72,000) or levy a special assessment of $1,875 per unit.",
+        choices: ["Reserve Fund", "Special Assessment"],
+      },
+    ],
+  },
+
+  {
+    key: "maple-lobby",
+    assemblyKey: "maple",
+    title: "Lobby Renovation Decision",
+    description: "Proposed renovation of the ground-floor lobby including new flooring, lighting, mailbox upgrade, and accessibility improvements.",
+    deliberationStart: -5 * DAY,
+    votingStart: 4 * DAY,
+    votingEnd: 11 * DAY,
+    issues: [
+      {
+        title: "Approve Lobby Renovation Budget",
+        description: "Authorize up to $120,000 for a comprehensive lobby renovation including new tile flooring, LED lighting, ADA-compliant entrance ramp, and modern mailbox units.",
+      },
+      {
+        title: "Temporary Lobby Closure Plan",
+        description: "Approve a 3-week lobby closure during renovation. Residents will use the side entrance. Building management will provide daily updates.",
+      },
+    ],
+  },
+
+  // ── Elections ──────────────────────────────────────────────────────────
+
   {
     key: "osc-election",
     assemblyKey: "osc",

@@ -40,4 +40,10 @@ export const ASSEMBLIES: AssemblyDef[] = [
     organizationId: "org-meridian-capital",
     preset: "BOARD_PROXY",
   },
+  {
+    key: "maple",
+    name: "Maple Heights Condo Board",
+    organizationId: "org-maple-heights",
+    preset: "MODERN_DEMOCRACY",
+  },
 ];

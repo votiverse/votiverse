@@ -6,6 +6,12 @@
  *   Marcus Chen   — osc, municipal
  *   Priya Sharma  — municipal, youth
  *   James Okafor  — municipal, board
+ *   Elena Vasquez — greenfield, maple
+ *   Thomas Wright — greenfield, maple
+ *   Amara Johnson — greenfield, maple
+ *   Marcus Chen   — osc, municipal, maple
+ *   Sofia Reyes   — osc, youth, maple (invited member)
+ *   Kai Andersen  — osc, maple
  */
 
 export const PARTICIPANTS: Record<string, string[]> = {
@@ -85,5 +91,14 @@ export const PARTICIPANTS: Record<string, string[]> = {
     "Margaret Ashworth",
     "David Greenfield",
     "Elizabeth Fairfax",
+  ],
+
+  maple: [
+    "Elena Vasquez",      // board president, owner
+    "Marcus Chen",        // treasurer, writes proposals
+    "Thomas Wright",      // board member
+    "Amara Johnson",      // board member
+    "Kai Andersen",       // skeptical owner, writes community notes
+    "Sofia Reyes",        // new owner, invited via link
   ],
 };

@@ -138,3 +138,41 @@ export function iid(eventKey: string, issueIndex: number): string {
   if (!id) throw new Error(`Issue index ${issueIndex} not found in event ${eventKey}`);
   return id;
 }
+
+// ── Manifest persistence ─────────────────────────────────────────────────
+
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+/** Manifest shape written to seed-manifest.json after seeding. */
+export interface SeedManifest {
+  /** ISO timestamp when the manifest was generated. */
+  generatedAt: string;
+  /** assemblyKey → assemblyId */
+  assemblies: Record<string, string>;
+  /** "assemblyKey::participantName" → participantId */
+  participants: Record<string, string>;
+  /** "assemblyKey::topicKey" → topicId */
+  topics: Record<string, string>;
+  /** eventKey → { eventId, issueIds } */
+  events: Record<string, { eventId: string; issueIds: string[] }>;
+}
+
+/**
+ * Write all in-memory registries to `platform/vcp/seed-manifest.json`.
+ * Screenshot scripts and other tooling read this file instead of hardcoding UUIDs.
+ */
+export function writeManifest(): void {
+  const manifest: SeedManifest = {
+    generatedAt: new Date().toISOString(),
+    assemblies: Object.fromEntries(assemblyIds),
+    participants: Object.fromEntries(participantIds),
+    topics: Object.fromEntries(topicIds),
+    events: Object.fromEntries(eventRegistry),
+  };
+
+  // Write to platform/vcp/seed-manifest.json (two levels up from seed-data/)
+  const manifestPath = join(import.meta.dirname ?? ".", "..", "..", "seed-manifest.json");
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  console.log(`  📋 Manifest written → ${manifestPath}`);
+}

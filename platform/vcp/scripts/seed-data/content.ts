@@ -155,6 +155,41 @@ This catches real issues without blocking day-to-day development velocity.
 `,
   },
 
+  // Maple Heights Lobby Renovation (deliberation: -5d, votingStart: +4d) — in deliberation
+  {
+    assemblyKey: "maple",
+    eventKey: "maple-lobby",
+    issueIndex: 0,
+    choiceKey: "for",
+    authorName: "Marcus Chen",
+    title: "Lobby Renovation: A Sound Investment",
+    markdown: `# Lobby Renovation: A Sound Investment
+
+## Executive Summary
+
+As treasurer, I've reviewed three contractor bids and recommend approving the full renovation at $120,000. The lobby is the first impression of our building — and right now, that impression includes cracked tiles, flickering lights, and mailboxes that jam in winter.
+
+## Cost Breakdown
+
+| Item | Estimated Cost |
+|------|---------------|
+| Flooring (porcelain tile, 1,200 sq ft) | $38,000 |
+| LED lighting + wiring update | $22,000 |
+| ADA entrance ramp + door automation | $28,000 |
+| Mailbox replacement (24 units) | $12,000 |
+| Contingency (10%) | $12,000 |
+| **Total** | **$120,000** |
+
+## Funding
+
+The reserve fund currently holds $72,000. I recommend funding the renovation through a combination of reserve draw ($72,000) and a modest special assessment ($2,000/unit) to cover the remainder without depleting our emergency reserves entirely.
+
+## Timeline
+
+The contractor estimates 3 weeks for completion. I propose scheduling the work for early April when several owners are away and building traffic is lowest.
+`,
+  },
+
   // Youth Digital Citizenship (deliberation: -3d, votingStart: +4d) — in deliberation
   {
     assemblyKey: "youth",
@@ -264,12 +299,21 @@ I opt into transparent voting so my delegators can hold me accountable.
 // Notes on proposals and candidacies in assemblies with communityNotes: true
 
 export const NOTES: NoteDef[] = [
+  // Note on Marcus's lobby renovation proposal (Maple — MODERN_DEMOCRACY, communityNotes: true)
+  {
+    assemblyKey: "maple",
+    authorName: "Kai Andersen",
+    targetType: "proposal",
+    targetRef: 4, // Maple proposal is at index 4 in PROPOSALS
+    markdown: "The $120,000 budget does not include permit fees (typically $3,000-5,000 for work of this scope), nor temporary lobby closure costs such as security for the side entrance. The 10% contingency is below the industry standard of 15-20% for renovation projects with unknowns behind existing walls.",
+  },
+
   // Note on Aisha's "Digital Literacy Workshops" proposal (Youth — LIQUID_ACCOUNTABLE, communityNotes: true)
   {
     assemblyKey: "youth",
     authorName: "Liam Torres",
     targetType: "proposal",
-    targetRef: 2, // Youth proposal is at index 2 in PROPOSALS
+    targetRef: 5, // Youth proposal is at index 5 in PROPOSALS (shifted by maple insertion)
     markdown: "The $200/session facilitator stipend seems low for qualified instructors. Comparable programs in our district pay $300-400. We should either increase the budget or plan for peer-led sessions.",
   },
   // Note on the same proposal — different perspective
@@ -277,7 +321,7 @@ export const NOTES: NoteDef[] = [
     assemblyKey: "youth",
     authorName: "Jin Park",
     targetType: "proposal",
-    targetRef: 2,
+    targetRef: 5,
     markdown: "I participated in a similar pilot program at my school last year. Satisfaction was high (4.3/5) but attendance dropped after month 3. Suggest front-loading the most engaging topics.",
   },
   // Note on Aisha's candidacy (Youth)
@@ -293,20 +337,25 @@ export const NOTES: NoteDef[] = [
 // ── Note Evaluations ─────────────────────────────────────────────────────
 
 export const NOTE_EVALUATIONS: NoteEvaluationDef[] = [
-  // Liam's note on the workshop proposal — mostly endorsed
-  { assemblyKey: "youth", noteRef: 0, participantName: "Sofia Reyes", evaluation: "endorse" },
-  { assemblyKey: "youth", noteRef: 0, participantName: "Priya Sharma", evaluation: "endorse" },
-  { assemblyKey: "youth", noteRef: 0, participantName: "Chloe Beaumont", evaluation: "endorse" },
+  // Kai's note on lobby renovation proposal (Maple) — mostly endorsed
+  { assemblyKey: "maple", noteRef: 0, participantName: "Elena Vasquez", evaluation: "endorse" },
+  { assemblyKey: "maple", noteRef: 0, participantName: "Thomas Wright", evaluation: "endorse" },
+  { assemblyKey: "maple", noteRef: 0, participantName: "Amara Johnson", evaluation: "endorse" },
 
-  // Jin's note on the workshop proposal — mixed
-  { assemblyKey: "youth", noteRef: 1, participantName: "Liam Torres", evaluation: "endorse" },
-  { assemblyKey: "youth", noteRef: 1, participantName: "Tariq Hassan", evaluation: "dispute" },
-  { assemblyKey: "youth", noteRef: 1, participantName: "Emilia Strand", evaluation: "endorse" },
+  // Liam's note on the workshop proposal (Youth) — mostly endorsed
+  { assemblyKey: "youth", noteRef: 1, participantName: "Sofia Reyes", evaluation: "endorse" },
+  { assemblyKey: "youth", noteRef: 1, participantName: "Priya Sharma", evaluation: "endorse" },
+  { assemblyKey: "youth", noteRef: 1, participantName: "Chloe Beaumont", evaluation: "endorse" },
 
-  // Priya's note on Aisha's candidacy — endorsed
-  { assemblyKey: "youth", noteRef: 2, participantName: "Sofia Reyes", evaluation: "endorse" },
-  { assemblyKey: "youth", noteRef: 2, participantName: "Jin Park", evaluation: "endorse" },
+  // Jin's note on the workshop proposal (Youth) — mixed
   { assemblyKey: "youth", noteRef: 2, participantName: "Liam Torres", evaluation: "endorse" },
+  { assemblyKey: "youth", noteRef: 2, participantName: "Tariq Hassan", evaluation: "dispute" },
+  { assemblyKey: "youth", noteRef: 2, participantName: "Emilia Strand", evaluation: "endorse" },
+
+  // Priya's note on Aisha's candidacy (Youth) — endorsed
+  { assemblyKey: "youth", noteRef: 3, participantName: "Sofia Reyes", evaluation: "endorse" },
+  { assemblyKey: "youth", noteRef: 3, participantName: "Jin Park", evaluation: "endorse" },
+  { assemblyKey: "youth", noteRef: 3, participantName: "Liam Torres", evaluation: "endorse" },
 ];
 
 // ── Proposal Endorsements ────────────────────────────────────────────────
@@ -336,8 +385,13 @@ export const PROPOSAL_ENDORSEMENTS: ProposalEndorsementDef[] = [
   { assemblyKey: "osc", proposalRef: 3, participantName: "Kai Andersen", evaluation: "dispute" },
   { assemblyKey: "osc", proposalRef: 3, participantName: "Sofia Reyes", evaluation: "endorse" },
 
-  // Youth — "Digital Literacy Workshops" (index 4) — endorsed
-  { assemblyKey: "youth", proposalRef: 4, participantName: "Liam Torres", evaluation: "endorse" },
-  { assemblyKey: "youth", proposalRef: 4, participantName: "Jin Park", evaluation: "endorse" },
-  { assemblyKey: "youth", proposalRef: 4, participantName: "Priya Sharma", evaluation: "endorse" },
+  // Maple — "Lobby Renovation" (index 4) — mixed
+  { assemblyKey: "maple", proposalRef: 4, participantName: "Elena Vasquez", evaluation: "endorse" },
+  { assemblyKey: "maple", proposalRef: 4, participantName: "Amara Johnson", evaluation: "endorse" },
+  { assemblyKey: "maple", proposalRef: 4, participantName: "Kai Andersen", evaluation: "dispute" },
+
+  // Youth — "Digital Literacy Workshops" (index 5) — endorsed
+  { assemblyKey: "youth", proposalRef: 5, participantName: "Liam Torres", evaluation: "endorse" },
+  { assemblyKey: "youth", proposalRef: 5, participantName: "Jin Park", evaluation: "endorse" },
+  { assemblyKey: "youth", proposalRef: 5, participantName: "Priya Sharma", evaluation: "endorse" },
 ];

@@ -27,6 +27,7 @@ import {
   eventRegistry,
   iid,
   BASE_URL,
+  writeManifest,
 } from "./seed-data/helpers.js";
 import { ASSEMBLIES } from "./seed-data/organizations.js";
 import { PARTICIPANTS } from "./seed-data/participants.js";
@@ -427,9 +428,15 @@ export async function main() {
   }
   console.log(`\n  Created ${NOTES.length} notes with ${evalCount} evaluations\n`);
 
+  // ── Manifest ─────────────────────────────────────────────────────────
+  // Write all key→UUID mappings so screenshot scripts and other tooling
+  // can reference entities without hardcoding UUIDs.
+
+  writeManifest();
+
   // ── Summary ────────────────────────────────────────────────────────
 
-  console.log("═══ SEED COMPLETE ═══\n");
+  console.log("\n═══ SEED COMPLETE ═══\n");
   console.log("  Assemblies:    ", ASSEMBLIES.length);
   console.log("  Participants:  ", totalParticipants);
   console.log("  Topics:        ", TOPICS.length);
@@ -448,8 +455,12 @@ export async function main() {
 
   // Cross-assembly users for testing (login via backend with email: slug@example.com, password: password)
   console.log("  Cross-assembly participants (login via backend to test dashboard):");
-  console.log("    Sofia Reyes   — OSC Governance Board, Youth Advisory Panel");
-  console.log("    Marcus Chen   — OSC Governance Board, Municipal Budget Committee");
+  console.log("    Elena Vasquez — Greenfield Community Council, Maple Heights Condo Board");
+  console.log("    Marcus Chen   — OSC Governance Board, Municipal Budget Committee, Maple Heights");
+  console.log("    Sofia Reyes   — OSC Governance Board, Youth Advisory Panel, Maple Heights");
+  console.log("    Thomas Wright — Greenfield Community Council, Maple Heights Condo Board");
+  console.log("    Amara Johnson — Greenfield Community Council, Maple Heights Condo Board");
+  console.log("    Kai Andersen  — OSC Governance Board, Maple Heights Condo Board");
   console.log("    Priya Sharma  — Municipal Budget Committee, Youth Advisory Panel");
   console.log("    James Okafor  — Municipal Budget Committee, Board of Directors");
   console.log();

@@ -288,6 +288,25 @@ export const VOTES: VoteDef[] = [
   ]),
 
   // ════════════════════════════════════════════════════════════════════════
+  // Maple Heights Condo Board — MODERN_DEMOCRACY
+  // ════════════════════════════════════════════════════════════════════════
+
+  // ── Emergency Roof Repair (CLOSED) ───────────────────────────────────
+  // Issue 0: "Authorize $45,000 Emergency Roof Repair" — approved 3-0 (unanimous)
+  ...maple("maple-roof", 0, [
+    ["Elena Vasquez", "for"],
+    ["Marcus Chen", "for"],
+    ["Thomas Wright", "for"],
+  ]),
+
+  // Issue 1: "Funding Source" — Reserve Fund wins 2-1
+  ...maple("maple-roof", 1, [
+    ["Elena Vasquez", "Reserve Fund"],
+    ["Marcus Chen", "Special Assessment"],
+    ["Thomas Wright", "Reserve Fund"],
+  ]),
+
+  // ════════════════════════════════════════════════════════════════════════
   // Board of Directors — BOARD_PROXY (non-transitive proxy)
   // ════════════════════════════════════════════════════════════════════════
 
@@ -421,4 +440,8 @@ function youth(eventKey: string, issueIndex: number, votes: [string, string][]):
 
 function board(eventKey: string, issueIndex: number, votes: [string, string][]): VoteDef[] {
   return makeVotes("board", eventKey, issueIndex, votes);
+}
+
+function maple(eventKey: string, issueIndex: number, votes: [string, string][]): VoteDef[] {
+  return makeVotes("maple", eventKey, issueIndex, votes);
 }

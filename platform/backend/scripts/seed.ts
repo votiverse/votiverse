@@ -304,9 +304,16 @@ export async function main() {
       // Notes
       try {
         const { notes } = await vcpGet<{ notes: Array<{ id: string }> }>(`/assemblies/${asm.id}/notes`);
+        const nameToKey: Record<string, string> = {
+          "Youth Advisory Panel": "youth",
+          "OSC Governance Board": "osc",
+          "Maple Heights Condo Board": "maple",
+          "Municipal Budget Committee": "municipal",
+          "Greenfield Community Council": "greenfield",
+          "Board of Directors": "board",
+        };
         const asmNotes = (NOTES as Array<{ assemblyKey: string; markdown: string }>).filter((n) => {
-          const asmKey = asm.name.toLowerCase().includes("youth") ? "youth" : asm.name.toLowerCase().includes("osc") ? "osc" : "";
-          return n.assemblyKey === asmKey;
+          return n.assemblyKey === (nameToKey[asm.name] ?? "");
         });
         for (let i = 0; i < notes.length && i < asmNotes.length; i++) {
           items.push({ type: "note", id: notes[i]!.id, assemblyId: asm.id, markdown: asmNotes[i]!.markdown });
