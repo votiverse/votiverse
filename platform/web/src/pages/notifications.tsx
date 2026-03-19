@@ -93,9 +93,15 @@ function NotificationCard({ notification, onClick }: { notification: Notificatio
       ? <Badge color="blue">New</Badge>
       : null;
 
+  const cardBg = !notification.read && notification.urgency === "action"
+    ? "bg-red-50/40 border-red-200 hover:border-red-300"
+    : !notification.read && notification.urgency === "timely"
+      ? "bg-blue-50/30 hover:border-blue-200"
+      : "hover:border-gray-300";
+
   return (
     <Card
-      className={`cursor-pointer hover:border-gray-300 transition-colors ${notification.read ? "opacity-60" : ""}`}
+      className={`cursor-pointer transition-colors ${cardBg} ${notification.read ? "opacity-50" : ""}`}
     >
       <CardBody className="py-3">
         <button onClick={onClick} className="w-full text-left">

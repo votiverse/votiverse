@@ -153,8 +153,13 @@ export function NotificationBell() {
 
 function NotificationItem({ notification, onClick }: { notification: Notification; onClick: () => void }) {
   const icon = TYPE_ICONS[notification.type] ?? <Clock size={14} />;
-  const urgencyClass = notification.urgency === "action"
-    ? "border-l-brand"
+  const bgClass = !notification.read && notification.urgency === "action"
+    ? "bg-red-50/50 hover:bg-red-50"
+    : !notification.read && notification.urgency === "timely"
+      ? "bg-blue-50/30 hover:bg-blue-50/50"
+      : "hover:bg-gray-50";
+  const borderClass = notification.urgency === "action"
+    ? "border-l-red-400"
     : notification.urgency === "timely"
       ? "border-l-blue-400"
       : "border-l-transparent";
@@ -162,8 +167,8 @@ function NotificationItem({ notification, onClick }: { notification: Notificatio
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3 border-l-2 ${urgencyClass} hover:bg-gray-50 transition-colors ${
-        notification.read ? "opacity-60" : ""
+      className={`w-full text-left px-4 py-3 border-l-2 ${borderClass} ${bgClass} transition-colors cursor-pointer ${
+        notification.read ? "opacity-50" : ""
       }`}
     >
       <div className="flex items-start gap-2.5">
