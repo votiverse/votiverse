@@ -10,7 +10,7 @@ import { useParams, useNavigate } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { presetLabel } from "../lib/presets.js";
+import { presetLabel, summarizeRules } from "../lib/presets.js";
 import type { GovernanceConfig } from "../api/types.js";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -25,42 +25,6 @@ interface GroupPreview {
     admins: Array<{ participantId: string; name: string | null }>;
     memberCount: number;
   };
-}
-
-/** Generate plain-language rules from config (same logic as assembly-dashboard). */
-function summarizeRules(config: GovernanceConfig): string[] {
-  const rules: string[] = [];
-
-  if (config.delegation.delegationMode === "none") {
-    rules.push("Every member votes directly on every question");
-  } else if (config.delegation.delegationMode === "candidacy") {
-    rules.push("Members can delegate their vote to trusted candidates" + (config.delegation.topicScoped ? " by topic" : ""));
-  } else {
-    rules.push("Members can delegate their vote to any other member" + (config.delegation.topicScoped ? " by topic" : ""));
-  }
-
-  const tl = config.timeline;
-  if (tl) {
-    const parts = [`${tl.deliberationDays} day${tl.deliberationDays !== 1 ? "s" : ""} for deliberation`];
-    if (tl.curationDays > 0) parts.push(`${tl.curationDays} day${tl.curationDays !== 1 ? "s" : ""} for curation`);
-    parts.push(`${tl.votingDays} day${tl.votingDays !== 1 ? "s" : ""} to vote`);
-    rules.push(parts.join(", then "));
-  }
-
-  if (config.ballot.secrecy === "secret") {
-    rules.push("Ballots are secret; results revealed after voting ends");
-  }
-  if (config.ballot.allowVoteChange) {
-    rules.push("You can change your vote before voting closes");
-  }
-  if (config.features.communityNotes) {
-    rules.push("Community notes help verify claims in proposals");
-  }
-  if (config.features.surveys) {
-    rules.push("Surveys capture member observations for accountability");
-  }
-
-  return rules;
 }
 
 export function InvitePage() {

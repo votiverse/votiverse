@@ -15,7 +15,9 @@ import {
   humanizeAwareness,
   humanizeBoolean,
   humanizeResultsVisibility,
+  summarizeRules,
 } from "../lib/presets.js";
+import { OnboardingDialog, shouldShowOnboarding } from "../components/onboarding-dialog.js";
 
 export function AssemblyDashboard() {
   const { assemblyId } = useParams();
@@ -34,6 +36,7 @@ export function AssemblyDashboard() {
     [assemblyId, participantId],
   );
   const [showConfig, setShowConfig] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(() => assemblyId ? shouldShowOnboarding(assemblyId) : false);
 
   if (loading) return <Spinner />;
   if (error || !assembly) return <ErrorBox message={error ?? "Assembly not found"} onRetry={refetch} />;
@@ -46,6 +49,15 @@ export function AssemblyDashboard() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      {showOnboarding && (
+        <OnboardingDialog
+          assemblyId={assemblyId!}
+          assemblyName={assembly.name}
+          config={config}
+          onDismiss={() => setShowOnboarding(false)}
+        />
+      )}
+
       <div className="mb-6">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{assembly.name}</h1>
@@ -54,8 +66,8 @@ export function AssemblyDashboard() {
         <p className="mt-1 text-sm text-gray-500">{config.description}</p>
       </div>
 
-      {/* Onboarding rules summary — shown once per assembly */}
-      <WelcomeCard assemblyId={assemblyId!} assemblyName={assembly.name} config={config} />
+      {/* Onboarding rules summary — shown once per assembly (suppressed if onboarding dialog was shown) */}
+      {!showOnboarding && <WelcomeCard assemblyId={assemblyId!} assemblyName={assembly.name} config={config} />}
 
       {/* Stats row — participant-centric */}
       <div className={`grid grid-cols-2 ${config.delegation.delegationMode !== "none" ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
@@ -268,50 +280,6 @@ function ConfigRow({ label, value }: { label: string; value: string }) {
       <span className="text-gray-900 font-medium">{value}</span>
     </div>
   );
-}
-
-/** Generates plain-language governance rules from the config. */
-function summarizeRules(config: GovernanceConfig): string[] {
-  const rules: string[] = [];
-
-  // Delegation
-  if (config.delegation.delegationMode === "none") {
-    rules.push("Every member votes directly on every question");
-  } else if (config.delegation.delegationMode === "candidacy") {
-    rules.push("Members can delegate their vote to trusted candidates" + (config.delegation.topicScoped ? " by topic" : ""));
-  } else {
-    rules.push("Members can delegate their vote to any other member" + (config.delegation.topicScoped ? " by topic" : ""));
-  }
-
-  // Timeline
-  const tl = config.timeline;
-  if (tl) {
-    const parts = [`${tl.deliberationDays} day${tl.deliberationDays !== 1 ? "s" : ""} for deliberation`];
-    if (tl.curationDays > 0) parts.push(`${tl.curationDays} day${tl.curationDays !== 1 ? "s" : ""} for curation`);
-    parts.push(`${tl.votingDays} day${tl.votingDays !== 1 ? "s" : ""} to vote`);
-    rules.push(parts.join(", then "));
-  }
-
-  // Ballot
-  if (config.ballot.secrecy === "secret") {
-    rules.push("Ballots are secret; results are revealed after voting ends");
-  } else if (config.ballot.secrecy === "public") {
-    rules.push("Ballots are public" + (config.ballot.resultsVisibility === "live" ? " with live results" : ""));
-  }
-
-  if (config.ballot.allowVoteChange) {
-    rules.push("You can change your vote any time before voting closes");
-  }
-
-  // Features
-  if (config.features.communityNotes) {
-    rules.push("Community notes help verify claims in proposals and candidate profiles");
-  }
-  if (config.features.surveys) {
-    rules.push("Surveys capture member observations as evidence for accountability");
-  }
-
-  return rules;
 }
 
 function WelcomeCard({ assemblyId, assemblyName, config }: { assemblyId: string; assemblyName: string; config: GovernanceConfig }) {
