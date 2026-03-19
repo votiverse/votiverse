@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
-import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
+import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { BulkInvite } from "../components/bulk-invite.js";
 import type { AdmissionMode } from "../api/types.js";
@@ -10,7 +10,8 @@ import type { AdmissionMode } from "../api/types.js";
 export function Members() {
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
-  const { data: settingsData } = useApi(() => api.getAssemblySettings(assemblyId!), [assemblyId]);
+  const { data: settingsData, refetch: refetchSettings } = useApi(() => api.getAssemblySettings(assemblyId!), [assemblyId]);
+  const [showSettings, setShowSettings] = useState(false);
   const { data: joinRequestsData, refetch: refetchJoinRequests } = useApi(() => api.listJoinRequests(assemblyId!).catch(() => ({ joinRequests: [] })), [assemblyId]);
   const [adding, setAdding] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -62,6 +63,29 @@ export function Members() {
           <Button onClick={() => setAdding(true)}>Add Member</Button>
         </div>
       </div>
+
+      {/* Admission mode indicator + settings */}
+      <div className="flex items-center gap-3 mb-4 text-sm">
+        <span className="text-gray-500">
+          Admission: <span className="font-medium text-gray-700">
+            {admissionMode === "approval" ? "Approval required" : admissionMode === "open" ? "Open" : "Invite only"}
+          </span>
+        </span>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="text-brand hover:text-brand-light text-xs font-medium"
+        >
+          {showSettings ? "Hide settings" : "Change"}
+        </button>
+      </div>
+
+      {showSettings && (
+        <AdmissionModeSettings
+          assemblyId={assemblyId!}
+          currentMode={admissionMode}
+          onChanged={() => { refetchSettings(); setShowSettings(false); }}
+        />
+      )}
 
       {inviteLink && (
         <Card className="mb-4 border-brand-200 bg-brand-50/30">
@@ -315,6 +339,61 @@ function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: s
         <Button size="sm" variant="ghost" onClick={handleReject} disabled={acting}>Reject</Button>
       </div>
     </div>
+  );
+}
+
+function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assemblyId: string; currentMode: AdmissionMode; onChanged: () => void }) {
+  const [mode, setMode] = useState(currentMode);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (mode === currentMode) { onChanged(); return; }
+    setSaving(true);
+    setError(null);
+    try {
+      await api.updateAssemblySettings(assemblyId, { admissionMode: mode });
+      onChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="mb-4">
+      <CardBody>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Admission Settings</h3>
+        {error && <ErrorBox message={error} />}
+        <div className="space-y-3">
+          <div>
+            <Label>Who can join</Label>
+            <Select value={mode} onChange={(e) => setMode(e.target.value as AdmissionMode)}>
+              <option value="approval">Approval required</option>
+              <option value="open">Open — anyone with a link joins immediately</option>
+              <option value="invite-only">Invite only — admin sends directly</option>
+            </Select>
+          </div>
+          {mode === "open" && mode !== currentMode && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+              Open admission increases the risk of Sybil attacks — a bad actor could create multiple accounts to multiply their voting power.
+            </p>
+          )}
+          {mode === "invite-only" && mode !== currentMode && (
+            <p className="text-xs text-gray-500">
+              Existing invite links will no longer work. Only direct invitations by handle will be accepted.
+            </p>
+          )}
+          <div className="flex gap-2 justify-end">
+            <Button variant="secondary" onClick={onChanged}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 

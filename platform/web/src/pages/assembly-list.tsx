@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
@@ -169,6 +169,7 @@ export function AssemblyList() {
 // ── Create group form ────────────────────────────────────────────────
 
 function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [config, setConfig] = useState<ConfigDraft>(getDefaultConfig);
   const [admissionMode, setAdmissionMode] = useState<"open" | "approval" | "invite-only">("approval");
@@ -185,9 +186,18 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
     setSubmitting(true);
     setError(null);
     try {
-      await api.createAssembly({ name: name.trim(), preset: config.preset, admissionMode });
+      // Send full config when customized, otherwise just the preset name
+      const params: Parameters<typeof api.createAssembly>[0] = { name: name.trim(), admissionMode };
+      if (isCustomized) {
+        params.config = config;
+      } else {
+        params.preset = config.preset;
+      }
+      const assembly = await api.createAssembly(params);
       onCreated();
       onClose();
+      // Navigate directly to the new group's dashboard
+      navigate(`/assembly/${assembly.id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create group");
     } finally {
