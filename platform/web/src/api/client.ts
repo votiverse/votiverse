@@ -127,6 +127,10 @@ export function declineInvitation(invitationId: string): Promise<void> {
   return request("POST", `/me/invitations/${invitationId}/decline`);
 }
 
+export function updateProfile(updates: { handle?: string; name?: string; bio?: string; avatarUrl?: string | null }): Promise<{ handle: string; name: string; bio: string; avatarUrl: string | null }> {
+  return request("PUT", "/me/profile", updates);
+}
+
 // ---- Participants ----
 
 export function listParticipants(assemblyId: string): Promise<{ participants: Participant[] }> {

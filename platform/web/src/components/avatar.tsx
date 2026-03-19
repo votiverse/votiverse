@@ -1,16 +1,31 @@
 /**
- * Deterministic avatar component using DiceBear's "avataaars" style.
- * Same name always produces the same face, so cross-assembly participants
- * (e.g. Sofia Reyes in OSC and Youth) get a consistent visual identity.
+ * Deterministic avatar component using DiceBear.
+ * Supports multiple styles. Same seed always produces the same face.
+ * Custom avatar URLs override the generated avatar.
  */
 
-const DICEBEAR_BASE = "https://api.dicebear.com/9.x/avataaars/svg";
+/** Available DiceBear avatar styles. */
+export const AVATAR_STYLES = [
+  "avataaars",
+  "bottts",
+  "fun-emoji",
+  "lorelei",
+  "notionists",
+  "open-peeps",
+  "thumbs",
+  "shapes",
+] as const;
 
-export function avatarUrl(seed: string): string {
-  return `${DICEBEAR_BASE}?seed=${encodeURIComponent(seed)}`;
+export type AvatarStyle = typeof AVATAR_STYLES[number];
+
+const DICEBEAR_BASE = "https://api.dicebear.com/9.x";
+
+/** Generate a DiceBear avatar URL for a given style and seed. */
+export function avatarUrl(seed: string, style: AvatarStyle = "avataaars"): string {
+  return `${DICEBEAR_BASE}/${style}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
-type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
+export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 const sizeClasses: Record<AvatarSize, string> = {
   xs: "w-5 h-5",
@@ -22,14 +37,17 @@ const sizeClasses: Record<AvatarSize, string> = {
 
 interface AvatarProps {
   name: string;
+  /** Custom avatar URL — overrides DiceBear generation. */
+  url?: string | null;
   size?: AvatarSize;
   className?: string;
 }
 
-export function Avatar({ name, size = "md", className = "" }: AvatarProps) {
+export function Avatar({ name, url, size = "md", className = "" }: AvatarProps) {
+  const src = url || avatarUrl(name);
   return (
     <img
-      src={avatarUrl(name)}
+      src={src}
       alt={name}
       className={`${sizeClasses[size]} rounded-full bg-gray-100 shrink-0 ${className}`}
       loading="lazy"

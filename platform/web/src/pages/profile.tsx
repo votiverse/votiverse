@@ -3,8 +3,8 @@ import { Link } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
-import { Card, CardHeader, CardBody, Spinner, ErrorBox } from "../components/ui.js";
-import { Avatar } from "../components/avatar.js";
+import { Card, CardHeader, CardBody, Button, Input, Label, Spinner, ErrorBox } from "../components/ui.js";
+import { Avatar, AVATAR_STYLES, avatarUrl, type AvatarStyle } from "../components/avatar.js";
 
 interface AssemblyProfileData {
   assembly: Assembly;
@@ -13,10 +13,11 @@ interface AssemblyProfileData {
 }
 
 export function Profile() {
-  const { storeUserId, participantName, email, memberships } = useIdentity();
+  const { storeUserId, participantName, handle, email, memberships } = useIdentity();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (!storeUserId || memberships.length === 0) {
@@ -27,7 +28,6 @@ export function Profile() {
     let cancelled = false;
     (async () => {
       try {
-        // Build membership map from local identity data (no API call needed)
         const membershipMap = new Map(
           memberships.map((m) => [m.assemblyId, m.participantId]),
         );
@@ -83,15 +83,33 @@ export function Profile() {
       {/* Identity card */}
       <Card className="mb-6">
         <CardBody>
-          <div className="flex items-center gap-3">
-            <Avatar name={participantName ?? "?"} size="lg" />
-            <div>
-              <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
-              {email && <p className="text-xs text-gray-400">{email}</p>}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar name={participantName ?? "?"} size="lg" />
+              <div>
+                <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
+                {handle && <p className="text-sm text-gray-500">@{handle}</p>}
+                {email && <p className="text-xs text-gray-400">{email}</p>}
+              </div>
             </div>
+            <Button variant="secondary" size="sm" onClick={() => setEditing(!editing)}>
+              {editing ? "Done" : "Edit"}
+            </Button>
           </div>
         </CardBody>
       </Card>
+
+      {editing && (
+        <ProfileEditor
+          currentName={participantName ?? ""}
+          currentHandle={handle ?? ""}
+          onSaved={() => {
+            setEditing(false);
+            // Refresh identity by reloading the page (simplest approach)
+            window.location.reload();
+          }}
+        />
+      )}
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-8">
@@ -133,7 +151,6 @@ export function Profile() {
             </Link>
           </CardHeader>
           <CardBody className="space-y-4">
-            {/* Delegation info */}
             {profile && (
               <div className="space-y-2">
                 {profile.delegatorsCount > 0 && (
@@ -171,7 +188,6 @@ export function Profile() {
               </div>
             )}
 
-            {/* Voting history */}
             {history && history.history.length > 0 && (
               <div>
                 <p className="text-xs text-gray-500 mb-2">
@@ -204,5 +220,138 @@ export function Profile() {
         </Card>
       ))}
     </div>
+  );
+}
+
+// ── Profile editor ────────────────────────────────────────────────────
+
+function ProfileEditor({ currentName, currentHandle, onSaved }: {
+  currentName: string;
+  currentHandle: string;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(currentName);
+  const [handleValue, setHandleValue] = useState(currentHandle);
+  const [bio, setBio] = useState("");
+  const [selectedStyle, setSelectedStyle] = useState<AvatarStyle>("avataaars");
+  const [avatarSeed, setAvatarSeed] = useState(currentName);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const selectedAvatarUrl = avatarUrl(avatarSeed, selectedStyle);
+      await api.updateProfile({
+        name: name.trim() || undefined,
+        handle: handleValue.trim() || undefined,
+        bio: bio || undefined,
+        avatarUrl: selectedAvatarUrl,
+      });
+      setSuccess(true);
+      setTimeout(() => onSaved(), 500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardBody className="space-y-4">
+        <h3 className="font-medium text-gray-900">Edit Profile</h3>
+        {error && <ErrorBox message={error} />}
+
+        <div>
+          <Label>Name</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+
+        <div>
+          <Label>Handle</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+            <Input
+              value={handleValue}
+              onChange={(e) => setHandleValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+              className="pl-7"
+              maxLength={30}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Bio</Label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            rows={2}
+            maxLength={280}
+            placeholder="A short description about yourself"
+          />
+          <p className="text-xs text-gray-400 mt-1">{bio.length}/280</p>
+        </div>
+
+        {/* Avatar picker */}
+        <div>
+          <Label>Avatar style</Label>
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mt-1">
+            {AVATAR_STYLES.map((style) => (
+              <button
+                key={style}
+                type="button"
+                onClick={() => setSelectedStyle(style)}
+                className={`p-1 rounded-lg border-2 transition-colors ${
+                  selectedStyle === style
+                    ? "border-brand bg-brand-50"
+                    : "border-transparent hover:border-gray-200"
+                }`}
+              >
+                <img
+                  src={avatarUrl(avatarSeed, style)}
+                  alt={style}
+                  className="w-10 h-10 rounded-full bg-gray-100"
+                  loading="lazy"
+                />
+              </button>
+            ))}
+          </div>
+          <div className="mt-2">
+            <Label>Avatar seed</Label>
+            <Input
+              value={avatarSeed}
+              onChange={(e) => setAvatarSeed(e.target.value)}
+              placeholder="Type anything to generate a different avatar"
+              className="text-sm"
+            />
+            <p className="text-xs text-gray-400 mt-1">Different words generate different faces. Try your nickname, a pet name, or anything fun.</p>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <img
+            src={avatarUrl(avatarSeed, selectedStyle)}
+            alt="Preview"
+            className="w-12 h-12 rounded-full bg-gray-100"
+          />
+          <div>
+            <p className="font-medium text-gray-900">{name || "Your name"}</p>
+            <p className="text-sm text-gray-500">@{handleValue || "handle"}</p>
+            {bio && <p className="text-xs text-gray-400 mt-0.5">{bio}</p>}
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end">
+          <Button onClick={handleSave} disabled={saving}>
+            {success ? "Saved!" : saving ? "Saving..." : "Save changes"}
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
