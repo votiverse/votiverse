@@ -72,7 +72,7 @@ To reset the database to fresh seed data: `cd platform/vcp && pnpm reset`.
 
 ## Architecture
 
-Votiverse has three layers:
+Votiverse has four layers:
 
 ```
 ┌───────────────────────────────────────────────────────┐
