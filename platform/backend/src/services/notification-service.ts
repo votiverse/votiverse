@@ -6,6 +6,7 @@
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { NotificationAdapter } from "./notification-adapter.js";
 import type { VCPClient } from "./vcp-client.js";
+import type { NotificationHubService, NotificationType as HubNotificationType, Urgency } from "./notification-hub.js";
 import { renderTemplate } from "./notification-templates.js";
 import { logger } from "../lib/logger.js";
 
@@ -99,6 +100,7 @@ export interface NotificationPreferences {
 
 export class NotificationService {
   private readonly log = logger.child({ component: "notifications" });
+  private hub: NotificationHubService | null = null;
 
   constructor(
     private readonly db: DatabaseAdapter,
@@ -106,6 +108,11 @@ export class NotificationService {
     private readonly vcpClient: VCPClient,
     private readonly baseUrl: string,
   ) {}
+
+  /** Set the notification hub for creating in-app notification records. */
+  setHub(hub: NotificationHubService): void {
+    this.hub = hub;
+  }
 
   // ── Tracking ─────────────────────────────────────────────────────
 
@@ -282,6 +289,8 @@ export class NotificationService {
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
+    await this.createHubRecords(recipients, event.assembly_id, "vote_created", "timely",
+      `New vote: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: event created`, { eventId: event.id });
   }
 
@@ -294,6 +303,8 @@ export class NotificationService {
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
+    await this.createHubRecords(recipients, event.assembly_id, "voting_open", "action",
+      `Voting is open: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: voting open`, { eventId: event.id });
   }
 
@@ -306,6 +317,8 @@ export class NotificationService {
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
+    await this.createHubRecords(recipients, event.assembly_id, "deadline_approaching", "action",
+      `Voting closes tomorrow: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: deadline approaching`, { eventId: event.id });
   }
 
@@ -318,6 +331,8 @@ export class NotificationService {
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
+    await this.createHubRecords(recipients, event.assembly_id, "results_available", "info",
+      `Results are in: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: results available`, { eventId: event.id });
   }
 
@@ -330,6 +345,8 @@ export class NotificationService {
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
+    await this.createHubRecords(recipients, survey.assembly_id, "survey_created", "timely",
+      `New survey: ${survey.title}`, `/assembly/${survey.assembly_id}/surveys`);
     this.log.info(`Notified ${recipients.length} users: survey created`, { surveyId: survey.id });
   }
 
@@ -342,7 +359,36 @@ export class NotificationService {
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
+    await this.createHubRecords(recipients, survey.assembly_id, "survey_deadline", "action",
+      `Survey closes tomorrow: ${survey.title}`, `/assembly/${survey.assembly_id}/surveys`);
     this.log.info(`Notified ${recipients.length} users: survey deadline`, { surveyId: survey.id });
+  }
+
+  /** Create in-app notification records in the hub for a set of recipients. */
+  private async createHubRecords(
+    recipients: Array<{ userId: string; email: string }>,
+    assemblyId: string,
+    type: HubNotificationType,
+    urgency: Urgency,
+    title: string,
+    actionUrl?: string,
+  ): Promise<void> {
+    if (!this.hub) return;
+    for (const r of recipients) {
+      try {
+        await this.hub.notify({
+          userId: r.userId,
+          assemblyId,
+          type,
+          urgency,
+          title,
+          actionUrl,
+          skipEmail: true, // scheduler already handles email dispatch
+        });
+      } catch (err) {
+        this.log.error("Failed to create hub notification", { userId: r.userId, type, error: String(err) });
+      }
+    }
   }
 
   // ── Internal: Recipient resolution ───────────────────────────────

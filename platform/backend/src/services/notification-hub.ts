@@ -96,7 +96,7 @@ export class NotificationHubService {
     private readonly vcpClient: VCPClient,
   ) {}
 
-  /** Create a notification for a single user. */
+  /** Create a notification for a single user. Set skipEmail when the caller already handles email delivery. */
   async notify(params: {
     userId: string;
     assemblyId: string;
@@ -105,6 +105,7 @@ export class NotificationHubService {
     title: string;
     body?: string;
     actionUrl?: string;
+    skipEmail?: boolean;
   }): Promise<void> {
     const id = randomUUID();
     await this.db.run(
@@ -114,8 +115,8 @@ export class NotificationHubService {
        params.title, params.body ?? null, params.actionUrl ?? null, new Date().toISOString()],
     );
 
-    // Fire-and-forget email dispatch (if adapter configured and user wants it)
-    if (this.notificationAdapter) {
+    // Fire-and-forget email dispatch (skip if caller already sent email)
+    if (!params.skipEmail && this.notificationAdapter) {
       void this.dispatchEmail(params.userId, params.assemblyId, params.type, params.title).catch((err) =>
         log.error("Email dispatch failed", { error: String(err) }),
       );

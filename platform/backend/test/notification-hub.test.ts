@@ -287,6 +287,57 @@ describe("Notification hub", () => {
     });
   });
 
+  // ── Scheduler → hub integration ───────────────────────────────────
+
+  describe("Scheduler creates hub records", () => {
+    it("processScheduledNotifications creates notification records for tracked events", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("member@example.com", "password123", "Member");
+      await seedAssembly(backend, "open");
+      await seedMembership(backend, userId, "p-member");
+
+      // Track an event with voting already open (votingStart in past)
+      const pastDate = new Date(Date.now() - 86400000).toISOString();
+      const futureDate = new Date(Date.now() + 7 * 86400000).toISOString();
+      await backend.db.run(
+        `INSERT INTO tracked_events (id, assembly_id, title, voting_start, voting_end)
+         VALUES ('evt-1', ?, 'Budget Vote', ?, ?)`,
+        [ASSEMBLY_ID, pastDate, futureDate],
+      );
+
+      // Mock VCP for delegation check (needed by resolveRecipients)
+      vi.spyOn(backend.vcpClient, "request").mockResolvedValue({ status: 200, body: { delegations: [] } });
+
+      // Run the scheduler — this is normally called by setInterval in main.ts
+      // We need to access the NotificationService from the app context.
+      // Since tests use createTestBackend which doesn't expose notificationService directly,
+      // let's use the internal endpoint to verify the feed after the scheduler would run.
+      // Actually, we can create a NotificationService directly for this test.
+      const { NotificationService } = await import("../src/services/notification-service.js");
+      const { NotificationHubService } = await import("../src/services/notification-hub.js");
+      const { ConsoleNotificationAdapter } = await import("../src/services/notification-adapter.js");
+
+      const adapter = new ConsoleNotificationAdapter();
+      const notifService = new NotificationService(backend.db, adapter, backend.vcpClient, "http://localhost:3000");
+      const hub = new NotificationHubService(
+        backend.db, backend.membershipService, backend.assemblyCacheService,
+        adapter, notifService, backend.vcpClient,
+      );
+      notifService.setHub(hub);
+
+      // Run scheduler
+      await notifService.processScheduledNotifications();
+
+      // Check the hub — member should have notifications
+      const res = await backend.request("GET", "/me/notifications/feed", undefined, authHeader(accessToken));
+      const data = (await res.json()) as { notifications: Array<{ type: string; title: string }> };
+
+      // Should have at least vote_created and voting_open (since votingStart is in the past)
+      const types = data.notifications.map((n) => n.type);
+      expect(types).toContain("vote_created");
+      expect(types).toContain("voting_open");
+    });
+  });
+
   // ── Preference endpoint rename ───────────────────────────────────
 
   describe("Preference endpoints", () => {

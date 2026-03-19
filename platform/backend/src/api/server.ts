@@ -92,6 +92,8 @@ export function createApp(deps: AppDependencies): Hono {
     database, membershipService, assemblyCacheService,
     deps.notificationAdapter ?? null, notificationService, vcpClient,
   );
+  // Wire hub into notification service so scheduled notifications also create hub records
+  notificationService.setHub(notificationHub);
   const invitationService = new InvitationService(database, membershipService);
   const joinRequestService = new JoinRequestService(database);
   const frontendUrl = config.corsOrigins.find((o) => o !== "*") ?? "http://localhost:5174";
