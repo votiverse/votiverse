@@ -140,8 +140,26 @@ export class PostgresAdapter implements DatabaseAdapter {
           config          JSONB NOT NULL,
           status          TEXT NOT NULL DEFAULT 'active',
           created_at      TIMESTAMPTZ NOT NULL,
-          cached_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+          cached_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          admission_mode  TEXT NOT NULL DEFAULT 'approval'
         );
+
+        -- Join requests (for approval admission mode)
+        CREATE TABLE IF NOT EXISTS join_requests (
+          id              TEXT PRIMARY KEY,
+          assembly_id     TEXT NOT NULL,
+          user_id         TEXT NOT NULL,
+          user_name       TEXT NOT NULL,
+          user_handle     TEXT,
+          status          TEXT NOT NULL DEFAULT 'pending',
+          reviewed_by     TEXT,
+          reviewed_at     TIMESTAMPTZ,
+          created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_join_requests_assembly_status
+          ON join_requests(assembly_id, status);
+        CREATE INDEX IF NOT EXISTS idx_join_requests_user
+          ON join_requests(user_id);
 
         -- Local topic cache (immutable after creation — avoids VCP round-trips)
         CREATE TABLE IF NOT EXISTS topics_cache (

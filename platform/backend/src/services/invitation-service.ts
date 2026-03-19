@@ -57,6 +57,9 @@ export class InvitationService {
     private readonly membershipService: MembershipService,
   ) {}
 
+  /** Default link invite expiration: 7 days. */
+  static readonly DEFAULT_LINK_EXPIRY_DAYS = 7;
+
   /** Create an invite link. Returns the invitation with token. */
   async createLinkInvite(
     assemblyId: string,
@@ -65,7 +68,8 @@ export class InvitationService {
   ): Promise<Invitation> {
     const id = randomUUID();
     const token = randomBytes(32).toString("base64url");
-    const expiresAt = options?.expiresAt ?? null;
+    const expiresAt = options?.expiresAt
+      ?? new Date(Date.now() + InvitationService.DEFAULT_LINK_EXPIRY_DAYS * 86400000).toISOString();
     const maxUses = options?.maxUses ?? null;
 
     await this.db.run(
