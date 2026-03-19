@@ -47,6 +47,57 @@ export function proxyRoutes(
   });
 
   /**
+   * POST /assemblies — create a new assembly.
+   * Creates assembly on VCP, creates first participant, bootstraps owner role,
+   * caches assembly locally, and creates local membership.
+   */
+  app.post("/assemblies", async (c) => {
+    const user = getUser(c);
+    const body = await c.req.json<{
+      name: string;
+      preset?: string;
+      config?: unknown;
+      admissionMode?: string;
+    }>();
+
+    if (!body.name?.trim()) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Assembly name is required" } }, 400);
+    }
+
+    // Create assembly on VCP
+    const vcpAssembly = await vcpClient.createAssembly({
+      name: body.name.trim(),
+      preset: body.preset,
+      config: body.config,
+    });
+
+    // Create participant for the creator
+    const participant = await vcpClient.createParticipant(vcpAssembly.id, user.name);
+
+    // Bootstrap owner role
+    await vcpClient.bootstrapRole(vcpAssembly.id, participant.id);
+
+    // Cache assembly locally with admission mode
+    await assemblyCacheService.upsert({
+      id: vcpAssembly.id,
+      organizationId: vcpAssembly.organizationId ?? null,
+      name: vcpAssembly.name,
+      config: vcpAssembly.config,
+      status: vcpAssembly.status,
+      createdAt: vcpAssembly.createdAt,
+      admissionMode: (body.admissionMode as "open" | "approval" | "invite-only") ?? "approval",
+    });
+
+    // Create local membership
+    await membershipService.createMembership(user.id, vcpAssembly.id, participant.id, vcpAssembly.name);
+
+    return c.json({
+      ...vcpAssembly,
+      admissionMode: body.admissionMode ?? "approval",
+    }, 201);
+  });
+
+  /**
    * GET /assemblies/:id — get assembly (served from local cache).
    */
   app.get("/assemblies/:id", async (c) => {
