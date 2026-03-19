@@ -4,6 +4,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useAssemblyTabs } from "../hooks/use-assembly-tabs.js";
 import { Avatar } from "./avatar.js";
+import { NotificationBell } from "./notification-bell.js";
 import {
   Home,
   Vote,
@@ -82,8 +83,9 @@ export function Header() {
             </nav>
           </div>
 
-          {/* Right: identity indicator + menu */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right: notifications + identity + menu */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {storeUserId && <NotificationBell />}
             {storeUserId && <IdentityIndicator name={participantName} />}
             {/* Mobile hamburger for secondary items */}
             {inAssembly && (
