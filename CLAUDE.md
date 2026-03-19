@@ -347,6 +347,7 @@ platform/
 │   │       ├── middleware/      ← auth, error-handler
 │   │       └── routes/          ← assemblies, participants, events, delegations,
 │   │                              voting, predictions, surveys, topics, awareness
+│   ├── seed-manifest.json        ← generated key→UUID registry (gitignored)
 │   └── scripts/
 │       ├── seed.ts              ← orchestrator: wipes + reseeds all data
 │       ├── reset.ts             ← wipes DB, starts server, runs seed, stops server
@@ -392,7 +393,7 @@ cd platform/vcp && pnpm reset    # wipes VCP DB, starts server, seeds data, stop
 cd platform/backend && pnpm reset # wipes backend DB, starts backend, seeds users from VCP, stops (requires VCP running)
 ```
 
-The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 5 assemblies with participants, topics, events, delegations, and surveys), then stops the server. The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
+The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 6 assemblies with participants, topics, events, delegations, surveys, proposals, and community notes), then stops the server. The VCP seed also writes `platform/vcp/seed-manifest.json` — a JSON file mapping all semantic keys to generated UUIDs (see **Seed Manifest** below). The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
 
 ### Running Dev Servers
 
@@ -412,27 +413,84 @@ Or use the `.claude/launch.json` configurations (`vcp`, `backend`, and `web`) wi
 
 ### Seed Data Overview
 
-The seed creates 5 assemblies using different governance presets:
+The seed creates 6 assemblies using different governance presets:
 
-| Assembly   | Preset              | Delegation            | Surveys | Predictions |
-|------------|---------------------|-----------------------|-------|-------------|
-| Greenfield | TOWN_HALL           | Disabled              | No    | Off         |
-| OSC        | LIQUID_STANDARD     | Transitive, topic-scoped | No | Mandatory   |
-| Municipal  | CIVIC_PARTICIPATORY | Transitive, depth=3   | Yes   | Opt-in      |
-| Youth      | LIQUID_ACCOUNTABLE  | Transitive, topic-scoped | Yes | Opt-in      |
-| Board      | BOARD_PROXY         | Non-transitive, 1 delegate | No | Off       |
+| Assembly       | Key          | Preset              | Delegation               | Surveys | Predictions |
+|----------------|--------------|---------------------|--------------------------|---------|-------------|
+| Greenfield     | `greenfield` | TOWN_HALL           | Disabled                 | No      | Off         |
+| OSC            | `osc`        | LIQUID_STANDARD     | Transitive, topic-scoped | No      | Mandatory   |
+| Municipal      | `municipal`  | CIVIC_PARTICIPATORY | Transitive, depth=3      | Yes     | Opt-in      |
+| Youth          | `youth`      | LIQUID_ACCOUNTABLE  | Transitive, topic-scoped | Yes     | Opt-in      |
+| Board          | `board`      | BOARD_PROXY         | Non-transitive, 1 delegate | No    | Off         |
+| Maple Heights  | `maple`      | MODERN_DEMOCRACY    | Candidacy, topic-scoped  | Yes     | Encouraged  |
 
-Each assembly has hierarchical topics (36 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and surveys (Municipal + Youth only).
+Each assembly has hierarchical topics (36 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and surveys (Municipal + Youth only). The Maple Heights assembly provides seed data for the Maple Heights Condo Board case study (proposals, community notes, closed results).
 
-The backend seed creates 59 user accounts mapped to VCP participants, with 4 cross-assembly users who have memberships in multiple assemblies.
+The backend seed creates 59 user accounts mapped to VCP participants, with 8 cross-assembly users who have memberships in multiple assemblies.
 
 See `platform/web/TESTING.md` for full details on test identities and delegation graphs.
+
+### Seed Manifest
+
+After seeding, the VCP writes `platform/vcp/seed-manifest.json` — a JSON file mapping semantic keys to generated UUIDs. This is the **single source of truth** for entity IDs in external tooling (screenshot scripts, case study Playwright scripts, etc.).
+
+**Why this exists:** The VCP API generates UUIDs at seed time. These IDs change on every reseed. Without the manifest, screenshot scripts and other tooling would hardcode UUIDs that break after any `pnpm reset`.
+
+**Structure:**
+```json
+{
+  "generatedAt": "2026-03-19T22:27:43.756Z",
+  "assemblies": { "municipal": "uuid-...", "maple": "uuid-...", ... },
+  "participants": { "municipal::Carmen Delgado": "uuid-...", ... },
+  "topics": { "municipal::roads": "uuid-...", ... },
+  "events": { "municipal-emergency": { "eventId": "uuid-...", "issueIds": ["uuid-...", ...] }, ... }
+}
+```
+
+**Consumers:** The docs repo (`docs/lib/seed-manifest.ts`) provides a typed reader:
+```typescript
+import { loadManifest } from "../../lib/seed-manifest.js";
+const m = loadManifest();
+const assemblyId = m.assembly("maple");
+const eventId = m.event("maple-lobby");
+const issueId = m.issue("maple-lobby", 0);
+```
+
+**Rules:**
+- The manifest is `.gitignore`d — it's generated and environment-specific.
+- Never hardcode UUIDs in screenshot scripts. Always use the manifest.
+- If you add a new assembly or event to the seed, it automatically appears in the manifest after the next `pnpm reset`.
+- The manifest reader auto-discovers the file by looking for a sibling `votiverse/` repo. Override with `SEED_MANIFEST_PATH` env var.
 
 ### Identity System
 
 The web UI uses JWT-based authentication through the client backend. Users log in with email/password, the backend issues JWT access tokens, and all API requests go through the backend which resolves user identity to assembly-specific participant IDs. The VCP never sees user credentials — it receives only opaque `X-Participant-Id` headers from the backend.
 
 For local development, the seed script creates test users with email format `{slug}@example.com` and password `password`. See `platform/web/TESTING.md` for the full list.
+
+### Case Studies & Screenshots
+
+Case studies live in a separate repo (`docs/`) alongside this one. Each case study has a Playwright script that captures screenshots from a running Votiverse instance.
+
+**Adding a new case study:**
+
+1. **Add seed data.** Define the assembly, participants, events, votes, proposals, and notes in `platform/vcp/scripts/seed-data/`. Use semantic keys (e.g., `maple-lobby`) — the seed assigns UUIDs.
+2. **Reset.** Run `pnpm reset` in both VCP and backend. The manifest regenerates automatically.
+3. **Write the screenshot script** in `docs/case-studies/<name>/take-screenshots.ts`. Use the manifest to resolve IDs:
+   ```typescript
+   import { loadManifest } from "../../lib/seed-manifest.js";
+   const m = loadManifest();
+   const asmId = m.assembly("maple");
+   const eventId = m.event("maple-lobby");
+   ```
+4. **Run the script:** `npx tsx case-studies/<name>/take-screenshots.ts` (from the docs repo, with all three servers running).
+5. **Add the npm script** to `docs/package.json`: `"screenshots:<name>": "tsx case-studies/<name>/take-screenshots.ts"`.
+
+**Existing case studies:**
+- `maple-heights-condo-board` — group creation, invitations, proposals, community notes, voting, results (assembly key: `maple`)
+- `neighborhood-budget-council` — delegation, topic scoping, chains, override rule, voting weight (assembly key: `municipal`)
+
+See `docs/guides/screenshot-workflow.md` for Playwright patterns (login switching, clock advancement, scrolling, etc.).
 
 ---
 
