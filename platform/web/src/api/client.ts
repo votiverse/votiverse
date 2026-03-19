@@ -111,6 +111,22 @@ export function createInviteLink(assemblyId: string, options?: { maxUses?: numbe
   return request("POST", `/assemblies/${assemblyId}/invitations`, { type: "link", ...options });
 }
 
+export function createDirectInvite(assemblyId: string, inviteeHandle: string): Promise<{ id: string }> {
+  return request("POST", `/assemblies/${assemblyId}/invitations`, { type: "direct", inviteeHandle });
+}
+
+export function listMyInvitations(): Promise<{ invitations: Array<{ id: string; assemblyId: string; assemblyName: string | null; invitedBy: string; createdAt: string }> }> {
+  return request("GET", "/me/invitations");
+}
+
+export function acceptInvitation(invitationId: string): Promise<{ assemblyId: string }> {
+  return request("POST", `/me/invitations/${invitationId}/accept`);
+}
+
+export function declineInvitation(invitationId: string): Promise<void> {
+  return request("POST", `/me/invitations/${invitationId}/decline`);
+}
+
 // ---- Participants ----
 
 export function listParticipants(assemblyId: string): Promise<{ participants: Participant[] }> {

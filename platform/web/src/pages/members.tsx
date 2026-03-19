@@ -11,6 +11,7 @@ export function Members() {
   const [adding, setAdding] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [showDirectInvite, setShowDirectInvite] = useState(false);
 
   const handleGenerateInvite = async () => {
     try {
@@ -38,6 +39,9 @@ export function Members() {
           <Button variant="secondary" onClick={handleGenerateInvite}>
             {inviteCopied ? "Link copied!" : "Invite link"}
           </Button>
+          <Button variant="secondary" onClick={() => setShowDirectInvite(!showDirectInvite)}>
+            Invite by handle
+          </Button>
           <Button onClick={() => setAdding(true)}>Add Member</Button>
         </div>
       </div>
@@ -62,6 +66,13 @@ export function Members() {
             <p className="text-xs text-gray-400 mt-2">Anyone with this link can join the group.</p>
           </CardBody>
         </Card>
+      )}
+
+      {showDirectInvite && (
+        <DirectInviteForm
+          assemblyId={assemblyId!}
+          onClose={() => setShowDirectInvite(false)}
+        />
       )}
 
       {adding && (
@@ -145,6 +156,58 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
               {submitting ? "Adding..." : "Add"}
             </Button>
           </div>
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose: () => void }) {
+  const [handle, setHandle] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const h = handle.trim().replace(/^@/, "");
+    if (!h) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.createDirectInvite(assemblyId, h);
+      setSent(true);
+      setTimeout(() => { setSent(false); setHandle(""); }, 2000);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send invitation");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="mb-4">
+      <CardBody>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <h3 className="font-medium text-gray-900 text-sm">Invite by handle</h3>
+          {error && <ErrorBox message={error} />}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+              <Input
+                value={handle}
+                onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                placeholder="username"
+                className="pl-7"
+                autoFocus
+              />
+            </div>
+            <Button type="submit" disabled={submitting || !handle.trim()}>
+              {sent ? "Sent!" : submitting ? "Sending..." : "Send invite"}
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          </div>
+          <p className="text-xs text-gray-400">The user will see the invitation on their dashboard.</p>
         </form>
       </CardBody>
     </Card>

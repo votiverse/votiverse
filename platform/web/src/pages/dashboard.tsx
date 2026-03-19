@@ -1,9 +1,12 @@
-import { Link } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAttention, type PendingVote } from "../hooks/use-attention.js";
+import { useApi } from "../hooks/use-api.js";
+import * as api from "../api/client.js";
 import { LoginForm } from "../components/login-form.js";
 import { Countdown } from "../components/countdown.js";
-import { Card, CardBody, Badge, Skeleton } from "../components/ui.js";
+import { Card, CardBody, Button, Badge, Skeleton } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { presetLabel } from "../lib/presets.js";
 
@@ -130,6 +133,9 @@ function DashboardContent({ participantName }: { participantName: string | null 
           </div>
         </div>
       )}
+
+      {/* Pending invitations */}
+      <PendingInvitations />
 
       {/* Active votes — grouped by event, pending-first */}
       {pendingVotes.length > 0 && (() => {
@@ -335,5 +341,75 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
     <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
       Needs your vote
     </span>
+  );
+}
+
+function PendingInvitations() {
+  const navigate = useNavigate();
+  const { data, refetch } = useApi(() => api.listMyInvitations(), []);
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  const invitations = data?.invitations ?? [];
+  if (invitations.length === 0) return null;
+
+  const handleAccept = async (inv: { id: string; assemblyId: string }) => {
+    setProcessing(inv.id);
+    try {
+      const result = await api.acceptInvitation(inv.id);
+      navigate(`/assembly/${result.assemblyId}`);
+    } catch {
+      setProcessing(null);
+    }
+  };
+
+  const handleDecline = async (invId: string) => {
+    setProcessing(invId);
+    try {
+      await api.declineInvitation(invId);
+      refetch();
+    } catch {
+      // ignore
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  return (
+    <div className="mb-6">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Invitations</h2>
+      <div className="space-y-2">
+        {invitations.map((inv) => (
+          <Card key={inv.id} className="border-brand-200">
+            <CardBody className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">
+                  You've been invited to join <span className="text-brand">{inv.assemblyName ?? "a group"}</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {new Date(inv.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => handleDecline(inv.id)}
+                  disabled={processing === inv.id}
+                >
+                  Decline
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleAccept(inv)}
+                  disabled={processing === inv.id}
+                >
+                  {processing === inv.id ? "Joining..." : "Accept"}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
