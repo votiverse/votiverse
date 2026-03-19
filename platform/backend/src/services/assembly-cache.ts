@@ -44,7 +44,7 @@ function rowToAssembly(row: CachedAssemblyRow): CachedAssembly {
 export class AssemblyCacheService {
   constructor(private readonly db: DatabaseAdapter) {}
 
-  /** Insert or replace an assembly in the cache. */
+  /** Insert or replace an assembly in the cache. admission_mode is preserved on conflict (only changeable via updateAdmissionMode). */
   async upsert(assembly: Omit<CachedAssembly, "admissionMode"> & { admissionMode?: AdmissionMode }): Promise<void> {
     const configJson = typeof assembly.config === "string" ? assembly.config : JSON.stringify(assembly.config);
     const admissionMode = assembly.admissionMode ?? "approval";
@@ -56,8 +56,7 @@ export class AssemblyCacheService {
          name = excluded.name,
          config = excluded.config,
          status = excluded.status,
-         created_at = excluded.created_at,
-         admission_mode = excluded.admission_mode`,
+         created_at = excluded.created_at`,
       [
         assembly.id,
         assembly.organizationId,

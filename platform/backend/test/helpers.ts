@@ -14,6 +14,7 @@ import { VCPClient } from "../src/services/vcp-client.js";
 import { NotificationService } from "../src/services/notification-service.js";
 import { ConsoleNotificationAdapter, type NotificationAdapter } from "../src/services/notification-adapter.js";
 import { ContentService } from "../src/services/content-service.js";
+import { JoinRequestService } from "../src/services/join-request-service.js";
 import { createApp } from "../src/api/server.js";
 import type { BackendConfig } from "../src/config/schema.js";
 
@@ -53,6 +54,7 @@ export interface TestBackend {
   surveyCacheService: SurveyCacheService;
   vcpClient: VCPClient;
   notificationAdapter: NotificationAdapter;
+  joinRequestService: JoinRequestService;
   cleanup: () => void;
   request: (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
   /** Register a user and return the access token. */
@@ -73,6 +75,7 @@ export async function createTestBackend(): Promise<TestBackend> {
   const notificationAdapter = new ConsoleNotificationAdapter();
   const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl);
   const contentService = new ContentService(db);
+  const joinRequestService = new JoinRequestService(db);
 
   const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, contentService, vcpClient, config: TEST_CONFIG });
 
@@ -105,5 +108,5 @@ export async function createTestBackend(): Promise<TestBackend> {
     return { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.user.id };
   };
 
-  return { app, db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, vcpClient, notificationAdapter, cleanup, request, registerAndLogin };
+  return { app, db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, vcpClient, notificationAdapter, joinRequestService, cleanup, request, registerAndLogin };
 }

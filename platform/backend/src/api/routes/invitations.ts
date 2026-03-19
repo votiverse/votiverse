@@ -1,33 +1,47 @@
 /**
- * Invitation routes — invite links and direct invitations.
+ * Invitation and admission routes — invite links, direct invitations,
+ * join requests, and assembly settings.
  *
  * Public (no auth):
  *   GET  /invite/:token — group preview for invite link
  *
  * Authenticated:
- *   POST /invite/:token/accept — accept an invite link
+ *   POST /invite/:token/accept — accept an invite link (or create join request)
  *   GET  /me/invitations — list pending direct invitations for current user
  *   POST /me/invitations/:invId/accept — accept direct invitation
  *   POST /me/invitations/:invId/decline — decline direct invitation
+ *   GET  /me/join-requests — list user's pending join requests
  *
  * Admin (assembly-scoped):
+ *   GET    /assemblies/:id/settings — read assembly settings (admissionMode)
+ *   PUT    /assemblies/:id/settings — update assembly settings
  *   POST   /assemblies/:id/invitations — create invite
  *   GET    /assemblies/:id/invitations — list invitations
  *   DELETE /assemblies/:id/invitations/:invId — revoke invitation
+ *   POST   /assemblies/:id/invitations/preview — preview bulk CSV import
+ *   POST   /assemblies/:id/invitations/bulk — create bulk invitations
+ *   GET    /assemblies/:id/join-requests — list pending join requests
+ *   POST   /assemblies/:id/join-requests/:reqId/approve — approve join request
+ *   POST   /assemblies/:id/join-requests/:reqId/reject — reject join request
  */
 
 import { Hono } from "hono";
 import type { InvitationService } from "../../services/invitation-service.js";
+import type { JoinRequestService } from "../../services/join-request-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
+import type { AdmissionMode } from "../../services/assembly-cache.js";
 import type { VCPClient } from "../../services/vcp-client.js";
 import type { UserService } from "../../services/user-service.js";
 import type { InvitationNotifier } from "../../services/invitation-notifier.js";
 import { getUser } from "../middleware/auth.js";
 import { parseCsvInvites } from "../../lib/csv-parser.js";
 
+const VALID_ADMISSION_MODES = new Set<string>(["open", "approval", "invite-only"]);
+
 export function invitationRoutes(
   invitationService: InvitationService,
+  joinRequestService: JoinRequestService,
   membershipService: MembershipService,
   assemblyCacheService: AssemblyCacheService,
   vcpClient: VCPClient,
@@ -35,6 +49,18 @@ export function invitationRoutes(
   invitationNotifier: InvitationNotifier | null = null,
 ) {
   const app = new Hono();
+
+  // ── Helper: check admin role ─────────────────────────────────────
+
+  async function isAdminOf(userId: string, assemblyId: string): Promise<boolean> {
+    const participantId = await membershipService.getParticipantIdOrThrow(userId, assemblyId);
+    try {
+      const roles = await vcpClient.listRoles(assemblyId);
+      return roles.some((r) => r.participantId === participantId && (r.role === "admin" || r.role === "owner"));
+    } catch {
+      return false;
+    }
+  }
 
   // ── Public routes (no auth) ──────────────────────────────────────
 
@@ -97,6 +123,7 @@ export function invitationRoutes(
         id: assembly.id,
         name: assembly.name,
         config: assembly.config,
+        admissionMode: assembly.admissionMode,
         owners,
         admins,
         memberCount,
@@ -106,7 +133,7 @@ export function invitationRoutes(
 
   /** POST /invite/:token/accept — accept an invite link (auth required). */
   app.post("/invite/:token/accept", async (c) => {
-    const { id, name } = getUser(c);
+    const { id: userId, name } = getUser(c);
     const token = c.req.param("token");
     const invitation = await invitationService.getByToken(token);
 
@@ -117,8 +144,58 @@ export function invitationRoutes(
       );
     }
 
-    const result = await invitationService.accept(invitation, id, name);
+    // Check admission mode
+    const assembly = await assemblyCacheService.get(invitation.assemblyId);
+    const admissionMode = assembly?.admissionMode ?? "approval";
+
+    if (admissionMode === "approval") {
+      // Create a join request instead of instant join
+      const user = await userService.getByIdOrThrow(userId);
+      const joinRequest = await joinRequestService.create(
+        invitation.assemblyId, userId, name, user.handle,
+      );
+      return c.json(
+        { status: "pending", assemblyId: invitation.assemblyId, joinRequestId: joinRequest.id },
+        202,
+      );
+    }
+
+    // Open mode (or invite-only with existing link) — instant join
+    const result = await invitationService.accept(invitation, userId, name);
     return c.json({ status: "joined", assemblyId: result.assemblyId }, 201);
+  });
+
+  // ── Assembly settings ────────────────────────────────────────────
+
+  /** GET /assemblies/:id/settings — read assembly settings. */
+  app.get("/assemblies/:id/settings", async (c) => {
+    const assemblyId = c.req.param("id");
+    const assembly = await assemblyCacheService.get(assemblyId);
+    if (!assembly) {
+      return c.json({ error: { code: "NOT_FOUND", message: "Assembly not found" } }, 404);
+    }
+    return c.json({ admissionMode: assembly.admissionMode });
+  });
+
+  /** PUT /assemblies/:id/settings — update assembly settings (admin only). */
+  app.put("/assemblies/:id/settings", async (c) => {
+    const { id: userId } = getUser(c);
+    const assemblyId = c.req.param("id");
+
+    if (!(await isAdminOf(userId, assemblyId))) {
+      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can change settings" } }, 403);
+    }
+
+    const body = await c.req.json<{ admissionMode?: string }>();
+    if (!body.admissionMode || !VALID_ADMISSION_MODES.has(body.admissionMode)) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "admissionMode must be one of: open, approval, invite-only" } },
+        400,
+      );
+    }
+
+    await assemblyCacheService.updateAdmissionMode(assemblyId, body.admissionMode as AdmissionMode);
+    return c.json({ admissionMode: body.admissionMode });
   });
 
   // ── Admin routes (assembly-scoped) ───────────────────────────────
@@ -128,16 +205,7 @@ export function invitationRoutes(
     const { id: userId } = getUser(c);
     const assemblyId = c.req.param("id");
 
-    // Check admin role via VCP
-    const participantId = await membershipService.getParticipantIdOrThrow(userId, assemblyId);
-    let isAdmin = false;
-    try {
-      const roles = await vcpClient.listRoles(assemblyId);
-      isAdmin = roles.some((r) => r.participantId === participantId && (r.role === "admin" || r.role === "owner"));
-    } catch {
-      // VCP unavailable
-    }
-    if (!isAdmin) {
+    if (!(await isAdminOf(userId, assemblyId))) {
       return c.json(
         { error: { code: "FORBIDDEN", message: "Only admins can create invitations" } },
         403,
@@ -152,6 +220,17 @@ export function invitationRoutes(
     }>();
 
     const type = body.type ?? "link";
+
+    // Block link invites in invite-only mode
+    if (type === "link") {
+      const assembly = await assemblyCacheService.get(assemblyId);
+      if (assembly?.admissionMode === "invite-only") {
+        return c.json(
+          { error: { code: "FORBIDDEN", message: "Link invitations are not available in invite-only mode. Use direct invitations." } },
+          403,
+        );
+      }
+    }
 
     if (type === "direct") {
       if (!body.inviteeHandle) {
@@ -197,14 +276,7 @@ export function invitationRoutes(
     const { id: userId } = getUser(c);
     const assemblyId = c.req.param("id");
 
-    // Admin check
-    const participantId = await membershipService.getParticipantIdOrThrow(userId, assemblyId);
-    let isAdmin = false;
-    try {
-      const roles = await vcpClient.listRoles(assemblyId);
-      isAdmin = roles.some((r) => r.participantId === participantId && (r.role === "admin" || r.role === "owner"));
-    } catch { /* VCP unavailable */ }
-    if (!isAdmin) {
+    if (!(await isAdminOf(userId, assemblyId))) {
       return c.json({ error: { code: "FORBIDDEN", message: "Only admins can preview bulk invitations" } }, 403);
     }
 
@@ -249,14 +321,7 @@ export function invitationRoutes(
     const { id: userId, name: inviterName } = getUser(c);
     const assemblyId = c.req.param("id");
 
-    // Admin check
-    const participantId = await membershipService.getParticipantIdOrThrow(userId, assemblyId);
-    let isAdmin = false;
-    try {
-      const roles = await vcpClient.listRoles(assemblyId);
-      isAdmin = roles.some((r) => r.participantId === participantId && (r.role === "admin" || r.role === "owner"));
-    } catch { /* VCP unavailable */ }
-    if (!isAdmin) {
+    if (!(await isAdminOf(userId, assemblyId))) {
       return c.json({ error: { code: "FORBIDDEN", message: "Only admins can create bulk invitations" } }, 403);
     }
 
@@ -294,7 +359,54 @@ export function invitationRoutes(
     return c.json({ created, skipped, results }, 201);
   });
 
-  // ── User routes (direct invitations) ─────────────────────────────
+  // ── Join request management (admin) ──────────────────────────────
+
+  /** GET /assemblies/:id/join-requests — list pending join requests (admin). */
+  app.get("/assemblies/:id/join-requests", async (c) => {
+    const { id: userId } = getUser(c);
+    const assemblyId = c.req.param("id");
+
+    if (!(await isAdminOf(userId, assemblyId))) {
+      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can view join requests" } }, 403);
+    }
+
+    const requests = await joinRequestService.listByAssembly(assemblyId, "pending");
+    return c.json({ joinRequests: requests });
+  });
+
+  /** POST /assemblies/:id/join-requests/:reqId/approve — approve a join request (admin). */
+  app.post("/assemblies/:id/join-requests/:reqId/approve", async (c) => {
+    const { id: userId } = getUser(c);
+    const assemblyId = c.req.param("id");
+    const reqId = c.req.param("reqId");
+
+    if (!(await isAdminOf(userId, assemblyId))) {
+      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can approve join requests" } }, 403);
+    }
+
+    const request = await joinRequestService.approve(reqId, userId);
+
+    // Create the membership
+    await membershipService.joinAssembly(request.userId, assemblyId, request.userName);
+
+    return c.json({ status: "approved", assemblyId }, 201);
+  });
+
+  /** POST /assemblies/:id/join-requests/:reqId/reject — reject a join request (admin). */
+  app.post("/assemblies/:id/join-requests/:reqId/reject", async (c) => {
+    const { id: userId } = getUser(c);
+    const assemblyId = c.req.param("id");
+    const reqId = c.req.param("reqId");
+
+    if (!(await isAdminOf(userId, assemblyId))) {
+      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can reject join requests" } }, 403);
+    }
+
+    await joinRequestService.reject(reqId, userId);
+    return c.json({ status: "rejected" });
+  });
+
+  // ── User routes (direct invitations + join requests) ─────────────
 
   /** GET /me/invitations — list pending direct invitations for current user. */
   app.get("/me/invitations", async (c) => {
@@ -318,6 +430,20 @@ export function invitationRoutes(
     return c.json({ invitations: enriched });
   });
 
+  /** GET /me/join-requests — list user's pending join requests. */
+  app.get("/me/join-requests", async (c) => {
+    const { id: userId } = getUser(c);
+    const requests = await joinRequestService.listByUser(userId);
+
+    // Enrich with assembly names
+    const enriched = await Promise.all(requests.map(async (req) => {
+      const assembly = await assemblyCacheService.get(req.assemblyId);
+      return { ...req, assemblyName: assembly?.name ?? null };
+    }));
+
+    return c.json({ joinRequests: enriched });
+  });
+
   /** POST /me/invitations/:invId/accept — accept a direct invitation. */
   app.post("/me/invitations/:invId/accept", async (c) => {
     const { id: userId, name } = getUser(c);
@@ -328,6 +454,7 @@ export function invitationRoutes(
       return c.json({ error: { code: "NOT_FOUND", message: "Invitation not found" } }, 404);
     }
 
+    // Direct invitations always bypass approval (admin explicitly invited this person)
     const result = await invitationService.accept(invitation, userId, name);
     return c.json({ status: "joined", assemblyId: result.assemblyId }, 201);
   });

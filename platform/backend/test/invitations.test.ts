@@ -19,7 +19,7 @@ function authHeader(token: string): Record<string, string> {
 }
 
 /** Seed a cached assembly directly into the DB (avoids needing a real VCP). */
-async function seedAssemblyCache(backend: TestBackend, id = ASSEMBLY_ID, name = ASSEMBLY_NAME): Promise<void> {
+async function seedAssemblyCache(backend: TestBackend, id = ASSEMBLY_ID, name = ASSEMBLY_NAME, admissionMode: "open" | "approval" | "invite-only" = "open"): Promise<void> {
   await backend.assemblyCacheService.upsert({
     id,
     organizationId: null,
@@ -27,6 +27,7 @@ async function seedAssemblyCache(backend: TestBackend, id = ASSEMBLY_ID, name = 
     config: ASSEMBLY_CONFIG,
     status: "active",
     createdAt: new Date().toISOString(),
+    admissionMode,
   });
 }
 
