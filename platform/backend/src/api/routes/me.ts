@@ -12,6 +12,8 @@ import type { NotificationService } from "../../services/notification-service.js
 import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
 
+import type { NotificationHubService } from "../../services/notification-hub.js";
+
 export function meRoutes(
   userService: UserService,
   membershipService: MembershipService,
@@ -19,6 +21,7 @@ export function meRoutes(
   topicCacheService: TopicCacheService,
   surveyCacheService: SurveyCacheService,
   notificationService: NotificationService,
+  notificationHub: NotificationHubService,
 ) {
   const app = new Hono();
 
@@ -211,15 +214,17 @@ export function meRoutes(
     return c.json(membership, 201);
   });
 
-  /** GET /me/notifications — get notification preferences. */
-  app.get("/me/notifications", async (c) => {
+  // ── Notification preferences (renamed from /me/notifications) ────
+
+  /** GET /me/notification-preferences — get notification preferences. */
+  app.get("/me/notification-preferences", async (c) => {
     const { id } = getUser(c);
     const preferences = await notificationService.getPreferences(id);
     return c.json({ preferences });
   });
 
-  /** PUT /me/notifications — set a notification preference. */
-  app.put("/me/notifications", async (c) => {
+  /** PUT /me/notification-preferences — set a notification preference. */
+  app.put("/me/notification-preferences", async (c) => {
     const { id } = getUser(c);
     const body = await c.req.json<{ key: string; value: string }>();
 
@@ -235,6 +240,64 @@ export function meRoutes(
 
     const preferences = await notificationService.getPreferences(id);
     return c.json({ preferences });
+  });
+
+  // Backward compat: keep old path working during transition
+  app.get("/me/notifications", async (c) => {
+    const { id } = getUser(c);
+    const preferences = await notificationService.getPreferences(id);
+    return c.json({ preferences });
+  });
+  app.put("/me/notifications", async (c) => {
+    const { id } = getUser(c);
+    const body = await c.req.json<{ key: string; value: string }>();
+    if (!body.key || !body.value) {
+      throw new ValidationError("Both 'key' and 'value' are required");
+    }
+    try {
+      await notificationService.setPreference(id, body.key, body.value);
+    } catch (err) {
+      throw new ValidationError((err as Error).message);
+    }
+    const preferences = await notificationService.getPreferences(id);
+    return c.json({ preferences });
+  });
+
+  // ── Notification feed (in-app hub) ─────────────────────────────
+
+  /** GET /me/notifications/feed — list notifications (paginated, filterable). */
+  app.get("/me/notifications/feed", async (c) => {
+    const { id } = getUser(c);
+    const limit = parseInt(c.req.query("limit") ?? "20", 10);
+    const offset = parseInt(c.req.query("offset") ?? "0", 10);
+    const assemblyId = c.req.query("assemblyId") ?? undefined;
+    const unreadOnly = c.req.query("unreadOnly") === "true";
+
+    const result = await notificationHub.list(id, { assemblyId, unreadOnly, limit, offset });
+    return c.json(result);
+  });
+
+  /** GET /me/notifications/unread-count — unread count for badge. */
+  app.get("/me/notifications/unread-count", async (c) => {
+    const { id } = getUser(c);
+    const count = await notificationHub.getUnreadCount(id);
+    return c.json({ unreadCount: count });
+  });
+
+  /** POST /me/notifications/:id/read — mark a notification as read. */
+  app.post("/me/notifications/:id/read", async (c) => {
+    const { id: userId } = getUser(c);
+    const notificationId = c.req.param("id");
+    await notificationHub.markRead(notificationId, userId);
+    return c.json({ status: "ok" });
+  });
+
+  /** POST /me/notifications/read-all — mark all notifications as read. */
+  app.post("/me/notifications/read-all", async (c) => {
+    const { id } = getUser(c);
+    const assemblyId = c.req.query("assemblyId") ?? undefined;
+    await notificationHub.markAllRead(id, assemblyId);
+    return c.json({ status: "ok" });
   });
 
   return app;

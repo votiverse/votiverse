@@ -34,6 +34,7 @@ import type { AdmissionMode } from "../../services/assembly-cache.js";
 import type { VCPClient } from "../../services/vcp-client.js";
 import type { UserService } from "../../services/user-service.js";
 import type { InvitationNotifier } from "../../services/invitation-notifier.js";
+import type { NotificationHubService } from "../../services/notification-hub.js";
 import { getUser } from "../middleware/auth.js";
 import { parseCsvInvites } from "../../lib/csv-parser.js";
 
@@ -47,6 +48,7 @@ export function invitationRoutes(
   vcpClient: VCPClient,
   userService: UserService,
   invitationNotifier: InvitationNotifier | null = null,
+  notificationHub: NotificationHubService | null = null,
 ) {
   const app = new Hono();
 
@@ -154,6 +156,19 @@ export function invitationRoutes(
       const joinRequest = await joinRequestService.create(
         invitation.assemblyId, userId, name, user.handle,
       );
+
+      // Notify assembly admins of the new join request
+      if (notificationHub) {
+        const asmName = assembly?.name ?? "a group";
+        void notificationHub.notifyAssemblyAdmins({
+          assemblyId: invitation.assemblyId,
+          type: "join_request",
+          urgency: "action",
+          title: `${name} wants to join ${asmName}`,
+          actionUrl: `/assembly/${invitation.assemblyId}/members`,
+        });
+      }
+
       return c.json(
         { status: "pending", assemblyId: invitation.assemblyId, joinRequestId: joinRequest.id },
         202,
@@ -389,6 +404,19 @@ export function invitationRoutes(
     // Create the membership
     await membershipService.joinAssembly(request.userId, assemblyId, request.userName);
 
+    // Notify the requester that they've been approved
+    if (notificationHub) {
+      const assembly = await assemblyCacheService.get(assemblyId);
+      void notificationHub.notify({
+        userId: request.userId,
+        assemblyId,
+        type: "join_request_approved",
+        urgency: "info",
+        title: `You've been approved to join ${assembly?.name ?? "a group"}`,
+        actionUrl: `/assembly/${assemblyId}`,
+      });
+    }
+
     return c.json({ status: "approved", assemblyId }, 201);
   });
 
@@ -402,7 +430,21 @@ export function invitationRoutes(
       return c.json({ error: { code: "FORBIDDEN", message: "Only admins can reject join requests" } }, 403);
     }
 
+    const request = await joinRequestService.getById(reqId);
     await joinRequestService.reject(reqId, userId);
+
+    // Notify the requester that they've been rejected
+    if (notificationHub && request) {
+      const assembly = await assemblyCacheService.get(assemblyId);
+      void notificationHub.notify({
+        userId: request.userId,
+        assemblyId,
+        type: "join_request_rejected",
+        urgency: "info",
+        title: `Your request to join ${assembly?.name ?? "a group"} was not approved`,
+      });
+    }
+
     return c.json({ status: "rejected" });
   });
 

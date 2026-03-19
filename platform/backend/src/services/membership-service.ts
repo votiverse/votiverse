@@ -131,6 +131,15 @@ export class MembershipService {
     return result;
   }
 
+  /** Get all user-to-participant mappings for an assembly. */
+  async getUserMembershipsByAssembly(assemblyId: string): Promise<Array<{ userId: string; participantId: string }>> {
+    const rows = await this.db.query<{ user_id: string; participant_id: string }>(
+      "SELECT user_id, participant_id FROM memberships WHERE assembly_id = ?",
+      [assemblyId],
+    );
+    return rows.map((r) => ({ userId: r.user_id, participantId: r.participant_id }));
+  }
+
   /** Get the number of members in an assembly. */
   async getAssemblyMemberCount(assemblyId: string): Promise<number> {
     const row = await this.db.queryOne<{ cnt: number }>(

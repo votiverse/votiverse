@@ -28,6 +28,7 @@ import { invitationRoutes } from "./routes/invitations.js";
 import { InvitationService } from "../services/invitation-service.js";
 import { InvitationNotifier } from "../services/invitation-notifier.js";
 import { JoinRequestService } from "../services/join-request-service.js";
+import { NotificationHubService } from "../services/notification-hub.js";
 import type { NotificationAdapter } from "../services/notification-adapter.js";
 import type { ContentService } from "../services/content-service.js";
 import type { VCPClient } from "../services/vcp-client.js";
@@ -86,19 +87,24 @@ export function createApp(deps: AppDependencies): Hono {
     );
   });
 
-  // Routes
-  app.route("/", healthRoutes(database));
-  app.route("/", metricsRoutes());
-  app.route("/", authRoutes(userService, sessionService));
-  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService));
-  // Invitation routes (includes public GET /invite/:token)
+  // Services (must be created before routes)
+  const notificationHub = new NotificationHubService(
+    database, membershipService, assemblyCacheService,
+    deps.notificationAdapter ?? null, notificationService, vcpClient,
+  );
   const invitationService = new InvitationService(database, membershipService);
   const joinRequestService = new JoinRequestService(database);
   const frontendUrl = config.corsOrigins.find((o) => o !== "*") ?? "http://localhost:5174";
   const invitationNotifier = deps.notificationAdapter
     ? new InvitationNotifier(deps.notificationAdapter, userService, assemblyCacheService, frontendUrl)
     : null;
-  app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier));
+
+  // Routes
+  app.route("/", healthRoutes(database));
+  app.route("/", metricsRoutes());
+  app.route("/", authRoutes(userService, sessionService));
+  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub));
+  app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier, notificationHub));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
   app.route("/", contentRoutes(membershipService, contentService, config));
   app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, vcpClient, config));

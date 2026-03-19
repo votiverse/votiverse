@@ -253,6 +253,24 @@ export class SQLiteAdapter implements DatabaseAdapter {
       CREATE INDEX IF NOT EXISTS idx_assets_assembly
         ON assets(assembly_id);
 
+      -- In-app notification feed (persistent, independent of email delivery)
+      CREATE TABLE IF NOT EXISTS notifications (
+        id              TEXT PRIMARY KEY,
+        user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        assembly_id     TEXT NOT NULL,
+        type            TEXT NOT NULL,
+        urgency         TEXT NOT NULL DEFAULT 'info',
+        title           TEXT NOT NULL,
+        body            TEXT,
+        action_url      TEXT,
+        read_at         TEXT,
+        created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
+        ON notifications(user_id, read_at);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+        ON notifications(user_id, created_at DESC);
+
       -- Survey response tracking (one-way latch: once responded, never reverted)
       CREATE TABLE IF NOT EXISTS survey_responses (
         assembly_id    TEXT NOT NULL,

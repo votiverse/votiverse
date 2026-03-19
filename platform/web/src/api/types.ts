@@ -242,6 +242,24 @@ export interface SurveyResults {
   }>;
 }
 
+// ---- Notifications ----
+
+export type NotificationUrgency = "action" | "timely" | "info";
+
+export interface Notification {
+  id: string;
+  userId: string;
+  assemblyId: string;
+  assemblyName?: string;
+  type: string;
+  urgency: NotificationUrgency;
+  title: string;
+  body: string | null;
+  actionUrl: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
 // ---- Join Requests ----
 
 export interface JoinRequest {

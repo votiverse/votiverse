@@ -386,14 +386,46 @@ export function evaluatePrediction(
 export function getNotificationPreferences(): Promise<{
   preferences: import("./types.js").NotificationPreferences;
 }> {
-  return request("GET", "/me/notifications");
+  return request("GET", "/me/notification-preferences");
 }
 
 export function setNotificationPreference(
   key: string,
   value: string,
 ): Promise<{ preferences: import("./types.js").NotificationPreferences }> {
-  return request("PUT", "/me/notifications", { key, value });
+  return request("PUT", "/me/notification-preferences", { key, value });
+}
+
+// ---- Notification Feed ----
+
+import type { Notification } from "./types.js";
+
+export function listNotifications(options?: {
+  limit?: number;
+  offset?: number;
+  assemblyId?: string;
+  unreadOnly?: boolean;
+}): Promise<{ notifications: Notification[]; unreadCount: number; total: number }> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.offset) params.set("offset", String(options.offset));
+  if (options?.assemblyId) params.set("assemblyId", options.assemblyId);
+  if (options?.unreadOnly) params.set("unreadOnly", "true");
+  const qs = params.toString();
+  return request("GET", `/me/notifications/feed${qs ? `?${qs}` : ""}`);
+}
+
+export function getUnreadNotificationCount(): Promise<{ unreadCount: number }> {
+  return request("GET", "/me/notifications/unread-count");
+}
+
+export function markNotificationRead(notificationId: string): Promise<void> {
+  return request("POST", `/me/notifications/${notificationId}/read`);
+}
+
+export function markAllNotificationsRead(assemblyId?: string): Promise<void> {
+  const qs = assemblyId ? `?assemblyId=${assemblyId}` : "";
+  return request("POST", `/me/notifications/read-all${qs}`);
 }
 
 // ---- Proposals ----
