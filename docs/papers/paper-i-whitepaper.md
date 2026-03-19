@@ -502,29 +502,29 @@ Additional design constraints to limit noise and manipulation:
 
 ### 9.5 Surveys as Ground Truth for Predictions
 
-Participant polls connect directly to the prediction tracking system. When a proposal predicted "15% improvement in youth sports participation," the outcome can be measured through official statistics. But it can also be sensed through structured polls: "Has youth sports participation in your area increased, decreased, or stayed the same since the facility was built?"
+Participant surveys connect directly to the prediction tracking system. When a proposal predicted "15% improvement in youth sports participation," the outcome can be measured through official statistics. But it can also be sensed through structured surveys: "Has youth sports participation in your area increased, decreased, or stayed the same since the facility was built?"
 
 These two signals — official metrics and distributed observation — serve different purposes. Official metrics are precise but slow, often arriving months or years after the fact. Distributed observation is imprecise but fast, and it captures qualitative realities that statistics miss. When the two signals agree, confidence in the outcome assessment is high. When they diverge — the statistics say improvement, but participants on the ground report no change — that divergence is itself valuable information. It may indicate that the statistics are misleading, that the improvement is unevenly distributed, or that the metric being measured does not capture what people actually experience.
 
-Polls therefore give the prediction tracking system a second channel of evidence — one that comes from the people the governance decisions are supposed to serve.
+Surveys therefore give the prediction tracking system a second channel of evidence — one that comes from the people the governance decisions are supposed to serve.
 
-### 9.6 Polls as Trend Lines
+### 9.6 Surveys as Trend Lines
 
-Because polls recur on a predictable schedule, they produce something that one-time outcome evaluations cannot: **a longitudinal trend.**
+Because surveys recur on a predictable schedule, they produce something that one-time outcome evaluations cannot: **a longitudinal trend.**
 
-A single outcome check, performed when a prediction's timeframe expires, yields a binary judgment — the prediction was met or it wasn't. A recurring poll yields a time series of community observation that runs in parallel with the governance timeline. This time series is far more informative.
+A single outcome check, performed when a prediction's timeframe expires, yields a binary judgment — the prediction was met or it wasn't. A recurring survey yields a time series of community observation that runs in parallel with the governance timeline. This time series is far more informative.
 
-Consider a proposal that predicts a reduction in crime within three years. Official crime statistics will eventually confirm or deny the prediction — but they arrive slowly, often with methodological caveats, and always after the fact. Meanwhile, quarterly polls asking residents "do you feel safer in your neighborhood compared to a year ago?" create a continuous signal. If that signal shows a steady increase in perceived insecurity — quarter after quarter, starting six months after the proposal was implemented — the community does not need to wait three years for the official verdict. The trend is the early warning.
+Consider a proposal that predicts a reduction in crime within three years. Official crime statistics will eventually confirm or deny the prediction — but they arrive slowly, often with methodological caveats, and always after the fact. Meanwhile, quarterly surveys asking residents "do you feel safer in your neighborhood compared to a year ago?" create a continuous signal. If that signal shows a steady increase in perceived insecurity — quarter after quarter, starting six months after the proposal was implemented — the community does not need to wait three years for the official verdict. The trend is the early warning.
 
-This transforms polls from snapshots into a monitoring system. The awareness layer can surface trend data at the point of decision: "This proposal predicted reduced crime within 3 years. We are 18 months in. Over the last four polls, the percentage of residents reporting increased insecurity has risen from 22% to 41%." That is actionable information. Participants can use it to demand course correction, override delegations, or weigh the track record of whoever championed the proposal.
+This transforms surveys from snapshots into a monitoring system. The awareness layer can surface trend data at the point of decision: "This proposal predicted reduced crime within 3 years. We are 18 months in. Over the last four surveys, the percentage of residents reporting increased insecurity has risen from 22% to 41%." That is actionable information. Participants can use it to demand course correction, override delegations, or weigh the track record of whoever championed the proposal.
 
-Over time, poll trend lines accumulate into a historical record of community experience — how things felt before a decision, how they changed afterward, and whether the trajectory matched what was promised. This is governance memory built from lived experience, not just from official statistics.
+Over time, survey trend lines accumulate into a historical record of community experience — how things felt before a decision, how they changed afterward, and whether the trajectory matched what was promised. This is governance memory built from lived experience, not just from official statistics.
 
-### 9.7 Polls and the Awareness Layer
+### 9.7 Surveys and the Awareness Layer
 
-Poll results feed into the governance awareness layer (Section 10). When a new proposal is introduced on a topic that has been polled, the awareness layer can surface the most recent poll data: "In the last community poll, 68% of respondents reported that traffic congestion has worsened since the bypass was built." This contextual information, delivered at the point of decision, connects the lived experience of participants to the next round of governance.
+Survey results feed into the governance awareness layer (Section 10). When a new proposal is introduced on a topic that has been surveyed, the awareness layer can surface the most recent survey data: "In the last community survey, 68% of respondents reported that traffic congestion has worsened since the bypass was built." This contextual information, delivered at the point of decision, connects the lived experience of participants to the next round of governance.
 
-Over time, the polling record — like the prediction record — becomes part of the platform's institutional memory. It is a structured, longitudinal account of what participants observed, reported alongside what was proposed, what was predicted, and what official metrics showed. This is the kind of information infrastructure that no existing governance system provides.
+Over time, the survey record — like the prediction record — becomes part of the platform's institutional memory. It is a structured, longitudinal account of what participants observed, reported alongside what was proposed, what was predicted, and what official metrics showed. This is the kind of information infrastructure that no existing governance system provides.
 
 ---
 
@@ -646,7 +646,7 @@ Any honest proposal must confront the ways it can fail. Liquid-democracy-style s
 **Mitigations.**
 
 - **Offline booklets.** The digital voting booklet can be rendered as a printable document for offline distribution.
-- **Assisted voting.** Organizations can designate trusted assistants who help participants submit votes in person, analogous to accessible polling stations.
+- **Assisted voting.** Organizations can designate trusted assistants who help participants submit votes in person, analogous to accessible voting stations.
 - **Progressive deployment.** Votiverse is not proposed as a replacement for existing systems overnight. It is a tool for organizations that choose to adopt it, starting where digital access is already the norm.
 
 ### 11.6 Sybil Attacks and Identity
@@ -763,7 +763,7 @@ AI is a powerful tool for making the information infrastructure practical at sca
 
 ### 13.5 Platform Integrity: Blockchain and Oracles
 
-Votiverse demands accountability from proposals, delegates, and information sources. But a system that holds others accountable must itself be accountable. If the organization operating a Votiverse instance can quietly alter vote tallies, modify prediction records, edit poll results, or tamper with the delegation graph after the fact, then the entire accountability infrastructure is built on a foundation that cannot be trusted.
+Votiverse demands accountability from proposals, delegates, and information sources. But a system that holds others accountable must itself be accountable. If the organization operating a Votiverse instance can quietly alter vote tallies, modify prediction records, edit survey results, or tamper with the delegation graph after the fact, then the entire accountability infrastructure is built on a foundation that cannot be trusted.
 
 This is the **meta-accountability problem**: who watches the system itself?
 
@@ -774,7 +774,7 @@ What goes on-chain is not the entire platform state. It is the **critical integr
 - Vote tallies and outcome counts.
 - Prediction commitments — cryptographic hashes of the prediction text and parameters, anchored at the time of proposal submission so that predictions cannot be retroactively edited to match outcomes.
 - Outcome recordings — the data used to evaluate whether predictions were met.
-- Poll results — aggregate responses, timestamped and committed.
+- Survey results — aggregate responses, timestamped and committed.
 - Delegation graph snapshots at the time of each vote — so the weight distribution is verifiable.
 
 A cryptographic commitment anchored to a public blockchain means that any later alteration of these records is detectable. Participants, auditors, or independent observers can verify that the records have not been changed since they were committed. This is not about running the platform on a blockchain. It is about using the blockchain as a tamper-evident seal on the records that matter most.
@@ -785,10 +785,10 @@ Several approaches apply, and they are not mutually exclusive:
 
 - **AI-assisted gathering** (Section 13.4) monitors public data sources and presents findings with links. This is fast and scalable but inherits the biases of the AI provider.
 - **Trusted data provider oracles** — government statistics agencies, independent monitors, academic institutions — can serve as formally recognized sources for specific prediction types. Their data feeds can be cryptographically signed and committed alongside predictions.
-- **Participant polls** (Section 9) provide distributed, ground-level observation that complements official data.
+- **Participant surveys** (Section 9) provide distributed, ground-level observation that complements official data.
 - **Community verification** — participants can challenge outcome recordings by providing counter-evidence, with disputes resolved through a structured process.
 
-The combination of multiple oracle sources — AI, official data providers, polls, and community challenge — provides resilience. No single source needs to be fully trusted because the sources check each other.
+The combination of multiple oracle sources — AI, official data providers, surveys, and community challenge — provides resilience. No single source needs to be fully trusted because the sources check each other.
 
 **Configurability.** Like everything in Votiverse, the integrity layer is configurable. A small club may need no blockchain integration — internal trust and social accountability suffice. A municipal deployment handling public funds should probably commit all critical records to a public chain. A national-scale deployment may require the full integrity stack: on-chain commitments, multiple oracle sources, independent audit capability, and cryptographic verification tools accessible to any participant.
 
@@ -904,7 +904,7 @@ The invitation is open. If you believe collective decision-making can be better 
 | **Community note** | A participant-submitted annotation on a proposal, argument, or prediction, subject to community evaluation. |
 | **Governance configuration** | The specific combination of primitives, constraints, and rules that define how a Votiverse instance operates. |
 | **Named preset** | A curated, ready-to-use governance configuration with sensible defaults, documentation, and precedent. |
-| **Participant poll** | A non-delegable, structured survey of participant observations about local conditions and lived experience. |
+| **Participant survey** | A non-delegable, structured instrument for gathering participant observations about local conditions and lived experience. |
 | **Governance awareness layer** | The built-in system that monitors the delegation network, decision history, and prediction record, and delivers contextual findings to participants at the point of decision. |
 
 ---
@@ -919,7 +919,7 @@ The following examples illustrate how named presets can be used as starting poin
 - **Participants:** 20 parents, invitation-based identity.
 - **Delegation:** Disabled. All decisions are direct votes.
 - **Prediction tracking:** Disabled.
-- **Polls:** Disabled (group is small enough for direct conversation).
+- **Surveys:** Disabled (group is small enough for direct conversation).
 - **Booklet:** Simplified — proposal and brief arguments only.
 - **Governance:** Simple majority, no quorum.
 - **Effect:** Pure direct democracy with structured proposals.
@@ -931,7 +931,7 @@ The following examples illustrate how named presets can be used as starting poin
 - **Delegation:** Enabled, topic-specific, transitive.
 - **Topic taxonomy:** Technology, Finance, HR, Strategy.
 - **Prediction tracking:** Enabled, mandatory on proposals.
-- **Polls:** Enabled, quarterly cadence.
+- **Surveys:** Enabled, quarterly cadence.
 - **Booklet:** Full format with community notes.
 - **Governance:** 60% supermajority, 30% quorum.
 - **Customization:** Delegate votes visible to delegators only (privacy within a professional community).
@@ -944,11 +944,11 @@ The following examples illustrate how named presets can be used as starting poin
 - **Delegation:** Enabled, topic-specific, transitive, chain depth capped at 3.
 - **Topic taxonomy:** Infrastructure, Education, Parks, Safety, Transit.
 - **Prediction tracking:** Required on all proposals.
-- **Polls:** Enabled, biannual cadence, administrator-proposed questions with community review.
+- **Surveys:** Enabled, biannual cadence, administrator-proposed questions with community review.
 - **Booklet:** Full format with community notes.
 - **Delegation visibility:** Aggregate only (individual edges private).
 - **Delegate vote visibility:** Visible to delegators only.
-- **Blockchain integrity:** Enabled — vote tallies, prediction commitments, and poll results committed to public chain.
+- **Blockchain integrity:** Enabled — vote tallies, prediction commitments, and survey results committed to public chain.
 - **AI assistance:** Enabled, dual-provider ensemble for outcome verification.
 - **Governance:** Simple majority, 10% quorum.
 - **Effect:** Bounded liquid democracy with strong accountability, Swiss-style booklets, distributed fact-checking and sensing, tamper-evident records.
