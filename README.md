@@ -235,7 +235,7 @@ Votiverse is a complete, locally runnable governance platform:
 - **Config** — 85 tests (presets, validation, derivation, diffing)
 - **Total: 800+ tests passing**
 
-Production deployment (PostgreSQL, real webhook delivery, AI integration) is future work. The system is fully functional for local development, evaluation, and governance research.
+The system is fully functional for local development, evaluation, and governance research. PostgreSQL is supported alongside SQLite. Future exploration includes an AI-assisted help layer for participants.
 
 ---
 
