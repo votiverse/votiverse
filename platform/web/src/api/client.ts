@@ -95,6 +95,7 @@ export function createAssembly(params: {
   name: string;
   organizationId?: string;
   preset?: string;
+  admissionMode?: string;
 }): Promise<Assembly> {
   return request("POST", "/assemblies", params);
 }

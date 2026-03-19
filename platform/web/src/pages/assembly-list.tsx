@@ -171,6 +171,7 @@ export function AssemblyList() {
 function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [name, setName] = useState("");
   const [config, setConfig] = useState<ConfigDraft>(getDefaultConfig);
+  const [admissionMode, setAdmissionMode] = useState<"open" | "approval" | "invite-only">("approval");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -184,7 +185,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
     setSubmitting(true);
     setError(null);
     try {
-      await api.createAssembly({ name: name.trim(), preset: config.preset });
+      await api.createAssembly({ name: name.trim(), preset: config.preset, admissionMode });
       onCreated();
       onClose();
     } catch (err: unknown) {
@@ -224,6 +225,27 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
             <p className="text-xs text-gray-400 -mt-2">
               Governance rules are permanent and apply to all votes in this group.
             </p>
+
+            {/* Admission mode */}
+            <div>
+              <Label>Who can join</Label>
+              <Select value={admissionMode} onChange={(e) => setAdmissionMode(e.target.value as "open" | "approval" | "invite-only")}>
+                <option value="approval">Approval required (recommended)</option>
+                <option value="open">Open — anyone with a link joins immediately</option>
+                <option value="invite-only">Invite only — admin sends directly</option>
+              </Select>
+              <p className="text-xs text-gray-400 mt-1">
+                {admissionMode === "approval" && "New members must be approved by an admin before they can vote."}
+                {admissionMode === "open" && "Anyone with an invite link joins immediately. Higher risk of fake accounts."}
+                {admissionMode === "invite-only" && "Members join only through direct invitation from an admin."}
+              </p>
+              {admissionMode === "open" && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-1.5">
+                  Open groups are more susceptible to Sybil attacks — a bad actor could create multiple accounts to multiply their voting power.
+                </p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">You can change this later in group settings.</p>
+            </div>
 
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
@@ -36,7 +36,14 @@ export function AssemblyDashboard() {
     [assemblyId, participantId],
   );
   const [showConfig, setShowConfig] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(() => assemblyId ? shouldShowOnboarding(assemblyId) : false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Re-check onboarding when assemblyId changes (handles redirects from invite acceptance)
+  useEffect(() => {
+    if (assemblyId && shouldShowOnboarding(assemblyId)) {
+      setShowOnboarding(true);
+    }
+  }, [assemblyId]);
 
   if (loading) return <Spinner />;
   if (error || !assembly) return <ErrorBox message={error ?? "Assembly not found"} onRetry={refetch} />;
