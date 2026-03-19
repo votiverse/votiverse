@@ -4,7 +4,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Spinner, ErrorBox } from "../components/ui.js";
-import { Avatar, AVATAR_STYLES, avatarUrl, type AvatarStyle } from "../components/avatar.js";
+import { Avatar, AVATAR_STYLES, AVATAR_STYLE_LABELS, avatarUrl, type AvatarStyle } from "../components/avatar.js";
 
 interface AssemblyProfileData {
   assembly: Assembly;
@@ -225,6 +225,13 @@ export function Profile() {
 
 // ── Profile editor ────────────────────────────────────────────────────
 
+/** A set of fun seed words to generate varied avatars for browsing. */
+const SEED_POOL = [
+  "felix", "luna", "atlas", "nova", "sage", "river", "ember", "storm",
+  "coral", "jasper", "maple", "onyx", "pearl", "robin", "sky", "wren",
+  "cedar", "dusk", "frost", "glow", "ivy", "jade", "lark", "moss",
+];
+
 function ProfileEditor({ currentName, currentHandle, onSaved }: {
   currentName: string;
   currentHandle: string;
@@ -235,6 +242,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
   const [bio, setBio] = useState("");
   const [selectedStyle, setSelectedStyle] = useState<AvatarStyle>("avataaars");
   const [avatarSeed, setAvatarSeed] = useState(currentName);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -296,41 +304,32 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
           <p className="text-xs text-gray-400 mt-1">{bio.length}/280</p>
         </div>
 
-        {/* Avatar picker */}
+        {/* Avatar — current + change button */}
         <div>
-          <Label>Avatar style</Label>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mt-1">
-            {AVATAR_STYLES.map((style) => (
-              <button
-                key={style}
-                type="button"
-                onClick={() => setSelectedStyle(style)}
-                className={`p-1 rounded-lg border-2 transition-colors ${
-                  selectedStyle === style
-                    ? "border-brand bg-brand-50"
-                    : "border-transparent hover:border-gray-200"
-                }`}
-              >
-                <img
-                  src={avatarUrl(avatarSeed, style)}
-                  alt={style}
-                  className="w-10 h-10 rounded-full bg-gray-100"
-                  loading="lazy"
-                />
-              </button>
-            ))}
-          </div>
-          <div className="mt-2">
-            <Label>Avatar seed</Label>
-            <Input
-              value={avatarSeed}
-              onChange={(e) => setAvatarSeed(e.target.value)}
-              placeholder="Type anything to generate a different avatar"
-              className="text-sm"
+          <Label>Avatar</Label>
+          <div className="flex items-center gap-3 mt-1">
+            <img
+              src={avatarUrl(avatarSeed, selectedStyle)}
+              alt="Current avatar"
+              className="w-14 h-14 rounded-full bg-gray-100"
             />
-            <p className="text-xs text-gray-400 mt-1">Different words generate different faces. Try your nickname, a pet name, or anything fun.</p>
+            <Button variant="secondary" size="sm" onClick={() => setShowAvatarPicker(!showAvatarPicker)}>
+              {showAvatarPicker ? "Close picker" : "Choose avatar"}
+            </Button>
           </div>
         </div>
+
+        {/* Avatar gallery */}
+        {showAvatarPicker && (
+          <AvatarPicker
+            currentStyle={selectedStyle}
+            currentSeed={avatarSeed}
+            onSelect={(style, seed) => {
+              setSelectedStyle(style);
+              setAvatarSeed(seed);
+            }}
+          />
+        )}
 
         {/* Preview */}
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -353,5 +352,89 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
         </div>
       </CardBody>
     </Card>
+  );
+}
+
+// ── Avatar picker gallery ─────────────────────────────────────────────
+
+function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
+  currentStyle: AvatarStyle;
+  currentSeed: string;
+  onSelect: (style: AvatarStyle, seed: string) => void;
+}) {
+  const [browsingStyle, setBrowsingStyle] = useState<AvatarStyle>(currentStyle);
+  const [customSeed, setCustomSeed] = useState("");
+
+  // Generate a set of seeds: the user's current seed + pool of fun words
+  const seeds = [currentSeed, ...SEED_POOL.filter((s) => s !== currentSeed)];
+
+  // If user typed a custom seed, prepend it
+  const displaySeeds = customSeed.trim()
+    ? [customSeed.trim(), ...seeds]
+    : seeds;
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 space-y-3">
+      {/* Style tabs — scrollable row */}
+      <div>
+        <p className="text-xs font-medium text-gray-500 mb-2">Style</p>
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {AVATAR_STYLES.map((style) => (
+            <button
+              key={style}
+              type="button"
+              onClick={() => setBrowsingStyle(style)}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                browsingStyle === style
+                  ? "bg-brand text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {AVATAR_STYLE_LABELS[style] ?? style}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom seed input */}
+      <div>
+        <Input
+          value={customSeed}
+          onChange={(e) => setCustomSeed(e.target.value)}
+          placeholder="Type a word to generate more options..."
+          className="text-sm"
+        />
+      </div>
+
+      {/* Avatar grid for the selected style */}
+      <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+        {displaySeeds.slice(0, 24).map((seed) => {
+          const isSelected = browsingStyle === currentStyle && seed === currentSeed;
+          return (
+            <button
+              key={`${browsingStyle}-${seed}`}
+              type="button"
+              onClick={() => onSelect(browsingStyle, seed)}
+              className={`p-1 rounded-lg border-2 transition-colors ${
+                isSelected
+                  ? "border-brand bg-brand-50"
+                  : "border-transparent hover:border-gray-300"
+              }`}
+            >
+              <img
+                src={avatarUrl(seed, browsingStyle)}
+                alt={seed}
+                className="w-full aspect-square rounded-full bg-gray-100"
+                loading="lazy"
+              />
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="text-xs text-gray-400">
+        Click any avatar to select it. Type a word above to see new faces.
+      </p>
+    </div>
   );
 }

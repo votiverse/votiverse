@@ -5,16 +5,69 @@
  */
 
 /** Available DiceBear avatar styles. */
+/** All character-based DiceBear styles (best for user avatars). */
 export const AVATAR_STYLES = [
   "avataaars",
+  "avataaars-neutral",
+  "adventurer",
+  "adventurer-neutral",
+  "big-ears",
+  "big-ears-neutral",
+  "big-smile",
   "bottts",
+  "bottts-neutral",
+  "croodles",
+  "croodles-neutral",
+  "dylan",
   "fun-emoji",
   "lorelei",
+  "lorelei-neutral",
+  "micah",
+  "miniavs",
   "notionists",
+  "notionists-neutral",
   "open-peeps",
+  "personas",
+  "pixel-art",
+  "pixel-art-neutral",
   "thumbs",
   "shapes",
+  "glass",
+  "rings",
+  "identicon",
 ] as const;
+
+/** Human-readable labels for styles. */
+export const AVATAR_STYLE_LABELS: Record<string, string> = {
+  "avataaars": "Avataaars",
+  "avataaars-neutral": "Avataaars Neutral",
+  "adventurer": "Adventurer",
+  "adventurer-neutral": "Adventurer Neutral",
+  "big-ears": "Big Ears",
+  "big-ears-neutral": "Big Ears Neutral",
+  "big-smile": "Big Smile",
+  "bottts": "Robots",
+  "bottts-neutral": "Robots Neutral",
+  "croodles": "Croodles",
+  "croodles-neutral": "Croodles Neutral",
+  "dylan": "Dylan",
+  "fun-emoji": "Fun Emoji",
+  "lorelei": "Lorelei",
+  "lorelei-neutral": "Lorelei Neutral",
+  "micah": "Micah",
+  "miniavs": "Mini Avatars",
+  "notionists": "Notionists",
+  "notionists-neutral": "Notionists Neutral",
+  "open-peeps": "Open Peeps",
+  "personas": "Personas",
+  "pixel-art": "Pixel Art",
+  "pixel-art-neutral": "Pixel Art Neutral",
+  "thumbs": "Thumbs",
+  "shapes": "Shapes",
+  "glass": "Glass",
+  "rings": "Rings",
+  "identicon": "Identicon",
+};
 
 export type AvatarStyle = typeof AVATAR_STYLES[number];
 
