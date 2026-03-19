@@ -129,9 +129,27 @@ All passwords: `password`
 5. **Community notes** — verify note creation and evaluation
 6. **Delegation** — verify delegation creation and weight computation
 
-## Known Gaps to Watch For
+## Test Results (March 2026)
 
-- Group creation may not have a backend `POST /assemblies` route (proxy gap)
-- Admission mode selection may not be in the group creation UI yet
-- The onboarding dialog triggers on first visit to a group — need to clear localStorage to re-test
-- Event creation through the web UI depends on admin role being recognized
+### Acts 1-2: Group Creation + Member Onboarding — PASSED
+- Group creation with Modern Democracy preset: works (POST /assemblies route added)
+- Onboarding dialog: 5 steps shown on first visit, config-driven content
+- Direct invitations by handle: 3 sent, accepted instantly (bypasses approval)
+- Invite link with approval mode: "Request to join" button, 202 response, confirmation page
+- Admin notification: bell showed join request, click navigated to Members page
+- Admin approval: pending request with approve/reject buttons, approval creates membership
+
+### Act 3: Emergency Roof Repair Vote — PASSED
+- Event creation: 2 questions, title, description, "Discussion" phase on creation
+- Dev clock advance: +9 days → "Voting Open" badge, voting buttons appear
+- Elena voted For/For, Marcus voted For/Against, Sofia voted For/For via API
+- Dev clock advance: +8 more days → "Ended" badge, results revealed
+- Q1: Approved unanimously (3-0), Q2: Approved 2-1 with bar chart showing split
+
+### Issues Found and Fixed During Testing
+1. **POST /assemblies route missing** — group creation was 404. Fixed: added route.
+2. **Onboarding dialog not showing on redirect** — useState initializer only runs on mount. Fixed: useEffect with assemblyId dependency.
+3. **Admission mode selector missing from group creation** — Fixed: added "Who can join" dropdown with Sybil warning.
+4. **Client-side status derivation ignoring dev clock** — deriveEventStatus used Date.now(). Fixed: effectiveNow() adds devClockOffsetMs.
+5. **Backend had no dev clock** — Fixed: added dev-clock.ts + endpoints, DevClock widget syncs both VCP and backend.
+6. **Vote progress counter showing 0/2 after voting** — cosmetic bug, noted for future fix.
