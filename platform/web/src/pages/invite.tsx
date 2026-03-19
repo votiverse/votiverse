@@ -1,16 +1,16 @@
 /**
  * Invite landing page — public group preview for invite links.
  *
- * Shows group name, governance rules, leadership, and member count.
- * Allows joining if authenticated, or redirects to signup first.
+ * Shows group name, governance rules, leadership, member count, and admission mode.
+ * In approval mode, the join button creates a request instead of instant membership.
  */
 
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, Link } from "react-router";
 import { useIdentity } from "../hooks/use-identity.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { presetLabel, summarizeRules } from "../lib/presets.js";
+import { presetLabel, summarizeRules, describeAdmissionMode } from "../lib/presets.js";
 import type { GovernanceConfig } from "../api/types.js";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -21,6 +21,7 @@ interface GroupPreview {
     id: string;
     name: string;
     config: GovernanceConfig;
+    admissionMode?: string;
     owners: Array<{ participantId: string; name: string | null }>;
     admins: Array<{ participantId: string; name: string | null }>;
     memberCount: number;
@@ -36,6 +37,7 @@ export function InvitePage() {
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [requestSent, setRequestSent] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -74,8 +76,15 @@ export function InvitePage() {
         setJoinError(data?.error?.message ?? "Failed to join");
         return;
       }
-      const data = await res.json() as { assemblyId: string };
-      navigate(`/assembly/${data.assemblyId}`);
+      const data = await res.json() as { status: string; assemblyId: string };
+
+      if (data.status === "pending") {
+        // Approval mode — request created, not joined yet
+        setRequestSent(true);
+      } else {
+        // Open mode — instant join
+        navigate(`/assembly/${data.assemblyId}`);
+      }
     } catch {
       setJoinError("Failed to join group");
     } finally {
@@ -102,6 +111,29 @@ export function InvitePage() {
   const { group } = preview;
   const rules = summarizeRules(group.config);
   const isLoggedIn = !!storeUserId;
+  const admissionMode = group.admissionMode ?? "approval";
+  const isApprovalMode = admissionMode === "approval";
+
+  // Request submitted — show confirmation
+  if (requestSent) {
+    return (
+      <div className="max-w-lg mx-auto py-8 sm:py-16 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h1 className="text-xl font-semibold text-gray-900 mb-2">Request submitted</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Your request to join <span className="font-medium">{group.name}</span> has been sent.
+          An admin will review it shortly.
+        </p>
+        <Link to="/dashboard" className="text-sm text-brand hover:text-brand-light">
+          Back to dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-lg mx-auto py-8 sm:py-16">
@@ -132,9 +164,13 @@ export function InvitePage() {
                 <span>{rule}</span>
               </li>
             ))}
+            <li className="text-sm text-gray-600 flex items-start gap-2">
+              <span className="text-gray-400 mt-0.5 shrink-0">-</span>
+              <span>{describeAdmissionMode(admissionMode)}</span>
+            </li>
           </ul>
           <p className="text-xs text-gray-400 mt-3">
-            These rules are permanent and apply to all votes in this group.
+            Governance rules are permanent and apply to all votes in this group.
           </p>
         </CardBody>
       </Card>
@@ -172,13 +208,22 @@ export function InvitePage() {
       {joinError && <ErrorBox message={joinError} />}
 
       {isLoggedIn ? (
-        <Button onClick={handleJoin} disabled={joining} className="w-full">
-          {joining ? "Joining..." : "Join this group"}
-        </Button>
+        <div className="space-y-2">
+          <Button onClick={handleJoin} disabled={joining} className="w-full">
+            {joining
+              ? (isApprovalMode ? "Requesting..." : "Joining...")
+              : (isApprovalMode ? "Request to join" : "Join this group")}
+          </Button>
+          {isApprovalMode && (
+            <p className="text-xs text-gray-400 text-center">
+              An admin will review your request before you can participate.
+            </p>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
           <Button onClick={() => navigate(`/?redirect=/invite/${token}`)} className="w-full">
-            Log in to join
+            Log in to {isApprovalMode ? "request to join" : "join"}
           </Button>
           <p className="text-xs text-gray-400 text-center">
             Don't have an account? You'll be able to create one.

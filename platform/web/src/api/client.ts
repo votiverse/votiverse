@@ -147,6 +147,36 @@ export function createBulkInvites(assemblyId: string, handles: string[]): Promis
   return request("POST", `/assemblies/${assemblyId}/invitations/bulk`, { handles });
 }
 
+// ---- Assembly Settings ----
+
+export function getAssemblySettings(assemblyId: string): Promise<{ admissionMode: string }> {
+  return request("GET", `/assemblies/${assemblyId}/settings`);
+}
+
+export function updateAssemblySettings(assemblyId: string, settings: { admissionMode: string }): Promise<{ admissionMode: string }> {
+  return request("PUT", `/assemblies/${assemblyId}/settings`, settings);
+}
+
+// ---- Join Requests ----
+
+import type { JoinRequest } from "./types.js";
+
+export function listJoinRequests(assemblyId: string): Promise<{ joinRequests: JoinRequest[] }> {
+  return request("GET", `/assemblies/${assemblyId}/join-requests`);
+}
+
+export function approveJoinRequest(assemblyId: string, requestId: string): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/join-requests/${requestId}/approve`);
+}
+
+export function rejectJoinRequest(assemblyId: string, requestId: string): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/join-requests/${requestId}/reject`);
+}
+
+export function listMyJoinRequests(): Promise<{ joinRequests: JoinRequest[] }> {
+  return request("GET", "/me/join-requests");
+}
+
 export function updateProfile(updates: { handle?: string; name?: string; bio?: string; avatarUrl?: string | null }): Promise<{ handle: string; name: string; bio: string; avatarUrl: string | null }> {
   return request("PUT", "/me/profile", updates);
 }

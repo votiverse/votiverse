@@ -90,6 +90,17 @@ export function humanizeBoolean(value: boolean, style: "yes-no" | "enabled-disab
   return value ? "Yes" : "No";
 }
 
+// ── Admission mode descriptions ────────────────────────────────────────
+
+export function describeAdmissionMode(mode: string): string {
+  switch (mode) {
+    case "open": return "Anyone with an invite link can join immediately";
+    case "approval": return "New members need admin approval to join";
+    case "invite-only": return "Members can only join through direct invitation";
+    default: return "Admin approval required";
+  }
+}
+
 // ── Governance rule summarization ──────────────────────────────────────
 
 import type { GovernanceConfig } from "../api/types.js";

@@ -6,6 +6,8 @@ export interface PaginationMeta {
   total: number;
 }
 
+export type AdmissionMode = "open" | "approval" | "invite-only";
+
 export interface Assembly {
   id: string;
   organizationId: string | null;
@@ -13,6 +15,7 @@ export interface Assembly {
   config: GovernanceConfig;
   status: string;
   createdAt: string;
+  admissionMode?: AdmissionMode;
 }
 
 export interface AssemblyRole {
@@ -237,6 +240,21 @@ export interface SurveyResults {
     standardDeviation?: number;
     distribution: Record<string, number>;
   }>;
+}
+
+// ---- Join Requests ----
+
+export interface JoinRequest {
+  id: string;
+  assemblyId: string;
+  userId: string;
+  userName: string;
+  userHandle: string | null;
+  status: "pending" | "approved" | "rejected";
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  assemblyName?: string;
 }
 
 // ---- Notification Preferences ----

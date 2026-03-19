@@ -5,21 +5,29 @@ import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { BulkInvite } from "../components/bulk-invite.js";
+import type { AdmissionMode } from "../api/types.js";
 
 export function Members() {
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
+  const { data: settingsData } = useApi(() => api.getAssemblySettings(assemblyId!), [assemblyId]);
+  const { data: joinRequestsData, refetch: refetchJoinRequests } = useApi(() => api.listJoinRequests(assemblyId!).catch(() => ({ joinRequests: [] })), [assemblyId]);
   const [adding, setAdding] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showDirectInvite, setShowDirectInvite] = useState(false);
   const [showBulkInvite, setShowBulkInvite] = useState(false);
 
+  const admissionMode = (settingsData?.admissionMode ?? "approval") as AdmissionMode;
+  const pendingRequests = joinRequestsData?.joinRequests ?? [];
+
   const handleGenerateInvite = async () => {
     try {
-      const result = await api.createInviteLink(assemblyId!);
+      const result = await api.createInviteLink(assemblyId!) as { token: string; expiresAt?: string };
       const link = `${window.location.origin}/invite/${result.token}`;
       setInviteLink(link);
+      setInviteExpiresAt(result.expiresAt ?? null);
       await navigator.clipboard.writeText(link);
       setInviteCopied(true);
       setTimeout(() => setInviteCopied(false), 3000);
@@ -38,15 +46,19 @@ export function Members() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Members</h1>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={handleGenerateInvite}>
-            {inviteCopied ? "Link copied!" : "Invite link"}
-          </Button>
+          {admissionMode !== "invite-only" && (
+            <Button variant="secondary" onClick={handleGenerateInvite}>
+              {inviteCopied ? "Link copied!" : "Invite link"}
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => setShowDirectInvite(!showDirectInvite)}>
             Invite by handle
           </Button>
-          <Button variant="secondary" onClick={() => setShowBulkInvite(!showBulkInvite)}>
-            Bulk invite
-          </Button>
+          {admissionMode !== "invite-only" && (
+            <Button variant="secondary" onClick={() => setShowBulkInvite(!showBulkInvite)}>
+              Bulk invite
+            </Button>
+          )}
           <Button onClick={() => setAdding(true)}>Add Member</Button>
         </div>
       </div>
@@ -68,7 +80,22 @@ export function Members() {
                 {inviteCopied ? "Copied!" : "Copy"}
               </Button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">Anyone with this link can join the group.</p>
+            {admissionMode === "open" ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-2 mt-2">
+                <p className="text-xs text-amber-800">
+                  <span className="font-medium">Sybil risk:</span> This link lets anyone join and vote immediately. A bad actor could create multiple accounts to multiply their voting power. Share only with people you trust.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-2">
+                Recipients will need admin approval before they can join and vote.
+              </p>
+            )}
+            {inviteExpiresAt && (
+              <p className="text-xs text-gray-400 mt-1">
+                Expires {new Date(inviteExpiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+              </p>
+            )}
           </CardBody>
         </Card>
       )}
@@ -85,6 +112,28 @@ export function Members() {
           assemblyId={assemblyId!}
           onClose={() => setShowBulkInvite(false)}
         />
+      )}
+
+      {/* Pending join requests (approval mode) */}
+      {pendingRequests.length > 0 && (
+        <Card className="mb-4 border-blue-200">
+          <CardBody>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">Pending Join Requests</h3>
+              <Badge color="blue">{pendingRequests.length}</Badge>
+            </div>
+            <div className="space-y-2">
+              {pendingRequests.map((req) => (
+                <PendingRequestRow
+                  key={req.id}
+                  request={req}
+                  assemblyId={assemblyId!}
+                  onAction={() => { void refetchJoinRequests(); void refetch(); }}
+                />
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       )}
 
       {adding && (
@@ -223,6 +272,49 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
         </form>
       </CardBody>
     </Card>
+  );
+}
+
+function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: string; userName: string; userHandle: string | null; createdAt: string }; assemblyId: string; onAction: () => void }) {
+  const [acting, setActing] = useState(false);
+
+  const handleApprove = async () => {
+    setActing(true);
+    try {
+      await api.approveJoinRequest(assemblyId, request.id);
+      onAction();
+    } catch { /* ignore */ }
+    finally { setActing(false); }
+  };
+
+  const handleReject = async () => {
+    setActing(true);
+    try {
+      await api.rejectJoinRequest(assemblyId, request.id);
+      onAction();
+    } catch { /* ignore */ }
+    finally { setActing(false); }
+  };
+
+  return (
+    <div className="flex items-center justify-between py-2 px-3 rounded-md bg-gray-50">
+      <div className="flex items-center gap-2 min-w-0">
+        <Avatar name={request.userName} size="sm" />
+        <div className="min-w-0">
+          <span className="text-sm font-medium text-gray-900">{request.userName}</span>
+          {request.userHandle && (
+            <span className="text-xs text-gray-400 ml-1">@{request.userHandle}</span>
+          )}
+          <div className="text-xs text-gray-400">
+            Requested {new Date(request.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-1 shrink-0">
+        <Button size="sm" onClick={handleApprove} disabled={acting}>Approve</Button>
+        <Button size="sm" variant="ghost" onClick={handleReject} disabled={acting}>Reject</Button>
+      </div>
+    </div>
   );
 }
 

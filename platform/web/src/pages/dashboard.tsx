@@ -137,6 +137,9 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Pending invitations */}
       <PendingInvitations />
 
+      {/* Pending join requests (awaiting admin approval) */}
+      <PendingJoinRequests />
+
       {/* Active votes — grouped by event, pending-first */}
       {pendingVotes.length > 0 && (() => {
         const groups = groupByEvent(pendingVotes);
@@ -341,6 +344,35 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
     <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
       Needs your vote
     </span>
+  );
+}
+
+function PendingJoinRequests() {
+  const { data } = useApi(() => api.listMyJoinRequests(), []);
+  const requests = data?.joinRequests ?? [];
+  if (requests.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Pending Requests</h2>
+      <div className="space-y-2">
+        {requests.map((req) => (
+          <Card key={req.id} className="border-gray-200">
+            <CardBody className="flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-sm text-gray-700">
+                  Request to join <span className="font-medium">{req.assemblyName ?? "a group"}</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Submitted {new Date(req.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <Badge color="yellow">Awaiting review</Badge>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
 
