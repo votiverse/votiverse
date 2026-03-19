@@ -14,7 +14,7 @@ The codebase is organized as a **TypeScript monorepo** managed with **pnpm works
 
 ## 2. Design Principles
 
-**Headless first.** The governance engine is pure logic. It accepts inputs (configurations, votes, delegations, predictions, poll responses) and produces outputs (tallies, delegation graphs, weight distributions, alerts, trend data). It does not render, route, or manage sessions. Any UI is a consumer of the engine, not a part of it.
+**Headless first.** The governance engine is pure logic. It accepts inputs (configurations, votes, delegations, predictions, survey responses) and produces outputs (tallies, delegation graphs, weight distributions, alerts, trend data). It does not render, route, or manage sessions. Any UI is a consumer of the engine, not a part of it.
 
 **Correctness over performance.** For a governance system, a wrong answer delivered quickly is worse than a correct answer delivered slowly. The engine prioritizes algorithmic correctness, formal property preservation (sovereignty, one-person-one-vote, monotonicity), and comprehensive testing. Performance optimization comes later, guided by profiling real deployments.
 
@@ -22,7 +22,7 @@ The codebase is organized as a **TypeScript monorepo** managed with **pnpm works
 
 **Configuration as data.** Governance configurations — the "presets" and custom parameter combinations described in the whitepaper — are plain data objects conforming to a schema. The engine interprets configurations; it does not hard-code governance rules.
 
-**Event-sourced core.** The governance engine records all state changes as an append-only sequence of events (vote cast, delegation created, delegation revoked, prediction committed, poll response submitted, outcome recorded). Current state is derived by replaying events. This provides a complete audit trail, supports temporal queries ("what was the delegation graph at the time of vote X?"), and aligns naturally with the blockchain integrity layer.
+**Event-sourced core.** The governance engine records all state changes as an append-only sequence of events (vote cast, delegation created, delegation revoked, prediction committed, survey response submitted, outcome recorded). Current state is derived by replaying events. This provides a complete audit trail, supports temporal queries ("what was the delegation graph at the time of vote X?"), and aligns naturally with the blockchain integrity layer.
 
 ---
 
@@ -44,7 +44,7 @@ votiverse/
 │   ├── delegation/              ← delegation graph, resolution, weight computation
 │   ├── voting/                  ← vote tallying, ballot methods, quorum checks
 │   ├── prediction/              ← prediction lifecycle, outcome recording, accuracy
-│   ├── polling/                 ← participant polls/surveys, trend computation
+│   ├── polling/                 ← participant surveys/surveys, trend computation
 │   ├── awareness/               ← governance awareness layer, alerts, signals
 │   ├── identity/                ← identity abstraction, provider interface
 │   ├── integrity/               ← blockchain commitments, verification
@@ -220,7 +220,7 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 **Owns:**
 - `PredictionClaim` with 6 pattern types as a discriminated union: `absolute-change`, `percentage-change`, `threshold`, `binary`, `range`, `comparative`. Each variant carries exactly the fields needed for its evaluation.
 - SHA-256 commitment hashing via deterministic JSON canonicalization (`computeCommitmentHash()`, `verifyCommitment()`).
-- Outcome recording with typed sources: `official`, `poll-derived`, `community`, `automated`. Multiple outcomes per prediction support temporal tracking.
+- Outcome recording with typed sources: `official`, `survey-derived`, `community`, `automated`. Multiple outcomes per prediction support temporal tracking.
 - Continuous accuracy evaluation (0.0–1.0 score), not binary. Status classifications: `met` (>=0.8), `partially-met` (>=0.5), `not-met`, `pending`, `insufficient`.
 - Trajectory analysis across outcome data points: `improving`, `stable`, `worsening`, `volatile`.
 - `evaluateFromTrend()`: explicit bridge between polling trends and prediction outcomes. Maps normalized [-1,+1] trend scores to pattern-appropriate measured values.
@@ -228,24 +228,24 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 
 **Dependencies:** `@votiverse/core`, `@votiverse/config`.
 
-**Key design decision:** Accuracy is continuous, not binary — addressing the "outcome measurement ambiguity" open question from the original spec. Outcome sources are typed to support future credibility weighting (currently all sources carry equal weight — see Decisions Log). The `evaluateFromTrend()` function is the structural link between the sensing layer (polls) and the accountability layer (predictions).
+**Key design decision:** Accuracy is continuous, not binary — addressing the "outcome measurement ambiguity" open question from the original spec. Outcome sources are typed to support future credibility weighting (currently all sources carry equal weight — see Decisions Log). The `evaluateFromTrend()` function is the structural link between the sensing layer (surveys) and the accountability layer (predictions).
 
 ---
 
 ### 5.7 `@votiverse/polling`
 
-**Purpose:** Participant polls — the non-delegable sensing mechanism.
+**Purpose:** Participant surveys — the non-delegable sensing mechanism.
 
 **Owns:**
 - 5 question types as a discriminated union: `likert` (5/7 scale), `numeric` (range + unit), `direction` (improved/same/worsened), `yes-no`, `multiple-choice`.
-- Poll creation with scheduling, topic scoping, and question tagging.
+- Survey creation with scheduling, topic scoping, and question tagging.
 - Response collection: SHA-256 hashed participant IDs for deduplication without attribution. Duplicate responses rejected.
 - Aggregation: mean, median, standard deviation, frequency distributions.
-- Trend computation: per-topic normalized [-1,+1] sentiment scoring across polls. Linear regression slope classifies direction (`improving`, `stable`, `worsening`, `insufficient`).
+- Trend computation: per-topic normalized [-1,+1] sentiment scoring across surveys. Linear regression slope classifies direction (`improving`, `stable`, `worsening`, `insufficient`).
 
 **Dependencies:** `@votiverse/core`, `@votiverse/config`.
 
-**Key design decision:** The identity dependency was removed (changed from the original spec). The polling package accepts `ParticipantId` values that have already been verified by the engine layer, and hashes them internally for deduplication. This keeps polling's dependency footprint minimal and follows the same pattern as other domain packages. Non-delegability is structural — there is no delegation reference in `SubmitResponseParams`. Trend computation is per-topic rather than per-question, handling the fact that question phrasing changes across polls while topic tags remain stable.
+**Key design decision:** The identity dependency was removed (changed from the original spec). The polling package accepts `ParticipantId` values that have already been verified by the engine layer, and hashes them internally for deduplication. This keeps polling's dependency footprint minimal and follows the same pattern as other domain packages. Non-delegability is structural — there is no delegation reference in `SubmitResponseParams`. Trend computation is per-topic rather than per-question, handling the fact that question phrasing changes across surveys while topic tags remain stable.
 
 ---
 
@@ -259,7 +259,7 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 - `DelegateProfile`: aggregates delegation stats, prediction accuracy, and voting participation rate.
 - `EngagementPrompt` generation: triggered by `close-vote`, `concentration-alert`, `delegate-behavior-anomaly`, or `chain-changed` conditions.
 - `VotingHistory`: retrospective record per issue — direct vs. delegated, delegate chain, effective choice.
-- `HistoricalContext`: related past decisions by topic overlap, plus poll trend data.
+- `HistoricalContext`: related past decisions by topic overlap, plus survey trend data.
 - `DetailLevel` type (`summary` | `full`) for progressive disclosure (defined but not yet consumed).
 
 **Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, `@votiverse/voting`, `@votiverse/prediction`, `@votiverse/polling`.
@@ -279,7 +279,7 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 - `BlockchainAnchor` interface: `commit(hash) → blockReference`, `verify(hash, blockReference) → boolean`.
 - Built-in anchors: `NoOpAnchor` (no blockchain, null references), `InMemoryAnchor` (for testing).
 - `OracleProvider` interface: for external data with cryptographic attestation (defined, not yet implemented).
-- 5 artifact types: `vote-tally`, `prediction-commitment`, `poll-results`, `delegation-snapshot`, `event-batch`.
+- 5 artifact types: `vote-tally`, `prediction-commitment`, `survey-results`, `delegation-snapshot`, `event-batch`.
 
 **Dependencies:** `@votiverse/core`, `@votiverse/config`.
 
@@ -292,7 +292,7 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 **Purpose:** Orchestration layer. Wires all packages together into a coherent runtime.
 
 **Owns:**
-- `VotiverseEngine` class with domain-organized API: `config`, `identity`, `topics_api`, `events`, `delegation`, `voting`, `prediction`, `polls`.
+- `VotiverseEngine` class with domain-organized API: `config`, `identity`, `topics_api`, `events`, `delegation`, `voting`, `prediction`, `surveys`.
 - `createEngine(options)` factory accepting `GovernanceConfig`, optional `EventStore`, optional `IdentityProvider`.
 - `rehydrate()` for rebuilding in-memory state (topics, voting events) from a persisted event store.
 - `injectIssue()` for restoring issue data during rehydration (issues are stored separately from events since issue details aren't captured in `VotingEventCreated` payloads).
@@ -452,13 +452,13 @@ votiverse predict evaluate <prediction-id>
 votiverse predict track-record [<participant>] [--topic <scope>]
 ```
 
-**Polls:**
+**Surveys:**
 
 ```
-votiverse poll create [--questions <file>] [--schedule <date>]
-votiverse poll respond <poll-id>                # interactive prompt for responses
-votiverse poll results <poll-id>
-votiverse poll trends [--topic <scope>] [--range <start>..<end>]
+votiverse survey create [--questions <file>] [--schedule <date>]
+votiverse survey respond <survey-id>                # interactive prompt for responses
+votiverse survey results <survey-id>
+votiverse survey trends [--topic <scope>] [--range <start>..<end>]
 ```
 
 **Awareness:**
@@ -507,7 +507,7 @@ votiverse awareness concentration --format json | jq '.gini_coefficient'
 Or a script that generates a weekly governance report:
 
 ```bash
-votiverse poll trends --topic education --range last-quarter --format csv > trends.csv
+votiverse survey trends --topic education --range last-quarter --format csv > trends.csv
 votiverse predict track-record --format json > delegate-records.json
 ```
 
@@ -528,7 +528,7 @@ All state changes in the engine are recorded as immutable events. The core event
 | `PredictionCommitted` | Proposal, prediction data, commitment hash, timestamp | prediction |
 | `OutcomeRecorded` | Prediction ref, outcome data, source, timestamp | prediction |
 | `PollCreated` | Questions, schedule, governance scope | polling |
-| `PollResponseSubmitted` | Participant (hashed for privacy), poll ref, responses, timestamp | polling |
+| `PollResponseSubmitted` | Participant (hashed for privacy), survey ref, responses, timestamp | polling |
 | `IntegrityCommitment` | Artifact type, artifact hash, block reference, timestamp | integrity |
 
 Current state is derived by folding events. This means:
@@ -603,13 +603,13 @@ engine.prediction.trackRecord(participantId): TrackRecord
 engine.prediction.get(predictionId): Prediction | undefined     // added
 engine.prediction.getByParticipant(participantId): Prediction[] // added
 
-// Polls
-engine.polls.create(params): Poll
-engine.polls.respond(params): PollResponse
-engine.polls.results(pollId, eligibleCount): PollResults  // changed: needs eligibleCount
-engine.polls.trends(topicId, eligibleCount): TrendData    // changed: topicId not scope
-engine.polls.get(pollId): Poll | undefined                // added
-engine.polls.list(): Poll[]                               // added
+// Surveys
+engine.surveys.create(params): Survey
+engine.surveys.respond(params): PollResponse
+engine.surveys.results(pollId, eligibleCount): PollResults  // changed: needs eligibleCount
+engine.surveys.trends(topicId, eligibleCount): TrendData    // changed: topicId not scope
+engine.surveys.get(pollId): Survey | undefined                // added
+engine.surveys.list(): Survey[]                               // added
 ```
 
 **Not yet wired into the engine:** Awareness and integrity are implemented as standalone services but not exposed through the engine API. Awareness requires `IssueContext` objects that the engine could construct; integrity could be exposed as `engine.integrity`. These are deferred to avoid expanding the engine API until consumers need them.
@@ -630,7 +630,7 @@ engine.polls.list(): Poll[]                               // added
 
 **Delegation graph performance at scale.** The current design computes the delegation graph fresh from the event log for each issue. Correct and simple but potentially expensive at scale. The awareness layer compounds this by querying the same graph data multiple times within a single request. Caching intermediate results within a query session would help.
 
-**Poll question neutrality.** Enforcing neutral framing programmatically remains an open problem. The current implementation has no automated bias detection.
+**Survey question neutrality.** Enforcing neutral framing programmatically remains an open problem. The current implementation has no automated bias detection.
 
 **Blockchain cost and latency.** The integrity package defines an `event-batch` artifact type for Merkle tree batching, but batch construction is not yet implemented. The `InMemoryAnchor` is sufficient for testing; real blockchain anchors need the batching strategy resolved first.
 
@@ -644,7 +644,7 @@ engine.polls.list(): Poll[]                               // added
 
 **Engine rehydration complexity.** The engine, identity provider, and CLI state all need `rehydrate()` methods to rebuild in-memory maps from persisted events. Issue data is stored separately from events because `VotingEventCreated` payloads don't include full issue details. A more principled approach would embed issue data in events or define a `rehydrate` protocol.
 
-**Simulation poll integration.** The simulation playback phase skips `poll-respond` actions because polls aren't automatically created alongside voting events. The framework tests sensing via `evaluateFromTrend()` instead. A future improvement would have playback create polls during event creation.
+**Simulation survey integration.** The simulation playback phase skips `survey-respond` actions because surveys aren't automatically created alongside voting events. The framework tests sensing via `evaluateFromTrend()` instead. A future improvement would have playback create surveys during event creation.
 
 ---
 
@@ -659,13 +659,13 @@ Key architectural decisions made during implementation, with rationale. This is 
 | D3 | `Result<T, E>` for identity package, typed throws elsewhere | Identity operations are expected to fail (auth failures). Other packages use `ValidationError` / `NotFoundError` throws. Mixing patterns is pragmatic — pick what fits the domain. | 1 |
 | D4 | Prediction accuracy as continuous 0-1 score | Binary met/not-met is insufficient for governance accountability. The score enables ranking and trend analysis. Thresholds for status classification (`met` >= 0.8) are separable from the score itself. | 2 |
 | D5 | Prediction patterns as discriminated union | Exhaustive matching in evaluation logic. Each variant carries exactly the fields it needs — no optional field ambiguity. New patterns are addable without modifying existing evaluation code. | 2 |
-| D6 | Poll trends per-topic, not per-question | Questions change across polls; topics remain stable. Normalizing to [-1,+1] makes different question types comparable on the same trend line. | 2 |
+| D6 | Survey trends per-topic, not per-question | Questions change across surveys; topics remain stable. Normalizing to [-1,+1] makes different question types comparable on the same trend line. | 2 |
 | D7 | Remove identity dependency from polling | The polling package doesn't authenticate — it deduplicates. Accepting pre-verified `ParticipantId` values keeps the dependency graph shallow. | 2 |
-| D8 | Outcome source credibility weighting deferred | The data model supports typed sources (`official`, `poll-derived`, `community`, `automated`). All currently carry equal weight. Implementing weighting requires solving the oracle trust problem (whitepaper 13.4–13.5). The infrastructure is ready; the policy is not. | 2 |
+| D8 | Outcome source credibility weighting deferred | The data model supports typed sources (`official`, `survey-derived`, `community`, `automated`). All currently carry equal weight. Implementing weighting requires solving the oracle trust problem (whitepaper 13.4–13.5). The infrastructure is ready; the policy is not. | 2 |
 | D9 | `IssueContext` pattern for awareness decoupling | The awareness layer needs issue data but shouldn't reach into engine internals. Plain data objects passed as parameters make the service testable in isolation. | 3 |
 | D10 | Two-phase simulation (generate then playback) | Reproducibility (same seed = same script), inspectability (examine/edit the script), and correctness (playback uses the real engine, so simulation bugs are engine bugs). | 4 |
 | D11 | `NoOpAnchor` as default when blockchain disabled | Same engine code runs with or without blockchain integrity. No conditional logic — just a different anchor at configuration time. | 5 |
-| D12 | Poll metadata in event payload workaround | Core's `PollCreatedPayload.questions` is `string[]`. The polling package encodes `closesAt`, `title`, `createdBy` as a JSON metadata object in the first array element, marked with `__meta: true`. Pragmatic workaround to avoid modifying core's event payloads. | 2 |
+| D12 | Survey metadata in event payload workaround | Core's `PollCreatedPayload.questions` is `string[]`. The polling package encodes `closesAt`, `title`, `createdBy` as a JSON metadata object in the first array element, marked with `__meta: true`. Pragmatic workaround to avoid modifying core's event payloads. | 2 |
 
 ---
 
@@ -689,9 +689,9 @@ Beyond mechanical testing, Votiverse includes a **simulation framework** that po
 
 The simulation framework operates at two levels:
 
-**Rule-based agents (lightweight).** Each agent follows configurable behavioral heuristics: "delegate to the agent with the highest prediction track record in my topic," "vote directly if the proposal touches my core interest area," "respond to polls based on a ground-truth function with some noise." Rule-based agents are fast and cheap. Thousands of agents can run in seconds, enabling statistical analysis across many runs. This mode is appropriate for testing structural properties: does delegation concentration stabilize or diverge? How does the override rate change with different awareness layer thresholds? At what group size does the poll signal-to-noise ratio degrade?
+**Rule-based agents (lightweight).** Each agent follows configurable behavioral heuristics: "delegate to the agent with the highest prediction track record in my topic," "vote directly if the proposal touches my core interest area," "respond to surveys based on a ground-truth function with some noise." Rule-based agents are fast and cheap. Thousands of agents can run in seconds, enabling statistical analysis across many runs. This mode is appropriate for testing structural properties: does delegation concentration stabilize or diverge? How does the override rate change with different awareness layer thresholds? At what group size does the survey signal-to-noise ratio degrade?
 
-**LLM-driven agents (full AI).** Each agent is backed by an LLM prompt with a detailed persona: background, expertise, biases, engagement level, trust relationships, and temperament. The agent receives the voting booklet, awareness data, delegation chain information, and past poll results — the same information a real participant would see — and produces realistic deliberative behavior. LLM agents are expensive but produce qualitatively richer scenarios. They discover failure modes that rule-based agents wouldn't exhibit: a charismatic agent who accumulates delegations through rhetorical skill despite poor prediction accuracy, a coordinated group that gradually captures a topic community, a well-intentioned expert who delegates to the wrong person due to misleading track record presentation.
+**LLM-driven agents (full AI).** Each agent is backed by an LLM prompt with a detailed persona: background, expertise, biases, engagement level, trust relationships, and temperament. The agent receives the voting booklet, awareness data, delegation chain information, and past survey results — the same information a real participant would see — and produces realistic deliberative behavior. LLM agents are expensive but produce qualitatively richer scenarios. They discover failure modes that rule-based agents wouldn't exhibit: a charismatic agent who accumulates delegations through rhetorical skill despite poor prediction accuracy, a coordinated group that gradually captures a topic community, a well-intentioned expert who delegates to the wrong person due to misleading track record presentation.
 
 ### 10.2 What the Simulation Tests
 
@@ -699,7 +699,7 @@ The simulation framework operates at two levels:
 
 **Prediction signal quality.** Give agents different levels of forecasting ability. Over multiple voting events, do the agents with genuinely better judgment accumulate delegations? Does the prediction tracking signal cut through narrative noise, or do charismatic-but-inaccurate agents dominate despite poor track records?
 
-**Sensor value.** Create a population where 80% are pure sensors (respond to polls, delegate everything) and 20% are active deliberators. Run proposals with predictions. Have sensor polls reflect a configurable ground truth. Compare outcomes to a simulation with no polling layer. This directly tests whether the sensing layer improves decision quality.
+**Sensor value.** Create a population where 80% are pure sensors (respond to surveys, delegate everything) and 20% are active deliberators. Run proposals with predictions. Have sensor surveys reflect a configurable ground truth. Compare outcomes to a simulation with no polling layer. This directly tests whether the sensing layer improves decision quality.
 
 **Adversarial scenarios.** Introduce agents who deliberately harvest delegations and re-delegate in bulk. Introduce agents who submit vague, unfalsifiable predictions. Introduce coordinated groups that try to dominate a topic community. Measure whether the awareness layer, prediction tracking, and community notes detect and resist these behaviors — and at what scale the defenses break.
 
@@ -729,7 +729,7 @@ Each simulation run produces:
 - Delegation graph snapshots at each voting event.
 - Concentration metrics over time.
 - Prediction accuracy distributions.
-- Poll trend lines and comparison to ground truth.
+- Survey trend lines and comparison to ground truth.
 - Awareness layer alert history.
 - Narrative summary (LLM-generated): what happened, what patterns emerged, what broke.
 
@@ -741,7 +741,7 @@ The simulation framework is part of the `@votiverse/cli` package (the `votiverse
 
 Rule-based agents are implemented as configurable state machines within the simulate package — no external dependencies.
 
-LLM-driven agents use the Anthropic API (or other LLM providers, following the same multi-provider principle as the AI assistance layer in the whitepaper). The persona prompt, the governance context (booklet, awareness data), and the expected output format are assembled by the simulate package and sent to the LLM. The LLM's response is parsed as a governance action (vote, delegate, respond to poll, submit prediction) and fed into the engine.
+LLM-driven agents use the Anthropic API (or other LLM providers, following the same multi-provider principle as the AI assistance layer in the whitepaper). The persona prompt, the governance context (booklet, awareness data), and the expected output format are assembled by the simulate package and sent to the LLM. The LLM's response is parsed as a governance action (vote, delegate, respond to survey, submit prediction) and fed into the engine.
 
 Simulation runs are reproducible: a random seed and a set of persona files define the initial conditions. For LLM-driven simulations, the LLM responses are logged and can be replayed deterministically.
 
@@ -757,9 +757,9 @@ Deliverable: a CLI that can run a complete voting event with delegation for a sm
 
 ### Phase 2: Accountability
 
-Add `prediction` and `polling`. The engine can now track predictions attached to proposals, record outcomes, compute accuracy, run non-delegable polls, and compute trend lines.
+Add `prediction` and `polling`. The engine can now track predictions attached to proposals, record outcomes, compute accuracy, run non-delegable surveys, and compute trend lines.
 
-Deliverable: a CLI that can run a voting event with predictions, followed by outcome recording and accuracy evaluation. Polls with trend visualization.
+Deliverable: a CLI that can run a voting event with predictions, followed by outcome recording and accuracy evaluation. Surveys with trend visualization.
 
 ### Phase 3: Awareness
 

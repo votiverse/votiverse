@@ -20,9 +20,9 @@ In this model, traditional representative democracy is not the default. It is a 
 
 ## Core Concepts
 
-**A governance factory.** Votiverse defines a parameter space of governance primitives — delegation, topic scoping, ballot methods, visibility rules, prediction requirements, polling — that can be configured to produce any governance model. Named presets (Town Hall, Swiss Model, Liquid Standard, Civic Participatory, and others) provide ready-to-use configurations. An experimental mode exposes the full parameter space for governance innovation.
+**A governance factory.** Votiverse defines a parameter space of governance primitives — delegation, topic scoping, ballot methods, visibility rules, prediction requirements, surveying — that can be configured to produce any governance model. Named presets (Town Hall, Swiss Model, Liquid Standard, Civic Participatory, and others) provide ready-to-use configurations. An experimental mode exposes the full parameter space for governance innovation.
 
-**Sensing as participation.** Governance should not only ask people to decide — it should ask them to observe. Every participant is a sensor embedded in their local reality. Structured, non-delegable participant polls capture what people experience and feed that signal back into the system. It is easier to identify a problem than to know how to solve it, and even a fully disengaged participant is a valuable sensor.
+**Sensing as participation.** Governance should not only ask people to decide — it should ask them to observe. Every participant is a sensor embedded in their local reality. Structured, non-delegable participant surveys capture what people experience and feed that signal back into the system. It is easier to identify a problem than to know how to solve it, and even a fully disengaged participant is a valuable sensor.
 
 **Delegation as backup.** A delegate votes on your behalf only if you don't vote yourself. Delegations are topic-specific, revocable at any time, and transitive. You can always override by voting directly, up to the last second.
 
@@ -30,11 +30,11 @@ In this model, traditional representative democracy is not the default. It is a 
 
 **The digital voting booklet.** Inspired by Switzerland's practice of mailing a physical booklet to every citizen before a vote, every issue comes with structured proposals, arguments, counter-arguments, and predictions. Informed participation is a structural requirement, not an afterthought.
 
-**Governance awareness.** A built-in intelligence layer monitors the delegation network and delivers contextual information at the point of decision — concentration alerts, delegation chain resolution, delegate track records, personal voting history, poll trend lines, and prediction accuracy. Progressive disclosure ensures participants see what matters without being overwhelmed.
+**Governance awareness.** A built-in intelligence layer monitors the delegation network and delivers contextual information at the point of decision — concentration alerts, delegation chain resolution, delegate track records, personal voting history, survey trend lines, and prediction accuracy. Progressive disclosure ensures participants see what matters without being overwhelmed.
 
 **Community notes.** Distributed fact-checking inspired by X/Twitter's community notes system. Participants annotate proposals; the community evaluates the annotations; high-quality notes become visible context in the voting booklet.
 
-**Platform integrity.** Optional blockchain anchoring provides tamper-evident records for critical governance artifacts. Multiple oracle sources (AI-assisted monitoring, trusted data providers, participant polls, community verification) ensure no single source controls outcome evaluation.
+**Platform integrity.** Optional blockchain anchoring provides tamper-evident records for critical governance artifacts. Multiple oracle sources (AI-assisted monitoring, trusted data providers, participant surveys, community verification) ensure no single source controls outcome evaluation.
 
 ---
 
@@ -63,7 +63,7 @@ Open **http://localhost:5174**. Select a participant from the identity picker �
 
 ### Sample Data
 
-The seed script creates a rich, diverse dataset across 4 organizations and 5 assemblies (each using a different governance preset): 63 participants, 13 voting events in all lifecycle states, 42 issues, 21 delegations with chains, 155 pre-cast votes, and 2 polls. Try these cross-assembly participants for the best evaluation experience: **Sofia Reyes** (OSC + Youth), **Marcus Chen** (OSC + Municipal), **Priya Sharma** (Municipal + Youth), **James Okafor** (Municipal + Board).
+The seed script creates a rich, diverse dataset across 4 organizations and 5 assemblies (each using a different governance preset): 63 participants, 13 voting events in all lifecycle states, 42 issues, 21 delegations with chains, 155 pre-cast votes, and 2 surveys. Try these cross-assembly participants for the best evaluation experience: **Sofia Reyes** (OSC + Youth), **Marcus Chen** (OSC + Municipal), **Priya Sharma** (Municipal + Youth), **James Okafor** (Municipal + Board).
 
 To reset the database to fresh seed data: `cd platform/vcp && pnpm reset`.
 
@@ -90,7 +90,7 @@ Votiverse has three layers:
 └───────────────────────────────────────────────────────┘
 ```
 
-**Engine** — 12 composable TypeScript packages that implement the governance model. Pure computation: delegation graphs, vote tallying, prediction evaluation, poll aggregation, awareness metrics. No HTTP, no database, no infrastructure. See [Architecture](docs/architecture.md).
+**Engine** — 12 composable TypeScript packages that implement the governance model. Pure computation: delegation graphs, vote tallying, prediction evaluation, survey aggregation, awareness metrics. No HTTP, no database, no infrastructure. See [Architecture](docs/architecture.md).
 
 **Cloud Platform (VCP)** — A Node.js server that imports the engine and wraps it in production infrastructure: REST API, SQLite/PostgreSQL database, task queue, scheduled jobs, webhook dispatch. See [VCP README](platform/vcp/README.md).
 
@@ -108,7 +108,7 @@ Votiverse has three layers:
 | `@votiverse/delegation` | Delegation graph, scope resolution, weight computation, cycle detection |
 | `@votiverse/voting` | 4 ballot methods (SimpleMajority, Supermajority, RankedChoice, Approval), quorum |
 | `@votiverse/prediction` | Prediction lifecycle, 6 evaluation patterns, commitment hashing, track records |
-| `@votiverse/polling` | Non-delegable polls, 5 question types, topic-level trend computation |
+| `@votiverse/polling` | Non-delegable surveys, 5 question types, topic-level trend computation |
 | `@votiverse/awareness` | Read-only monitoring: concentration alerts, chain resolution, delegate profiles, prompts |
 | `@votiverse/integrity` | Blockchain-agnostic commitment hashing, anchoring, verification |
 | `@votiverse/engine` | Orchestration layer, domain-organized API surface |
@@ -202,7 +202,7 @@ console.log('Concentration:', result.results.concentrationOverTime);
 
 | Document | Description |
 |----------|-------------|
-| [Paper I — Whitepaper](docs/papers/paper-i-whitepaper.md) | Governance model, formal properties, prediction tracking, participant polling, awareness layer |
+| [Paper I — Whitepaper](docs/papers/paper-i-whitepaper.md) | Governance model, formal properties, prediction tracking, participant surveying, awareness layer |
 | [Paper II — Self-Sustaining Governance](docs/papers/paper-ii-self-sustaining-governance.md) | Proposals, delegate candidacies, community notes, surveys as evidence, immutability |
 | [Architecture](docs/architecture.md) | Engine internals: 13 packages, dependency graph, event-sourced data model |
 | [Integration Architecture](docs/integration-architecture.md) | 3-tier system architecture, VCP/backend boundary, API contract |
@@ -218,9 +218,9 @@ console.log('Concentration:', result.results.concentrationOverTime);
 
 Votiverse is a complete, locally runnable governance platform:
 
-- **Engine** — 13 packages, 459 tests, all formal properties verified (sovereignty, one-person-one-vote, monotonicity, revocability, override rule, cycle resolution, scope precedence, poll non-transferability)
+- **Engine** — 13 packages, 459 tests, all formal properties verified (sovereignty, one-person-one-vote, monotonicity, revocability, override rule, cycle resolution, scope precedence, survey non-transferability)
 - **Cloud Platform** — 27 REST endpoints, SQLite persistence, adapter pattern for future PostgreSQL/AWS migration, 16 integration tests
-- **Web Client** — 9 views covering assemblies, voting, delegations, polls, and awareness, with participant identity switching
+- **Web Client** — 9 views covering assemblies, voting, delegations, surveys, and awareness, with participant identity switching
 - **Total: 335 tests passing**
 
 Production deployment (PostgreSQL, real webhook delivery, AI integration) is future work. The system is fully functional for local development, evaluation, and governance research.
