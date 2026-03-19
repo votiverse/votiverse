@@ -71,14 +71,16 @@ export function Header() {
                 <span className="font-semibold text-gray-900 hidden sm:inline">Votiverse</span>
               </Link>
             )}
-            {/* Desktop nav — hidden on mobile (bottom tabs handle it) */}
-            <nav className="hidden lg:flex items-center gap-1">
-              {inAssembly ? (
-                <AssemblyNavLinks assemblyId={assemblyId!} />
-              ) : (
-                <GlobalNavLinks />
-              )}
-            </nav>
+            {/* Desktop nav — hidden on mobile (bottom tabs handle it), hidden when not logged in */}
+            {storeUserId && (
+              <nav className="hidden lg:flex items-center gap-1">
+                {inAssembly ? (
+                  <AssemblyNavLinks assemblyId={assemblyId!} />
+                ) : (
+                  <GlobalNavLinks />
+                )}
+              </nav>
+            )}
           </div>
 
           {/* Right: notifications + identity + menu */}
@@ -86,7 +88,7 @@ export function Header() {
             {storeUserId && <NotificationBell />}
             {storeUserId && <IdentityIndicator name={participantName} />}
             {/* Mobile hamburger for secondary items */}
-            {inAssembly && (
+            {storeUserId && inAssembly && (
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="lg:hidden p-2 -mr-2 text-gray-500 hover:text-gray-900 min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -173,12 +175,15 @@ function IdentityIndicator({ name }: { name: string | null }) {
   );
 }
 
-/** Bottom tab bar — contextual based on context */
+/** Bottom tab bar — contextual based on context. Hidden when not logged in. */
 export function BottomTabs() {
   const { assemblyId } = useParams();
   const location = useLocation();
+  const { storeUserId } = useIdentity();
   const { assembly } = useAssembly(assemblyId);
   const inAssembly = Boolean(assemblyId);
+
+  if (!storeUserId) return null;
 
   const globalTabs = [
     { to: "/", label: "Home", icon: TabHome, exact: true },
