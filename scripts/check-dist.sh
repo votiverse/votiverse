@@ -36,7 +36,7 @@ if [ "${1:-}" = "--rebuild" ]; then
   pnpm --filter @votiverse/identity build && \
   pnpm --filter @votiverse/delegation build && \
   pnpm --filter @votiverse/voting build && \
-  pnpm --filter @votiverse/polling build && \
+  pnpm --filter @votiverse/survey build && \
   pnpm --filter @votiverse/prediction build && \
   pnpm --filter @votiverse/engine build
   echo "Done."

@@ -108,7 +108,7 @@ Votiverse has three layers:
 | `@votiverse/delegation` | Delegation graph, scope resolution, weight computation, cycle detection |
 | `@votiverse/voting` | 4 ballot methods (SimpleMajority, Supermajority, RankedChoice, Approval), quorum |
 | `@votiverse/prediction` | Prediction lifecycle, 6 evaluation patterns, commitment hashing, track records |
-| `@votiverse/polling` | Non-delegable surveys, 5 question types, topic-level trend computation |
+| `@votiverse/survey` | Non-delegable surveys, 5 question types, topic-level trend computation |
 | `@votiverse/awareness` | Read-only monitoring: concentration alerts, chain resolution, delegate profiles, prompts |
 | `@votiverse/integrity` | Blockchain-agnostic commitment hashing, anchoring, verification |
 | `@votiverse/engine` | Orchestration layer, domain-organized API surface |

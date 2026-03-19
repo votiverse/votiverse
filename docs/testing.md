@@ -696,7 +696,7 @@ If VCP returns `"X is not a function"` errors (e.g., `hasResponded is not a func
 ```bash
 pnpm --filter @votiverse/core build && \
 pnpm --filter @votiverse/config build && \
-pnpm --filter @votiverse/polling build && \
+pnpm --filter @votiverse/survey build && \
 pnpm --filter @votiverse/engine build
 ```
 

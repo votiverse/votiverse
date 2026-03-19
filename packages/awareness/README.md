@@ -22,4 +22,4 @@ Governance awareness layer — read-only monitoring, alerting, and contextual in
 
 - `@votiverse/core`, `@votiverse/config`
 - `@votiverse/delegation`, `@votiverse/voting`
-- `@votiverse/prediction`, `@votiverse/polling`
+- `@votiverse/prediction`, `@votiverse/survey`

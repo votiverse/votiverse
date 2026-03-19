@@ -232,7 +232,7 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 
 ---
 
-### 5.7 `@votiverse/polling`
+### 5.7 `@votiverse/survey`
 
 **Purpose:** Participant surveys — the non-delegable sensing mechanism.
 
@@ -262,7 +262,7 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 - `HistoricalContext`: related past decisions by topic overlap, plus survey trend data.
 - `DetailLevel` type (`summary` | `full`) for progressive disclosure (defined but not yet consumed).
 
-**Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, `@votiverse/voting`, `@votiverse/prediction`, `@votiverse/polling`.
+**Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/delegation`, `@votiverse/voting`, `@votiverse/prediction`, `@votiverse/survey`.
 
 **Key design decision:** The awareness layer is read-only and uses the `IssueContext` pattern — rather than accessing engine internals directly, it receives plain data objects containing everything it needs (issueId, title, topicIds, eligible participants, topic ancestors). This makes it testable without the full engine stack and prevents tight coupling to engine internals. The layer instantiates its own `PredictionService` and `PollingService` for querying, but never writes events.
 
@@ -298,7 +298,7 @@ cli → engine → [awareness, voting, content, polling, prediction, integrity]
 - `injectIssue()` for restoring issue data during rehydration (issues are stored separately from events since issue details aren't captured in `VotingEventCreated` payloads).
 - Re-exports key types from all sub-packages for consumer convenience.
 
-**Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/identity`, `@votiverse/delegation`, `@votiverse/voting`, `@votiverse/prediction`, `@votiverse/polling`.
+**Dependencies:** `@votiverse/core`, `@votiverse/config`, `@votiverse/identity`, `@votiverse/delegation`, `@votiverse/voting`, `@votiverse/prediction`, `@votiverse/survey`.
 
 **Key design decision:** The engine maintains in-memory maps for topics, voting events, and issues alongside the event store. These maps must be rebuilt via `rehydrate()` when loading a persisted event store. The awareness and integrity packages are not wired into the engine API yet — awareness queries require `IssueContext` objects that the engine could construct, and integrity could be exposed as `engine.integrity`. This is deferred to avoid expanding the engine's dependency footprint until consumers need it.
 
