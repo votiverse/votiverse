@@ -4,6 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
+import { BulkInvite } from "../components/bulk-invite.js";
 
 export function Members() {
   const { assemblyId } = useParams();
@@ -12,6 +13,7 @@ export function Members() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showDirectInvite, setShowDirectInvite] = useState(false);
+  const [showBulkInvite, setShowBulkInvite] = useState(false);
 
   const handleGenerateInvite = async () => {
     try {
@@ -41,6 +43,9 @@ export function Members() {
           </Button>
           <Button variant="secondary" onClick={() => setShowDirectInvite(!showDirectInvite)}>
             Invite by handle
+          </Button>
+          <Button variant="secondary" onClick={() => setShowBulkInvite(!showBulkInvite)}>
+            Bulk invite
           </Button>
           <Button onClick={() => setAdding(true)}>Add Member</Button>
         </div>
@@ -72,6 +77,13 @@ export function Members() {
         <DirectInviteForm
           assemblyId={assemblyId!}
           onClose={() => setShowDirectInvite(false)}
+        />
+      )}
+
+      {showBulkInvite && (
+        <BulkInvite
+          assemblyId={assemblyId!}
+          onClose={() => setShowBulkInvite(false)}
         />
       )}
 

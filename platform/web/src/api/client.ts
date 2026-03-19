@@ -127,6 +127,26 @@ export function declineInvitation(invitationId: string): Promise<void> {
   return request("POST", `/me/invitations/${invitationId}/decline`);
 }
 
+export interface BulkInvitePreview {
+  valid: Array<{ handle: string; status: "found" | "not_found"; alreadyMember: boolean }>;
+  errors: Array<{ row: number; value: string; reason: string }>;
+  summary: { total: number; canInvite: number; alreadyMembers: number; unknownHandles: number; invalidRows: number };
+}
+
+export interface BulkInviteResult {
+  created: number;
+  skipped: number;
+  results: Array<{ handle: string; status: "created" | "skipped"; reason?: string }>;
+}
+
+export function previewBulkInvites(assemblyId: string, csv: string): Promise<BulkInvitePreview> {
+  return request("POST", `/assemblies/${assemblyId}/invitations/preview`, { csv });
+}
+
+export function createBulkInvites(assemblyId: string, handles: string[]): Promise<BulkInviteResult> {
+  return request("POST", `/assemblies/${assemblyId}/invitations/bulk`, { handles });
+}
+
 export function updateProfile(updates: { handle?: string; name?: string; bio?: string; avatarUrl?: string | null }): Promise<{ handle: string; name: string; bio: string; avatarUrl: string | null }> {
   return request("PUT", "/me/profile", updates);
 }
