@@ -183,8 +183,6 @@ export function BottomTabs() {
   const { assembly } = useAssembly(assemblyId);
   const inAssembly = Boolean(assemblyId);
 
-  if (!storeUserId) return null;
-
   const globalTabs = [
     { to: "/", label: "Home", icon: TabHome, exact: true },
     { to: "/assemblies", label: "My Groups", icon: TabGrid, exact: true },
@@ -192,6 +190,9 @@ export function BottomTabs() {
   ];
 
   const assemblyTabDefs = useAssemblyTabs(assemblyId, assembly?.config);
+
+  // Must be after all hooks
+  if (!storeUserId) return null;
   const assemblyTabs = assemblyTabDefs.map((tab) => ({
     ...tab,
     icon: TAB_ICONS[tab.label] ?? TabHome,
