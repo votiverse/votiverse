@@ -107,6 +107,10 @@ export function getAssemblyProfile(id: string): Promise<import("./types.js").Ass
   return request("GET", `/assemblies/${id}/profile`);
 }
 
+export function createInviteLink(assemblyId: string, options?: { maxUses?: number; expiresAt?: string }): Promise<{ id: string; token: string }> {
+  return request("POST", `/assemblies/${assemblyId}/invitations`, { type: "link", ...options });
+}
+
 // ---- Participants ----
 
 export function listParticipants(assemblyId: string): Promise<{ participants: Participant[] }> {

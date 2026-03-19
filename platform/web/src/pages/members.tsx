@@ -9,6 +9,21 @@ export function Members() {
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const [adding, setAdding] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  const handleGenerateInvite = async () => {
+    try {
+      const result = await api.createInviteLink(assemblyId!);
+      const link = `${window.location.origin}/invite/${result.token}`;
+      setInviteLink(link);
+      await navigator.clipboard.writeText(link);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 3000);
+    } catch {
+      // silently fail — the button text indicates the action
+    }
+  };
 
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
@@ -17,10 +32,37 @@ export function Members() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Members</h1>
-        <Button onClick={() => setAdding(true)}>Add Member</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleGenerateInvite}>
+            {inviteCopied ? "Link copied!" : "Invite link"}
+          </Button>
+          <Button onClick={() => setAdding(true)}>Add Member</Button>
+        </div>
       </div>
+
+      {inviteLink && (
+        <Card className="mb-4 border-brand-200 bg-brand-50/30">
+          <CardBody>
+            <p className="text-sm text-gray-700 mb-2">Share this link to invite people:</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-gray-200 text-gray-600 truncate">{inviteLink}</code>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(inviteLink);
+                  setInviteCopied(true);
+                  setTimeout(() => setInviteCopied(false), 3000);
+                }}
+              >
+                {inviteCopied ? "Copied!" : "Copy"}
+              </Button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Anyone with this link can join the group.</p>
+          </CardBody>
+        </Card>
+      )}
 
       {adding && (
         <AddMemberForm

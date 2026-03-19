@@ -20,6 +20,7 @@ import { ProfileDelegators } from "./pages/profile-delegators.js";
 import { ProfileDelegates } from "./pages/profile-delegates.js";
 import { ProfileVotes } from "./pages/profile-votes.js";
 import { NotificationSettings } from "./pages/notification-settings.js";
+import { InvitePage } from "./pages/invite.js";
 import { DevClock } from "./components/dev-clock.js";
 
 function Layout() {
@@ -47,6 +48,7 @@ export function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route index element={<Dashboard />} />
+              <Route path="invite/:token" element={<InvitePage />} />
               <Route path="assemblies" element={<AssemblyList />} />
               <Route path="profile" element={<Profile />} />
               <Route path="profile/delegators" element={<ProfileDelegators />} />
