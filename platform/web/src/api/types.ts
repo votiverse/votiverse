@@ -283,6 +283,8 @@ export interface NotificationPreferences {
   notify_deadlines: "true" | "false";
   notify_results: "true" | "false";
   notify_channel: "email" | "sms" | "both" | "none";
+  notify_admin_join_requests: "true" | "false";
+  notify_admin_new_members: "true" | "false";
 }
 
 // ---- Predictions ----

@@ -78,6 +78,8 @@ const PREFERENCE_DEFAULTS: Record<string, string> = {
   notify_deadlines: "true",
   notify_results: "false",
   notify_channel: "email",
+  notify_admin_join_requests: "true",
+  notify_admin_new_members: "false",
 };
 
 const VALID_PREFERENCES: Record<string, string[]> = {
@@ -86,6 +88,8 @@ const VALID_PREFERENCES: Record<string, string[]> = {
   notify_deadlines: ["true", "false"],
   notify_results: ["true", "false"],
   notify_channel: ["email", "sms", "both", "none"],
+  notify_admin_join_requests: ["true", "false"],
+  notify_admin_new_members: ["true", "false"],
 };
 
 export interface NotificationPreferences {
@@ -94,6 +98,8 @@ export interface NotificationPreferences {
   notify_deadlines: string;
   notify_results: string;
   notify_channel: string;
+  notify_admin_join_requests: string;
+  notify_admin_new_members: string;
 }
 
 // ─── Service ─────────────────────────────────────────────────────────

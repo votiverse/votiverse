@@ -117,28 +117,62 @@ export function NotificationSettings() {
         </CardBody>
       </Card>
 
+      <Card className="mb-6">
+        <CardHeader>
+          <h2 className="text-base font-medium text-gray-900">Admin Notifications</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Email alerts for group administration events. These only apply to groups where you are an admin or owner.
+          </p>
+        </CardHeader>
+        <CardBody className="space-y-5">
+          <PreferenceSelect
+            label="Join requests"
+            description="When someone requests to join a group you administer"
+            value={prefs.notify_admin_join_requests}
+            saving={saving === "notify_admin_join_requests"}
+            options={[
+              { value: "true", label: "Enabled" },
+              { value: "false", label: "Disabled" },
+            ]}
+            onChange={(v) => handleChange("notify_admin_join_requests", v)}
+          />
+
+          <PreferenceSelect
+            label="New members"
+            description="When someone joins a group you administer"
+            value={prefs.notify_admin_new_members}
+            saving={saving === "notify_admin_new_members"}
+            options={[
+              { value: "true", label: "Enabled" },
+              { value: "false", label: "Disabled" },
+            ]}
+            onChange={(v) => handleChange("notify_admin_new_members", v)}
+          />
+        </CardBody>
+      </Card>
+
       <Card>
         <CardHeader>
           <h2 className="text-base font-medium text-gray-900">Delivery Channel</h2>
-          <p className="text-sm text-gray-500 mt-1">How you want to receive notifications</p>
+          <p className="text-sm text-gray-500 mt-1">How you want to receive email notifications</p>
         </CardHeader>
         <CardBody>
           <PreferenceSelect
             label="Channel"
-            description="Choose how notifications reach you"
+            description="Controls email delivery only — in-app notifications always appear in the notification bell"
             value={prefs.notify_channel}
             saving={saving === "notify_channel"}
             options={[
               { value: "email", label: "Email" },
               { value: "sms", label: "SMS" },
               { value: "both", label: "Email + SMS" },
-              { value: "none", label: "None (disable all)" },
+              { value: "none", label: "None (in-app only)" },
             ]}
             onChange={(v) => handleChange("notify_channel", v)}
           />
           {prefs.notify_channel === "none" && (
             <p className="mt-3 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              All outbound notifications are disabled. You can still see pending items on your dashboard.
+              Email notifications are disabled. You'll still see all notifications in the notification bell and at <a href="/notifications" className="underline">/notifications</a>.
             </p>
           )}
         </CardBody>
