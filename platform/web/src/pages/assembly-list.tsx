@@ -25,7 +25,6 @@ interface ConfigDraft {
     delegationMode: string;
     topicScoped: boolean;
     transitive: boolean;
-    maxChainDepth: number | null;
     maxDelegatesPerParticipant: number | null;
   };
   ballot: {
@@ -51,49 +50,49 @@ interface ConfigDraft {
 const PRESET_CONFIGS: Record<string, ConfigDraft> = {
   MODERN_DEMOCRACY: {
     preset: "MODERN_DEMOCRACY",
-    delegation: { delegationMode: "candidacy", topicScoped: true, transitive: true, maxChainDepth: null, maxDelegatesPerParticipant: null },
+    delegation: { delegationMode: "candidacy", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
     ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
     features: { communityNotes: true, surveys: true, predictions: "encouraged" },
     timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 },
   },
   TOWN_HALL: {
     preset: "TOWN_HALL",
-    delegation: { delegationMode: "none", topicScoped: false, transitive: false, maxChainDepth: null, maxDelegatesPerParticipant: null },
+    delegation: { delegationMode: "none", topicScoped: false, transitive: false, maxDelegatesPerParticipant: null },
     ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
     features: { communityNotes: false, surveys: false, predictions: "disabled" },
     timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 },
   },
   SWISS_MODEL: {
     preset: "SWISS_MODEL",
-    delegation: { delegationMode: "none", topicScoped: false, transitive: false, maxChainDepth: null, maxDelegatesPerParticipant: null },
+    delegation: { delegationMode: "none", topicScoped: false, transitive: false, maxDelegatesPerParticipant: null },
     ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0.2, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
     features: { communityNotes: true, surveys: false, predictions: "encouraged" },
     timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 },
   },
   LIQUID_STANDARD: {
     preset: "LIQUID_STANDARD",
-    delegation: { delegationMode: "open", topicScoped: true, transitive: true, maxChainDepth: null, maxDelegatesPerParticipant: null },
+    delegation: { delegationMode: "open", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
     ballot: { secrecy: "public", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "live", allowVoteChange: false, participationMode: "voluntary" },
     features: { communityNotes: false, surveys: false, predictions: "optional" },
     timeline: { deliberationDays: 5, curationDays: 0, votingDays: 5 },
   },
   LIQUID_ACCOUNTABLE: {
     preset: "LIQUID_ACCOUNTABLE",
-    delegation: { delegationMode: "candidacy", topicScoped: true, transitive: true, maxChainDepth: null, maxDelegatesPerParticipant: null },
+    delegation: { delegationMode: "candidacy", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
     ballot: { secrecy: "public", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "live", allowVoteChange: false, participationMode: "voluntary" },
     features: { communityNotes: true, surveys: true, predictions: "mandatory" },
     timeline: { deliberationDays: 7, curationDays: 3, votingDays: 7 },
   },
   BOARD_PROXY: {
     preset: "BOARD_PROXY",
-    delegation: { delegationMode: "open", topicScoped: false, transitive: false, maxChainDepth: 1, maxDelegatesPerParticipant: 1 },
+    delegation: { delegationMode: "open", topicScoped: false, transitive: false, maxDelegatesPerParticipant: 1 },
     ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0.5, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
     features: { communityNotes: false, surveys: false, predictions: "disabled" },
     timeline: { deliberationDays: 3, curationDays: 0, votingDays: 3 },
   },
   CIVIC_PARTICIPATORY: {
     preset: "CIVIC_PARTICIPATORY",
-    delegation: { delegationMode: "open", topicScoped: true, transitive: true, maxChainDepth: 3, maxDelegatesPerParticipant: null },
+    delegation: { delegationMode: "open", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
     ballot: { secrecy: "anonymous-auditable", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
     features: { communityNotes: true, surveys: true, predictions: "mandatory" },
     timeline: { deliberationDays: 14, curationDays: 3, votingDays: 14 },

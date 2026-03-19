@@ -25,7 +25,7 @@ const MODERN_DEMOCRACY: GovernanceConfig = Object.freeze({
     topicScoped: true,
     transitive: true,
     revocableAnytime: true,
-    maxChainDepth: null,
+
     maxDelegatesPerParticipant: null,
     maxAge: null,
     visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "direct" as const }),
@@ -73,7 +73,7 @@ const TOWN_HALL: GovernanceConfig = Object.freeze({
     topicScoped: false,
     transitive: false,
     revocableAnytime: false,
-    maxChainDepth: null,
+
     maxDelegatesPerParticipant: null,
     maxAge: null,
     visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
@@ -122,7 +122,7 @@ const SWISS_MODEL: GovernanceConfig = Object.freeze({
     topicScoped: false,
     transitive: false,
     revocableAnytime: false,
-    maxChainDepth: null,
+
     maxDelegatesPerParticipant: null,
     maxAge: null,
     visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
@@ -171,7 +171,7 @@ const LIQUID_STANDARD: GovernanceConfig = Object.freeze({
     topicScoped: true,
     transitive: true,
     revocableAnytime: true,
-    maxChainDepth: null,
+
     maxDelegatesPerParticipant: null,
     maxAge: null,
     visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "direct" as const }),
@@ -221,7 +221,7 @@ const LIQUID_ACCOUNTABLE: GovernanceConfig = Object.freeze({
     topicScoped: true,
     transitive: true,
     revocableAnytime: true,
-    maxChainDepth: null,
+
     maxDelegatesPerParticipant: null,
     maxAge: null,
     visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "chain" as const }),
@@ -270,7 +270,7 @@ const BOARD_PROXY: GovernanceConfig = Object.freeze({
     topicScoped: false,
     transitive: false,
     revocableAnytime: false,
-    maxChainDepth: 1,
+
     maxDelegatesPerParticipant: 1,
     maxAge: null,
     visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
@@ -320,7 +320,7 @@ const CIVIC_PARTICIPATORY: GovernanceConfig = Object.freeze({
     topicScoped: true,
     transitive: true,
     revocableAnytime: true,
-    maxChainDepth: 3,
+
     maxDelegatesPerParticipant: null,
     maxAge: 31_536_000_000,
     visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),

@@ -133,14 +133,12 @@ describe("Named presets", () => {
       expect(config.delegation.delegationMode).toBe("open");
       expect(config.delegation.transitive).toBe(false);
       expect(config.delegation.maxDelegatesPerParticipant).toBe(1);
-      expect(config.delegation.maxChainDepth).toBe(1);
       expect(config.ballot.secrecy).toBe("secret");
     });
 
-    it("CIVIC_PARTICIPATORY: open delegation, chain depth cap, mandatory predictions, blockchain", () => {
+    it("CIVIC_PARTICIPATORY: open delegation, mandatory predictions, blockchain", () => {
       const config = PRESETS.CIVIC_PARTICIPATORY;
       expect(config.delegation.delegationMode).toBe("open");
-      expect(config.delegation.maxChainDepth).toBe(3);
       expect(config.features.predictions).toBe("mandatory");
       expect(config.features.communityNotes).toBe(true);
       expect(config.features.surveys).toBe(true);

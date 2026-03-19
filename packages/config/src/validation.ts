@@ -45,33 +45,6 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
         severity: "error",
       });
     }
-    if (config.delegation.maxChainDepth !== null && config.delegation.maxChainDepth > 0) {
-      issues.push({
-        field: "delegation.maxChainDepth",
-        message: "Chain depth limit is meaningless when delegation mode is 'none'",
-        severity: "warning",
-      });
-    }
-  }
-
-  if (
-    !config.delegation.transitive &&
-    config.delegation.maxChainDepth !== null &&
-    config.delegation.maxChainDepth > 1
-  ) {
-    issues.push({
-      field: "delegation.maxChainDepth",
-      message: "Chain depth > 1 has no effect when transitivity is disabled",
-      severity: "warning",
-    });
-  }
-
-  if (config.delegation.maxChainDepth !== null && config.delegation.maxChainDepth < 1) {
-    issues.push({
-      field: "delegation.maxChainDepth",
-      message: "Chain depth must be at least 1 if set",
-      severity: "error",
-    });
   }
 
   if (

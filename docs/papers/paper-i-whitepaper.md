@@ -210,7 +210,7 @@ Examples of named presets:
 | **Liquid Standard** | Topic-specific delegation, transitive, revocable anytime, delegate votes visible to delegators, predictions optional. | Medium organizations, tech communities, professional associations. |
 | **Liquid Accountable** | Liquid Standard plus mandatory predictions, full awareness layer, delegate track records public. | Organizations that prioritize long-term accountability. |
 | **Board Proxy** | Single-delegate proxy, non-transitive, revocable before meeting, secret ballot. | Corporate boards, formal governance bodies. |
-| **Civic Participatory** | Liquid delegation with chain depth cap, verified identity, mandatory predictions, community notes, surveys enabled, blockchain integrity. | Municipal deployments, participatory budgeting, citizen assemblies. |
+| **Civic Participatory** | Liquid delegation, verified identity, mandatory predictions, community notes, surveys enabled, blockchain integrity. | Municipal deployments, participatory budgeting, citizen assemblies. |
 
 Presets are starting points, not straitjackets. An organization can select a preset and then adjust individual parameters — for example, starting with "Swiss Model" but enabling delegation for specific topic categories.
 
@@ -637,7 +637,7 @@ Any honest proposal must confront the ways it can fail. Liquid-democracy-style s
 
 **Risk.** With unlimited transitivity, a chain $A \to B \to C \to D \to \ldots$ can become long enough that participants at the source have no idea who is ultimately casting their vote.
 
-**Mitigations.** The awareness layer's chain-resolution display ensures participants always know who is ultimately voting on their behalf — not just their immediate delegate. Chain-length warnings are delivered contextually. Organizations can configure maximum chain depth if they prefer bounded transitivity.
+**Mitigations.** The awareness layer's chain-resolution display ensures participants always know who is ultimately voting on their behalf — not just their immediate delegate. Chain-length warnings and concentration alerts are delivered contextually. Rather than imposing artificial depth caps (which create silent vote loss when downstream delegations change), Votiverse relies on transparency and awareness to let participants make informed decisions about their delegation chains.
 
 ### 11.5 Digital Divide and Accessibility
 
@@ -706,7 +706,7 @@ Votiverse is not a single application. It is a **configurable governance engine*
 - the identity model,
 - the voting rules (quorum, majority type, approval threshold),
 - whether prediction tracking is enabled and to what extent,
-- delegation constraints (maximum chain depth, concentration caps),
+- delegation constraints (concentration caps, topic scoping),
 - booklet requirements (which sections are mandatory),
 - the visibility model for delegations and votes.
 
@@ -941,7 +941,7 @@ The following examples illustrate how named presets can be used as starting poin
 
 - **Base preset:** Civic Participatory.
 - **Participants:** 50,000 residents, verified identity.
-- **Delegation:** Enabled, topic-specific, transitive, chain depth capped at 3.
+- **Delegation:** Enabled, topic-specific, transitive.
 - **Topic taxonomy:** Infrastructure, Education, Parks, Safety, Transit.
 - **Prediction tracking:** Required on all proposals.
 - **Surveys:** Enabled, biannual cadence, administrator-proposed questions with community review.

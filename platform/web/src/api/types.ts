@@ -46,7 +46,6 @@ export interface GovernanceConfig {
     topicScoped: boolean;
     transitive: boolean;
     revocableAnytime: boolean;
-    maxChainDepth: number | null;
     maxDelegatesPerParticipant: number | null;
     maxAge: number | null;
     visibility: DelegationVisibilityConfig;

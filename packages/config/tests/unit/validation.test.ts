@@ -31,43 +31,6 @@ describe("validateConfig", () => {
       ).toBe(true);
     });
 
-    it("warns when chain depth set but delegation disabled", () => {
-      const config = deriveConfig(getPreset("TOWN_HALL"), {
-        delegation: { maxChainDepth: 3 },
-      });
-      const result = validateConfig(config);
-      // Not an error, just a warning
-      expect(result.valid).toBe(true);
-      expect(
-        result.issues.some(
-          (i) => i.field === "delegation.maxChainDepth" && i.severity === "warning",
-        ),
-      ).toBe(true);
-    });
-
-    it("warns when chain depth > 1 but transitivity disabled", () => {
-      const config = deriveConfig(getPreset("BOARD_PROXY"), {
-        delegation: { maxChainDepth: 5 },
-      });
-      const result = validateConfig(config);
-      expect(
-        result.issues.some(
-          (i) => i.field === "delegation.maxChainDepth" && i.severity === "warning",
-        ),
-      ).toBe(true);
-    });
-
-    it("errors when maxChainDepth is 0", () => {
-      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
-        delegation: { maxChainDepth: 0 },
-      });
-      const result = validateConfig(config);
-      expect(result.valid).toBe(false);
-      expect(
-        result.issues.some((i) => i.field === "delegation.maxChainDepth" && i.severity === "error"),
-      ).toBe(true);
-    });
-
     it("errors when maxDelegatesPerParticipant is 0", () => {
       const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
         delegation: { maxDelegatesPerParticipant: 0 },

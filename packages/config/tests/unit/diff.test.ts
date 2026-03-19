@@ -50,13 +50,13 @@ describe("diffConfig", () => {
   it("detects change from null to a value", () => {
     const base = getPreset("LIQUID_STANDARD");
     const modified = deriveConfig(base, {
-      delegation: { maxChainDepth: 5 },
+      delegation: { maxDelegatesPerParticipant: 3 },
     });
     const diffs = diffConfig(base, modified);
     expect(diffs).toContainEqual({
-      path: "delegation.maxChainDepth",
+      path: "delegation.maxDelegatesPerParticipant",
       oldValue: null,
-      newValue: 5,
+      newValue: 3,
     });
   });
 

@@ -39,8 +39,6 @@ export interface DelegationConfig {
   readonly transitive: boolean;
   /** Whether delegations can be revoked at any time before voting closes. */
   readonly revocableAnytime: boolean;
-  /** Maximum chain depth. null = unlimited. */
-  readonly maxChainDepth: number | null;
   /** Maximum number of delegates a participant can assign. null = unlimited. */
   readonly maxDelegatesPerParticipant: number | null;
   /** Maximum delegation age in milliseconds. null = never expires. */

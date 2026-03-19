@@ -133,7 +133,7 @@ The creation flow:
 - **Liquid Standard** — "Delegate by topic. Vote when you care. Delegates are your backup. Good for organizations with diverse expertise."
 - **Liquid Accountable** — "Liquid Standard plus mandatory predictions, full awareness layer, and public delegate track records. For organizations that prioritize long-term accountability."
 - **Board Proxy** — "Single-delegate proxy voting. Non-transitive. For formal governance bodies."
-- **Civic Participatory** — "Liquid delegation with chain depth limits, verified identity, mandatory predictions, community notes, polls, and blockchain integrity. For municipal and civic deployments."
+- **Civic Participatory** — "Liquid delegation, verified identity, mandatory predictions, community notes, polls, and blockchain integrity. For municipal and civic deployments."
 - **Experimental** — "Configure every parameter yourself. For governance researchers and innovators. Untested combinations may produce unexpected behavior."
 
 **Step 3: Configure topics (optional).** For presets that support delegation, the creator defines the initial topic taxonomy — the categories that delegations can be scoped to. Topics can be added later but form the backbone of the delegation system.

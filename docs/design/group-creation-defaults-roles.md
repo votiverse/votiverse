@@ -51,7 +51,6 @@ const MODERN_DEMOCRACY: GovernanceConfig = {
     topicScoped: true,
     transitive: true,
     revocableAnytime: true,
-    maxChainDepth: null,
     maxDelegatesPerParticipant: null,
     maxAge: null,
     visibility: { mode: "public", incomingVisibility: "direct" },
@@ -118,7 +117,7 @@ The existing presets get clearer, non-hierarchical names:
 | LIQUID_STANDARD | **Liquid Open** | Open delegation without candidacy profiles. For groups where everyone knows each other |
 | LIQUID_ACCOUNTABLE | **Full Accountability** | Everything on, predictions mandatory, aggressive awareness. Maximum transparency and accountability |
 | BOARD_PROXY | **Board Proxy** | *(unchanged)* Single-delegate proxy voting for formal governance bodies |
-| CIVIC_PARTICIPATORY | **Civic Participatory** | *(unchanged)* Municipal-scale deployment with chain depth cap and blockchain integrity |
+| CIVIC_PARTICIPATORY | **Civic Participatory** | *(unchanged)* Municipal-scale deployment with blockchain integrity |
 
 The old `PresetName` enum values remain as internal identifiers for backward compatibility. The `name` field on each preset carries the new display name.
 
@@ -336,7 +335,7 @@ This transparency is consistent with the platform's ethos: participants should k
       │   Mode: [Candidacy ▼]                    │
       │   Topic-scoped: [Yes]                    │
       │   Transitive: [Yes]                      │
-      │   Max chain depth: [Unlimited]           │
+      │   Max delegates: [Unlimited]             │
       │   ...                                    │
       │                                          │
       │ Ballot                                   │
@@ -406,7 +405,7 @@ This summary is generated from the `GovernanceConfig` — not hardcoded per pres
 | **Liquid Open** | Open, topic-scoped, transitive | None | No | No | Optional | 5/0/5 |
 | **Full Accountability** | Candidacy, topic-scoped, transitive | 3 days | Yes | Yes | Mandatory | 7/3/7 |
 | **Board Proxy** | Open, 1 delegate, non-transitive | None | No | No | Disabled | 3/0/3 |
-| **Civic Participatory** | Open, topic-scoped, transitive, depth=3 | 3 days | Yes | Yes | Mandatory | 14/3/14 |
+| **Civic Participatory** | Open, topic-scoped, transitive | 3 days | Yes | Yes | Mandatory | 14/3/14 |
 
 **Note on proposals and booklets:** Proposals and the voting booklet are available to all assemblies regardless of preset — they are platform capabilities, not configuration toggles. Any member can submit a proposal for any voting issue. What varies by configuration is the **curation phase**: whether admins get a dedicated window to curate the booklet. When curation is "None" (`curationDays: 0`), the booklet still works — the system auto-selects the highest-endorsed proposal per position.
 

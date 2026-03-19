@@ -130,9 +130,6 @@ export function AssemblyDashboard() {
                   <>
                     <ConfigRow label="Topic-Scoped" value={humanizeBoolean(config.delegation.topicScoped)} />
                     <ConfigRow label="Transitive" value={humanizeBoolean(config.delegation.transitive)} />
-                    {config.delegation.maxChainDepth !== null && (
-                      <ConfigRow label="Max Chain Depth" value={String(config.delegation.maxChainDepth)} />
-                    )}
                     {config.delegation.maxDelegatesPerParticipant !== null && (
                       <ConfigRow label="Max Delegates" value={String(config.delegation.maxDelegatesPerParticipant)} />
                     )}

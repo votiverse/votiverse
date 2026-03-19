@@ -419,7 +419,7 @@ The seed creates 6 assemblies using different governance presets:
 |----------------|--------------|---------------------|--------------------------|---------|-------------|
 | Greenfield     | `greenfield` | TOWN_HALL           | Disabled                 | No      | Off         |
 | OSC            | `osc`        | LIQUID_STANDARD     | Transitive, topic-scoped | No      | Mandatory   |
-| Municipal      | `municipal`  | CIVIC_PARTICIPATORY | Transitive, depth=3      | Yes     | Opt-in      |
+| Municipal      | `municipal`  | CIVIC_PARTICIPATORY | Transitive               | Yes     | Opt-in      |
 | Youth          | `youth`      | LIQUID_ACCOUNTABLE  | Transitive, topic-scoped | Yes     | Opt-in      |
 | Board          | `board`      | BOARD_PROXY         | Non-transitive, 1 delegate | No    | Off         |
 | Maple Heights  | `maple`      | MODERN_DEMOCRACY    | Candidacy, topic-scoped  | Yes     | Encouraged  |

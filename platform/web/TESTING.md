@@ -48,7 +48,7 @@ These users belong to multiple assemblies, making them the best starting points 
 |---|---|---|---|---|---|---|
 | **Greenfield Community Council** | TOWN_HALL | 12 | Disabled | No | Off | Direct voting only |
 | **OSC Governance Board** | LIQUID_STANDARD | 15 | Transitive, topic-scoped | No | Mandatory | Delegation chains, multi-option elections |
-| **Municipal Budget Committee** | CIVIC_PARTICIPATORY | 18 | Transitive, depth=3 | Yes | Opt-in | Surveys + delegation, chain depth limit |
+| **Municipal Budget Committee** | CIVIC_PARTICIPATORY | 18 | Transitive | Yes | Opt-in | Surveys + delegation chains |
 | **Youth Advisory Panel** | LIQUID_ACCOUNTABLE | 10 | Transitive, topic-scoped | Yes | Opt-in | Surveys, delegation, candidacy mode |
 | **Board of Directors** | BOARD_PROXY | 8 | Non-transitive, 1 delegate | No | Off | Single-delegate proxy |
 
@@ -76,7 +76,7 @@ These users belong to multiple assemblies, making them the best starting points 
 |---|---|---|
 | **Nadia Boutros** | OSC | Chain: Nadia → Chiara → Mei-Ling. View chain resolver to see 3-node chain |
 | **Tanya Volkov** | OSC | Chain: Tanya → Stefan → Jordan. Another depth-2 example |
-| **Omar Hadid** | Municipal | Chain: Omar → Kwame → Marcus. Depth-2 with chain depth cap of 3 |
+| **Omar Hadid** | Municipal | Chain: Omar → Kwame → Marcus. Depth-2 transitive chain |
 | **Lars Johansson** | Municipal | Chain: Lars → Fiona → Isabel. Another depth-2 in Municipal |
 
 ### Delegation — As Delegate (Receiving Weight)
@@ -481,4 +481,4 @@ Tests in `platform/web/test/`:
 ### Scenario 5: Board Proxy (Non-Transitive)
 1. Log in as **Margaret Ashworth** (`margaret-ashworth@example.com`) → Board of Directors
 2. Go to Delegations → verify single delegation to Victoria Harrington
-3. Verify no chain depth beyond 1 (non-transitive preset)
+3. Verify no chain transitivity (non-transitive preset, single delegate only)

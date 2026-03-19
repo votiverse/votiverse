@@ -119,7 +119,7 @@ All users: password is `password`.
 |----------|--------|-----------|-------|--------|---------|
 | Greenfield Community Council | TOWN_HALL | Disabled | No | Public | 12 |
 | OSC Governance Board | LIQUID_STANDARD | Transitive, topic-scoped | No | Public | 15 |
-| Municipal Budget Committee | CIVIC_PARTICIPATORY | Transitive, depth=3 | Yes | Secret | 18 |
+| Municipal Budget Committee | CIVIC_PARTICIPATORY | Transitive | Yes | Secret | 18 |
 | Youth Advisory Panel | LIQUID_ACCOUNTABLE | Transitive, topic-scoped | Yes | Public | 10 |
 | Board of Directors | BOARD_PROXY | Non-transitive, 1 delegate | No | Public | 8 |
 

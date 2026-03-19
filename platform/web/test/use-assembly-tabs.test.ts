@@ -35,7 +35,6 @@ describe("Assembly tabs logic", () => {
       topicScoped: false,
       transitive: false,
       revocableAnytime: false,
-      maxChainDepth: null,
       maxDelegatesPerParticipant: null,
       maxAge: null,
       visibility: { mode: "private", incomingVisibility: "direct" },
