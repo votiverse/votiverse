@@ -26,6 +26,73 @@ export function meRoutes(
   const app = new Hono();
 
   /**
+   * POST /dev/notifications/trigger — create test notifications for the current user.
+   * Dev-only endpoint for testing the notification UI.
+   */
+  app.post("/dev/notifications/trigger", async (c) => {
+    const { id: userId } = getUser(c);
+    const body = await c.req.json<{
+      assemblyId: string;
+      type?: string;
+      urgency?: string;
+      title?: string;
+      body?: string;
+      actionUrl?: string;
+    }>();
+
+    await notificationHub.notify({
+      userId,
+      assemblyId: body.assemblyId,
+      type: (body.type ?? "vote_created") as "vote_created",
+      urgency: (body.urgency ?? "timely") as "action" | "timely" | "info",
+      title: body.title ?? "Test notification",
+      body: body.body,
+      actionUrl: body.actionUrl,
+      skipEmail: true,
+    });
+
+    return c.json({ status: "ok" });
+  });
+
+  /**
+   * POST /dev/notifications/seed — create a set of sample notifications for the current user.
+   * Populates the notification bell with realistic content for UI testing.
+   */
+  app.post("/dev/notifications/seed", async (c) => {
+    const { id: userId } = getUser(c);
+    const memberships = await membershipService.getUserMemberships(userId);
+    if (memberships.length === 0) {
+      return c.json({ error: { code: "NO_MEMBERSHIPS", message: "User has no assembly memberships" } }, 400);
+    }
+
+    const asmId = memberships[0].assemblyId;
+    const samples: Array<{ type: string; urgency: string; title: string; actionUrl?: string }> = [
+      { type: "voting_open", urgency: "action", title: "Voting is open: Q2 Budget Allocation", actionUrl: `/assembly/${asmId}/events` },
+      { type: "deadline_approaching", urgency: "action", title: "Voting closes tomorrow: Infrastructure Priorities", actionUrl: `/assembly/${asmId}/events` },
+      { type: "survey_created", urgency: "timely", title: "New survey: Community Satisfaction Index", actionUrl: `/assembly/${asmId}/surveys` },
+      { type: "vote_created", urgency: "timely", title: "New vote: Annual Policy Review", actionUrl: `/assembly/${asmId}/events` },
+      { type: "join_request", urgency: "action", title: "Elena Vasquez wants to join your group", actionUrl: `/assembly/${asmId}/members` },
+      { type: "results_available", urgency: "info", title: "Results are in: Emergency Transit Funding", actionUrl: `/assembly/${asmId}/events` },
+      { type: "member_joined", urgency: "info", title: "Marcus Chen joined the group", actionUrl: `/assembly/${asmId}/members` },
+      { type: "join_request_approved", urgency: "info", title: "You've been approved to join Municipal Budget Committee" },
+    ];
+
+    for (const s of samples) {
+      await notificationHub.notify({
+        userId,
+        assemblyId: asmId,
+        type: s.type as "vote_created",
+        urgency: s.urgency as "action" | "timely" | "info",
+        title: s.title,
+        actionUrl: s.actionUrl,
+        skipEmail: true,
+      });
+    }
+
+    return c.json({ status: "ok", count: samples.length });
+  });
+
+  /**
    * POST /internal/memberships — create membership record directly (seed only).
    * Does NOT call VCP — assumes participant already exists.
    */
