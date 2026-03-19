@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
@@ -34,6 +34,22 @@ export function Proposals() {
   const drafts = draftsData?.drafts ?? [];
 
   const [showDraftForm, setShowDraftForm] = useState(false);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | undefined>(issueId);
+
+  // Fetch events to populate the issue picker when no issueId is in the URL
+  const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
+  const deliberationIssues = useMemo(() => {
+    if (!eventsData) return [];
+    const issues: Array<{ id: string; title: string; eventTitle: string }> = [];
+    for (const evt of eventsData.events ?? []) {
+      for (const issue of evt.issues ?? []) {
+        issues.push({ id: issue.id, title: issue.title, eventTitle: evt.title });
+      }
+    }
+    return issues;
+  }, [eventsData]);
+
+  const effectiveIssueId = issueId ?? selectedIssueId;
 
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
@@ -54,8 +70,28 @@ export function Proposals() {
         )}
       </div>
 
-      {showDraftForm && issueId && (
-        <DraftForm assemblyId={assemblyId!} issueId={issueId} onCreated={() => {
+      {showDraftForm && !effectiveIssueId && deliberationIssues.length > 0 && (
+        <Card className="mb-6">
+          <CardBody>
+            <h3 className="font-medium text-gray-900 mb-3">Select a question to write about</h3>
+            <div className="space-y-2">
+              {deliberationIssues.map((issue) => (
+                <button
+                  key={issue.id}
+                  onClick={() => setSelectedIssueId(issue.id)}
+                  className="w-full text-left px-3 py-2.5 rounded-lg border border-gray-200 hover:border-brand-200 hover:bg-brand-50/30 transition-colors"
+                >
+                  <p className="text-sm font-medium text-gray-900">{issue.title}</p>
+                  <p className="text-xs text-gray-400">{issue.eventTitle}</p>
+                </button>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {showDraftForm && effectiveIssueId && (
+        <DraftForm assemblyId={assemblyId!} issueId={effectiveIssueId} onCreated={() => {
           setShowDraftForm(false);
           refetchDrafts();
         }} />

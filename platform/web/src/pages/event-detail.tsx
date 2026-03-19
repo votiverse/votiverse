@@ -425,7 +425,7 @@ function IssueVotingCard({
             ))}
           </div>
         )}
-        {/* Voting booklet link — only when proposals exist */}
+        {/* Voting booklet link — when proposals exist */}
         {proposals.length > 0 && (
           <div className="mt-2">
             <button
@@ -438,6 +438,18 @@ function IssueVotingCard({
                 ({proposals.length} argument{proposals.length !== 1 ? "s" : ""})
               </span>
             </button>
+          </div>
+        )}
+        {/* View/write proposals link during deliberation */}
+        {eventStatus === "deliberation" && (
+          <div className={proposals.length > 0 ? "" : "mt-2"}>
+            <Link
+              to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+              className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand-light transition-colors"
+            >
+              <FileText size={14} />
+              {proposals.length > 0 ? "View all proposals" : "Write a proposal"}
+            </Link>
           </div>
         )}
       </CardHeader>
