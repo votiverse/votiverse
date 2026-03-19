@@ -8,7 +8,8 @@ export type NotificationType =
   | "deadline_approaching"
   | "results_available"
   | "survey_created"
-  | "survey_deadline";
+  | "survey_deadline"
+  | "invitation_received";
 
 interface TemplateData {
   assemblyName: string;
@@ -17,6 +18,8 @@ interface TemplateData {
   votingEnd?: string;
   closesAt?: string;
   baseUrl: string;
+  /** Name of the person who sent the invitation. */
+  inviterName?: string;
 }
 
 interface RenderedTemplate {
@@ -183,6 +186,32 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
             "If you haven\u2019t responded yet, your observations are still needed.",
           ],
           "Respond Now",
+          data.baseUrl,
+        ),
+      };
+
+    case "invitation_received":
+      return {
+        subject: `You've been invited to join ${data.assemblyName}`,
+        body: [
+          data.inviterName
+            ? `${data.inviterName} has invited you to join ${data.assemblyName} on Votiverse.`
+            : `You've been invited to join ${data.assemblyName} on Votiverse.`,
+          "",
+          "Votiverse is a governance platform where groups make decisions together",
+          "through voting, delegation, and structured deliberation.",
+          "",
+          `View the group and accept: ${data.baseUrl}`,
+        ].join("\n"),
+        bodyHtml: wrapHtml(
+          `You're invited to ${data.assemblyName}`,
+          [
+            data.inviterName
+              ? `<strong>${data.inviterName}</strong> has invited you to join <strong>${data.assemblyName}</strong> on Votiverse.`
+              : `You've been invited to join <strong>${data.assemblyName}</strong> on Votiverse.`,
+            "Votiverse is a governance platform where groups make decisions together through voting, delegation, and structured deliberation.",
+          ],
+          "View Group & Join",
           data.baseUrl,
         ),
       };

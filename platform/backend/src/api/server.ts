@@ -26,6 +26,8 @@ import { proxyRoutes } from "./routes/proxy.js";
 import { contentRoutes } from "./routes/content.js";
 import { invitationRoutes } from "./routes/invitations.js";
 import { InvitationService } from "../services/invitation-service.js";
+import { InvitationNotifier } from "../services/invitation-notifier.js";
+import type { NotificationAdapter } from "../services/notification-adapter.js";
 import type { ContentService } from "../services/content-service.js";
 import type { VCPClient } from "../services/vcp-client.js";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
@@ -39,6 +41,7 @@ export interface AppDependencies {
   topicCacheService: TopicCacheService;
   surveyCacheService: SurveyCacheService;
   notificationService: NotificationService;
+  notificationAdapter?: NotificationAdapter;
   contentService: ContentService;
   vcpClient: VCPClient;
   config: BackendConfig;
@@ -89,7 +92,11 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService));
   // Invitation routes (includes public GET /invite/:token)
   const invitationService = new InvitationService(database, membershipService);
-  app.route("/", invitationRoutes(invitationService, membershipService, assemblyCacheService, vcpClient, userService));
+  const frontendUrl = config.corsOrigins.find((o) => o !== "*") ?? "http://localhost:5174";
+  const invitationNotifier = deps.notificationAdapter
+    ? new InvitationNotifier(deps.notificationAdapter, userService, assemblyCacheService, frontendUrl)
+    : null;
+  app.route("/", invitationRoutes(invitationService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
   app.route("/", contentRoutes(membershipService, contentService, config));
   app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, vcpClient, config));

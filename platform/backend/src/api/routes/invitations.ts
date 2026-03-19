@@ -22,6 +22,7 @@ import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { VCPClient } from "../../services/vcp-client.js";
 import type { UserService } from "../../services/user-service.js";
+import type { InvitationNotifier } from "../../services/invitation-notifier.js";
 import { getUser } from "../middleware/auth.js";
 
 export function invitationRoutes(
@@ -30,6 +31,7 @@ export function invitationRoutes(
   assemblyCacheService: AssemblyCacheService,
   vcpClient: VCPClient,
   userService: UserService,
+  invitationNotifier: InvitationNotifier | null = null,
 ) {
   const app = new Hono();
 
@@ -158,6 +160,13 @@ export function invitationRoutes(
         );
       }
       const invitation = await invitationService.createDirectInvite(assemblyId, userId, body.inviteeHandle);
+
+      // Fire-and-forget email notification to the invitee
+      if (invitationNotifier) {
+        const { name: inviterName } = getUser(c);
+        void invitationNotifier.sendInvitationEmail(body.inviteeHandle, assemblyId, inviterName);
+      }
+
       return c.json(invitation, 201);
     }
 

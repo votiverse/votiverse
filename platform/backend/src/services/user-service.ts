@@ -192,6 +192,18 @@ export class UserService {
     };
   }
 
+  /**
+   * Get email by handle — internal use only (e.g., sending invitation notifications).
+   * Not exposed via any API route.
+   */
+  async getEmailByHandle(handle: string): Promise<string | null> {
+    const row = await this.db.queryOne<{ email: string }>(
+      "SELECT email FROM users WHERE handle = ?",
+      [handle.toLowerCase()],
+    );
+    return row?.email ?? null;
+  }
+
   /** Check if a handle is available. */
   async isHandleAvailable(handle: string): Promise<boolean> {
     if (!isValidHandle(handle)) return false;

@@ -749,6 +749,90 @@ describe("Invitation flows", () => {
       expect(res.status).toBe(400);
     });
 
+    it("creating a direct invite sends an email notification to the invitee", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      // Create target user so their email can be resolved
+      await backend.request("POST", "/auth/register", {
+        email: "target@example.com",
+        password: "password123",
+        name: "Target User",
+        handle: "target-user",
+      });
+
+      const sendSpy = vi.spyOn(backend.notificationAdapter, "send");
+
+      await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        { type: "direct", inviteeHandle: "target-user" },
+        authHeader(accessToken),
+      );
+
+      // Fire-and-forget — give the async send a tick to execute
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(sendSpy).toHaveBeenCalledOnce();
+      const call = sendSpy.mock.calls[0][0];
+      expect(call.to).toBe("target@example.com");
+      expect(call.subject).toContain(ASSEMBLY_NAME);
+      expect(call.subject).toContain("invited");
+    });
+
+    it("email notification does not fail the request if send throws", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      await backend.request("POST", "/auth/register", {
+        email: "target@example.com",
+        password: "password123",
+        name: "Target User",
+        handle: "target-user",
+      });
+
+      // Make the adapter throw
+      vi.spyOn(backend.notificationAdapter, "send").mockRejectedValue(new Error("SMTP down"));
+
+      const res = await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        { type: "direct", inviteeHandle: "target-user" },
+        authHeader(accessToken),
+      );
+
+      // Invite creation should still succeed
+      expect(res.status).toBe(201);
+    });
+
+    it("no email sent for direct invite if handle has no registered user", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      const sendSpy = vi.spyOn(backend.notificationAdapter, "send");
+
+      // Invite a handle that doesn't exist as a registered user
+      await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        { type: "direct", inviteeHandle: "ghost-user" },
+        authHeader(accessToken),
+      );
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+
     it("link invite defaults to type link when type is omitted", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
       const participantId = "p-admin";
