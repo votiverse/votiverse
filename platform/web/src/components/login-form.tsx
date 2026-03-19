@@ -1,6 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useIdentity } from "../hooks/use-identity.js";
 import { Spinner, ErrorBox, Button, Input } from "./ui.js";
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+/** Generate a handle suggestion from a display name. */
+function suggestHandle(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30);
+}
 
 export function LoginForm() {
   const { login, register, loading: authLoading } = useIdentity();
@@ -8,8 +19,40 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [handleEdited, setHandleEdited] = useState(false);
+  const [handleAvailable, setHandleAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Auto-suggest handle from name (unless user has manually edited it)
+  useEffect(() => {
+    if (!handleEdited && mode === "register") {
+      const suggested = suggestHandle(name);
+      setHandle(suggested);
+      setHandleAvailable(null);
+    }
+  }, [name, handleEdited, mode]);
+
+  // Check handle availability with debounce
+  const checkHandle = useCallback(async (h: string) => {
+    if (h.length < 3) { setHandleAvailable(null); return; }
+    try {
+      const res = await fetch(`${BASE_URL}/auth/check-handle/${encodeURIComponent(h)}`);
+      if (res.ok) {
+        const data = await res.json() as { available: boolean };
+        setHandleAvailable(data.available);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "register" || handle.length < 3) return;
+    const timer = setTimeout(() => checkHandle(handle), 400);
+    return () => clearTimeout(timer);
+  }, [handle, mode, checkHandle]);
 
   if (authLoading) {
     return (
@@ -26,7 +69,7 @@ export function LoginForm() {
     setSubmitting(true);
     try {
       if (mode === "register") {
-        await register(email, password, name);
+        await register(email, password, name, handle || undefined);
       } else {
         await login(email, password);
       }
@@ -55,17 +98,48 @@ export function LoginForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-6">
         {mode === "register" && (
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              required
-            />
-          </div>
+          <>
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="handle" className="block text-sm font-medium text-gray-700 mb-1">
+                Handle
+                {handleAvailable === true && handle.length >= 3 && (
+                  <span className="ml-2 text-green-600 text-xs font-normal">Available</span>
+                )}
+                {handleAvailable === false && (
+                  <span className="ml-2 text-red-600 text-xs font-normal">Taken</span>
+                )}
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                <Input
+                  id="handle"
+                  type="text"
+                  value={handle}
+                  onChange={(e) => {
+                    setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+                    setHandleEdited(true);
+                    setHandleAvailable(null);
+                  }}
+                  placeholder="your-handle"
+                  className="pl-7"
+                  minLength={3}
+                  maxLength={30}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Your public username. Others find you by this.</p>
+            </div>
+          </>
         )}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -77,6 +151,9 @@ export function LoginForm() {
             placeholder="you@example.com"
             required
           />
+          {mode === "register" && (
+            <p className="text-xs text-gray-400 mt-1">Private. Never shown to other members.</p>
+          )}
         </div>
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>

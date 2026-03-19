@@ -11,12 +11,18 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  handle?: string | null;
+  avatarUrl?: string | null;
+  bio?: string;
 }
 
 export interface MeResponse {
   id: string;
   email: string;
   name: string;
+  handle?: string | null;
+  avatarUrl?: string | null;
+  bio?: string;
   memberships: Array<{
     assemblyId: string;
     participantId: string;
@@ -50,11 +56,12 @@ export async function register(
   email: string,
   password: string,
   name: string,
+  handle?: string,
 ): Promise<{ user: AuthUser; accessToken: string }> {
   const res = await fetch(`${BASE_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ email, password, name, ...(handle ? { handle } : {}) }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

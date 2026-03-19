@@ -19,6 +19,8 @@ export interface IdentityCtx {
   storeUserId: string | null;
   /** User display name. */
   participantName: string | null;
+  /** User handle (@username). */
+  handle: string | null;
   /** User email. */
   email: string | null;
   /** Assembly memberships. */
@@ -30,7 +32,7 @@ export interface IdentityCtx {
   /** Login with email/password. */
   login: (email: string, password: string) => Promise<void>;
   /** Register a new account. */
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, handle?: string) => Promise<void>;
   /** Logout and clear tokens. */
   logout: () => Promise<void>;
   /** Legacy alias for logout. */
@@ -42,6 +44,7 @@ export interface IdentityCtx {
 export const IdentityContext = createContext<IdentityCtx>({
   storeUserId: null,
   participantName: null,
+  handle: null,
   email: null,
   memberships: [],
   getParticipantId: () => null,
@@ -56,6 +59,7 @@ export const IdentityContext = createContext<IdentityCtx>({
 interface UserState {
   id: string;
   name: string;
+  handle: string | null;
   email: string;
   memberships: IdentityMembership[];
 }
@@ -74,6 +78,7 @@ export function useIdentityProvider(): IdentityCtx {
           setUser({
             id: me.id,
             name: me.name,
+            handle: me.handle ?? null,
             email: me.email,
             memberships: me.memberships.map((m) => ({
               assemblyId: m.assemblyId,
@@ -99,6 +104,7 @@ export function useIdentityProvider(): IdentityCtx {
       setUser({
         id: me.id,
         name: me.name,
+        handle: me.handle ?? null,
         email: me.email,
         memberships: me.memberships.map((m) => ({
           assemblyId: m.assemblyId,
@@ -107,13 +113,13 @@ export function useIdentityProvider(): IdentityCtx {
         })),
       });
     } else {
-      setUser({ id: authUser.id, name: authUser.name, email: authUser.email, memberships: [] });
+      setUser({ id: authUser.id, name: authUser.name, handle: authUser.handle ?? null, email: authUser.email, memberships: [] });
     }
   }, []);
 
-  const register = useCallback(async (email: string, password: string, name: string) => {
-    const { user: authUser } = await auth.register(email, password, name);
-    setUser({ id: authUser.id, name: authUser.name, email: authUser.email, memberships: [] });
+  const register = useCallback(async (email: string, password: string, name: string, handle?: string) => {
+    const { user: authUser } = await auth.register(email, password, name, handle);
+    setUser({ id: authUser.id, name: authUser.name, handle: authUser.handle ?? null, email: authUser.email, memberships: [] });
   }, []);
 
   const doLogout = useCallback(async () => {
@@ -129,6 +135,7 @@ export function useIdentityProvider(): IdentityCtx {
   return {
     storeUserId: user?.id ?? null,
     participantName: user?.name ?? null,
+    handle: user?.handle ?? null,
     email: user?.email ?? null,
     memberships: user?.memberships ?? [],
     getParticipantId,
