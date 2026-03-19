@@ -47,9 +47,11 @@ export interface TestBackend {
   db: SQLiteAdapter;
   userService: UserService;
   sessionService: SessionService;
+  membershipService: MembershipService;
   assemblyCacheService: AssemblyCacheService;
   topicCacheService: TopicCacheService;
   surveyCacheService: SurveyCacheService;
+  vcpClient: VCPClient;
   cleanup: () => void;
   request: (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
   /** Register a user and return the access token. */
@@ -102,5 +104,5 @@ export async function createTestBackend(): Promise<TestBackend> {
     return { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.user.id };
   };
 
-  return { app, db, userService, sessionService, assemblyCacheService, topicCacheService, surveyCacheService, cleanup, request, registerAndLogin };
+  return { app, db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, vcpClient, cleanup, request, registerAndLogin };
 }
