@@ -46,24 +46,25 @@ cd votiverse
 pnpm install
 pnpm build
 
-# Terminal 1: Start the governance server
-cd platform/vcp
-pnpm dev
+# Seed fresh data
+cd platform/vcp && pnpm reset       # wipes + seeds VCP
+cd platform/backend && pnpm reset   # wipes + seeds backend from VCP
 
-# Terminal 2: Seed sample data
-cd platform/vcp
-pnpm seed
+# Terminal 1: Governance server
+cd platform/vcp && pnpm dev          # port 3000
 
-# Terminal 3: Start the web client
-cd platform/web
-pnpm dev
+# Terminal 2: Client backend
+cd platform/backend && pnpm dev      # port 4000
+
+# Terminal 3: Web client
+cd platform/web && pnpm dev          # port 5173
 ```
 
-Open **http://localhost:5174**. Select a participant from the identity picker — each has a unique DiceBear avatar. The dashboard shows pending votes across all your assemblies with nearest deadlines. Click "Vote Now" to jump directly into a voting event.
+Open **http://localhost:5173**. Sign in with any seeded user (email: `{slug}@example.com`, password: `password`). The dashboard shows pending votes across all your assemblies with nearest deadlines.
 
 ### Sample Data
 
-The seed script creates a rich, diverse dataset across 4 organizations and 5 assemblies (each using a different governance preset): 63 participants, 13 voting events in all lifecycle states, 42 issues, 21 delegations with chains, 155 pre-cast votes, and 2 surveys. Try these cross-assembly participants for the best evaluation experience: **Sofia Reyes** (OSC + Youth), **Marcus Chen** (OSC + Municipal), **Priya Sharma** (Municipal + Youth), **James Okafor** (Municipal + Board).
+The seed script creates a rich, diverse dataset across 5 organizations and 6 assemblies (each using a different governance preset): 69 participants, 17 voting events in all lifecycle states, 50 issues, 27 delegations with chains, 186 pre-cast votes, 6 surveys, proposals with community notes, and candidacies. Try these cross-assembly participants for the best evaluation experience: **Elena Vasquez** (Greenfield + Maple Heights), **Marcus Chen** (OSC + Municipal + Maple Heights), **Sofia Reyes** (OSC + Youth + Maple Heights).
 
 To reset the database to fresh seed data: `cd platform/vcp && pnpm reset`.
 
@@ -76,25 +77,32 @@ Votiverse has three layers:
 ```
 ┌───────────────────────────────────────────────────────┐
 │  Web Client  (platform/web)                           │
-│  React SPA — visual interface for evaluation          │
+│  React SPA — visual interface for governance          │
 └──────────────────────┬────────────────────────────────┘
                        │  HTTP / REST
 ┌──────────────────────▼────────────────────────────────┐
-│  Cloud Platform  (platform/vcp)                       │
-│  Node.js server — REST API, SQLite, workers           │
+│  Client Backend  (platform/backend)                   │
+│  Auth, identity, content storage, VCP proxy           │
+└──────────────────────┬────────────────────────────────┘
+                       │  HTTP / REST
+┌──────────────────────▼────────────────────────────────┐
+│  Governance Cloud Platform  (platform/vcp)            │
+│  Governance computation, metadata, event store        │
 └──────────────────────┬────────────────────────────────┘
                        │  library import
 ┌──────────────────────▼────────────────────────────────┐
 │  Engine  (packages/*)                                 │
-│  12 TypeScript packages — pure governance computation │
+│  13 TypeScript packages — pure governance computation │
 └───────────────────────────────────────────────────────┘
 ```
 
-**Engine** — 12 composable TypeScript packages that implement the governance model. Pure computation: delegation graphs, vote tallying, prediction evaluation, survey aggregation, awareness metrics. No HTTP, no database, no infrastructure. See [Architecture](docs/architecture.md).
+**Engine** — 13 composable TypeScript packages that implement the governance model. Pure computation: delegation graphs, vote tallying, prediction evaluation, survey aggregation, awareness metrics, content lifecycle. No HTTP, no database, no infrastructure. See [Architecture](docs/architecture.md).
 
-**Cloud Platform (VCP)** — A Node.js server that imports the engine and wraps it in production infrastructure: REST API, SQLite/PostgreSQL database, task queue, scheduled jobs, webhook dispatch. See [VCP README](platform/vcp/README.md).
+**Governance Cloud Platform (VCP)** — Stores governance metadata and events; performs all governance computation. Holds no PII, no rich content. Serves multiple client backends. See [VCP README](platform/vcp/README.md).
 
-**Web Client** — A voter-centric React SPA for interacting with the VCP. Identity-aware dashboard with cross-assembly pending votes, DiceBear avatars, delegation chain visualization, neutral vote buttons, and rank-based tally display. See [Web Client README](platform/web/README.md).
+**Client Backend** — Owns user identity (JWT auth), rich content (proposal documents, candidacy profiles, community notes, assets), invitation system with admission control, and proxies governance requests to the VCP. See [Integration Architecture](docs/integration-architecture.md).
+
+**Web Client** — A voter-centric React SPA. Identity-aware dashboard, delegation chain visualization, TipTap proposal editor, community notes with evaluations, onboarding dialog, and notification hub. See [Web Client README](platform/web/README.md).
 
 ---
 
@@ -110,6 +118,7 @@ Votiverse has three layers:
 | `@votiverse/prediction` | Prediction lifecycle, 6 evaluation patterns, commitment hashing, track records |
 | `@votiverse/survey` | Non-delegable surveys, 5 question types, topic-level trend computation |
 | `@votiverse/awareness` | Read-only monitoring: concentration alerts, chain resolution, delegate profiles, prompts |
+| `@votiverse/content` | Proposals, candidacies, community notes — metadata lifecycle, evaluations, visibility |
 | `@votiverse/integrity` | Blockchain-agnostic commitment hashing, anchoring, verification |
 | `@votiverse/engine` | Orchestration layer, domain-organized API surface |
 | `@votiverse/simulate` | Two-phase rule-based simulation framework |
@@ -211,6 +220,7 @@ console.log('Concentration:', result.results.concentrationOverTime);
 | [Product Workflow](docs/product-workflow.md) | How organizations use Votiverse: entity model, workflows, user experience |
 | [Research Background](docs/research/background.md) | Liquid democracy and delegative democracy literature |
 | [Testing Guide](docs/testing.md) | Seed data, dev clock, unit/integration tests, manual scenarios |
+| [Case Studies & Screenshots](https://github.com/votiverse/docs) | Separate repo: narrative walkthroughs with Playwright-captured screenshots from live instances |
 
 ---
 
@@ -220,10 +230,10 @@ Votiverse is a complete, locally runnable governance platform:
 
 - **Engine** — 13 packages, 471 tests, all formal properties verified (sovereignty, one-person-one-vote, monotonicity, revocability, override rule, cycle resolution, scope precedence, survey non-transferability)
 - **Cloud Platform (VCP)** — REST API with SQLite/PostgreSQL persistence, 134 integration tests
-- **Client Backend** — JWT auth, invitation system with admission control (open/approval/invite-only), email notifications, content storage, VCP proxy — 133 integration tests
+- **Client Backend** — JWT auth, invitation system with admission control (open/approval/invite-only), email notifications, content storage, VCP proxy — 146 integration tests
 - **Web Client** — React 19 with voting, delegations, surveys, predictions, awareness, proposals (TipTap editor), candidacies, community notes, member search, onboarding dialog, bulk invite — 16 tests
-- **Config** — 88 tests (presets, validation, derivation, diffing)
-- **Total: 778+ tests passing**
+- **Config** — 85 tests (presets, validation, derivation, diffing)
+- **Total: 800+ tests passing**
 
 Production deployment (PostgreSQL, real webhook delivery, AI integration) is future work. The system is fully functional for local development, evaluation, and governance research.
 
