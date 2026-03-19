@@ -6,7 +6,7 @@ import type { Context, Next } from "hono";
 import { verifyAccessToken } from "../../lib/jwt.js";
 
 const PUBLIC_PATHS = new Set(["/health", "/metrics"]);
-const PUBLIC_PREFIXES = ["/auth/"];
+const PUBLIC_PREFIXES = ["/auth/", "/dev/clock"];
 
 export function createAuthMiddleware(jwtSecret: string) {
   return async (c: Context, next: Next) => {

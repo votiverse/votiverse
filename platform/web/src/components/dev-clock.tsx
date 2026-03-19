@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from "react";
 import { setDevClockOffset } from "../lib/status.js";
 
 const VCP_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 interface ClockState {
   time: number;
@@ -35,6 +36,12 @@ async function advanceClock(ms: number): Promise<ClockState | null> {
       body: JSON.stringify({ ms }),
     });
     if (!res.ok) return null;
+    // Also advance the backend clock
+    void fetch(`${BACKEND_URL}/dev/clock/advance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ms }),
+    }).catch(() => {});
     return res.json() as Promise<ClockState>;
   } catch {
     return null;
@@ -45,6 +52,8 @@ async function resetClock(): Promise<ClockState | null> {
   try {
     const res = await fetch(`${VCP_URL}/dev/clock/reset`, { method: "POST" });
     if (!res.ok) return null;
+    // Also reset the backend clock
+    void fetch(`${BACKEND_URL}/dev/clock/reset`, { method: "POST" }).catch(() => {});
     return res.json() as Promise<ClockState>;
   } catch {
     return null;

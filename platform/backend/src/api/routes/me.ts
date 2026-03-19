@@ -13,6 +13,7 @@ import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
 
 import type { NotificationHubService } from "../../services/notification-hub.js";
+import * as devClock from "../../lib/dev-clock.js";
 
 export function meRoutes(
   userService: UserService,
@@ -90,6 +91,47 @@ export function meRoutes(
     }
 
     return c.json({ status: "ok", count: samples.length });
+  });
+
+  // ── Dev clock (mirrors VCP dev clock for time-dependent backend operations) ──
+
+  /** GET /dev/clock — read current backend dev clock state. */
+  app.get("/dev/clock", async (c) => {
+    return c.json({
+      time: devClock.now(),
+      iso: devClock.nowIso(),
+      offset: devClock.getOffset(),
+      systemTime: Date.now(),
+    });
+  });
+
+  /** POST /dev/clock/advance — advance the backend clock by ms. */
+  app.post("/dev/clock/advance", async (c) => {
+    const body = await c.req.json<{ ms: number }>();
+    if (!body.ms || typeof body.ms !== "number") {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "ms is required" } }, 400);
+    }
+    devClock.advance(body.ms);
+    return c.json({ time: devClock.now(), iso: devClock.nowIso(), advanced: body.ms });
+  });
+
+  /** POST /dev/clock/reset — reset backend clock to real time. */
+  app.post("/dev/clock/reset", async (c) => {
+    devClock.reset();
+    return c.json({ time: devClock.now(), iso: devClock.nowIso(), offset: 0 });
+  });
+
+  /** POST /dev/clock/sync — sync backend clock offset from VCP. */
+  app.post("/dev/clock/sync", async (c) => {
+    try {
+      const vcpRes = await fetch("http://localhost:3000/dev/clock");
+      const vcpClock = await vcpRes.json() as { time: number; systemTime: number };
+      const offset = vcpClock.time - vcpClock.systemTime;
+      devClock.setOffset(offset);
+      return c.json({ time: devClock.now(), iso: devClock.nowIso(), offset, synced: true });
+    } catch {
+      return c.json({ error: { code: "SYNC_FAILED", message: "Could not reach VCP dev clock" } }, 502);
+    }
   });
 
   /**
