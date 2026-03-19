@@ -95,6 +95,30 @@ export class SQLiteAdapter implements DatabaseAdapter {
         PRIMARY KEY (user_id, key)
       );
 
+      -- Invitations (link-based and direct)
+      CREATE TABLE IF NOT EXISTS invitations (
+        id              TEXT PRIMARY KEY,
+        assembly_id     TEXT NOT NULL,
+        type            TEXT NOT NULL,
+        token           TEXT UNIQUE,
+        invited_by      TEXT NOT NULL,
+        invitee_handle  TEXT,
+        max_uses        INTEGER,
+        use_count       INTEGER NOT NULL DEFAULT 0,
+        expires_at      TEXT,
+        status          TEXT NOT NULL DEFAULT 'active',
+        created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_invitations_token ON invitations(token);
+      CREATE INDEX IF NOT EXISTS idx_invitations_assembly ON invitations(assembly_id);
+
+      CREATE TABLE IF NOT EXISTS invitation_acceptances (
+        id              TEXT PRIMARY KEY,
+        invitation_id   TEXT NOT NULL,
+        user_id         TEXT NOT NULL,
+        accepted_at     TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
       -- Local assembly cache (immutable after creation — avoids VCP round-trips)
       CREATE TABLE IF NOT EXISTS assemblies_cache (
         id              TEXT PRIMARY KEY,

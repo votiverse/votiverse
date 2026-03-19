@@ -15,6 +15,11 @@ export function createAuthMiddleware(jwtSecret: string) {
       return next();
     }
 
+    // GET /invite/:token is public (group preview); POST requires auth (handled below)
+    if (c.req.method === "GET" && c.req.path.startsWith("/invite/")) {
+      return next();
+    }
+
     const header = c.req.header("Authorization");
     if (!header) {
       return c.json(
