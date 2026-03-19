@@ -111,7 +111,7 @@ export function EventDetail() {
   const attention = useAttention();
 
   // Fetch voting history at event level — used for issue sorting and summary
-  const { data: historyData } = useApi(
+  const { data: historyData, refetch: refetchHistory } = useApi(
     () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
     [assemblyId, participantId],
   );
@@ -134,6 +134,7 @@ export function EventDetail() {
     attention.refresh();
     refetch();
     refetchTally();
+    refetchHistory();
   };
 
   const issues = event.issues ?? [];

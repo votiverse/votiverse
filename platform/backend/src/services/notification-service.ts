@@ -9,6 +9,7 @@ import type { VCPClient } from "./vcp-client.js";
 import type { NotificationHubService, NotificationType as HubNotificationType, Urgency } from "./notification-hub.js";
 import { renderTemplate } from "./notification-templates.js";
 import { logger } from "../lib/logger.js";
+import * as devClock from "../lib/dev-clock.js";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -196,8 +197,8 @@ export class NotificationService {
 
   /** Process all pending notifications. Called on each scheduler tick. */
   async processScheduledNotifications(): Promise<void> {
-    const now = new Date().toISOString();
-    const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const now = devClock.nowIso();
+    const deadline = new Date(devClock.now() + 24 * 60 * 60 * 1000).toISOString();
 
     await this.processEventNotifications(now, deadline);
     await this.processSurveyNotifications(now, deadline);
