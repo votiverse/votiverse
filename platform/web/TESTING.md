@@ -25,31 +25,31 @@ Open the URL shown by Vite (typically `http://localhost:5173`, port may vary). Y
 
 ## Test Credentials
 
-All seeded users have the email format `{slugified-name}@example.com` and the password `password`.
+All seeded users have the email format `{slugified-name}@example.com`, the password `password`, and a handle matching the slugified name.
 
-For example, to log in as Elena Vasquez, use `elena-vasquez@example.com` / `password`.
+For example, to log in as Elena Vasquez, use `elena-vasquez@example.com` / `password`. Her handle is `@elena-vasquez`.
 
 ### Recommended Cross-Assembly Test Accounts
 
 These users belong to multiple assemblies, making them the best starting points for testing cross-assembly features:
 
-| Email | Name | Assemblies |
-|---|---|---|
-| `sofia-reyes@example.com` | Sofia Reyes | OSC + Youth |
-| `marcus-chen@example.com` | Marcus Chen | OSC + Municipal |
-| `priya-sharma@example.com` | Priya Sharma | Municipal + Youth |
-| `james-okafor@example.com` | James Okafor | Municipal + Board |
+| Email | Handle | Name | Assemblies |
+|---|---|---|---|
+| `sofia-reyes@example.com` | `@sofia-reyes` | Sofia Reyes | OSC + Youth |
+| `marcus-chen@example.com` | `@marcus-chen` | Marcus Chen | OSC + Municipal |
+| `priya-sharma@example.com` | `@priya-sharma` | Priya Sharma | Municipal + Youth |
+| `james-okafor@example.com` | `@james-okafor` | James Okafor | Municipal + Board |
 
 ---
 
 ## Assembly-by-Feature Matrix
 
-| Assembly | Preset | Members | Delegation | Polls | Predictions | Key Feature |
+| Assembly | Preset | Members | Delegation | Surveys | Predictions | Key Feature |
 |---|---|---|---|---|---|---|
 | **Greenfield Community Council** | TOWN_HALL | 12 | Disabled | No | Off | Direct voting only |
 | **OSC Governance Board** | LIQUID_STANDARD | 15 | Transitive, topic-scoped | No | Mandatory | Delegation chains, multi-option elections |
-| **Municipal Budget Committee** | CIVIC_PARTICIPATORY | 18 | Transitive, depth=3 | Yes | Opt-in | Polls + delegation, chain depth limit |
-| **Youth Advisory Panel** | LIQUID_ACCOUNTABLE | 10 | Transitive, topic-scoped | Yes | Opt-in | Polls, delegation, closed poll results |
+| **Municipal Budget Committee** | CIVIC_PARTICIPATORY | 18 | Transitive, depth=3 | Yes | Opt-in | Surveys + delegation, chain depth limit |
+| **Youth Advisory Panel** | LIQUID_ACCOUNTABLE | 10 | Transitive, topic-scoped | Yes | Opt-in | Surveys, delegation, candidacy mode |
 | **Board of Directors** | BOARD_PROXY | 8 | Non-transitive, 1 delegate | No | Off | Single-delegate proxy |
 
 ---
@@ -272,7 +272,7 @@ No delegations — all 12 members vote directly.
 
 ---
 
-## Seeded Polls
+## Seeded Surveys
 
 Only Youth Advisory Panel and Municipal Budget Committee have polls enabled.
 
@@ -385,6 +385,72 @@ Tests in `platform/web/test/`:
 |---|---|---|
 | `member-search.test.ts` | — | Member search filtering and candidacy discovery |
 | `assembly-tabs.test.ts` | — | Tab visibility based on assembly configuration |
+
+---
+
+## Invitation and Admission Testing
+
+### Invite link flow
+
+1. Log in as an assembly admin (the group creator)
+2. Go to Members page → click "Invite link"
+3. Verify link is generated with an expiration date displayed
+4. In **open** admission mode: verify amber Sybil risk warning is shown
+5. In **approval** mode: verify "Recipients will need admin approval" text
+6. Copy link → open in incognito → verify public group preview page shows governance rules, leadership, member count, and admission mode description
+
+### Direct invitation by handle
+
+1. Log in as admin → Members → "Invite by handle"
+2. Enter `@elena-vasquez` (or any seeded handle)
+3. Click "Send invite"
+4. Log in as the invitee → dashboard should show pending invitation
+5. Accept → verify instant membership (direct invites bypass approval)
+
+### Admission modes
+
+**Open mode:**
+- Invite link acceptance creates membership immediately (201)
+- No pending requests
+
+**Approval mode (default for new groups):**
+- Invite link acceptance shows "Request submitted" confirmation (202)
+- Admin sees pending requests on Members page with approve/reject buttons
+- Approve → membership created, user appears in member list
+- Reject → request removed
+- Direct invitations bypass approval (admin has verified the invitee)
+
+**Invite-only mode:**
+- "Invite link" and "Bulk invite" buttons hidden on Members page
+- Only "Invite by handle" is available
+- Existing links still work (admin created them intentionally)
+
+### Admission mode changes
+
+1. Log in as admin → Members page
+2. Admission mode is displayed (from `GET /assemblies/:id/settings`)
+3. Note: changing admission mode requires the API (`PUT /assemblies/:id/settings`) — no UI settings panel yet
+
+### Bulk CSV import
+
+1. Log in as admin → Members → "Bulk invite"
+2. Upload a `.csv` file with one handle per line (or with a `handle` column header)
+3. Preview shows categorized handles: green (will be invited), gray (not found), yellow (already member), red (invalid)
+4. Click "Send invitations" → verify success count
+
+### Onboarding dialog
+
+1. Clear localStorage for a specific assembly: `localStorage.removeItem("votiverse:onboarding-complete:{assemblyId}")`
+2. Navigate to that assembly's dashboard
+3. Verify multi-step onboarding dialog appears
+4. Step through: Welcome → Voting → Delegation (if enabled) → Community Features (if enabled) → Getting Started
+5. Verify dialog is skippable (Escape key or Skip button)
+6. After completion, refresh → dialog should not reappear
+
+### Dashboard pending items
+
+- **Pending invitations**: appear when another admin has sent you a direct invitation
+- **Pending join requests**: appear with "Awaiting review" badge when you've requested to join an approval-mode group
 
 ---
 

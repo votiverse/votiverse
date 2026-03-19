@@ -25,14 +25,18 @@ Open the URL shown by Vite (typically `http://localhost:5173`, port may vary) an
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  Engine unit tests (459 tests)                  │  vitest, in-memory
+│  Engine unit tests (471 tests)                  │  vitest, in-memory
 │  packages/*/tests/                              │  No server needed
 ├─────────────────────────────────────────────────┤
-│  VCP integration tests (98 tests)               │  vitest, in-memory SQLite
+│  Config tests (88 tests)                        │  vitest, in-memory
+│  packages/config/tests/                         │  Presets, validation, derive
+├─────────────────────────────────────────────────┤
+│  VCP integration tests (134 tests)              │  vitest, in-memory SQLite
 │  platform/vcp/test/                             │  TestClock for time control
 ├─────────────────────────────────────────────────┤
-│  Backend integration tests (63 tests)           │  vitest, in-memory SQLite
-│  platform/backend/test/                         │  Auth + content lifecycle
+│  Backend integration tests (133 tests)          │  vitest, in-memory SQLite
+│  platform/backend/test/                         │  Auth, invitations, admission,
+│                                                 │  notifications, content, CSV
 ├─────────────────────────────────────────────────┤
 │  Web client tests (16 tests)                    │  vitest
 │  platform/web/test/                             │  Member search, assembly tabs
@@ -322,7 +326,7 @@ vcp.clock.advance(7200000);
 
 ## 7. Backend Integration Tests
 
-63 tests in `platform/backend/test/`:
+133 tests in `platform/backend/test/`:
 
 ### Auth tests (13 tests) — `test/auth.test.ts`
 
@@ -367,6 +371,38 @@ vcp.clock.advance(7200000);
 | API: reject invalid value | Returns 400 |
 | API: reject missing fields | Returns 400 |
 | API: auth required | Returns 401 without token |
+
+### Invitation tests (33 tests) — `test/invitations.test.ts`
+
+Tests cover the full invitation lifecycle with VCP calls mocked via `vi.spyOn`:
+
+| Area | Tests | What they verify |
+|------|-------|-----------------|
+| Link invite creation | 4 | Admin creates link, with maxUses/expiresAt, non-admin rejected (403), unauthenticated rejected (401) |
+| Link invite preview | 4 | Public group preview (no auth), 404 for bad token, 410 for expired, 404 for revoked |
+| Link invite acceptance | 7 | Join assembly (201), 401 without auth, 404 bad token, 409 already member, use_count increment, max uses enforcement, expiration enforcement, multi-user accept |
+| Admin management | 2 | List invitations, revoke invitation |
+| Direct invite creation | 3 | Create with handle, normalize to lowercase, 400 missing handle |
+| Direct invite user flow | 5 | List pending for user, accept (creates membership), 404 bad ID, decline removes from list, not visible to other users |
+| Email notifications | 3 | Email sent on direct invite, failure doesn't break request, no email for unknown handle |
+| Bulk CSV endpoints | 5 | Preview categorization, already-member detection, non-admin rejected, bulk create, skip duplicates, empty handles rejected |
+
+### Admission control tests (18 tests) — `test/admission.test.ts`
+
+Tests cover all three admission modes and the settings API:
+
+| Area | Tests | What they verify |
+|------|-------|-----------------|
+| Assembly settings | 3 | Read returns mode, admin can update, non-admin rejected (403), invalid mode rejected (400) |
+| Open mode | 1 | Link invite auto-joins (201) |
+| Approval mode | 8 | Link creates join request (202), admin approve → membership, admin reject, list pending (admin only), direct invite bypasses approval (201), duplicate request (409), user list with assembly names |
+| Invite-only mode | 2 | Link creation blocked (403), direct invite works |
+| Default expiration | 2 | 7-day default when none specified, explicit override works |
+| Invite preview | 1 | admissionMode included in group preview response |
+
+### CSV parser tests (12 tests) — `test/csv-parser.test.ts`
+
+Unit tests for the bulk import CSV parser covering: one-per-line format, header detection, @-prefix stripping, lowercase normalization, comma/tab separation, quoted fields, blank lines, Windows line endings, invalid handle format, deduplication, empty input, row numbers.
 
 ---
 
@@ -558,6 +594,47 @@ The backend seed script syncs existing VCP events/polls into `tracked_events`/`t
 3. Submit a response
 4. Verify results bar chart appears
 5. Scroll to "Study Space Survey" → verify closed poll shows results
+
+### Scenario 10: Invite link flow
+
+1. Login as any admin (assembly creator)
+2. Go to Members page → click "Invite link"
+3. Verify link is generated with expiration date shown
+4. Verify Sybil risk warning appears if admission mode is "open"
+5. Copy the link → open in incognito window
+6. Verify the public group preview shows governance rules, leadership, member count, and admission mode
+7. Click "Join" (or "Request to join" in approval mode)
+
+### Scenario 11: Direct invitation by handle
+
+1. Login as admin → go to Members → click "Invite by handle"
+2. Enter a handle of a registered user (e.g., `elena-vasquez`)
+3. Click "Send invite"
+4. Login as the invitee → verify invitation appears on dashboard
+5. Accept → verify membership created and assembly appears
+
+### Scenario 12: Approval mode join request
+
+1. Create or use an assembly with `admissionMode: "approval"`
+2. Generate an invite link (as admin)
+3. Accept the link as a non-member user → verify 202 response and "Request submitted" screen
+4. Login as admin → go to Members → verify pending join request appears
+5. Approve the request → verify membership created
+6. Login as the requester → verify assembly now appears in their list
+
+### Scenario 13: Invite-only mode
+
+1. Set an assembly's admission mode to "invite-only" (admin → Members → Settings)
+2. Verify "Invite link" and "Bulk invite" buttons are hidden
+3. Verify "Invite by handle" still works
+4. Send a direct invitation → accept as invitee → verify instant join
+
+### Scenario 14: Bulk CSV import
+
+1. Login as admin → go to Members → click "Bulk invite"
+2. Upload a CSV with handles (e.g., `alice\nbob-smith\nghost-user`)
+3. Verify preview shows: found users (green), unknown handles (gray), already members (yellow)
+4. Click "Send invitations" → verify success count
 
 ---
 
