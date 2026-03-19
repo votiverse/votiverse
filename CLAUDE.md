@@ -20,6 +20,8 @@ The repository has three layers:
 - `docs/papers/paper-i-whitepaper.md` — governance model, formal properties, design rationale
 - `docs/papers/paper-ii-self-sustaining-governance.md` — proposals, candidacies, community notes, self-sustaining governance
 - `docs/design/content-architecture.md` — design for proposals, candidacies, community notes, asset storage
+- `docs/design/onboarding-invitations-handles.md` — handles, invite links, direct invitations, signup flow
+- `docs/design/admission-control.md` — admission modes (open/approval/invite-only), Sybil resistance, join requests
 - `docs/testing.md` — comprehensive testing guide: seed data, dev clock, unit tests, integration tests, manual scenarios
 - `platform/web/TESTING.md` — test identities, assembly-by-feature matrix, delegation graphs, seeded data reference
 
@@ -187,7 +189,7 @@ cli → engine → [awareness, voting, survey, prediction, integrity, content]
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
 
-**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, surveys, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. 645 tests across engine (459), VCP (107), backend (63), and web (16).
+**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, surveys, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. Group creation with MODERN_DEMOCRACY default, assembly roles (owner/admin), curation phase enforcement. Onboarding system: handles (@username), invite links with public group preview, direct invitations by handle, multi-step onboarding dialog, avatar style picker, profile editing. Invitation hardening: email notifications (InvitationNotifier with adapter pattern), bulk CSV import with preview. Admission control: backend-owned mutable `admissionMode` (open/approval/invite-only), join request flow, Sybil risk warnings in UI. 778+ tests across engine (471), VCP (134), backend (133), web (16), and config (88).
 
 ### Phase 1: Foundation
 1. `@votiverse/core` — base types, event definitions, EventStore interface, Result type, error base class

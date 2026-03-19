@@ -2,6 +2,39 @@
 
 All notable changes to the Votiverse project.
 
+## Admission Control & Invitation Hardening — March 2026
+
+### Added
+- **Admission control** — `admissionMode` setting per assembly: `open` (auto-join), `approval` (join request → admin review), `invite-only` (direct invitation only). Backend-owned mutable setting, not part of immutable GovernanceConfig.
+- **Join request flow** — `join_requests` table, `JoinRequestService` (create, approve, reject, list). Approval mode: invite link acceptance returns 202 with pending request; admin approves/rejects on Members page.
+- **Email notifications for invitations** — `InvitationNotifier` with adapter pattern (console/file/SMTP). Resolves handle → email internally, fires on direct invite creation.
+- **Bulk CSV import** — CSV parser, preview endpoint (categorizes handles as found/not_found/already_member), bulk creation with email notifications.
+- **Multi-step onboarding dialog** — config-driven steps (Welcome, Voting, Delegation, Community Features, Getting Started), shown on first visit after joining. localStorage-tracked, skippable.
+- **Default 7-day link expiration** — invite links without explicit `expiresAt` expire after 7 days.
+- **Sybil risk warnings** — amber callout on invite link generation in open mode, admission mode description in invite preview, risk-aware copy throughout group creation and member management.
+- **Assembly settings API** — `GET/PUT /assemblies/:id/settings` for mutable admission mode (admin-only).
+
+### Changed
+- Invite link acceptance now checks `admissionMode` before creating membership
+- Link invite creation blocked (403) in invite-only mode
+- Direct invitations always bypass approval (admin has verified the invitee)
+- `summarizeRules()` extracted from duplicate locations to shared `lib/presets.ts`
+- `assemblies_cache.upsert()` preserves `admission_mode` on conflict (only changeable via dedicated method)
+
+### Tests
+- Engine: 471, VCP: 134, Backend: 133 (was 63), Web: 16, Config: 88
+- **Total: 778+ tests**
+- New: 33 invitation tests, 12 CSV parser tests, 7 bulk endpoint tests, 18 admission control tests
+
+## Onboarding — March 2026
+
+### Added
+- **Handles** — unique public identifiers (`@username`), 3–30 chars, auto-suggested from name at signup
+- **Invite links** — cryptographically random tokens, public group preview page, max-uses + expiration
+- **Direct invitations by handle** — admin sends to @handle, appears on invitee's dashboard
+- **Avatar style picker** — DiceBear gallery with 28 styles and seed browsing
+- **Profile editing page** — change handle, name, bio, avatar
+
 ## Phase 7: Content Architecture — March 2026
 
 ### Added

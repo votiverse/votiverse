@@ -193,15 +193,29 @@ The **`contentHash`** in the VCP provides the integrity bridge: anyone can hash 
 
 See `docs/design/content-architecture.md` for the full design.
 
-### 4.5 Access control
+### 4.5 User discovery and invitations
+
+The client backend owns the entire invitation and admission flow. The VCP has no concept of invitations or admission — it only knows about participants once they exist.
+
+**Handles.** Each user has a unique public handle (`@alice-chen`) used for member search and direct invitations. Handles are 3–30 characters, lowercase alphanumeric with hyphens. Auto-suggested at signup from display name. Editable via profile settings.
+
+**Invite links.** An admin generates a cryptographically random token. The link provides a public group preview (governance rules, leadership, member count) without requiring authentication. All invite links expire (default: 7 days).
+
+**Direct invitations.** An admin invites a specific user by handle. The invitation appears on the invitee's dashboard. Direct invitations bypass admission approval (the admin has already verified the invitee).
+
+**Admission control.** The backend enforces an `admissionMode` setting per assembly (`open | approval | invite-only`). This is a **mutable backend-owned setting**, not part of the immutable GovernanceConfig. In approval mode, invite link acceptance creates a pending join request that an admin must approve before membership is created. See `docs/design/admission-control.md` for the full design.
+
+**Email notifications.** When a direct invitation is created, the backend resolves the invitee's handle to an email address (internal lookup — the admin never sees the email) and sends a notification via the configured `NotificationAdapter` (console/file/SMTP). Email delivery is fire-and-forget — failures never block the invitation creation.
+
+### 4.6 Access control
 Access control operates at two levels:
 
 **VCP-level (client isolation).** The VCP enforces client-assembly access: each API key carries an `assemblyAccess` list (explicit assembly IDs, or `"*"` for unrestricted). Requests to assemblies outside a client's access list are rejected with `403 Forbidden`. Admin write operations (creating participants, events, polls, topics) require the `"operational"` scope; participant-scoped keys can only perform governance actions (voting, delegating, responding to polls). This prevents a compromised or misconfigured client from affecting assemblies it doesn't own.
 
 **Client-level (organizational RBAC).** Who within an organization can create Assemblies, manage participants, or submit proposals are access control decisions enforced by the client backend before proxying to the VCP. The VCP trusts the client backend's authorization decisions.
 
-### 4.6 Communication delivery
-When the VCP emits a webhook event, the client backend receives it and decides how to deliver it to the user — or whether to deliver it at all (email, push notification, in-app alert, etc.).
+### 4.7 Communication delivery
+When the VCP emits a webhook event, the client backend receives it and decides how to deliver it to the user — or whether to deliver it at all (email, push notification, in-app alert, etc.). The backend also sends transactional emails for invitation and admission events (invite received, join request submitted) via the `NotificationAdapter` pattern (console for dev, SMTP for production).
 
 ---
 
@@ -472,19 +486,42 @@ Access tokens are short-lived JWTs. Refresh tokens are opaque strings stored ser
 }
 ```
 
-### 6.2 Profile Endpoints
+### 6.2 Profile and Membership Endpoints
 
 ```
-GET    /me                           # get current user profile
-POST   /me/assemblies/:id/join      # join an Assembly (creates participant in VCP, stores mapping)
+GET    /me                              # get current user profile
+PUT    /me/profile                      # update handle, name, bio, avatar
+GET    /me/invitations                  # list pending direct invitations
+POST   /me/invitations/:id/accept      # accept direct invitation (instant join)
+POST   /me/invitations/:id/decline     # decline direct invitation
+GET    /me/join-requests                # list pending join requests (awaiting admin approval)
 ```
 
-The `/me/assemblies/:id/join` endpoint is where the user-to-participant mapping is established. The client backend:
-1. Calls `POST /assemblies/:id/participants` on the VCP to create the participant.
-2. Stores the returned `participantId` in its own database, associated with the user's account.
-3. Returns the assembly membership to the end-user application.
+### 6.3 Invitation and Admission Endpoints
 
-### 6.3 Governance Proxy and Local Cache
+```
+# Public (no auth)
+GET    /invite/:token                              # group preview for invite link
+
+# Authenticated
+POST   /invite/:token/accept                       # accept invite link (201 or 202 depending on admission mode)
+
+# Admin (assembly-scoped)
+GET    /assemblies/:id/settings                     # read admission mode
+PUT    /assemblies/:id/settings                     # update admission mode
+POST   /assemblies/:id/invitations                  # create invite (link or direct)
+GET    /assemblies/:id/invitations                  # list invitations
+DELETE /assemblies/:id/invitations/:invId           # revoke invitation
+POST   /assemblies/:id/invitations/preview          # preview bulk CSV import
+POST   /assemblies/:id/invitations/bulk             # create bulk direct invitations
+GET    /assemblies/:id/join-requests                # list pending join requests
+POST   /assemblies/:id/join-requests/:reqId/approve # approve join request → creates membership
+POST   /assemblies/:id/join-requests/:reqId/reject  # reject join request
+```
+
+The invitation system supports three admission modes (`open | approval | invite-only`). In approval mode, `POST /invite/:token/accept` returns `202 Accepted` with a pending join request instead of creating membership immediately. Direct invitations always bypass approval. See `docs/design/admission-control.md`.
+
+### 6.4 Governance Proxy and Local Cache
 
 The client backend serves some read-heavy endpoints locally and proxies the rest to the VCP with identity injection.
 
@@ -522,24 +559,33 @@ The proxy logic:
 
 If the user is not a member of the target Assembly, the proxy returns `403 Forbidden` without contacting the VCP.
 
-### 6.4 Client Backend Database
+### 6.5 Client Backend Database
 
 The client backend maintains its own database (separate from the VCP's database, SQLite or PostgreSQL) with these tables:
 
 | Table | Purpose |
 |---|---|
-| `users` | User accounts: id, email, password hash, name, created_at |
+| `users` | User accounts: id, email, password hash, name, handle, avatar_url, bio |
 | `refresh_tokens` | Active refresh tokens: token, user_id, expires_at |
 | `memberships` | User-to-Assembly mappings: user_id, assembly_id, participant_id |
-| `assemblies_cache` | Local cache of immutable assembly data (id, name, config, status) |
+| `assemblies_cache` | Local cache of assembly data (id, name, config, status, admission_mode) |
 | `topics_cache` | Local cache of immutable topic data (id, assembly_id, name, parent_id) |
+| `surveys_cache` | Local cache of survey metadata |
+| `invitations` | Invite links and direct invitations (token, type, max_uses, expires_at) |
+| `invitation_acceptances` | Audit trail: who accepted which invite link |
+| `join_requests` | Pending join requests for approval-mode assemblies |
 | `tracked_events` | Voting events tracked for notification scheduling |
-| `tracked_polls` | Polls tracked for notification scheduling |
+| `tracked_surveys` | Surveys tracked for notification scheduling |
 | `notification_preferences` | Per-user notification settings (key-value) |
+| `proposal_drafts` | Pre-submission proposal editing (backend-only) |
+| `proposal_content` | Immutable versioned proposal markdown + assets |
+| `candidacy_content` | Immutable versioned candidacy profile markdown + assets |
+| `note_content` | Community note markdown + assets |
+| `assets` | Binary files (images, videos, PDFs) |
 
 The client backend database contains PII (email, name). The VCP database does not — it only stores opaque participant IDs.
 
-The cache tables (`assemblies_cache`, `topics_cache`) store immutable data that doesn't change after creation. This eliminates VCP round-trips for the most frequently accessed read endpoints (assembly listing, topic listing) and makes the backend resilient to brief VCP unavailability for cached reads.
+The cache tables (`assemblies_cache`, `topics_cache`, `surveys_cache`) store data that doesn't change after creation, eliminating VCP round-trips for frequently accessed read endpoints. The `admission_mode` column on `assemblies_cache` is a backend-owned mutable setting (not cached from VCP) — see `docs/design/admission-control.md`.
 
 ---
 
