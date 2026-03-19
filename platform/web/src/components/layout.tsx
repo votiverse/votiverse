@@ -67,7 +67,7 @@ export function Header() {
               </div>
             ) : (
               <Link to="/" className="flex items-center gap-2 shrink-0">
-                <img src="/logo.svg" alt="Votiverse" className="w-7 h-7" />
+                <img src="/logo.svg" alt="Votiverse" className="w-16 h-16" />
                 <span className="font-semibold text-gray-900 hidden sm:inline">Votiverse</span>
               </Link>
             )}
