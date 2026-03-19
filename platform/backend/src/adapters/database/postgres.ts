@@ -35,9 +35,13 @@ export class PostgresAdapter implements DatabaseAdapter {
           email         TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
           name          TEXT NOT NULL,
+          handle        TEXT UNIQUE,
+          avatar_url    TEXT,
+          bio           TEXT NOT NULL DEFAULT '',
           created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
           status        TEXT NOT NULL DEFAULT 'active'
         );
+        CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 
         -- Refresh tokens for session management
         CREATE TABLE IF NOT EXISTS refresh_tokens (

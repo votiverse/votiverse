@@ -170,8 +170,36 @@ export function meRoutes(
       id: user.id,
       email: user.email,
       name: user.name,
+      handle: user.handle,
+      avatarUrl: user.avatarUrl,
+      bio: user.bio,
       memberships,
     });
+  });
+
+  /** PUT /me/profile — update profile fields. */
+  app.put("/me/profile", async (c) => {
+    const { id } = getUser(c);
+    const body = await c.req.json<{ handle?: string; name?: string; bio?: string; avatarUrl?: string | null }>();
+    const updated = await userService.updateProfile(id, body);
+    return c.json({
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      handle: updated.handle,
+      avatarUrl: updated.avatarUrl,
+      bio: updated.bio,
+    });
+  });
+
+  /** GET /users/:handle — public profile lookup by handle. */
+  app.get("/users/:handle", async (c) => {
+    const handle = c.req.param("handle").toLowerCase();
+    const profile = await userService.getByHandle(handle);
+    if (!profile) {
+      return c.json({ error: { code: "NOT_FOUND", message: "User not found" } }, 404);
+    }
+    return c.json(profile);
   });
 
   /** POST /me/assemblies/:assemblyId/join — join an assembly. */

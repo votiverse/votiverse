@@ -11,12 +11,12 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
 
   /** POST /auth/register — create account. */
   app.post("/auth/register", async (c) => {
-    const body = await c.req.json<{ email: string; password: string; name: string }>();
-    const user = await userService.register(body.email, body.password, body.name);
+    const body = await c.req.json<{ email: string; password: string; name: string; handle?: string }>();
+    const user = await userService.register(body.email, body.password, body.name, body.handle);
     const tokens = await sessionService.createSession(user);
 
     return c.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     }, 201);
@@ -29,7 +29,7 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     const tokens = await sessionService.createSession(user);
 
     return c.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     });
@@ -63,6 +63,13 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
       await sessionService.revokeSession(body.refreshToken);
     }
     return c.body(null, 204);
+  });
+
+  /** GET /auth/check-handle/:handle — handle availability (pre-auth, for signup). */
+  app.get("/auth/check-handle/:handle", async (c) => {
+    const handle = c.req.param("handle").toLowerCase();
+    const available = await userService.isHandleAvailable(handle);
+    return c.json({ handle, available });
   });
 
   return app;
