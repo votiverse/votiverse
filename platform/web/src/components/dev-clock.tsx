@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { setDevClockOffset } from "../lib/status.js";
 
 const VCP_URL = "http://localhost:3000";
 
@@ -92,6 +93,11 @@ export function DevClock() {
   const isTestMode = clock?.mode === "test";
   const offset = clock ? clock.time - clock.systemTime : 0;
   const offsetLabel = offset === 0 ? "" : formatOffset(offset);
+
+  // Sync dev clock offset to client-side status derivation
+  useEffect(() => {
+    setDevClockOffset(offset);
+  }, [offset]);
 
   return (
     <div className="fixed bottom-4 right-4 z-50 lg:bottom-6 lg:right-6">
