@@ -854,4 +854,151 @@ describe("Invitation flows", () => {
       expect(data.token).toBeTruthy();
     });
   });
+
+  // ── Bulk CSV import ──────────────────────────────────────────────
+
+  describe("POST /assemblies/:id/invitations/preview", () => {
+    it("previews a CSV of handles with correct categorization", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      // Create target users
+      await backend.request("POST", "/auth/register", { email: "alice@example.com", password: "password123", name: "Alice", handle: "alice" });
+      await backend.request("POST", "/auth/register", { email: "bob@example.com", password: "password123", name: "Bob", handle: "bob-smith" });
+
+      const csv = "handle\nalice\nbob-smith\nghost-user";
+      const res = await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations/preview`,
+        { csv },
+        authHeader(accessToken),
+      );
+
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as {
+        valid: Array<{ handle: string; status: string; alreadyMember: boolean }>;
+        errors: unknown[];
+        summary: { canInvite: number; alreadyMembers: number; unknownHandles: number };
+      };
+      expect(data.valid).toHaveLength(3);
+      expect(data.valid.find((v) => v.handle === "alice")?.status).toBe("found");
+      expect(data.valid.find((v) => v.handle === "ghost-user")?.status).toBe("not_found");
+      expect(data.summary.canInvite).toBe(2);
+      expect(data.summary.unknownHandles).toBe(1);
+    });
+
+    it("detects already-member handles", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      // Create Alice and make her a member already
+      const aliceRes = await backend.request("POST", "/auth/register", { email: "alice@example.com", password: "password123", name: "Alice", handle: "alice" });
+      const aliceData = (await aliceRes.json()) as { user: { id: string } };
+      await seedMembership(backend, aliceData.user.id, ASSEMBLY_ID, "p-alice");
+
+      const csv = "alice";
+      const res = await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations/preview`,
+        { csv },
+        authHeader(accessToken),
+      );
+
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { valid: Array<{ handle: string; alreadyMember: boolean }>; summary: { alreadyMembers: number } };
+      expect(data.valid[0].alreadyMember).toBe(true);
+      expect(data.summary.alreadyMembers).toBe(1);
+    });
+
+    it("returns 403 for non-admin", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("member@example.com", "password123", "Member");
+      const participantId = "p-member";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      vi.spyOn(backend.vcpClient, "listRoles").mockResolvedValue([]);
+
+      const res = await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations/preview`,
+        { csv: "alice" },
+        authHeader(accessToken),
+      );
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("POST /assemblies/:id/invitations/bulk", () => {
+    it("creates direct invitations for each handle", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      const res = await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations/bulk`,
+        { handles: ["alice", "bob-smith"] },
+        authHeader(accessToken),
+      );
+
+      expect(res.status).toBe(201);
+      const data = (await res.json()) as { created: number; skipped: number; results: unknown[] };
+      expect(data.created).toBe(2);
+      expect(data.skipped).toBe(0);
+    });
+
+    it("skips handles with existing pending invitations", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      // Create an existing invitation for alice
+      await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        { type: "direct", inviteeHandle: "alice" },
+        authHeader(accessToken),
+      );
+
+      // Bulk create — alice should be skipped
+      const res = await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations/bulk`,
+        { handles: ["alice", "bob-smith"] },
+        authHeader(accessToken),
+      );
+
+      expect(res.status).toBe(201);
+      const data = (await res.json()) as { created: number; skipped: number; results: Array<{ handle: string; status: string }> };
+      expect(data.created).toBe(1);
+      expect(data.skipped).toBe(1);
+      expect(data.results.find((r) => r.handle === "alice")?.status).toBe("skipped");
+      expect(data.results.find((r) => r.handle === "bob-smith")?.status).toBe("created");
+    });
+
+    it("returns 400 when handles array is empty", async () => {
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const participantId = "p-admin";
+      await seedAssemblyCache(backend);
+      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
+      mockAdminRole(backend, participantId);
+
+      const res = await backend.request(
+        "POST",
+        `/assemblies/${ASSEMBLY_ID}/invitations/bulk`,
+        { handles: [] },
+        authHeader(accessToken),
+      );
+      expect(res.status).toBe(400);
+    });
+  });
 });

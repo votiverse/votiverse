@@ -204,6 +204,18 @@ export class UserService {
     return row?.email ?? null;
   }
 
+  /**
+   * Get user ID by handle — internal use only (e.g., bulk invitation membership check).
+   * Not exposed via any API route.
+   */
+  async getIdByHandle(handle: string): Promise<string | null> {
+    const row = await this.db.queryOne<{ id: string }>(
+      "SELECT id FROM users WHERE handle = ?",
+      [handle.toLowerCase()],
+    );
+    return row?.id ?? null;
+  }
+
   /** Check if a handle is available. */
   async isHandleAvailable(handle: string): Promise<boolean> {
     if (!isValidHandle(handle)) return false;

@@ -24,6 +24,7 @@ import type { VCPClient } from "../../services/vcp-client.js";
 import type { UserService } from "../../services/user-service.js";
 import type { InvitationNotifier } from "../../services/invitation-notifier.js";
 import { getUser } from "../middleware/auth.js";
+import { parseCsvInvites } from "../../lib/csv-parser.js";
 
 export function invitationRoutes(
   invitationService: InvitationService,
@@ -189,6 +190,108 @@ export function invitationRoutes(
     const invId = c.req.param("invId");
     await invitationService.revoke(invId);
     return c.json({ status: "revoked" });
+  });
+
+  /** POST /assemblies/:id/invitations/preview — preview a bulk CSV import (admin). */
+  app.post("/assemblies/:id/invitations/preview", async (c) => {
+    const { id: userId } = getUser(c);
+    const assemblyId = c.req.param("id");
+
+    // Admin check
+    const participantId = await membershipService.getParticipantIdOrThrow(userId, assemblyId);
+    let isAdmin = false;
+    try {
+      const roles = await vcpClient.listRoles(assemblyId);
+      isAdmin = roles.some((r) => r.participantId === participantId && (r.role === "admin" || r.role === "owner"));
+    } catch { /* VCP unavailable */ }
+    if (!isAdmin) {
+      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can preview bulk invitations" } }, 403);
+    }
+
+    const body = await c.req.json<{ csv: string }>();
+    if (!body.csv || typeof body.csv !== "string") {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "csv field is required" } }, 400);
+    }
+
+    const { rows, errors } = parseCsvInvites(body.csv);
+
+    // Look up each handle
+    const valid: Array<{ handle: string; status: "found" | "not_found"; alreadyMember: boolean }> = [];
+    for (const row of rows) {
+      const handleUserId = await userService.getIdByHandle(row.handle);
+      if (!handleUserId) {
+        valid.push({ handle: row.handle, status: "not_found", alreadyMember: false });
+        continue;
+      }
+      const pid = await membershipService.getParticipantId(handleUserId, assemblyId);
+      valid.push({ handle: row.handle, status: "found", alreadyMember: !!pid });
+    }
+
+    const canInvite = valid.filter((v) => v.status === "found" && !v.alreadyMember).length;
+    const alreadyMembers = valid.filter((v) => v.alreadyMember).length;
+    const unknownHandles = valid.filter((v) => v.status === "not_found").length;
+
+    return c.json({
+      valid,
+      errors,
+      summary: {
+        total: rows.length + errors.length,
+        canInvite,
+        alreadyMembers,
+        unknownHandles,
+        invalidRows: errors.length,
+      },
+    });
+  });
+
+  /** POST /assemblies/:id/invitations/bulk — create bulk direct invitations (admin). */
+  app.post("/assemblies/:id/invitations/bulk", async (c) => {
+    const { id: userId, name: inviterName } = getUser(c);
+    const assemblyId = c.req.param("id");
+
+    // Admin check
+    const participantId = await membershipService.getParticipantIdOrThrow(userId, assemblyId);
+    let isAdmin = false;
+    try {
+      const roles = await vcpClient.listRoles(assemblyId);
+      isAdmin = roles.some((r) => r.participantId === participantId && (r.role === "admin" || r.role === "owner"));
+    } catch { /* VCP unavailable */ }
+    if (!isAdmin) {
+      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can create bulk invitations" } }, 403);
+    }
+
+    const body = await c.req.json<{ handles: string[] }>();
+    if (!Array.isArray(body.handles) || body.handles.length === 0) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "handles array is required" } }, 400);
+    }
+
+    const results: Array<{ handle: string; status: "created" | "skipped"; reason?: string }> = [];
+    let created = 0;
+    let skipped = 0;
+
+    for (const handle of body.handles) {
+      const normalized = handle.toLowerCase();
+
+      // Check for existing active invitation to same handle
+      const existing = await invitationService.listPendingForHandle(normalized);
+      const hasPendingForAssembly = existing.some((inv) => inv.assemblyId === assemblyId);
+      if (hasPendingForAssembly) {
+        results.push({ handle: normalized, status: "skipped", reason: "Pending invitation already exists" });
+        skipped++;
+        continue;
+      }
+
+      await invitationService.createDirectInvite(assemblyId, userId, normalized);
+      created++;
+      results.push({ handle: normalized, status: "created" });
+
+      // Fire-and-forget email notification
+      if (invitationNotifier) {
+        void invitationNotifier.sendInvitationEmail(normalized, assemblyId, inviterName);
+      }
+    }
+
+    return c.json({ created, skipped, results }, 201);
   });
 
   // ── User routes (direct invitations) ─────────────────────────────
