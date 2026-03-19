@@ -83,9 +83,7 @@ export function LoginForm() {
   return (
     <div className="max-w-sm mx-auto py-8 sm:py-16">
       <div className="text-center mb-8">
-        <div className="w-14 h-14 bg-brand rounded-xl flex items-center justify-center mx-auto mb-4">
-          <span className="text-white font-bold text-2xl">V</span>
-        </div>
+        <img src="/logo.svg" alt="Votiverse" className="w-14 h-14 mx-auto mb-4" />
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
           {mode === "login" ? "Welcome back" : "Create an account"}
         </h1>
