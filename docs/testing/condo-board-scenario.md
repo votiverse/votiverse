@@ -152,4 +152,18 @@ All passwords: `password`
 3. **Admission mode selector missing from group creation** — Fixed: added "Who can join" dropdown with Sybil warning.
 4. **Client-side status derivation ignoring dev clock** — deriveEventStatus used Date.now(). Fixed: effectiveNow() adds devClockOffsetMs.
 5. **Backend had no dev clock** — Fixed: added dev-clock.ts + endpoints, DevClock widget syncs both VCP and backend.
-6. **Vote progress counter showing 0/2 after voting** — cosmetic bug, noted for future fix.
+6. **Vote progress counter showing 0/2 after voting** — fixed (refetchHistory added)
+
+### Act 4: Lobby Renovation — Proposals and Community Notes — PASSED
+- Second voting event created (2 issues, 6 eligible members)
+- Marcus drafted "Lobby Renovation Cost Analysis and Recommendation" using TipTap editor
+  - H2 headings, bullet lists, structured cost breakdown — rich formatting works
+  - Draft → Edit → Done editing → Submit Proposal pipeline works end-to-end
+- Submitted proposal renders beautifully with formatted markdown
+- Kai wrote a dissenting community note challenging the cost estimates
+  - Note appears under the proposal with helpful/not helpful evaluation buttons
+  - Fact-checking with specific data (permit fees, contingency standards)
+
+### UX Issues Found in Acts 4-5
+1. **Proposals page requires ?issueId param** — navigating to /proposals without an issueId shows "No proposals" even when the New Draft form is opened. The issue selector should appear in the form if no issueId is in the URL.
+2. **No direct link from event detail to proposals during deliberation** — the "Voting booklet" link only appears when proposals already exist. A "Write a proposal" or "View proposals" link should appear during deliberation.
