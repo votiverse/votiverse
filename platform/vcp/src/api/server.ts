@@ -24,6 +24,7 @@ import { predictionRoutes } from "./routes/predictions.js";
 import { surveyRoutes } from "./routes/surveys.js";
 import { awarenessRoutes } from "./routes/awareness.js";
 import { topicRoutes } from "./routes/topics.js";
+import { topicQueryRoutes } from "./routes/topic-queries.js";
 import { proposalRoutes } from "./routes/proposals.js";
 import { candidacyRoutes } from "./routes/candidacies.js";
 import { noteRoutes } from "./routes/notes.js";
@@ -135,6 +136,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   app.route("/", predictionRoutes(manager));
   app.route("/", surveyRoutes(manager));
   app.route("/", topicRoutes(manager));
+  app.route("/", topicQueryRoutes(manager));
   app.route("/", proposalRoutes(manager));
   app.route("/", candidacyRoutes(manager));
   app.route("/", noteRoutes(manager));
