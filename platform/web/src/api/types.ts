@@ -395,10 +395,8 @@ export interface TopicIssueItem {
 
 export interface TopicDelegationItem {
   delegate: { id: string; name: string };
-  /** Direct weight: how many votes this delegate would carry if they voted (self + direct delegators). */
+  /** Total weight: how many votes this delegate carries (self + all chain-resolved delegations). */
   weight: number;
-  /** Indirect: additional votes flowing through transitive chains of their delegators. */
-  indirect: number;
 }
 
 // ---- Candidacies ----

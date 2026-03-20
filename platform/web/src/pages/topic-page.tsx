@@ -233,8 +233,7 @@ function IssueRow({ item, assemblyId }: { item: TopicIssueItem; assemblyId: stri
 }
 
 function DelegateRow({ item, isMyDelegate }: { item: TopicDelegationItem; isMyDelegate?: boolean }) {
-  const { delegate, weight, indirect } = item;
-  const total = weight + indirect;
+  const { delegate, weight } = item;
 
   return (
     <div className="flex items-center justify-between py-3 gap-3">
@@ -250,11 +249,7 @@ function DelegateRow({ item, isMyDelegate }: { item: TopicDelegationItem; isMyDe
         </div>
       </div>
       <span className="text-xs text-gray-500 tabular-nums shrink-0">
-        {indirect > 0 ? (
-          <>{total}× weight <span className="text-gray-300">({indirect} indirect)</span></>
-        ) : (
-          <>{weight}× weight</>
-        )}
+        {weight}× weight
       </span>
     </div>
   );

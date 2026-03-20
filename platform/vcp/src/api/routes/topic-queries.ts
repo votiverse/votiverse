@@ -187,58 +187,42 @@ export function topicQueryRoutes(manager: AssemblyManager) {
       if (best) resolved.set(sourceId, best.targetId);
     }
 
-    // Count direct incoming delegations per delegate.
-    // directWeight = 1 (self) + number of people who resolve to this delegate.
-    // This represents "how many votes they'd carry if they voted directly"
-    // (the override rule would break any outgoing chain).
+    // Walk transitive chains to find terminal delegates and their total weight.
+    // Terminal = a participant who has no outgoing delegation (or a cycle).
+    // This answers: "if a vote happened now and nobody voted directly, who carries how much?"
     const participants = await manager.listParticipants(assemblyId);
-    const directIncoming = new Map<string, Set<string>>();
+    const weightMap = new Map<string, number>();
 
-    for (const [sourceId, targetId] of resolved) {
-      const set = directIncoming.get(targetId) ?? new Set();
-      set.add(sourceId);
-      directIncoming.set(targetId, set);
+    function findTerminal(pid: string, visited: Set<string>): string | null {
+      if (visited.has(pid)) return null; // cycle
+      visited.add(pid);
+      const target = resolved.get(pid);
+      if (!target || target === pid) return pid; // terminal
+      return findTerminal(target, visited);
     }
 
-    // Compute indirect weight: additional votes flowing through transitive chains.
-    // For each delegate's direct delegators, count THEIR incoming delegations recursively.
-    function countIndirect(delegateId: string, visited: Set<string>): number {
-      let indirect = 0;
-      const delegators = directIncoming.get(delegateId);
-      if (!delegators) return 0;
-      for (const delegatorId of delegators) {
-        if (visited.has(delegatorId)) continue;
-        visited.add(delegatorId);
-        // If this delegator also receives delegations, those flow through
-        const sub = directIncoming.get(delegatorId);
-        if (sub) {
-          indirect += sub.size;
-          indirect += countIndirect(delegatorId, visited);
-        }
+    for (const p of participants) {
+      const terminal = findTerminal(p.id, new Set());
+      if (terminal && terminal !== p.id) {
+        weightMap.set(terminal, (weightMap.get(terminal) ?? 1) + 1);
       }
-      return indirect;
     }
 
-    // Build response
+    // Build response: only include participants with weight > 1
     const nameMap = new Map(participants.map((p) => [p.id, p.name]));
     const delegationItems: Array<{
       delegate: { id: string; name: string };
       weight: number;
-      indirect: number;
     }> = [];
 
-    for (const [pid, delegators] of directIncoming) {
-      const directWeight = delegators.size + 1; // delegators + self
-      const indirect = countIndirect(pid, new Set([pid]));
+    for (const [pid, weight] of weightMap) {
       delegationItems.push({
         delegate: { id: pid, name: nameMap.get(pid) ?? pid },
-        weight: directWeight,
-        indirect,
+        weight,
       });
     }
 
-    // Sort by total (direct + indirect) descending
-    delegationItems.sort((a, b) => (b.weight + b.indirect) - (a.weight + a.indirect));
+    delegationItems.sort((a, b) => b.weight - a.weight);
 
     const { data, pagination } = paginate(delegationItems, parsePagination(c));
     return c.json({ delegations: data, pagination });
