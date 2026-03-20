@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
+import type { VotiverseEngine } from "@votiverse/engine";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { computeTimeline } from "../../engine/event-phases.js";
 import { requireScope, requireParticipant, getParticipantId } from "../middleware/auth.js";
@@ -33,6 +34,51 @@ interface CreateEventBody {
 function toTimestamp(value: string | number): ReturnType<typeof timestamp> {
   if (typeof value === "number") return timestamp(value);
   return timestamp(new Date(value).getTime());
+}
+
+// ---------------------------------------------------------------------------
+// Shared response builder — ensures list and detail endpoints return the
+// same shape for event objects, preventing field divergence.
+// ---------------------------------------------------------------------------
+
+interface VotingEventLike {
+  id: string;
+  title: string;
+  description: string;
+  issueIds: readonly string[];
+  eligibleParticipantIds: readonly string[];
+  timeline: { deliberationStart: number; votingStart: number; votingEnd: number };
+  createdAt: number;
+}
+
+function buildIssueResponse(engine: VotiverseEngine, issueId: string) {
+  const issue = engine.events.getIssue(issueId as IssueId);
+  if (!issue) return { id: issueId, title: "", description: "", topicId: null };
+  return {
+    id: issue.id,
+    title: issue.title,
+    description: issue.description,
+    topicId: issue.topicId,
+    ...(issue.choices ? { choices: issue.choices } : {}),
+    cancelled: engine.events.isIssueCancelled(issueId as IssueId),
+  };
+}
+
+function buildEventResponse(engine: VotiverseEngine, e: VotingEventLike) {
+  return {
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    issueIds: e.issueIds,
+    issues: e.issueIds.map((id) => buildIssueResponse(engine, id)),
+    eligibleParticipantIds: e.eligibleParticipantIds,
+    timeline: {
+      deliberationStart: new Date(e.timeline.deliberationStart).toISOString(),
+      votingStart: new Date(e.timeline.votingStart).toISOString(),
+      votingEnd: new Date(e.timeline.votingEnd).toISOString(),
+    },
+    createdAt: new Date(e.createdAt).toISOString(),
+  };
 }
 
 export function eventRoutes(manager: AssemblyManager) {
@@ -106,29 +152,10 @@ export function eventRoutes(manager: AssemblyManager) {
       );
     }
 
-    return c.json({
-      id: votingEvent.id,
-      title: votingEvent.title,
-      description: votingEvent.description,
-      issueIds: votingEvent.issueIds,
-      issues: issues.map((i) => ({
-        id: i.id,
-        title: i.title,
-        description: i.description,
-        topicId: i.topicId,
-        ...(i.choices ? { choices: i.choices } : {}),
-      })),
-      eligibleParticipantIds: votingEvent.eligibleParticipantIds,
-      timeline: {
-        deliberationStart: new Date(votingEvent.timeline.deliberationStart).toISOString(),
-        votingStart: new Date(votingEvent.timeline.votingStart).toISOString(),
-        votingEnd: new Date(votingEvent.timeline.votingEnd).toISOString(),
-      },
-      createdAt: new Date(votingEvent.createdAt).toISOString(),
-    }, 201);
+    return c.json(buildEventResponse(engine, votingEvent), 201);
   });
 
-  /** GET /assemblies/:id/events/:eid — get event status. */
+  /** GET /assemblies/:id/events/:eid — get event detail. */
   app.get("/assemblies/:id/events/:eid", async (c) => {
     const assemblyId = c.req.param("id");
     const eid = c.req.param("eid");
@@ -143,19 +170,6 @@ export function eventRoutes(manager: AssemblyManager) {
       );
     }
 
-    const issues = votingEvent.issueIds.map((id) => {
-      const issue = engine.events.getIssue(id as IssueId);
-      if (!issue) return { id };
-      return {
-        id: issue.id,
-        title: issue.title,
-        description: issue.description,
-        topicId: issue.topicId,
-        ...(issue.choices ? { choices: issue.choices } : {}),
-        cancelled: engine.events.isIssueCancelled(id as IssueId),
-      };
-    });
-
     // Look up creator
     const db = manager.getDatabase();
     const creatorRow = await db.queryOne<{ participant_id: string }>(
@@ -164,18 +178,8 @@ export function eventRoutes(manager: AssemblyManager) {
     );
 
     return c.json({
-      id: votingEvent.id,
-      title: votingEvent.title,
-      description: votingEvent.description,
-      issues,
-      eligibleParticipantIds: votingEvent.eligibleParticipantIds,
-      timeline: {
-        deliberationStart: new Date(votingEvent.timeline.deliberationStart).toISOString(),
-        votingStart: new Date(votingEvent.timeline.votingStart).toISOString(),
-        votingEnd: new Date(votingEvent.timeline.votingEnd).toISOString(),
-      },
+      ...buildEventResponse(engine, votingEvent),
       createdBy: creatorRow?.participant_id ?? undefined,
-      createdAt: new Date(votingEvent.createdAt).toISOString(),
     });
   });
 
@@ -183,34 +187,7 @@ export function eventRoutes(manager: AssemblyManager) {
   app.get("/assemblies/:id/events", async (c) => {
     const assemblyId = c.req.param("id");
     const { engine } = await manager.getEngine(assemblyId);
-    const allEvents = engine.events.list().map((e) => {
-      const issues = e.issueIds.map((id) => {
-        const issue = engine.events.getIssue(id as IssueId);
-        if (!issue) return { id, title: "", description: "", topicId: null };
-        return {
-          id: issue.id,
-          title: issue.title,
-          description: issue.description,
-          topicId: issue.topicId,
-          ...(issue.choices ? { choices: issue.choices } : {}),
-          cancelled: engine.events.isIssueCancelled(id as IssueId),
-        };
-      });
-      return {
-        id: e.id,
-        title: e.title,
-        description: e.description,
-        issueIds: e.issueIds,
-        issues,
-        eligibleParticipantIds: e.eligibleParticipantIds,
-        timeline: {
-          deliberationStart: new Date(e.timeline.deliberationStart).toISOString(),
-          votingStart: new Date(e.timeline.votingStart).toISOString(),
-          votingEnd: new Date(e.timeline.votingEnd).toISOString(),
-        },
-        createdAt: new Date(e.createdAt).toISOString(),
-      };
-    });
+    const allEvents = engine.events.list().map((e) => buildEventResponse(engine, e));
     const { data, pagination } = paginate(allEvents, parsePagination(c));
     return c.json({ events: data, pagination });
   });
