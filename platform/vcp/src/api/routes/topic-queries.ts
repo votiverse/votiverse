@@ -6,7 +6,8 @@
  */
 
 import { Hono } from "hono";
-import type { IssueId, ParticipantId } from "@votiverse/core";
+import type { TopicId, ParticipantId } from "@votiverse/core";
+import type { Delegation } from "@votiverse/delegation";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { getParticipantId } from "../middleware/auth.js";
 import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
@@ -110,10 +111,19 @@ export function topicQueryRoutes(manager: AssemblyManager) {
     return c.json({ issues: data, pagination });
   });
 
-  /** GET /assemblies/:id/topics/:topicId/delegations — delegations for a topic, aggregated by delegate. */
+  /**
+   * GET /assemblies/:id/topics/:topicId/delegations — potential weight distribution for a topic.
+   *
+   * Computes who would carry how much weight if a vote opened on this topic.
+   * Uses scope resolution: for each participant, finds the best matching delegation
+   * (child topic > parent topic > global), then walks transitive chains to compute
+   * final weight at each terminal delegate.
+   *
+   * No individual delegator names are exposed — just delegate name + weight.
+   */
   app.get("/assemblies/:id/topics/:topicId/delegations", async (c) => {
     const assemblyId = c.req.param("id");
-    const topicId = c.req.param("topicId");
+    const topicId = c.req.param("topicId") as TopicId;
 
     const topics = await manager.listTopics(assemblyId);
     const topic = topics.find((t) => t.id === topicId);
@@ -124,73 +134,91 @@ export function topicQueryRoutes(manager: AssemblyManager) {
       );
     }
 
-    // Build relevant topic IDs
+    // Build the set of topic IDs relevant to this topic (self + children if root)
     const relevantIds = new Set<string>([topicId]);
     if (topic.parentId === null) {
       for (const t of topics) {
-        if (t.parentId === topicId) {
-          relevantIds.add(t.id);
-        }
+        if (t.parentId === topicId) relevantIds.add(t.id);
       }
     }
-
-    const info = await manager.getAssemblyInfo(assemblyId);
-    if (!info) {
-      return c.json(
-        { error: { code: "ASSEMBLY_NOT_FOUND", message: `Assembly "${assemblyId}" not found` } },
-        404,
-      );
+    // Also include ancestor topics (a delegation to the parent covers children)
+    const ancestorIds = new Set<string>();
+    let cur: string | null = topic.parentId;
+    while (cur !== null) {
+      ancestorIds.add(cur);
+      const parent = topics.find((t) => t.id === cur);
+      cur = parent?.parentId ?? null;
     }
 
     const { engine } = await manager.getEngine(assemblyId);
-    let allDelegations = await engine.delegation.listActive();
+    const allDelegations = (await engine.delegation.listActive())
+      .filter((d) => d.issueScope === null); // Exclude issue-scoped delegations
 
-    // Apply delegation visibility rules
-    const visibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
-    if (visibility.mode === "private") {
-      const callerId = getParticipantId(c);
-      if (!callerId) {
-        return c.json({ delegations: [], pagination: { limit: 50, offset: 0, total: 0 } });
-      }
-      allDelegations = allDelegations.filter(
-        (d) => d.sourceId === callerId || d.targetId === callerId,
-      );
+    // For each participant, resolve their best delegation for this topic.
+    // Precedence: direct topic match > parent/ancestor match > global.
+    const bySource = new Map<string, Delegation[]>();
+    for (const d of allDelegations) {
+      const arr = bySource.get(d.sourceId) ?? [];
+      arr.push(d);
+      bySource.set(d.sourceId, arr);
     }
 
-    // Filter: delegation's topicScope includes any relevant topic ID,
-    // or global delegations (empty topicScope) match all topics
-    const matchingDelegations = allDelegations.filter((d) => {
-      if (d.topicScope.length === 0) return true; // global delegation matches all topics
-      return d.topicScope.some((ts) => relevantIds.has(ts));
-    });
+    // resolved: sourceId → targetId (each participant's effective delegate for this topic)
+    const resolved = new Map<string, string>();
+    for (const [sourceId, delegations] of bySource) {
+      let best: Delegation | undefined;
+      let bestSpecificity = -1;
 
-    // Get participant names
-    const participants = await manager.listParticipants(assemblyId);
-    const nameMap = new Map(participants.map((p) => [p.id, p.name]));
-
-    // Aggregate by delegate (targetId)
-    const delegateMap = new Map<string, { delegators: Array<{ id: string; name: string }> }>();
-    for (const d of matchingDelegations) {
-      const existing = delegateMap.get(d.targetId);
-      const delegator = { id: d.sourceId, name: nameMap.get(d.sourceId) ?? d.sourceId };
-      if (existing) {
-        // Avoid duplicate delegators (same source may have multiple scoped delegations)
-        if (!existing.delegators.some((dl) => dl.id === d.sourceId)) {
-          existing.delegators.push(delegator);
+      for (const d of delegations) {
+        let specificity = -1;
+        if (d.topicScope.length === 0) {
+          specificity = 0; // global
+        } else if (d.topicScope.some((ts) => relevantIds.has(ts))) {
+          specificity = 2; // direct match on this topic or its children
+        } else if (d.topicScope.some((ts) => ancestorIds.has(ts))) {
+          specificity = 1; // parent/ancestor match
         }
-      } else {
-        delegateMap.set(d.targetId, { delegators: [delegator] });
+        if (specificity < 0) continue;
+        if (specificity > bestSpecificity || (specificity === bestSpecificity && best && d.createdAt > best.createdAt)) {
+          best = d;
+          bestSpecificity = specificity;
+        }
+      }
+      if (best) resolved.set(sourceId, best.targetId);
+    }
+
+    // Walk transitive chains to compute weight at terminal delegates.
+    // Terminal = a participant who either has no delegation or self-loops.
+    const weightMap = new Map<string, number>();
+    const participants = await manager.listParticipants(assemblyId);
+
+    function walkWeight(pid: string, visited: Set<string>): string | null {
+      if (visited.has(pid)) return null; // cycle
+      visited.add(pid);
+      const target = resolved.get(pid);
+      if (!target || target === pid) return pid; // terminal
+      return walkWeight(target, visited);
+    }
+
+    for (const p of participants) {
+      const terminal = walkWeight(p.id, new Set());
+      if (terminal && terminal !== p.id) {
+        weightMap.set(terminal, (weightMap.get(terminal) ?? 1) + 1);
       }
     }
 
-    // Build response sorted by weight (most delegators first)
-    const delegationItems = [...delegateMap.entries()]
-      .map(([targetId, { delegators }]) => ({
-        delegate: { id: targetId, name: nameMap.get(targetId) ?? targetId },
-        delegators,
-        totalWeight: delegators.length + 1, // delegators + self
-      }))
-      .sort((a, b) => b.totalWeight - a.totalWeight);
+    // Build response: only include participants with weight > 1
+    const nameMap = new Map(participants.map((p) => [p.id, p.name]));
+    const delegationItems: Array<{ delegate: { id: string; name: string }; weight: number }> = [];
+
+    for (const [pid, weight] of weightMap) {
+      delegationItems.push({
+        delegate: { id: pid, name: nameMap.get(pid) ?? pid },
+        weight,
+      });
+    }
+
+    delegationItems.sort((a, b) => b.weight - a.weight);
 
     const { data, pagination } = paginate(delegationItems, parsePagination(c));
     return c.json({ delegations: data, pagination });

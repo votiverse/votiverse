@@ -174,7 +174,7 @@ describe("Topic query endpoints", () => {
   // -----------------------------------------------------------------------
 
   describe("GET /assemblies/:id/topics/:topicId/delegations", () => {
-    it("returns topic-scoped delegations with aggregation", async () => {
+    it("returns weight distribution for topic delegations", async () => {
       // Alice delegates to Bob on Roads
       await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/delegations`, {
         targetId: bob.id,
@@ -192,29 +192,28 @@ describe("Topic query endpoints", () => {
       const data = (await res.json()) as {
         delegations: Array<{
           delegate: { id: string; name: string };
-          delegators: Array<{ id: string; name: string }>;
-          totalWeight: number;
+          weight: number;
         }>;
         pagination: { total: number };
       };
       expect(data.delegations).toHaveLength(1);
       expect(data.delegations[0]!.delegate.id).toBe(bob.id);
-      expect(data.delegations[0]!.delegators).toHaveLength(2); // Alice + Carol
-      expect(data.delegations[0]!.totalWeight).toBe(3); // 2 delegators + 1 self
+      expect(data.delegations[0]!.weight).toBe(3); // Bob(1) + Alice(1) + Carol(1)
     });
 
-    it("returns delegations for parent topic including children", async () => {
+    it("returns weight for parent topic including child-scoped delegations", async () => {
       // Alice delegates to Bob on child topic (Roads)
       await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/delegations`, {
         targetId: bob.id,
         topicScope: [childTopicId],
       });
 
-      // Query parent topic — should include child's delegations
+      // Query parent topic — Bob should carry weight because child delegation
+      // resolves when the graph is built for the parent topic scope
       const res = await vcp.request("GET", `/assemblies/${asmId}/topics/${rootTopicId}/delegations`);
       expect(res.status).toBe(200);
       const data = (await res.json()) as {
-        delegations: Array<{ delegate: { id: string }; delegators: Array<{ id: string }> }>;
+        delegations: Array<{ delegate: { id: string }; weight: number }>;
       };
       expect(data.delegations).toHaveLength(1);
       expect(data.delegations[0]!.delegate.id).toBe(bob.id);
@@ -234,7 +233,7 @@ describe("Topic query endpoints", () => {
       expect(data.delegations).toHaveLength(0);
     });
 
-    it("respects private visibility rules", async () => {
+    it("shows weight distribution even under private visibility (no individual names exposed)", async () => {
       // Create assembly with private delegation visibility
       const privateAsmRes = await vcp.request("POST", "/assemblies", {
         name: "Private Delegations",
@@ -256,7 +255,7 @@ describe("Topic query endpoints", () => {
         topicScope: [],
       });
 
-      // Carol requests — should only see her own delegations (none)
+      // Carol requests — can see weight distribution (no delegator names exposed)
       const res = await vcp.request(
         "GET",
         `/assemblies/${privateAsm.id}/topics/${tid}/delegations`,
@@ -264,20 +263,10 @@ describe("Topic query endpoints", () => {
         { "X-Participant-Id": pCarol.id },
       );
       expect(res.status).toBe(200);
-      const data = (await res.json()) as { delegations: unknown[] };
-      expect(data.delegations).toHaveLength(0);
-
-      // Alice requests — should see her delegation to Bob
-      const res2 = await vcp.request(
-        "GET",
-        `/assemblies/${privateAsm.id}/topics/${tid}/delegations`,
-        undefined,
-        { "X-Participant-Id": pAlice.id },
-      );
-      expect(res2.status).toBe(200);
-      const data2 = (await res2.json()) as { delegations: Array<{ delegate: { id: string } }> };
-      expect(data2.delegations).toHaveLength(1);
-      expect(data2.delegations[0]!.delegate.id).toBe(pBob.id);
+      const data = (await res.json()) as { delegations: Array<{ delegate: { id: string }; weight: number }> };
+      expect(data.delegations).toHaveLength(1);
+      expect(data.delegations[0]!.delegate.id).toBe(pBob.id);
+      expect(data.delegations[0]!.weight).toBe(2); // Bob + Alice
     });
 
     it("returns 404 for unknown topic", async () => {

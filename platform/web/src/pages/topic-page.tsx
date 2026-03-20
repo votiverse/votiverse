@@ -151,16 +151,23 @@ export function TopicPage() {
         />
       )}
 
-      {/* Delegations section */}
+      {/* Weight distribution section */}
       {delegations.length > 0 && (
         <div className="mt-8">
           <h2 className="text-sm font-medium text-gray-700 mb-3">
-            Delegates ({delegations.length})
+            Weight Distribution
           </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            Potential voting weight if a vote opened on this topic.
+          </p>
           <Card>
             <CardBody className="divide-y divide-gray-100">
               {delegations.map((d) => (
-                <DelegateRow key={d.delegate.id} item={d} />
+                <DelegateRow
+                  key={d.delegate.id}
+                  item={d}
+                  isMyDelegate={delegationStatus?.delegateId === d.delegate.id}
+                />
               ))}
             </CardBody>
           </Card>
@@ -225,22 +232,24 @@ function IssueRow({ item, assemblyId }: { item: TopicIssueItem; assemblyId: stri
   );
 }
 
-function DelegateRow({ item }: { item: TopicDelegationItem }) {
-  const { delegate, delegators, totalWeight } = item;
+function DelegateRow({ item, isMyDelegate }: { item: TopicDelegationItem; isMyDelegate?: boolean }) {
+  const { delegate, weight } = item;
 
   return (
     <div className="flex items-center justify-between py-3 gap-3">
       <div className="flex items-center gap-3 min-w-0">
         <Avatar name={delegate.name} size="sm" />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{delegate.name}</p>
-          <p className="text-xs text-gray-400 truncate">
-            {delegators.map((d) => d.name).join(", ")}
+          <p className="text-sm font-medium text-gray-900 truncate">
+            {delegate.name}
+            {isMyDelegate && (
+              <span className="ml-1.5 text-[10px] text-blue-500 font-normal">your delegate</span>
+            )}
           </p>
         </div>
       </div>
       <span className="text-xs text-gray-500 tabular-nums shrink-0">
-        {totalWeight}× weight
+        {weight}× weight
       </span>
     </div>
   );

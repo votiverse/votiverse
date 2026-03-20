@@ -395,8 +395,8 @@ export interface TopicIssueItem {
 
 export interface TopicDelegationItem {
   delegate: { id: string; name: string };
-  delegators: Array<{ id: string; name: string }>;
-  totalWeight: number;
+  /** Potential weight: how many votes this delegate would carry on this topic. */
+  weight: number;
 }
 
 // ---- Candidacies ----
