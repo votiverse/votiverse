@@ -4,7 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
-import type { Delegation } from "../api/types.js";
+import type { Delegation, Topic } from "../api/types.js";
 import { Card, CardBody, Button, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { TopicPicker } from "../components/topic-picker.js";
@@ -67,6 +67,7 @@ export function Delegations() {
         myOutgoing={myOutgoing}
         participants={participants}
         nameMap={nameMap}
+        topics={topicsData?.topics ?? []}
         topicNameMap={topicNameMap}
         isTopicScoped={isTopicScoped}
         candidates={candidaciesData?.candidacies ?? []}
@@ -89,6 +90,7 @@ function DelegatesList({
   myOutgoing,
   participants,
   nameMap,
+  topics,
   topicNameMap,
   isTopicScoped,
   candidates,
@@ -100,6 +102,7 @@ function DelegatesList({
   myOutgoing: Delegation[];
   participants: Array<{ id: string; name: string }>;
   nameMap: Map<string, string>;
+  topics: Topic[];
   topicNameMap: Map<string, string>;
   isTopicScoped: boolean;
   candidates: Candidacy[];
@@ -172,7 +175,7 @@ function DelegatesList({
               key={d.id}
               delegation={d}
               nameMap={nameMap}
-              topicNameMap={topicNameMap}
+              topics={topics}
               assemblyId={assemblyId}
               revokeSlot={
                 <RevokeButton
@@ -190,51 +193,61 @@ function DelegatesList({
 }
 
 // ---------------------------------------------------------------------------
-// Delegation row — shows delegate info, scope, and optional revoke
+// Delegation row — topic-first layout with delegate avatar
 // ---------------------------------------------------------------------------
+
+/** Build the full display name for a topic, including parent path. */
+function topicDisplayName(topicId: string, topics: Topic[]): string {
+  const topic = topics.find((t) => t.id === topicId);
+  if (!topic) return topicId.slice(0, 8);
+  if (topic.parentId) {
+    const parent = topics.find((t) => t.id === topic.parentId);
+    if (parent) return `${parent.name} › ${topic.name}`;
+  }
+  return topic.name;
+}
 
 function DelegationRow({
   delegation: d,
   nameMap,
-  topicNameMap,
+  topics,
   assemblyId,
   revokeSlot,
 }: {
   delegation: Delegation;
   nameMap: Map<string, string>;
-  topicNameMap: Map<string, string>;
+  topics: Topic[];
   assemblyId?: string;
   revokeSlot?: React.ReactNode;
 }) {
   const targetName = nameMap.get(d.targetId) ?? d.targetId.slice(0, 8);
-  const since = new Date(d.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const since = new Date(d.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
-  const scopeElement = d.topicScope.length === 0
-    ? <span>All topics</span>
-    : d.topicScope.map((id, i) => {
-        const name = topicNameMap.get(id) ?? id.slice(0, 8);
-        return (
-          <span key={id}>
-            {i > 0 && ", "}
-            {assemblyId ? (
-              <Link
-                to={`/assembly/${assemblyId}/topics/${id}`}
-                className="hover:text-gray-600 transition-colors"
-              >
-                {name}
-              </Link>
-            ) : name}
-          </span>
-        );
-      });
+  const scopeLabel = d.topicScope.length === 0
+    ? "All topics"
+    : d.topicScope.map((id) => topicDisplayName(id, topics)).join(", ");
+
+  const scopeLink = d.topicScope.length === 1 && assemblyId
+    ? `/assembly/${assemblyId}/topics/${d.topicScope[0]}`
+    : d.topicScope.length === 0 && assemblyId
+      ? `/assembly/${assemblyId}/topics`
+      : null;
 
   return (
     <div className="flex items-center justify-between py-3 gap-3 min-h-[56px]">
       <div className="flex items-center gap-3 min-w-0">
         <Avatar name={targetName} size="sm" />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{targetName}</p>
-          <p className="text-xs text-gray-400 truncate">{scopeElement} · Since {since}</p>
+          <p className="text-sm font-medium text-gray-900 truncate">
+            {scopeLink ? (
+              <Link to={scopeLink} className="hover:text-brand transition-colors">
+                {scopeLabel}
+              </Link>
+            ) : scopeLabel}
+          </p>
+          <p className="text-xs text-gray-400 truncate">
+            {targetName} · {since}
+          </p>
         </div>
       </div>
       {revokeSlot}
