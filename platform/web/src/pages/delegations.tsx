@@ -33,7 +33,7 @@ export function Delegations() {
   if (!participantId) {
     return (
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Your Delegates</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Your Topic Delegates</h1>
         <EmptyState
           title="No identity"
           description="Go to Home and pick who you are to view your delegations."
@@ -44,16 +44,35 @@ export function Delegations() {
 
   const allDelegations = data?.delegations ?? [];
   const participants = participantsData?.participants ?? [];
+  const topics = topicsData?.topics ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
-  const topicNameMap = new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name]));
+  const topicNameMap = new Map(topics.map((t) => [t.id, t.name]));
 
-  const myOutgoing = allDelegations.filter((d) => d.sourceId === participantId);
+  // Filter to topic-scoped delegations only (exclude issue-scoped),
+  // sorted broadest first: global → root topics → child topics
+  const topicParentMap = new Map(topics.map((t) => [t.id, t.parentId]));
+  const myOutgoing = allDelegations
+    .filter((d) => d.sourceId === participantId && !d.issueScope)
+    .sort((a, b) => {
+      // Global (empty scope) comes first
+      if (a.topicScope.length === 0 && b.topicScope.length > 0) return -1;
+      if (a.topicScope.length > 0 && b.topicScope.length === 0) return 1;
+      // Root topics before child topics
+      const aIsChild = a.topicScope.some((id) => topicParentMap.get(id) !== null);
+      const bIsChild = b.topicScope.some((id) => topicParentMap.get(id) !== null);
+      if (!aIsChild && bIsChild) return -1;
+      if (aIsChild && !bIsChild) return 1;
+      // Alphabetical by topic name
+      const aName = a.topicScope.map((id) => topicNameMap.get(id) ?? "").join(",");
+      const bName = b.topicScope.map((id) => topicNameMap.get(id) ?? "").join(",");
+      return aName.localeCompare(bName);
+    });
 
   return (
     <div className="max-w-3xl mx-auto">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Your Delegates</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Your Topic Delegates</h1>
         <p className="text-sm text-gray-500 mt-1">
           When you can't follow every topic, let someone you choose vote for you.
           You can always override with a direct vote.
