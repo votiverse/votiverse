@@ -148,7 +148,7 @@ describe("Multi-option ballot support", () => {
 
       const result = await service.tally(
         iid("election-1"),
-        [],
+        null,
         new Set([pid("v1"), pid("v2"), pid("v3")]),
       );
 
@@ -216,7 +216,7 @@ describe("Multi-option ballot support", () => {
 
       const result = await service.tally(
         iid("election-1"),
-        [],
+        null,
         new Set([pid("v1"), pid("v2"), pid("v3")]),
       );
 
@@ -257,7 +257,7 @@ describe("Multi-option ballot support", () => {
 
       const result = await service.tally(
         iid("election-1"),
-        [],
+        null,
         new Set([pid("v1"), pid("v2"), pid("v3")]),
       );
 

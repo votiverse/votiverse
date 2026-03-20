@@ -163,7 +163,7 @@ describe("DelegationService", () => {
 
       const weights = await service.computeWeights(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob")]),
       );
 
@@ -189,7 +189,7 @@ describe("DelegationService", () => {
         ),
       );
 
-      const chain = await service.resolveChain(pid("alice"), iid("issue-1"), []);
+      const chain = await service.resolveChain(pid("alice"), iid("issue-1"), null);
 
       expect(chain.terminalVoter).toBe(pid("bob"));
       expect(chain.chain).toEqual([pid("alice"), pid("bob")]);

@@ -124,13 +124,13 @@ export class VotingService {
    * Compute the tally for an issue using the configured ballot method.
    *
    * @param issueId - The issue to tally.
-   * @param issueTopics - The topics of the issue (for delegation scope resolution).
+   * @param topicId - The topic of the issue (for delegation scope resolution), or null if unscoped.
    * @param eligibleParticipantIds - All eligible participants.
    * @param topicAncestors - Topic hierarchy for scope resolution.
    */
   async tally(
     issueId: IssueId,
-    issueTopics: readonly TopicId[],
+    topicId: TopicId | null,
     eligibleParticipantIds: ReadonlySet<ParticipantId>,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<TallyResult> {
@@ -142,7 +142,7 @@ export class VotingService {
     const delegations = await buildActiveDelegations(this.eventStore);
     const graph = buildDelegationGraph(
       issueId,
-      issueTopics,
+      topicId,
       delegations,
       topicAncestors ?? new Map(),
     );
@@ -179,13 +179,13 @@ export class VotingService {
    * chain, and terminal voter.
    *
    * @param issueId - The issue to compute participation for.
-   * @param issueTopics - The topics of the issue (for delegation scope resolution).
+   * @param topicId - The topic of the issue (for delegation scope resolution), or null if unscoped.
    * @param eligibleParticipantIds - All eligible participants.
    * @param topicAncestors - Topic hierarchy for scope resolution.
    */
   async participation(
     issueId: IssueId,
-    issueTopics: readonly TopicId[],
+    topicId: TopicId | null,
     eligibleParticipantIds: ReadonlySet<ParticipantId>,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<readonly ParticipationRecord[]> {
@@ -202,7 +202,7 @@ export class VotingService {
     const delegations = await buildActiveDelegations(this.eventStore);
     const graph = buildDelegationGraph(
       issueId,
-      issueTopics,
+      topicId,
       delegations,
       topicAncestors ?? new Map(),
     );

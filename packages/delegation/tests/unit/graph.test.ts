@@ -132,7 +132,7 @@ describe("Weight computation — Whitepaper Section 5 examples", () => {
     await store.append(voteEvent("carlos", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alex", "beth", "carlos");
     const weights = computeWeights(graph, voters, participants);
@@ -153,7 +153,7 @@ describe("Weight computation — Whitepaper Section 5 examples", () => {
     await store.append(voteEvent("carlos", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alex", "beth", "carlos");
     const weights = computeWeights(graph, voters, participants);
@@ -176,7 +176,7 @@ describe("Weight computation — Whitepaper Section 5 examples", () => {
     await store.append(voteEvent("carlos", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alex", "beth", "carlos");
     const weights = computeWeights(graph, voters, participants);
@@ -197,7 +197,7 @@ describe("Weight computation — Whitepaper Section 5 examples", () => {
     await store.append(voteEvent("carlos", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alex", "beth", "carlos");
     const weights = computeWeights(graph, voters, participants);
@@ -216,7 +216,7 @@ describe("Weight computation — Whitepaper Section 5 examples", () => {
     // No one votes
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alice", "bob", "carol");
     const weights = computeWeights(graph, voters, participants);
@@ -240,7 +240,7 @@ describe("Weight computation — Whitepaper Section 5 examples", () => {
     await store.append(voteEvent("bob", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alice", "bob", "carol");
     const weights = computeWeights(graph, voters, participants);
@@ -276,7 +276,7 @@ describe("Formal properties (Appendix C.6)", () => {
     await store.append(voteEvent("carol", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alice", "bob", "carol", "dave");
     const weights = computeWeights(graph, voters, participants);
@@ -294,7 +294,7 @@ describe("Formal properties (Appendix C.6)", () => {
     await store.append(voteEvent("e", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("a", "b", "c", "d", "e");
     const weights = computeWeights(graph, voters, participants);
@@ -311,7 +311,7 @@ describe("Formal properties (Appendix C.6)", () => {
     await store.append(voteEvent("bob", "issue-1"));
     // Without Alice voting: bob has weight 2
     let delegations = await buildActiveDelegations(store);
-    let graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    let graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     let voters = await getDirectVoters(store, iid("issue-1"));
     let participants = allParticipants("alice", "bob");
     let weights = computeWeights(graph, voters, participants);
@@ -320,7 +320,7 @@ describe("Formal properties (Appendix C.6)", () => {
     // Alice votes directly: bob loses Alice's weight
     await store.append(voteEvent("alice", "issue-1"));
     delegations = await buildActiveDelegations(store);
-    graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     voters = await getDirectVoters(store, iid("issue-1"));
     weights = computeWeights(graph, voters, participants);
     expect(weights.weights.get(pid("bob"))).toBe(1);
@@ -331,7 +331,7 @@ describe("Formal properties (Appendix C.6)", () => {
     await store.append(voteEvent("alice", "issue-1"));
     // Bob neither votes nor delegates
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alice", "bob");
     const weights = computeWeights(graph, voters, participants);
@@ -352,7 +352,7 @@ describe("Chain resolution", () => {
   it("resolves chain for a direct voter", async () => {
     await store.append(voteEvent("alice", "issue-1"));
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
 
     const chain = resolveChain(pid("alice"), graph, voters);
@@ -367,7 +367,7 @@ describe("Chain resolution", () => {
     await store.append(voteEvent("carlos", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
 
     const chain = resolveChain(pid("alex"), graph, voters);
@@ -381,7 +381,7 @@ describe("Chain resolution", () => {
     await store.append(delegationEvent("bob", "alice"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
 
     const chain = resolveChain(pid("alice"), graph, voters);
@@ -414,7 +414,7 @@ describe("Scope resolution", () => {
 
     // Issue about budget — both delegations match, but budget is more specific
     const result = resolveDelegationForIssue(
-      [budget],
+      budget,
       [generalDelegation, specificDelegation],
       new Map([[budget, [finance]]]),
     );
@@ -444,7 +444,7 @@ describe("Scope resolution", () => {
     };
 
     const result = resolveDelegationForIssue(
-      [finance],
+      finance,
       [olderDelegation, newerDelegation],
       new Map(),
     );
@@ -465,7 +465,7 @@ describe("Scope resolution", () => {
       active: true,
     };
 
-    const result = resolveDelegationForIssue([health], [delegation], new Map());
+    const result = resolveDelegationForIssue(health, [delegation], new Map());
 
     expect(result).toBeUndefined();
   });
@@ -482,7 +482,7 @@ describe("Scope resolution", () => {
       active: true,
     };
 
-    const result = resolveDelegationForIssue([health], [globalDelegation], new Map());
+    const result = resolveDelegationForIssue(health, [globalDelegation], new Map());
 
     expect(result).toBe(globalDelegation);
   });
@@ -502,7 +502,7 @@ describe("Concentration metrics", () => {
     await store.append(voteEvent("carol", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("alice", "bob", "carol");
     const weights = computeWeights(graph, voters, participants);
@@ -522,7 +522,7 @@ describe("Concentration metrics", () => {
     await store.append(voteEvent("e", "issue-1"));
 
     const delegations = await buildActiveDelegations(store);
-    const graph = buildDelegationGraph(iid("issue-1"), [], delegations, new Map());
+    const graph = buildDelegationGraph(iid("issue-1"), null, delegations, new Map());
     const voters = await getDirectVoters(store, iid("issue-1"));
     const participants = allParticipants("a", "b", "c", "d", "e");
     const weights = computeWeights(graph, voters, participants);

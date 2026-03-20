@@ -27,7 +27,7 @@ const voting = new VotingService(store, getPreset("LIQUID_STANDARD"));
 await voting.cast({ participantId, issueId, choice: "for" });
 
 // Compute tally (integrates with delegation weights)
-const result = await voting.tally(issueId, issueTopics, eligibleParticipants);
+const result = await voting.tally(issueId, topicId, eligibleParticipants);
 ```
 
 ## Dependencies

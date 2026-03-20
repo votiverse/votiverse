@@ -121,7 +121,7 @@ describe("VotingService", () => {
 
       const result = await service.tally(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob"), pid("carol")]),
       );
 
@@ -151,7 +151,7 @@ describe("VotingService", () => {
 
       const result = await service.tally(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob"), pid("carol"), pid("dave")]),
       );
 
@@ -174,7 +174,7 @@ describe("VotingService", () => {
         choice: "for",
       });
 
-      const result = await service.tally(iid("issue-1"), [], new Set([pid("alice"), pid("bob")]));
+      const result = await service.tally(iid("issue-1"), null, new Set([pid("alice"), pid("bob")]));
 
       // Alice overrides her delegation: both have weight 1
       expect(result.counts.get("for")).toBe(1);
@@ -199,7 +199,7 @@ describe("VotingService", () => {
       // 1 out of 10 eligible participants = 10% < 50% quorum
       const result = await highQuorumService.tally(
         iid("issue-1"),
-        [],
+        null,
         new Set(Array.from({ length: 10 }, (_, i) => pid(`p${i}`)).concat([pid("alice")])),
       );
 
@@ -238,7 +238,7 @@ describe("VotingService", () => {
       for (let i = 0; i < 6; i++) allVoters.add(pid(`voter-for-${i}`));
       for (let i = 0; i < 4; i++) allVoters.add(pid(`voter-against-${i}`));
 
-      const result = await superService.tally(iid("issue-1"), [], allVoters);
+      const result = await superService.tally(iid("issue-1"), null, allVoters);
       expect(result.winner).toBeNull(); // 60% < 67%
     });
   });
@@ -250,7 +250,7 @@ describe("VotingService", () => {
 
       const records = await service.participation(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob")]),
       );
 
@@ -273,7 +273,7 @@ describe("VotingService", () => {
 
       const records = await service.participation(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob")]),
       );
 
@@ -296,7 +296,7 @@ describe("VotingService", () => {
 
       const records = await service.participation(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob"), pid("carol")]),
       );
 
@@ -319,7 +319,7 @@ describe("VotingService", () => {
 
       const records = await service.participation(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob")]),
       );
 
@@ -339,7 +339,7 @@ describe("VotingService", () => {
 
       const records = await service.participation(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob")]),
       );
 
@@ -355,7 +355,7 @@ describe("VotingService", () => {
 
       const records = await service.participation(
         iid("issue-1"),
-        [],
+        null,
         new Set([pid("alice"), pid("bob")]),
       );
 
@@ -372,7 +372,7 @@ describe("VotingService", () => {
       const eligible = new Set([pid("a"), pid("b"), pid("c"), pid("d"), pid("e")]);
       await service.cast({ participantId: pid("a"), issueId: iid("issue-1"), choice: "for" });
 
-      const records = await service.participation(iid("issue-1"), [], eligible);
+      const records = await service.participation(iid("issue-1"), null, eligible);
       expect(records).toHaveLength(5);
       const pids = records.map((r) => r.participantId).sort();
       expect(pids).toEqual(["a", "b", "c", "d", "e"]);
