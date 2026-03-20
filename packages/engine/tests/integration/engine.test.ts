@@ -59,7 +59,7 @@ describe("VotiverseEngine — integration", () => {
           {
             title: "Approve Q1 Budget",
             description: "Shall we approve the proposed Q1 budget?",
-            topicIds: [financeTopic.id],
+            topicId: financeTopic.id,
           },
         ],
         eligibleParticipantIds: [alice!, bob!, carol!],
@@ -87,7 +87,7 @@ describe("VotiverseEngine — integration", () => {
       const votingEvent = await engine.events.create({
         title: "Policy Vote",
         description: "Vote on a policy change",
-        issues: [{ title: "New Policy", description: "Adopt the new policy?", topicIds: [topic.id] }],
+        issues: [{ title: "New Policy", description: "Adopt the new policy?", topicId: topic.id }],
         eligibleParticipantIds: [alice!, bob!, carol!, dave!],
         timeline: activeVotingTimeline(clock),
       });
@@ -120,7 +120,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Chain Vote",
         description: "Testing transitive chains",
-        issues: [{ title: "Issue 1", description: "Test issue", topicIds: [topic.id] }],
+        issues: [{ title: "Issue 1", description: "Test issue", topicId: topic.id }],
         eligibleParticipantIds: [a!, b!, c!, d!],
         timeline: activeVotingTimeline(clock),
       });
@@ -147,7 +147,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Future Vote",
         description: "Not yet open",
-        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        issues: [{ title: "Issue", description: "Test", topicId: null }],
         eligibleParticipantIds: [alice!],
         timeline: {
           deliberationStart: timestamp(now + 1 * DAY) as Timestamp,
@@ -167,7 +167,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Past Vote",
         description: "Already closed",
-        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        issues: [{ title: "Issue", description: "Test", topicId: null }],
         eligibleParticipantIds: [alice!],
         timeline: {
           deliberationStart: timestamp(now - 14 * DAY) as Timestamp,
@@ -186,7 +186,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Active Vote",
         description: "Currently open",
-        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        issues: [{ title: "Issue", description: "Test", topicId: null }],
         eligibleParticipantIds: [alice!],
         timeline: activeVotingTimeline(clock),
       });
@@ -205,7 +205,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Phased Vote",
         description: "Testing phase transitions",
-        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        issues: [{ title: "Issue", description: "Test", topicId: null }],
         eligibleParticipantIds: [alice!],
         timeline: {
           deliberationStart: timestamp(now + 1 * DAY) as Timestamp,
@@ -241,7 +241,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Weight Test",
         description: "Test weights",
-        issues: [{ title: "Issue", description: "Test", topicIds: [topic.id] }],
+        issues: [{ title: "Issue", description: "Test", topicId: topic.id }],
         eligibleParticipantIds: [alice!, bob!, carol!],
         timeline: activeVotingTimeline(clock),
       });
@@ -263,7 +263,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Chain Test",
         description: "Test chain resolution",
-        issues: [{ title: "Issue", description: "Test", topicIds: [topic.id] }],
+        issues: [{ title: "Issue", description: "Test", topicId: topic.id }],
         eligibleParticipantIds: [alice!, bob!],
         timeline: activeVotingTimeline(clock),
       });
@@ -303,7 +303,7 @@ describe("VotiverseEngine — integration", () => {
       const votingEvent = await engine.events.create({
         title: "Board Officer Election",
         description: "Elect the next chairperson",
-        issues: [{ title: "Elect Chairperson", description: "Choose the next chairperson", topicIds: [], choices: candidates }],
+        issues: [{ title: "Elect Chairperson", description: "Choose the next chairperson", topicId: null, choices: candidates }],
         eligibleParticipantIds: [alice!, bob!, carol!, dave!, eve!],
         timeline: activeVotingTimeline(clock),
       });
@@ -331,7 +331,7 @@ describe("VotiverseEngine — integration", () => {
       const votingEvent = await engine.events.create({
         title: "Election",
         description: "Test",
-        issues: [{ title: "Pick One", description: "Choose a candidate", topicIds: [], choices: ["Option A", "Option B"] }],
+        issues: [{ title: "Pick One", description: "Choose a candidate", topicId: null, choices: ["Option A", "Option B"] }],
         eligibleParticipantIds: [alice!],
         timeline: activeVotingTimeline(clock),
       });
@@ -367,7 +367,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await rankedEngine.events.create({
         title: "Ranked Election",
         description: "Test ranked choice",
-        issues: [{ title: "Pick Winner", description: "Rank the candidates", topicIds: [], choices: candidates }],
+        issues: [{ title: "Pick Winner", description: "Rank the candidates", topicId: null, choices: candidates }],
         eligibleParticipantIds: [v1!, v2!, v3!],
         timeline: activeVotingTimeline(rankedClock),
       });
@@ -389,7 +389,7 @@ describe("VotiverseEngine — integration", () => {
       await engine.events.create({
         title: "Election",
         description: "Test rehydration",
-        issues: [{ title: "Pick Candidate", description: "Choose one", topicIds: [], choices: ["Candidate A", "Candidate B"] }],
+        issues: [{ title: "Pick Candidate", description: "Choose one", topicId: null, choices: ["Candidate A", "Candidate B"] }],
         eligibleParticipantIds: [alice!],
         timeline: activeVotingTimeline(clock),
       });
@@ -553,7 +553,7 @@ describe("VotiverseEngine — integration", () => {
       const event = await engine.events.create({
         title: "Budget Vote",
         description: "Test",
-        issues: [{ title: "Fund the park?", description: "Test", topicIds: [] }],
+        issues: [{ title: "Fund the park?", description: "Test", topicId: null }],
         eligibleParticipantIds: [alice!, bob!],
         timeline: deliberationTimeline(clock),
       });
@@ -680,7 +680,7 @@ describe("VotiverseEngine — integration", () => {
       await engine.events.create({
         title: "Event",
         description: "Test",
-        issues: [{ title: "Issue", description: "Test", topicIds: [topic.id] }],
+        issues: [{ title: "Issue", description: "Test", topicId: topic.id }],
         eligibleParticipantIds: [alice!, bob!],
         timeline: activeVotingTimeline(clock),
       });

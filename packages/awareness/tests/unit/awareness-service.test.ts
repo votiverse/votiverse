@@ -57,7 +57,7 @@ function makeContext(issueId: string, participants: string[]): IssueContext {
   return {
     issueId: iid(issueId),
     issueTitle: `Issue ${issueId}`,
-    topicIds: [],
+    topicId: null,
     eligibleParticipantIds: participants.map(pid),
     topicAncestors: new Map(),
   };
@@ -219,14 +219,14 @@ describe("AwarenessService", () => {
       const ctx1: IssueContext = {
         issueId: iid("past-issue"),
         issueTitle: "Past Education Decision",
-        topicIds: [tid("education")],
+        topicId: tid("education"),
         eligibleParticipantIds: [],
         topicAncestors: new Map(),
       };
       const ctx2: IssueContext = {
         issueId: iid("current-issue"),
         issueTitle: "New Education Proposal",
-        topicIds: [tid("education")],
+        topicId: tid("education"),
         eligibleParticipantIds: [],
         topicAncestors: new Map(),
       };
@@ -241,14 +241,14 @@ describe("AwarenessService", () => {
       const ctx1: IssueContext = {
         issueId: iid("finance-issue"),
         issueTitle: "Finance Decision",
-        topicIds: [tid("finance")],
+        topicId: tid("finance"),
         eligibleParticipantIds: [],
         topicAncestors: new Map(),
       };
       const ctx2: IssueContext = {
         issueId: iid("education-issue"),
         issueTitle: "Education Proposal",
-        topicIds: [tid("education")],
+        topicId: tid("education"),
         eligibleParticipantIds: [],
         topicAncestors: new Map(),
       };

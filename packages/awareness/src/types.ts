@@ -144,7 +144,7 @@ export interface VotingHistory {
 
 export interface HistoricalContext {
   readonly issueId: IssueId;
-  readonly topicIds: readonly TopicId[];
+  readonly topicId: TopicId | null;
   /** Past decisions on related topics. */
   readonly relatedDecisions: readonly RelatedDecision[];
   /** Survey trend data for the issue's topics. */

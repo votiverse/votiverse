@@ -44,7 +44,7 @@ import type {
 export interface IssueContext {
   readonly issueId: IssueId;
   readonly issueTitle: string;
-  readonly topicIds: readonly TopicId[];
+  readonly topicId: TopicId | null;
   readonly eligibleParticipantIds: readonly ParticipantId[];
   readonly topicAncestors: ReadonlyMap<TopicId, readonly TopicId[]>;
 }
@@ -83,7 +83,7 @@ export class AwarenessService {
    */
   async concentration(ctx: IssueContext): Promise<ConcentrationReport> {
     const delegations = await buildActiveDelegations(this.eventStore);
-    const graph = buildDelegationGraph(ctx.issueId, ctx.topicIds, delegations, ctx.topicAncestors);
+    const graph = buildDelegationGraph(ctx.issueId, ctx.topicId, delegations, ctx.topicAncestors);
     const voters = await getDirectVoters(this.eventStore, ctx.issueId);
     const eligible = new Set(ctx.eligibleParticipantIds);
     const weightDist = computeWeights(graph, voters, eligible);
@@ -124,7 +124,7 @@ export class AwarenessService {
    */
   async chain(participantId: ParticipantId, ctx: IssueContext): Promise<DelegationChain> {
     const delegations = await buildActiveDelegations(this.eventStore);
-    const graph = buildDelegationGraph(ctx.issueId, ctx.topicIds, delegations, ctx.topicAncestors);
+    const graph = buildDelegationGraph(ctx.issueId, ctx.topicId, delegations, ctx.topicAncestors);
     const voters = await getDirectVoters(this.eventStore, ctx.issueId);
     return resolveChain(participantId, graph, voters);
   }
@@ -222,7 +222,7 @@ export class AwarenessService {
 
     // Get chain
     const delegations = await buildActiveDelegations(this.eventStore);
-    const graph = buildDelegationGraph(ctx.issueId, ctx.topicIds, delegations, ctx.topicAncestors);
+    const graph = buildDelegationGraph(ctx.issueId, ctx.topicId, delegations, ctx.topicAncestors);
     const chain = resolveChain(participantId, graph, voters);
 
     if (!chain.terminalVoter) {
@@ -303,7 +303,7 @@ export class AwarenessService {
         const delegations = await buildActiveDelegations(this.eventStore);
         const graph = buildDelegationGraph(
           ctx.issueId,
-          ctx.topicIds,
+          ctx.topicId,
           delegations,
           ctx.topicAncestors,
         );
@@ -356,8 +356,7 @@ export class AwarenessService {
     for (const pastCtx of pastIssueContexts) {
       if (pastCtx.issueId === ctx.issueId) continue;
       // Check if topics overlap
-      const overlap = pastCtx.topicIds.some((t) => ctx.topicIds.includes(t));
-      if (!overlap) continue;
+      if (ctx.topicId === null || pastCtx.topicId !== ctx.topicId) continue;
 
       const predictions = await this.getPredictionSummariesForIssue(pastCtx.issueId);
 
@@ -372,25 +371,23 @@ export class AwarenessService {
 
     // Poll trends
     const surveyTrends: TopicTrend[] = [];
-    if (this.config.features.surveys) {
-      for (const topicId of ctx.topicIds) {
-        try {
-          const trend = await this.surveyService.trends(
-            topicId,
-            ctx.eligibleParticipantIds.length,
-          );
-          if (trend.points.length > 0) {
-            const latest = trend.points[trend.points.length - 1]!;
-            surveyTrends.push({
-              topicId,
-              direction: trend.direction,
-              latestScore: latest.score,
-              dataPoints: trend.points.length,
-            });
-          }
-        } catch {
-          // Polls may not be available for all topics
+    if (this.config.features.surveys && ctx.topicId !== null) {
+      try {
+        const trend = await this.surveyService.trends(
+          ctx.topicId,
+          ctx.eligibleParticipantIds.length,
+        );
+        if (trend.points.length > 0) {
+          const latest = trend.points[trend.points.length - 1]!;
+          surveyTrends.push({
+            topicId: ctx.topicId,
+            direction: trend.direction,
+            latestScore: latest.score,
+            dataPoints: trend.points.length,
+          });
         }
+      } catch {
+        // Polls may not be available for this topic
       }
     }
 
@@ -399,7 +396,7 @@ export class AwarenessService {
 
     return {
       issueId: ctx.issueId,
-      topicIds: ctx.topicIds,
+      topicId: ctx.topicId,
       relatedDecisions,
       surveyTrends,
       proposals: proposalSummaries,

@@ -118,7 +118,7 @@ export interface CreateVotingEventParams {
 export interface CreateIssueParams {
   readonly title: string;
   readonly description: string;
-  readonly topicIds: readonly TopicId[];
+  readonly topicId: TopicId | null;
   /** Declared choices for multi-option ballots. Omit for binary for/against. */
   readonly choices?: readonly string[];
 }
@@ -217,11 +217,15 @@ export class VotiverseEngine {
         if (payload.issues) {
           for (const issueMeta of payload.issues) {
             if (!this.issues.has(issueMeta.id)) {
+              // Backward compat: old events may have topicIds array instead of topicId
+              const topicId = issueMeta.topicId !== undefined
+                ? issueMeta.topicId
+                : (issueMeta.topicIds?.[0] ?? null);
               this.issues.set(issueMeta.id, {
                 id: issueMeta.id,
                 title: issueMeta.title,
                 description: issueMeta.description,
-                topicIds: issueMeta.topicIds,
+                topicId,
                 votingEventId: payload.votingEventId,
                 ...(issueMeta.choices ? { choices: issueMeta.choices } : {}),
               });
@@ -234,7 +238,7 @@ export class VotiverseEngine {
                 id: issueId,
                 title: "",
                 description: "",
-                topicIds: [],
+                topicId: null,
                 votingEventId: payload.votingEventId,
               });
             }
@@ -332,7 +336,7 @@ export class VotiverseEngine {
           id: issueId,
           title: issueParams.title,
           description: issueParams.description,
-          topicIds: issueParams.topicIds,
+          topicId: issueParams.topicId,
           votingEventId,
           ...(issueParams.choices ? { choices: issueParams.choices } : {}),
         };
@@ -342,7 +346,7 @@ export class VotiverseEngine {
           id: issueId,
           title: issueParams.title,
           description: issueParams.description,
-          topicIds: issueParams.topicIds,
+          topicId: issueParams.topicId,
           ...(issueParams.choices ? { choices: issueParams.choices } : {}),
         });
       }
@@ -416,7 +420,7 @@ export class VotiverseEngine {
       return this.delegationService.resolveChain(
         participantId,
         issueId,
-        issue.topicIds,
+        issue.topicId,
         this.topicAncestors,
       );
     },
@@ -432,7 +436,7 @@ export class VotiverseEngine {
       }
       return this.delegationService.computeWeights(
         issueId,
-        issue.topicIds,
+        issue.topicId,
         new Set(votingEvent.eligibleParticipantIds),
         this.topicAncestors,
       );
@@ -449,7 +453,7 @@ export class VotiverseEngine {
       }
       return this.delegationService.computeConcentration(
         issueId,
-        issue.topicIds,
+        issue.topicId,
         new Set(votingEvent.eligibleParticipantIds),
         this.topicAncestors,
       );
@@ -508,7 +512,7 @@ export class VotiverseEngine {
       }
       return this.votingService.tally(
         issueId,
-        issue.topicIds,
+        issue.topicId,
         new Set(votingEvent.eligibleParticipantIds),
         this.topicAncestors,
       );
@@ -526,7 +530,7 @@ export class VotiverseEngine {
       }
       return this.votingService.participation(
         issueId,
-        issue.topicIds,
+        issue.topicId,
         new Set(votingEvent.eligibleParticipantIds),
         this.topicAncestors,
       );
