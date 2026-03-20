@@ -105,14 +105,14 @@ export interface Topic {
 }
 
 /**
- * An issue to be decided by vote. Each issue belongs to one or more topics
- * and is part of a voting event.
+ * An issue to be decided by vote. Each issue belongs to at most one topic
+ * and is part of a voting event. Null means unclassified.
  */
 export interface Issue {
   readonly id: IssueId;
   readonly title: string;
   readonly description: string;
-  readonly topicIds: readonly TopicId[];
+  readonly topicId: TopicId | null;
   readonly votingEventId: VotingEventId;
   /**
    * Declared choices for this issue. When present, votes must select from

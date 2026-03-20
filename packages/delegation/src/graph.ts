@@ -113,28 +113,29 @@ export async function getDirectVoters(
 // ---------------------------------------------------------------------------
 
 /**
- * Given an issue's topics and a participant's active delegations,
+ * Given an issue's topic and a participant's active delegations,
  * determines which delegation has precedence.
  *
- * Rules (from whitepaper Section 5.5):
- * 1. A delegation is active for an issue if any of its topic scope
- *    overlaps with the issue's topics.
- * 2. More specific scope (more matching topics) wins.
- * 3. If equal specificity, most recently created wins.
+ * Precedence (from whitepaper Section 5.5):
+ * 1. Delegation scoped to the issue's exact (child) topic wins.
+ * 2. Delegation scoped to the issue's parent topic wins next.
+ * 3. Global delegation (empty topicScope) is the fallback.
+ * 4. If equal specificity, most recently created wins.
  *
- * @param issueTopics - The topics of the issue being resolved.
+ * @param topicId - The single topic of the issue, or null if unclassified.
  * @param delegations - All active delegations from a single source participant.
  * @param topicAncestors - Map from topicId to all its ancestor topic IDs (for hierarchy).
  * @returns The winning delegation, or undefined if none apply.
  */
 export function resolveDelegationForIssue(
-  issueTopics: readonly TopicId[],
+  topicId: TopicId | null,
   delegations: readonly Delegation[],
   topicAncestors: ReadonlyMap<TopicId, readonly TopicId[]>,
 ): Delegation | undefined {
-  // Expand issue topics to include ancestors for matching
-  const issueTopicSet = new Set<TopicId>(issueTopics);
-  for (const topicId of issueTopics) {
+  // Build the set of topic IDs that match this issue: the direct topic + ancestors
+  const issueTopicSet = new Set<TopicId>();
+  if (topicId !== null) {
+    issueTopicSet.add(topicId);
     const ancestors = topicAncestors.get(topicId);
     if (ancestors) {
       for (const ancestor of ancestors) {
@@ -147,30 +148,31 @@ export function resolveDelegationForIssue(
   let bestSpecificity = -1;
 
   for (const delegation of delegations) {
-    // Check if this delegation is active for the issue
-    const matchingTopics = delegation.topicScope.filter((t) => issueTopicSet.has(t));
-
-    if (matchingTopics.length === 0) {
-      // If delegation has empty scope, treat as global (matches everything)
-      if (delegation.topicScope.length === 0) {
-        const specificity = 0;
-        if (
-          specificity > bestSpecificity ||
-          (specificity === bestSpecificity &&
-            best !== undefined &&
-            delegation.createdAt > best.createdAt)
-        ) {
-          best = delegation;
-          bestSpecificity = specificity;
-        }
+    // Global delegation (empty scope) matches everything
+    if (delegation.topicScope.length === 0) {
+      const specificity = 0;
+      if (
+        specificity > bestSpecificity ||
+        (specificity === bestSpecificity &&
+          best !== undefined &&
+          delegation.createdAt > best.createdAt)
+      ) {
+        best = delegation;
+        bestSpecificity = specificity;
       }
       continue;
     }
 
-    // Specificity = number of matching topics that are also in the issue's
-    // direct topic set (not ancestor matches). More specific = higher.
-    const directMatches = matchingTopics.filter((t) => issueTopics.includes(t));
-    const specificity = directMatches.length > 0 ? directMatches.length : 0.5;
+    // If issue has no topic, only global delegations apply
+    if (topicId === null) continue;
+
+    // Check if this delegation's scope overlaps with the issue's topic or ancestors
+    const matchingTopics = delegation.topicScope.filter((t) => issueTopicSet.has(t));
+    if (matchingTopics.length === 0) continue;
+
+    // Specificity: direct topic match (child) > ancestor match (parent)
+    const isDirectMatch = matchingTopics.includes(topicId);
+    const specificity = isDirectMatch ? 2 : 1;
 
     if (
       specificity > bestSpecificity ||
@@ -201,7 +203,7 @@ export function resolveDelegationForIssue(
  */
 export function buildDelegationGraph(
   issueId: IssueId,
-  issueTopics: readonly TopicId[],
+  topicId: TopicId | null,
   activeDelegations: readonly Delegation[],
   topicAncestors: ReadonlyMap<TopicId, readonly TopicId[]>,
 ): DelegationGraph {
@@ -221,7 +223,7 @@ export function buildDelegationGraph(
   const adjacency = new Map<ParticipantId, ParticipantId>();
 
   for (const [sourceId, delegations] of bySource) {
-    const best = resolveDelegationForIssue(issueTopics, delegations, topicAncestors);
+    const best = resolveDelegationForIssue(topicId, delegations, topicAncestors);
     if (best) {
       edges.push({
         sourceId,

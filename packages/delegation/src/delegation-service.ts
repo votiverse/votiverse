@@ -160,11 +160,11 @@ export class DelegationService {
    */
   async buildGraph(
     issueId: IssueId,
-    issueTopics: readonly TopicId[],
+    topicId: TopicId | null,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<DelegationGraph> {
     const delegations = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
-    return buildDelegationGraph(issueId, issueTopics, delegations, topicAncestors ?? new Map());
+    return buildDelegationGraph(issueId, topicId, delegations, topicAncestors ?? new Map());
   }
 
   /**
@@ -172,11 +172,11 @@ export class DelegationService {
    */
   async computeWeights(
     issueId: IssueId,
-    issueTopics: readonly TopicId[],
+    topicId: TopicId | null,
     allParticipants: ReadonlySet<ParticipantId>,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<WeightDistribution> {
-    const graph = await this.buildGraph(issueId, issueTopics, topicAncestors);
+    const graph = await this.buildGraph(issueId, topicId, topicAncestors);
     const directVoters = await getDirectVoters(this.eventStore, issueId);
     return computeWeights(graph, directVoters, allParticipants);
   }
@@ -187,10 +187,10 @@ export class DelegationService {
   async resolveChain(
     participantId: ParticipantId,
     issueId: IssueId,
-    issueTopics: readonly TopicId[],
+    topicId: TopicId | null,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<DelegationChain> {
-    const graph = await this.buildGraph(issueId, issueTopics, topicAncestors);
+    const graph = await this.buildGraph(issueId, topicId, topicAncestors);
     const directVoters = await getDirectVoters(this.eventStore, issueId);
     return resolveChain(participantId, graph, directVoters);
   }
@@ -200,11 +200,11 @@ export class DelegationService {
    */
   async computeConcentration(
     issueId: IssueId,
-    issueTopics: readonly TopicId[],
+    topicId: TopicId | null,
     allParticipants: ReadonlySet<ParticipantId>,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<ConcentrationMetrics> {
-    const graph = await this.buildGraph(issueId, issueTopics, topicAncestors);
+    const graph = await this.buildGraph(issueId, topicId, topicAncestors);
     const directVoters = await getDirectVoters(this.eventStore, issueId);
     const weights = computeWeights(graph, directVoters, allParticipants);
     return computeConcentrationMetrics(weights, graph, directVoters);
