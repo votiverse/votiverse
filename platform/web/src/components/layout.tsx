@@ -12,7 +12,6 @@ import {
   UserCheck,
   BarChart3,
   MessageSquareText,
-  Settings,
   LayoutGrid,
   User,
   ChevronLeft,
@@ -204,7 +203,7 @@ export function BottomTabs() {
   const assemblyTabs = assemblyTabDefs.map((tab) => ({
     ...tab,
     icon: TAB_ICONS[tab.label] ?? TabHome,
-    exact: tab.label === "Group",
+    exact: false,
   }));
 
   const tabs = inAssembly ? assemblyTabs : globalTabs;
@@ -307,7 +306,6 @@ const NAV_ICONS: Record<string, typeof Home> = {
   Surveys: BarChart3,
   Notes: MessageSquareText,
   Topics: Tags,
-  Group: Settings,
 };
 
 // ---------- Tab bar icon wrappers (Lucide, 20x20) ----------
@@ -319,7 +317,6 @@ const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Elemen
   Surveys: TabChart,
   Notes: TabNotes,
   Topics: TabTopics,
-  Group: TabSettings,
 };
 
 function TabHome({ active }: { active: boolean }) {
@@ -348,10 +345,6 @@ function TabNotes({ active }: { active: boolean }) {
 
 function TabTopics({ active }: { active: boolean }) {
   return <Tags size={20} strokeWidth={active ? 2.5 : 1.5} />;
-}
-
-function TabSettings({ active }: { active: boolean }) {
-  return <Settings size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
 function TabGrid({ active }: { active: boolean }) {

@@ -28,7 +28,7 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     if (config?.delegation.delegationMode === "candidacy") {
       tabs.push({ to: `/assembly/${assemblyId}/candidacies`, label: "Candidates" });
     }
-    tabs.push({ to: `/assembly/${assemblyId}`, label: "Group" });
+    // Group page is accessible via the group name in the header — no dedicated tab needed
     return tabs;
   }, [assemblyId, config]);
 }
