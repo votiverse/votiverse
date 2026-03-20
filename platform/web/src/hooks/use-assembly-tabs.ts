@@ -19,6 +19,9 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     if (config?.delegation.delegationMode !== "none") {
       tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
     }
+    if (config?.delegation.topicScoped) {
+      tabs.push({ to: `/assembly/${assemblyId}/topics`, label: "Topics" });
+    }
     if (config?.features.communityNotes) {
       tabs.push({ to: `/assembly/${assemblyId}/notes`, label: "Notes" });
     }

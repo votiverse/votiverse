@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   Menu,
   X,
+  Tags,
 } from "lucide-react";
 
 export function Header() {
@@ -298,6 +299,7 @@ const NAV_ICONS: Record<string, typeof Home> = {
   Candidates: UserCheck,
   Surveys: BarChart3,
   Notes: MessageSquareText,
+  Topics: Tags,
   Group: Settings,
 };
 
@@ -309,6 +311,7 @@ const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Elemen
   Candidates: TabCandidates,
   Surveys: TabChart,
   Notes: TabNotes,
+  Topics: TabTopics,
   Group: TabSettings,
 };
 
@@ -334,6 +337,10 @@ function TabCandidates({ active }: { active: boolean }) {
 
 function TabNotes({ active }: { active: boolean }) {
   return <MessageSquareText size={20} strokeWidth={active ? 2.5 : 1.5} />;
+}
+
+function TabTopics({ active }: { active: boolean }) {
+  return <Tags size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
 function TabSettings({ active }: { active: boolean }) {
