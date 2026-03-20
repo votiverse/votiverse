@@ -27,21 +27,15 @@ The repository has three layers:
 
 ---
 
-## Session Start — Stale Dist Check
+## Session Start
 
-At the start of every session that touches VCP or engine code, run:
+**In dev, the VCP resolves engine imports from TypeScript source** — not from compiled `dist/`. This is done via the `"source"` export condition in each engine package's `package.json`, activated by `--conditions source` in the VCP's dev/seed/reset scripts and `resolve.conditions` in `vitest.config.ts`. You do **not** need to rebuild `dist/` for local development.
 
-```bash
-./scripts/check-dist.sh
-```
-
-This compares `src/` timestamps against `dist/` for each engine package. If any are stale, rebuild with:
+If you are preparing a **production build or CI run**, ensure dist is current:
 
 ```bash
 ./scripts/check-dist.sh --rebuild
 ```
-
-**Why this matters:** The VCP and its tests import from `dist/`, not `src/`. If the dist is stale, runtime behavior diverges from source — tests fail for mysterious reasons (e.g., the TestClock being invisible to the survey engine). This is the single most common source of phantom bugs in this codebase.
 
 ---
 
@@ -548,21 +542,22 @@ Do not spend tokens deliberating on decisions that can be easily changed later. 
 
 These are recurring issues that waste debugging time. Read this section before investigating any runtime or build problem.
 
-### 1. Stale `dist/` builds (most common)
+### 1. Stale `dist/` builds (production/CI only — resolved for dev)
 
-**Symptom:** Runtime errors like `X is not a function`, `undefined` for fields that clearly exist in the source, or VCP returning 500 with method-not-found errors.
+**This problem has been structurally resolved for local development.** Each engine package's `package.json` now includes a `"source"` export condition pointing at `src/index.ts`. The VCP's dev, seed, and reset scripts pass `--conditions source` to `tsx`, which resolves imports directly from TypeScript source. The VCP's `vitest.config.ts` also sets `resolve.conditions: ["source"]` so tests resolve from source too.
 
-**Cause:** Engine packages (`packages/*/dist/`) are compiled artifacts. When another agent or branch adds new methods, types, or config fields, the compiled `dist/` is stale. The VCP server imports from `dist/`, not from source.
+**This means:** In dev, you can modify engine source code and the VCP will pick up changes on restart without needing to rebuild `dist/`. The `check-dist.sh` script is no longer needed for day-to-day dev work.
 
-**Fix:** Run the automated check-and-rebuild script:
+**When `dist/` still matters:**
+- **Production builds** — the `"import"` condition (used without `--conditions source`) still resolves to `dist/`. You must rebuild before deploying.
+- **CI** — same as production.
+- **Publishing packages** — `"files": ["dist"]` means only compiled output is published to npm.
+
+**If you do hit stale dist in production/CI:**
 
 ```bash
 ./scripts/check-dist.sh --rebuild
 ```
-
-Then stop and restart the VCP server. A running VCP process holds the old modules in memory — rebuilding alone is not enough.
-
-**Prevention:** Run `./scripts/check-dist.sh` at the start of every session and after pulling new code. The script compares `src/` timestamps against `dist/` and flags stale packages.
 
 ### 2. Vite dev server caching stale transforms
 
@@ -615,22 +610,15 @@ lsof -i :5173 -i :5174 -i :3000 -i :4000 -P | grep LISTEN
 
 Kill everything and start fresh. Use either manual `pnpm dev` or the `.claude/launch.json` preview tool — not both.
 
-### 5. VCP server must be restarted after rebuild
+### 5. VCP server must be restarted after rebuild (production only)
+
+**Note:** In dev, this is no longer an issue — the VCP resolves from engine source via the `"source"` export condition (see gotcha #1). You only need to rebuild `dist/` for production/CI.
 
 **Symptom:** Engine packages rebuild successfully but the VCP still returns old errors.
 
 **Cause:** The VCP server loads modules into memory at startup. Rebuilding `dist/` doesn't affect a running process.
 
-**Fix:** Always restart the VCP server after rebuilding packages:
-
-```bash
-# If using preview tool:
-preview_stop (vcp server)
-preview_start (vcp)
-
-# If running manually:
-# Kill the process and re-run: cd platform/vcp && pnpm dev
-```
+**Fix:** Always restart the VCP server after rebuilding packages.
 
 ### 6. Vote rejected with VOTING_NOT_OPEN or VOTING_CLOSED
 
