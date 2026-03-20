@@ -64,6 +64,7 @@ export async function buildActiveDelegations(
         sourceId: e.payload.sourceId,
         targetId: e.payload.targetId,
         topicScope: e.payload.topicScope,
+        issueScope: e.payload.issueScope ?? null,
         createdAt: e.timestamp,
         active: true,
       });
@@ -116,22 +117,36 @@ export async function getDirectVoters(
  * Given an issue's topic and a participant's active delegations,
  * determines which delegation has precedence.
  *
- * Precedence (from whitepaper Section 5.5):
- * 1. Delegation scoped to the issue's exact (child) topic wins.
- * 2. Delegation scoped to the issue's parent topic wins next.
- * 3. Global delegation (empty topicScope) is the fallback.
- * 4. If equal specificity, most recently created wins.
+ * Precedence:
+ * 1. Issue-scoped delegation for this exact issue (highest).
+ * 2. Delegation scoped to the issue's exact (child) topic.
+ * 3. Delegation scoped to the issue's parent topic.
+ * 4. Global delegation (empty topicScope) is the fallback.
+ * 5. If equal specificity, most recently created wins.
  *
+ * @param issueId - The issue being resolved (for issue-scoped delegation matching).
  * @param topicId - The single topic of the issue, or null if unclassified.
  * @param delegations - All active delegations from a single source participant.
  * @param topicAncestors - Map from topicId to all its ancestor topic IDs (for hierarchy).
  * @returns The winning delegation, or undefined if none apply.
  */
 export function resolveDelegationForIssue(
+  issueId: IssueId,
   topicId: TopicId | null,
   delegations: readonly Delegation[],
   topicAncestors: ReadonlyMap<TopicId, readonly TopicId[]>,
 ): Delegation | undefined {
+  // Check for issue-scoped delegations first (highest precedence)
+  const issueScopedDelegations = delegations.filter((d) => d.issueScope === issueId);
+  if (issueScopedDelegations.length > 0) {
+    // If multiple issue-scoped delegations, most recent wins
+    return issueScopedDelegations.reduce((best, d) =>
+      d.createdAt > best.createdAt ? d : best,
+    );
+  }
+
+  // Filter out issue-scoped delegations for other issues
+  const nonIssueScopedDelegations = delegations.filter((d) => d.issueScope === null);
   // Build the set of topic IDs that match this issue: the direct topic + ancestors
   const issueTopicSet = new Set<TopicId>();
   if (topicId !== null) {
@@ -147,7 +162,7 @@ export function resolveDelegationForIssue(
   let best: Delegation | undefined = undefined;
   let bestSpecificity = -1;
 
-  for (const delegation of delegations) {
+  for (const delegation of nonIssueScopedDelegations) {
     // Global delegation (empty scope) matches everything
     if (delegation.topicScope.length === 0) {
       const specificity = 0;
@@ -223,7 +238,7 @@ export function buildDelegationGraph(
   const adjacency = new Map<ParticipantId, ParticipantId>();
 
   for (const [sourceId, delegations] of bySource) {
-    const best = resolveDelegationForIssue(topicId, delegations, topicAncestors);
+    const best = resolveDelegationForIssue(issueId, topicId, delegations, topicAncestors);
     if (best) {
       edges.push({
         sourceId,

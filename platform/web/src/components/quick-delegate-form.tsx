@@ -14,11 +14,13 @@ export interface QuickDelegateFormProps {
   topics: Topic[];
   /** Whether the assembly supports topic-scoped delegations. */
   isTopicScoped: boolean;
+  /** The issue ID for issue-scoped delegation. */
+  issueId: string;
   onCreated: () => void;
   onClose: () => void;
 }
 
-type ScopeMode = "topic" | "parent" | "global";
+type ScopeMode = "issue" | "topic" | "parent" | "global";
 
 /**
  * Compact inline delegation form for the 2-click flow.
@@ -31,11 +33,12 @@ export function QuickDelegateForm({
   preselectedTopicIds,
   topics,
   isTopicScoped,
+  issueId,
   onCreated,
   onClose,
 }: QuickDelegateFormProps) {
   const [targetId, setTargetId] = useState("");
-  const [scopeMode, setScopeMode] = useState<ScopeMode>("topic");
+  const [scopeMode, setScopeMode] = useState<ScopeMode>("issue");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -60,13 +63,14 @@ export function QuickDelegateForm({
     .join(", ");
   const hasParent = parentTopicIds.length > 0;
 
-  // Compute topicScope based on selected scope mode
-  const resolveTopicScope = (): string[] => {
-    if (!isTopicScoped) return [];
+  // Compute topicScope and issueScope based on selected scope mode
+  const resolveScope = (): { topicScope: string[]; issueScope?: string } => {
+    if (!isTopicScoped) return { topicScope: [] };
     switch (scopeMode) {
-      case "topic": return [...preselectedTopicIds];
-      case "parent": return [...parentTopicIds];
-      case "global": return [];
+      case "issue": return { topicScope: [], issueScope: issueId };
+      case "topic": return { topicScope: [...preselectedTopicIds] };
+      case "parent": return { topicScope: [...parentTopicIds] };
+      case "global": return { topicScope: [] };
     }
   };
 
@@ -76,9 +80,10 @@ export function QuickDelegateForm({
     setSubmitting(true);
     setFormError(null);
     try {
+      const scope = resolveScope();
       await api.createDelegation(assemblyId, {
         targetId,
-        topicScope: resolveTopicScope(),
+        ...scope,
       });
       onCreated();
     } catch (err: unknown) {
@@ -118,6 +123,16 @@ export function QuickDelegateForm({
             <div>
               <Label>Scope</Label>
               <div className="space-y-1.5">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="quick-scope"
+                    checked={scopeMode === "issue"}
+                    onChange={() => setScopeMode("issue")}
+                    className="text-brand focus:ring-brand"
+                  />
+                  <span className="text-sm text-gray-700">This issue only</span>
+                </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -165,6 +180,7 @@ export function QuickDelegateForm({
               <span className="text-sm text-gray-700">
                 <span className="font-medium">{others.find((p) => p.id === targetId)?.name}</span>
                 {" will vote for you"}
+                {isTopicScoped && scopeMode === "issue" ? " on this issue only" : ""}
                 {isTopicScoped && scopeMode === "topic" && topicNames ? ` on ${topicNames}` : ""}
                 {isTopicScoped && scopeMode === "parent" && parentNames ? ` on ${parentNames}` : ""}
                 {(!isTopicScoped || scopeMode === "global") ? " on all topics" : ""}

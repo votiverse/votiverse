@@ -109,6 +109,7 @@ export interface Issue {
   description: string;
   topicId: string | null;
   choices?: string[];
+  cancelled?: boolean;
 }
 
 export interface Topic {
@@ -123,6 +124,7 @@ export interface Delegation {
   sourceId: string;
   targetId: string;
   topicScope: string[];
+  issueScope?: string | null;
   createdAt: string;
   active: boolean;
 }

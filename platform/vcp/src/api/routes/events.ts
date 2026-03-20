@@ -7,7 +7,7 @@ import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { computeTimeline } from "../../engine/event-phases.js";
-import { requireScope, requireParticipant } from "../middleware/auth.js";
+import { requireScope, requireParticipant, getParticipantId } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 interface CreateEventBody {
@@ -152,6 +152,7 @@ export function eventRoutes(manager: AssemblyManager) {
         description: issue.description,
         topicId: issue.topicId,
         ...(issue.choices ? { choices: issue.choices } : {}),
+        cancelled: engine.events.isIssueCancelled(id as IssueId),
       };
     });
 
@@ -192,6 +193,59 @@ export function eventRoutes(manager: AssemblyManager) {
     const { data, pagination } = paginate(allEvents, parsePagination(c));
     return c.json({ events: data, pagination });
   });
+
+  /** POST /assemblies/:id/events/:eid/issues/:iid/cancel — cancel an issue. */
+  app.post(
+    "/assemblies/:id/events/:eid/issues/:iid/cancel",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const eid = c.req.param("eid");
+      const iid = c.req.param("iid");
+      const participantId = getParticipantId(c);
+
+      if (!participantId) {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: "Participant identity is required" } },
+          400,
+        );
+      }
+
+      const body = await c.req.json<{ reason: string }>();
+      if (!body.reason) {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: "reason is required" } },
+          400,
+        );
+      }
+
+      const { engine } = await manager.getEngine(assemblyId);
+
+      // Verify the event exists and the issue belongs to it
+      const votingEvent = engine.events.get(eid as import("@votiverse/core").VotingEventId);
+      if (!votingEvent) {
+        return c.json(
+          { error: { code: "NOT_FOUND", message: `Voting event "${eid}" not found` } },
+          404,
+        );
+      }
+
+      if (!votingEvent.issueIds.includes(iid as IssueId)) {
+        return c.json(
+          { error: { code: "NOT_FOUND", message: `Issue "${iid}" not found in event "${eid}"` } },
+          404,
+        );
+      }
+
+      await engine.events.cancelIssue(
+        iid as IssueId,
+        participantId as ParticipantId,
+        body.reason,
+      );
+
+      return c.json({ ok: true, issueId: iid, cancelled: true });
+    },
+  );
 
   return app;
 }

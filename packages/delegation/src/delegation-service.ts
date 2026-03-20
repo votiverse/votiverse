@@ -86,6 +86,7 @@ export class DelegationService {
         sourceId: params.sourceId,
         targetId: params.targetId,
         topicScope: params.topicScope,
+        issueScope: params.issueScope ?? null,
       },
       generateEventId(),
       timestamp,
@@ -98,6 +99,7 @@ export class DelegationService {
       sourceId: params.sourceId,
       targetId: params.targetId,
       topicScope: params.topicScope,
+      issueScope: params.issueScope ?? null,
       createdAt: timestamp,
       active: true,
     };
@@ -135,6 +137,7 @@ export class DelegationService {
         delegationId: matching.id,
         sourceId: params.sourceId,
         topicScope: params.topicScope,
+        issueScope: matching.issueScope ?? null,
         revokedBy: params.revokedBy ?? { kind: "source" },
       },
       generateEventId(),

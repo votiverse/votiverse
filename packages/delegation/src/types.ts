@@ -20,6 +20,8 @@ export interface Delegation {
   readonly sourceId: ParticipantId;
   readonly targetId: ParticipantId;
   readonly topicScope: readonly TopicId[];
+  /** When set, this delegation applies only to a specific issue (highest precedence). */
+  readonly issueScope: IssueId | null;
   readonly createdAt: Timestamp;
   readonly active: boolean;
 }
@@ -116,6 +118,8 @@ export interface CreateDelegationParams {
   readonly sourceId: ParticipantId;
   readonly targetId: ParticipantId;
   readonly topicScope: readonly TopicId[];
+  /** When set, this delegation applies only to a specific issue. */
+  readonly issueScope?: IssueId;
 }
 
 export interface RevokeDelegationParams {

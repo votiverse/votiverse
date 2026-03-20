@@ -127,8 +127,6 @@ export function EventDetail() {
 
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
-  const topicNameMap = new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name]));
-
   const refreshAll = () => {
     invalidateHistoryCache();
     attention.refresh();
@@ -186,7 +184,6 @@ export function EventDetail() {
               description={issue.description}
               choices={issue.choices}
               topicId={issue.topicId}
-              topicNameMap={topicNameMap}
               tally={tally ?? null}
               weightDist={weightDist ?? null}
               nameMap={nameMap}
@@ -302,6 +299,23 @@ function IssueSummary({ votedCount, totalCount }: {
 }
 
 // ---------------------------------------------------------------------------
+// topicPath — builds "Parent / Child" path string for a topic
+// ---------------------------------------------------------------------------
+
+function topicPath(
+  topicId: string,
+  topicMap: Map<string, { id: string; name: string; parentId: string | null }>,
+): string {
+  const topic = topicMap.get(topicId);
+  if (!topic) return topicId.slice(0, 8);
+  if (topic.parentId) {
+    const parent = topicMap.get(topic.parentId);
+    if (parent) return `${parent.name} / ${topic.name}`;
+  }
+  return topic.name;
+}
+
+// ---------------------------------------------------------------------------
 // IssueVotingCard — one card per issue
 // ---------------------------------------------------------------------------
 
@@ -313,7 +327,6 @@ function IssueVotingCard({
   description,
   choices,
   topicId,
-  topicNameMap,
   tally,
   weightDist,
   nameMap,
@@ -335,7 +348,6 @@ function IssueVotingCard({
   description: string;
   choices?: string[];
   topicId?: string | null;
-  topicNameMap: Map<string, string>;
   tally: Tally | null;
   weightDist: WeightDist | null;
   nameMap: Map<string, string>;
@@ -395,6 +407,11 @@ function IssueVotingCard({
         {/* Title row — indicator stays pinned to the right */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
+            {topicId && (
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                {topicPath(topicId, new Map(topics.map((t) => [t.id, t])))}
+              </span>
+            )}
             <h2 className="font-medium text-gray-900 truncate">{title}</h2>
             {choices && choices.length > 0 && (
               <Badge color="blue">{choices.length} candidates</Badge>
@@ -414,15 +431,8 @@ function IssueVotingCard({
             )}
           </div>
         </div>
-        {/* Description and topic tags below the title row */}
+        {/* Description below the title row */}
         {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
-        {topicId && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-              {topicNameMap.get(topicId) ?? topicId.slice(0, 8)}
-            </span>
-          </div>
-        )}
         {/* Voting booklet link — when proposals exist */}
         {proposals.length > 0 && (
           <div className="mt-2">
@@ -461,6 +471,7 @@ function IssueVotingCard({
         {votingOpen && participantId && !issueStatus.loading && (
           <VotingSection
             assemblyId={assemblyId}
+            issueId={issueId}
             choices={choices}
             issueStatus={issueStatus}
             delegationConfig={delegationConfig}
@@ -529,6 +540,7 @@ function IssueVotingCard({
 
 function VotingSection({
   assemblyId,
+  issueId,
   choices,
   issueStatus,
   delegationConfig,
@@ -547,6 +559,7 @@ function VotingSection({
   onDelegationCreated,
 }: {
   assemblyId: string;
+  issueId: string;
   choices?: string[];
   issueStatus: ReturnType<typeof useIssueStatus>;
   delegationConfig: DelegationConfig;
@@ -608,6 +621,7 @@ function VotingSection({
       {/* Delegation card */}
       <DelegationCard
         assemblyId={assemblyId}
+        issueId={issueId}
         delegationConfig={delegationConfig}
         isDelegated={issueStatus.isDelegated}
         hasVoted={issueStatus.hasVoted}
@@ -698,6 +712,7 @@ function VotingSection({
 
 function DelegationCard({
   assemblyId,
+  issueId,
   delegationConfig,
   isDelegated,
   hasVoted,
@@ -710,6 +725,7 @@ function DelegationCard({
   onDelegationCreated,
 }: {
   assemblyId: string;
+  issueId: string;
   delegationConfig: DelegationConfig;
   isDelegated: boolean;
   hasVoted: boolean;
@@ -777,6 +793,7 @@ function DelegationCard({
             preselectedTopicIds={issueTopicIds}
             topics={topics}
             isTopicScoped={delegationConfig.topicScoped}
+            issueId={issueId}
             onCreated={() => { setShowForm(false); onDelegationCreated(); }}
             onClose={() => setShowForm(false)}
           />

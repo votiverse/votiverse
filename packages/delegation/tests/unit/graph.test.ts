@@ -399,6 +399,7 @@ describe("Scope resolution", () => {
       sourceId: pid("alice"),
       targetId: pid("bob"),
       topicScope: [finance],
+      issueScope: null,
       createdAt: 1000 as Timestamp,
       active: true,
     };
@@ -408,12 +409,14 @@ describe("Scope resolution", () => {
       sourceId: pid("alice"),
       targetId: pid("carol"),
       topicScope: [budget],
+      issueScope: null,
       createdAt: 2000 as Timestamp,
       active: true,
     };
 
     // Issue about budget — both delegations match, but budget is more specific
     const result = resolveDelegationForIssue(
+      iid("issue-1"),
       budget,
       [generalDelegation, specificDelegation],
       new Map([[budget, [finance]]]),
@@ -430,6 +433,7 @@ describe("Scope resolution", () => {
       sourceId: pid("alice"),
       targetId: pid("bob"),
       topicScope: [finance],
+      issueScope: null,
       createdAt: 1000 as Timestamp,
       active: true,
     };
@@ -439,11 +443,13 @@ describe("Scope resolution", () => {
       sourceId: pid("alice"),
       targetId: pid("carol"),
       topicScope: [finance],
+      issueScope: null,
       createdAt: 2000 as Timestamp,
       active: true,
     };
 
     const result = resolveDelegationForIssue(
+      iid("issue-1"),
       finance,
       [olderDelegation, newerDelegation],
       new Map(),
@@ -461,11 +467,12 @@ describe("Scope resolution", () => {
       sourceId: pid("alice"),
       targetId: pid("bob"),
       topicScope: [finance],
+      issueScope: null,
       createdAt: 1000 as Timestamp,
       active: true,
     };
 
-    const result = resolveDelegationForIssue(health, [delegation], new Map());
+    const result = resolveDelegationForIssue(iid("issue-1"), health, [delegation], new Map());
 
     expect(result).toBeUndefined();
   });
@@ -478,11 +485,12 @@ describe("Scope resolution", () => {
       sourceId: pid("alice"),
       targetId: pid("bob"),
       topicScope: [],
+      issueScope: null,
       createdAt: 1000 as Timestamp,
       active: true,
     };
 
-    const result = resolveDelegationForIssue(health, [globalDelegation], new Map());
+    const result = resolveDelegationForIssue(iid("issue-1"), health, [globalDelegation], new Map());
 
     expect(result).toBe(globalDelegation);
   });

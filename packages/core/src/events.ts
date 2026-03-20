@@ -129,6 +129,8 @@ export interface DelegationCreatedPayload {
   readonly sourceId: ParticipantId;
   readonly targetId: ParticipantId;
   readonly topicScope: readonly TopicId[];
+  /** When set, this delegation applies only to a specific issue (highest precedence). */
+  readonly issueScope: IssueId | null;
 }
 
 /** Tracks who or what initiated a delegation revocation. */
@@ -142,6 +144,7 @@ export interface DelegationRevokedPayload {
   readonly delegationId: DelegationId;
   readonly sourceId: ParticipantId;
   readonly topicScope: readonly TopicId[];
+  readonly issueScope: IssueId | null;
   readonly revokedBy: DelegationRevocationInitiator;
 }
 

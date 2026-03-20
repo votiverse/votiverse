@@ -22,6 +22,7 @@ export function delegationRoutes(manager: AssemblyManager) {
         sourceId?: string;
         targetId: string;
         topicScope?: string[];
+        issueScope?: string;
       }>();
 
       if (!body.targetId) {
@@ -39,6 +40,7 @@ export function delegationRoutes(manager: AssemblyManager) {
         sourceId: authenticatedPid as ParticipantId,
         targetId: body.targetId as ParticipantId,
         topicScope: (body.topicScope ?? []) as TopicId[],
+        ...(body.issueScope ? { issueScope: body.issueScope as IssueId } : {}),
       });
 
       return c.json({
@@ -46,6 +48,7 @@ export function delegationRoutes(manager: AssemblyManager) {
         sourceId: delegation.sourceId,
         targetId: delegation.targetId,
         topicScope: delegation.topicScope,
+        issueScope: delegation.issueScope,
         createdAt: new Date(delegation.createdAt).toISOString(),
         active: delegation.active,
       }, 201);
@@ -128,6 +131,7 @@ export function delegationRoutes(manager: AssemblyManager) {
       sourceId: d.sourceId,
       targetId: d.targetId,
       topicScope: d.topicScope,
+      issueScope: d.issueScope,
       createdAt: new Date(d.createdAt).toISOString(),
       active: d.active,
     }));
