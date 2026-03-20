@@ -307,6 +307,66 @@ export const VOTES: VoteDef[] = [
   ]),
 
   // ════════════════════════════════════════════════════════════════════════
+  // Riverside Community Center — CIVIC_PARTICIPATORY (with topic delegations)
+  // ════════════════════════════════════════════════════════════════════════
+
+  // ── Spring Program & Facilities Review (CLOSED) ─────────────────────
+
+  // Issue 0: "Pool Resurfacing Schedule" (Facilities / Maintenance) — passes 9-1
+  // Active delegations: Priya→Marco (facilities), Fatima→Marco (maintenance)
+  // Priya and Fatima do NOT vote — their weight flows to Marco (weight 3)
+  ...riverside("riverside-spring", 0, [
+    ["Diana Reyes", "for"],
+    ["Sam Okonkwo", "for"],
+    ["Leah Chen", "for"],
+    ["Marco Rossi", "for"],       // carries weight 3: self + Priya + Fatima
+    ["Tomás Herrera", "for"],
+    ["Janet Kim", "for"],
+    ["Kwesi Appiah", "for"],
+    ["David Park", "against"],
+    ["Nina Volkov", "for"],
+    ["Rashid Khan", "for"],
+    // Priya Nair — delegated to Marco (facilities)
+    // Fatima Al-Rashid — delegated to Marco (maintenance)
+  ]),
+
+  // Issue 1: "Annual Membership Fee Adjustment" (Budget / Fees) — passes 7-1
+  // Active delegations: Priya→Sam (budget), David→Sam (budget), Kwesi→Sam (budget)
+  // Priya, David, Kwesi do NOT vote — their weight flows to Sam (weight 4)
+  ...riverside("riverside-spring", 1, [
+    ["Diana Reyes", "for"],
+    ["Sam Okonkwo", "for"],       // carries weight 4: self + Priya + David + Kwesi
+    ["Leah Chen", "for"],
+    ["Marco Rossi", "for"],
+    ["Tomás Herrera", "against"], // opposes fee increase
+    ["Janet Kim", "for"],
+    ["Fatima Al-Rashid", "for"],
+    ["Nina Volkov", "for"],
+    ["Rashid Khan", "for"],
+    // Priya Nair — delegated to Sam (budget)
+    // David Park — delegated to Sam (budget)
+    // Kwesi Appiah — delegated to Sam (budget)
+  ]),
+
+  // Issue 2: "Youth Summer Basketball League" (Programs / Youth) — passes 10-0
+  // Active delegations: Janet→Leah (youth), Nina→Leah (programs, covers youth)
+  // Janet and Nina do NOT vote — their weight flows to Leah (weight 3)
+  ...riverside("riverside-spring", 2, [
+    ["Diana Reyes", "for"],
+    ["Sam Okonkwo", "for"],
+    ["Leah Chen", "for"],         // carries weight 3: self + Janet + Nina
+    ["Marco Rossi", "for"],
+    ["Priya Nair", "for"],
+    ["Tomás Herrera", "for"],
+    ["Kwesi Appiah", "for"],
+    ["David Park", "for"],
+    ["Fatima Al-Rashid", "for"],
+    ["Rashid Khan", "for"],
+    // Janet Kim — delegated to Leah (youth)
+    // Nina Volkov — delegated to Leah (programs)
+  ]),
+
+  // ════════════════════════════════════════════════════════════════════════
   // Board of Directors — BOARD_PROXY (non-transitive proxy)
   // ════════════════════════════════════════════════════════════════════════
 
@@ -444,4 +504,8 @@ function board(eventKey: string, issueIndex: number, votes: [string, string][]):
 
 function maple(eventKey: string, issueIndex: number, votes: [string, string][]): VoteDef[] {
   return makeVotes("maple", eventKey, issueIndex, votes);
+}
+
+function riverside(eventKey: string, issueIndex: number, votes: [string, string][]): VoteDef[] {
+  return makeVotes("riverside", eventKey, issueIndex, votes);
 }

@@ -78,4 +78,19 @@ export const TOPICS: TopicDef[] = [
   // Governance children
   { assemblyKey: "board", key: "officers",    name: "Board Officers",   parentKey: "governance",  sortOrder: 0 },
   { assemblyKey: "board", key: "committees",  name: "Committees",       parentKey: "governance",  sortOrder: 10 },
+
+  // ── Riverside Community Center ──────────────────────────────────────
+  // Root topics
+  { assemblyKey: "riverside", key: "programs",     name: "Programs",     parentKey: null,          sortOrder: 0 },
+  { assemblyKey: "riverside", key: "facilities",   name: "Facilities",   parentKey: null,          sortOrder: 10 },
+  { assemblyKey: "riverside", key: "budget",       name: "Budget",       parentKey: null,          sortOrder: 20 },
+  // Programs children
+  { assemblyKey: "riverside", key: "youth",        name: "Youth",        parentKey: "programs",    sortOrder: 0 },
+  { assemblyKey: "riverside", key: "adult",        name: "Adult",        parentKey: "programs",    sortOrder: 10 },
+  // Facilities children
+  { assemblyKey: "riverside", key: "maintenance",  name: "Maintenance",  parentKey: "facilities",  sortOrder: 0 },
+  { assemblyKey: "riverside", key: "improvements", name: "Improvements", parentKey: "facilities",  sortOrder: 10 },
+  // Budget children
+  { assemblyKey: "riverside", key: "fees",         name: "Fees",         parentKey: "budget",      sortOrder: 0 },
+  { assemblyKey: "riverside", key: "grants",       name: "Grants",       parentKey: "budget",      sortOrder: 10 },
 ];

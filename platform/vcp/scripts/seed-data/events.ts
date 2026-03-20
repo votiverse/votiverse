@@ -431,6 +431,79 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
+  // ── Riverside Community Center (CIVIC_PARTICIPATORY) ─────────────────
+
+  {
+    key: "riverside-spring",
+    assemblyKey: "riverside",
+    title: "Spring Program & Facilities Review",
+    description: "Seasonal review of community center programs, facilities maintenance, and membership fees.",
+    deliberationStart: -30 * DAY,
+    votingStart: -20 * DAY,
+    votingEnd: -10 * DAY,
+    issues: [
+      {
+        title: "Pool Resurfacing Schedule",
+        description: "Approve the contractor timeline to resurface the outdoor pool before summer. Work begins April 15, estimated 3 weeks.",
+        topicKey: "maintenance",
+      },
+      {
+        title: "Annual Membership Fee Adjustment",
+        description: "Raise annual membership from $180 to $200 to cover increased utility costs. Revenue covers the $12,000 gap in the operating budget.",
+        topicKey: "fees",
+      },
+      {
+        title: "Youth Summer Basketball League",
+        description: "Launch a 6-week summer basketball league for ages 8-14. Budget: $3,200 for coaching, jerseys, and referee fees.",
+        topicKey: "youth",
+      },
+    ],
+  },
+
+  {
+    key: "riverside-summer",
+    assemblyKey: "riverside",
+    title: "Summer Planning Decisions",
+    description: "Key decisions for summer operations: HVAC replacement, camp registration, and adult fitness expansion.",
+    deliberationStart: -3 * DAY,
+    votingStart: 5 * DAY,
+    votingEnd: 12 * DAY,
+    issues: [
+      {
+        title: "HVAC System Replacement",
+        description: "Replace the 22-year-old HVAC system in the main building. Three contractor bids received, ranging from $38,000 to $52,000.",
+        topicKey: "improvements",
+      },
+      {
+        title: "Summer Camp Registration Fees",
+        description: "Set registration fees for the 8-week summer day camp. Current proposal: $150/week per child, with sibling discount of 15%.",
+        topicKey: "fees",
+      },
+      {
+        title: "Adult Fitness Class Expansion",
+        description: "Add two evening yoga classes and one Saturday morning spin class. Requires hiring two part-time instructors ($4,800/season).",
+        topicKey: "adult",
+      },
+    ],
+  },
+
+  {
+    key: "riverside-camp",
+    assemblyKey: "riverside",
+    title: "Summer Camp Program Design",
+    description: "Corrected vote on summer camp structure after the registration fee issue was reclassified from Budget to Programs.",
+    deliberationStart: -1 * DAY,
+    votingStart: 7 * DAY,
+    votingEnd: 14 * DAY,
+    issues: [
+      {
+        title: "Summer Camp Registration Structure",
+        description: "Design the summer camp registration: fee tiers, age groups, capacity limits, and scholarship slots. Replaces the cancelled Budget/Fees issue.",
+        topicKey: "youth",
+      },
+    ],
+  },
+
   // ── Elections ──────────────────────────────────────────────────────────
 
   {

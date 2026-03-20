@@ -46,4 +46,10 @@ export const ASSEMBLIES: AssemblyDef[] = [
     organizationId: "org-maple-heights",
     preset: "MODERN_DEMOCRACY",
   },
+  {
+    key: "riverside",
+    name: "Riverside Community Center",
+    organizationId: "org-riverside-community",
+    preset: "CIVIC_PARTICIPATORY",
+  },
 ];

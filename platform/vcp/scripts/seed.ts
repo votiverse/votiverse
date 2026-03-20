@@ -175,13 +175,19 @@ export async function main() {
     const resolvedScope = def.topicKeys
       ? def.topicKeys.map((tk) => tid(def.assemblyKey, tk))
       : def.topicScope;
-    await postAs(`/assemblies/${assemblyId}/delegations`, {
+    const delegationBody: Record<string, unknown> = {
       targetId: pid(def.assemblyKey, def.target),
       topicScope: resolvedScope,
-    }, sourceParticipantId);
-    const scopeLabel = resolvedScope.length > 0
-      ? `(${def.topicKeys?.join(", ") ?? resolvedScope.length + " topics"})`
-      : "(global)";
+    };
+    if (def.issueEventKey != null && def.issueIndex != null) {
+      delegationBody.issueScope = iid(def.issueEventKey, def.issueIndex);
+    }
+    await postAs(`/assemblies/${assemblyId}/delegations`, delegationBody, sourceParticipantId);
+    const scopeLabel = def.issueEventKey
+      ? `(issue: ${def.issueEventKey}[${def.issueIndex}])`
+      : resolvedScope.length > 0
+        ? `(${def.topicKeys?.join(", ") ?? resolvedScope.length + " topics"})`
+        : "(global)";
     console.log(`  ✓ ${def.source} → ${def.target} ${scopeLabel} (${def.assemblyKey})`);
   }
   console.log(`\n  Created ${DELEGATIONS.length} delegations\n`);
@@ -427,6 +433,29 @@ export async function main() {
     evalCount++;
   }
   console.log(`\n  Created ${NOTES.length} notes with ${evalCount} evaluations\n`);
+
+  // ── Step 11: Cancel misclassified issues ────────────────────────────
+  // The Riverside "Summer Camp Registration Fees" issue was classified
+  // under Budget / Fees but should be Programs / Youth. Cancel it during
+  // deliberation to demonstrate the correction workflow.
+
+  console.log("═══ ISSUE CANCELLATIONS ═══\n");
+  const riversideSummer = eventRegistry.get("riverside-summer");
+  if (riversideSummer) {
+    const riversideId = aid("riverside");
+    const eventId = riversideSummer.eventId;
+    const issueId = riversideSummer.issueIds[1]!; // Issue 1: "Summer Camp Registration Fees"
+    const dianaId = pid("riverside", "Diana Reyes");
+
+    await postAs(
+      `/assemblies/${riversideId}/events/${eventId}/issues/${issueId}/cancel`,
+      { reason: "Misclassified under Budget / Fees. This is a youth program design question, not a budget matter. Reclassified as Programs / Youth in a new event." },
+      dianaId,
+    );
+    console.log(`  ✓ Cancelled "Summer Camp Registration Fees" (riverside-summer, issue 1)`);
+    console.log(`    Reason: Reclassified from Budget / Fees → Programs / Youth`);
+  }
+  console.log();
 
   // ── Manifest ─────────────────────────────────────────────────────────
   // Write all key→UUID mappings so screenshot scripts and other tooling

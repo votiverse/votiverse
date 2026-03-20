@@ -213,6 +213,69 @@ Participants will develop skills to identify misinformation and protect their
 digital identity. We predict workshop satisfaction ratings above 4/5.
 `,
   },
+
+  // Riverside: Sam frames camp fees as a budget issue
+  {
+    assemblyKey: "riverside",
+    eventKey: "riverside-summer",
+    issueIndex: 1,
+    choiceKey: "for",
+    authorName: "Sam Okonkwo",
+    title: "Camp Fee Schedule: Revenue-Neutral Pricing",
+    markdown: `# Camp Fee Schedule: Revenue-Neutral Pricing
+
+## Summary
+The proposed $150/week rate with 15% sibling discount covers all direct costs
+while maintaining our reserve fund contribution target.
+
+## Cost Breakdown
+| Item | Cost/Week |
+|------|-----------|
+| Staff (3 counselors) | $2,400 |
+| Supplies & materials | $350 |
+| Snacks & lunches | $480 |
+| Insurance overhead | $120 |
+| **Total** | **$3,350** |
+
+With 25 spots at $150/week, gross revenue is $3,750/week — a healthy 12% margin
+that flows into the reserve fund for facility maintenance.
+
+## Recommendation
+Approve the $150/week base rate. The sibling discount is sustainable at 15%.`,
+  },
+
+  // Riverside: Leah submits proposal on the correctly classified camp issue
+  {
+    assemblyKey: "riverside",
+    eventKey: "riverside-camp",
+    issueIndex: 0,
+    choiceKey: "for",
+    authorName: "Leah Chen",
+    title: "Summer Camp: Inclusive Design with Scholarship Tiers",
+    markdown: `# Summer Camp: Inclusive Design with Scholarship Tiers
+
+## Philosophy
+Summer camp isn't just childcare — it's where kids build friendships, discover interests,
+and develop independence. Our fee structure should maximize access, not just cover costs.
+
+## Proposed Structure
+| Tier | Weekly Rate | Eligibility |
+|------|------------|-------------|
+| Standard | $150 | General enrollment |
+| Sibling | $130 | Second+ child from same family |
+| Scholarship | $50 | Income-qualified families (up to 5 spots) |
+| Staff child | $0 | Children of center staff (up to 3 spots) |
+
+## Age Groups & Capacity
+- **Explorers** (ages 6-8): 10 spots
+- **Adventurers** (ages 9-11): 10 spots
+- **Leaders** (ages 12-14): 8 spots (includes CIT program)
+
+## Why This Matters
+Sam's original proposal focused on revenue. This proposal focuses on the *program* —
+who attends, what they experience, and how we ensure no family is priced out.
+The financial model works (see attached budget), but the design comes first.`,
+  },
 ];
 
 // ── Candidacies ──────────────────────────────────────────────────────────
@@ -332,6 +395,15 @@ export const NOTES: NoteDef[] = [
     targetRef: 2, // Aisha's candidacy is at index 2 in CANDIDACIES
     markdown: "Aisha has been leading the coding club for two semesters and organized the inter-school hackathon. Her practical experience with digital education is relevant to this delegate role.",
   },
+
+  // Riverside: Leah flags the misclassification of Sam's camp fees proposal
+  {
+    assemblyKey: "riverside",
+    authorName: "Leah Chen",
+    targetType: "proposal" as const,
+    targetRef: 6, // Sam's camp fee proposal is at index 6 in PROPOSALS
+    markdown: `This proposal treats camp registration as a budget line item, but the real question is program design. The fee structure determines who can attend — age groups, scholarship slots, capacity limits. That's a youth program decision, not a finance one. When this issue was classified under Budget / Fees, it activated Sam's delegated votes from three members who trust him on budget matters. But those members delegated their *budget* judgment, not their *youth program* judgment. Leah, who people trust on youth programs, has no delegated weight here. The classification should be Programs / Youth.`,
+  },
 ];
 
 // ── Note Evaluations ─────────────────────────────────────────────────────
@@ -356,6 +428,12 @@ export const NOTE_EVALUATIONS: NoteEvaluationDef[] = [
   { assemblyKey: "youth", noteRef: 3, participantName: "Sofia Reyes", evaluation: "endorse" },
   { assemblyKey: "youth", noteRef: 3, participantName: "Jin Park", evaluation: "endorse" },
   { assemblyKey: "youth", noteRef: 3, participantName: "Liam Torres", evaluation: "endorse" },
+
+  // Endorsements for Leah's misclassification note (Riverside)
+  { assemblyKey: "riverside", noteRef: 4, participantName: "Diana Reyes", evaluation: "endorse" },
+  { assemblyKey: "riverside", noteRef: 4, participantName: "Priya Nair", evaluation: "endorse" },
+  { assemblyKey: "riverside", noteRef: 4, participantName: "Marco Rossi", evaluation: "endorse" },
+  { assemblyKey: "riverside", noteRef: 4, participantName: "Janet Kim", evaluation: "endorse" },
 ];
 
 // ── Proposal Endorsements ────────────────────────────────────────────────

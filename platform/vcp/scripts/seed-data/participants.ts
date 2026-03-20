@@ -12,6 +12,8 @@
  *   Marcus Chen   — osc, municipal, maple
  *   Sofia Reyes   — osc, youth, maple (invited member)
  *   Kai Andersen  — osc, maple
+ *
+ * Non-cross-assembly: riverside (all 12 participants are unique to this assembly)
  */
 
 export const PARTICIPANTS: Record<string, string[]> = {
@@ -100,5 +102,21 @@ export const PARTICIPANTS: Record<string, string[]> = {
     "Amara Johnson",      // board member
     "Kai Andersen",       // skeptical owner, writes community notes
     "Sofia Reyes",        // new owner, invited via link
+  ],
+
+  // No cross-assembly participants
+  riverside: [
+    "Diana Reyes",        // center director, owner
+    "Sam Okonkwo",        // finance committee chair
+    "Leah Chen",          // youth programs coordinator
+    "Marco Rossi",        // retired contractor, facilities expert
+    "Priya Nair",         // busy parent, uses topic delegation
+    "Tomás Herrera",      // newer member, learning the system
+    "Janet Kim",          // regular member
+    "Kwesi Appiah",       // regular member
+    "Fatima Al-Rashid",   // adult programs volunteer
+    "David Park",         // parent
+    "Nina Volkov",        // fitness instructor
+    "Rashid Khan",        // accountant
   ],
 };

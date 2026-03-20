@@ -12,6 +12,10 @@ export interface DelegationDef {
   topicScope: string[];
   /** Topic keys to resolve to IDs at seed time. Overrides topicScope when present. */
   topicKeys?: string[];
+  /** For issue-scoped delegations: event key to resolve the issue ID. */
+  issueEventKey?: string;
+  /** For issue-scoped delegations: index of the issue within the event. */
+  issueIndex?: number;
 }
 
 export const DELEGATIONS: DelegationDef[] = [
@@ -75,4 +79,25 @@ export const DELEGATIONS: DelegationDef[] = [
   { assemblyKey: "board", source: "Margaret Ashworth", target: "Victoria Harrington", topicScope: [] },
   { assemblyKey: "board", source: "David Greenfield", target: "Robert Blackwell", topicScope: [] },
   { assemblyKey: "board", source: "Elizabeth Fairfax", target: "Catherine Zhao", topicScope: [] },
+
+  // ── Riverside Community Center (CIVIC_PARTICIPATORY — topic-scoped) ──
+
+  // Priya trusts Sam on all budget matters
+  { assemblyKey: "riverside", source: "Priya Nair", target: "Sam Okonkwo", topicScope: [], topicKeys: ["budget"] },
+  // Priya trusts Marco on all facilities matters
+  { assemblyKey: "riverside", source: "Priya Nair", target: "Marco Rossi", topicScope: [], topicKeys: ["facilities"] },
+  // David trusts Sam on budget matters
+  { assemblyKey: "riverside", source: "David Park", target: "Sam Okonkwo", topicScope: [], topicKeys: ["budget"] },
+  // Kwesi trusts Sam on budget matters
+  { assemblyKey: "riverside", source: "Kwesi Appiah", target: "Sam Okonkwo", topicScope: [], topicKeys: ["budget"] },
+  // Janet trusts Leah specifically on youth programs
+  { assemblyKey: "riverside", source: "Janet Kim", target: "Leah Chen", topicScope: [], topicKeys: ["youth"] },
+  // Nina trusts Leah on all programs (covers both Youth and Adult)
+  { assemblyKey: "riverside", source: "Nina Volkov", target: "Leah Chen", topicScope: [], topicKeys: ["programs"] },
+  // Fatima trusts Marco specifically on facilities maintenance
+  { assemblyKey: "riverside", source: "Fatima Al-Rashid", target: "Marco Rossi", topicScope: [], topicKeys: ["maintenance"] },
+
+  // Issue-scoped: Tomás delegates the HVAC issue specifically to Marco
+  // (He's new and doesn't want to delegate all Facilities — just this one complex issue)
+  { assemblyKey: "riverside", source: "Tomás Herrera", target: "Marco Rossi", topicScope: [], issueEventKey: "riverside-summer", issueIndex: 0 },
 ];
