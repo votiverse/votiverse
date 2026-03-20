@@ -187,34 +187,25 @@ export function topicQueryRoutes(manager: AssemblyManager) {
       if (best) resolved.set(sourceId, best.targetId);
     }
 
-    // Walk transitive chains to compute weight at terminal delegates.
-    // Terminal = a participant who either has no delegation or self-loops.
-    const weightMap = new Map<string, number>();
+    // Count direct incoming delegations per delegate.
+    // Weight = 1 (self) + number of people who resolve to this delegate.
+    // This represents "how many votes they'd carry if they voted directly"
+    // (the override rule would break any outgoing chain).
     const participants = await manager.listParticipants(assemblyId);
+    const incomingCount = new Map<string, number>();
 
-    function walkWeight(pid: string, visited: Set<string>): string | null {
-      if (visited.has(pid)) return null; // cycle
-      visited.add(pid);
-      const target = resolved.get(pid);
-      if (!target || target === pid) return pid; // terminal
-      return walkWeight(target, visited);
+    for (const [_sourceId, targetId] of resolved) {
+      incomingCount.set(targetId, (incomingCount.get(targetId) ?? 0) + 1);
     }
 
-    for (const p of participants) {
-      const terminal = walkWeight(p.id, new Set());
-      if (terminal && terminal !== p.id) {
-        weightMap.set(terminal, (weightMap.get(terminal) ?? 1) + 1);
-      }
-    }
-
-    // Build response: only include participants with weight > 1
+    // Build response: only include participants who receive at least one delegation
     const nameMap = new Map(participants.map((p) => [p.id, p.name]));
     const delegationItems: Array<{ delegate: { id: string; name: string }; weight: number }> = [];
 
-    for (const [pid, weight] of weightMap) {
+    for (const [pid, count] of incomingCount) {
       delegationItems.push({
         delegate: { id: pid, name: nameMap.get(pid) ?? pid },
-        weight,
+        weight: count + 1, // incoming delegations + self
       });
     }
 
