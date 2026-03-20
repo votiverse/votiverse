@@ -334,10 +334,11 @@ async function proxyToVcp(
     }
   });
 
-  const response = new Response(responseBody, {
-    status: vcpRes.status,
-    headers: responseHeaders,
-  });
+  // 204 No Content must not have a body
+  const response = new Response(
+    vcpRes.status === 204 ? null : responseBody,
+    { status: vcpRes.status, headers: responseHeaders },
+  );
   // Stash the buffered body for interceptors to read without consuming the stream
   (response as ResponseWithBody).__bufferedBody = responseBody;
   return response;

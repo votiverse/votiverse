@@ -6,7 +6,7 @@ import * as api from "../api/client.js";
 import type { TopicIssueItem, TopicDelegationItem } from "../api/types.js";
 import { Card, CardBody, Badge, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { DelegatedIcon } from "../components/delegated-icon.js";
+
 
 export function TopicPage() {
   const { assemblyId, topicId } = useParams();
@@ -246,7 +246,7 @@ function DelegateRow({ item }: { item: TopicDelegationItem }) {
   );
 }
 
-/** Compact delegation indicator: delegate avatar with badge overlay + "Delegated" label. */
+/** Compact delegation indicator: delegate avatar + "Delegated" label. */
 function DelegationBadge({
   status,
   assemblyId,
@@ -260,12 +260,7 @@ function DelegationBadge({
       className="flex flex-col items-center gap-0.5 shrink-0 group"
       title={status.label}
     >
-      <div className="relative">
-        <Avatar name={status.delegateName} size="sm" />
-        <span className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-px">
-          <DelegatedIcon size={12} className="text-blue-400" />
-        </span>
-      </div>
+      <Avatar name={status.delegateName} size="sm" />
       <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors leading-tight">
         Delegated
       </span>
