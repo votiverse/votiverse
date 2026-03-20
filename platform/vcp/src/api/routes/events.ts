@@ -16,7 +16,7 @@ interface CreateEventBody {
   issues: Array<{
     title: string;
     description: string;
-    topicIds: string[];
+    topicId?: string | null;
     choices?: string[];
   }>;
   eligibleParticipantIds: string[];
@@ -85,7 +85,7 @@ export function eventRoutes(manager: AssemblyManager) {
       issues: body.issues.map((i) => ({
         title: i.title,
         description: i.description ?? "",
-        topicIds: (i.topicIds ?? []) as TopicId[],
+        topicId: (i.topicId ?? null) as TopicId | null,
         ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: body.eligibleParticipantIds as ParticipantId[],
@@ -115,7 +115,7 @@ export function eventRoutes(manager: AssemblyManager) {
         id: i.id,
         title: i.title,
         description: i.description,
-        topicIds: i.topicIds,
+        topicId: i.topicId,
         ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: votingEvent.eligibleParticipantIds,
@@ -150,7 +150,7 @@ export function eventRoutes(manager: AssemblyManager) {
         id: issue.id,
         title: issue.title,
         description: issue.description,
-        topicIds: issue.topicIds,
+        topicId: issue.topicId,
         ...(issue.choices ? { choices: issue.choices } : {}),
       };
     });

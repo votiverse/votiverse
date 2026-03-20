@@ -146,9 +146,9 @@ async function executeAction(state: PlaybackState, action: SimulationAction): Pr
         issues: action.issues.map((issue) => ({
           title: issue.title,
           description: issue.title,
-          topicIds: issue.topicNames
+          topicId: issue.topicNames
             .map((n) => state.topicIds.get(n))
-            .filter((id): id is TopicId => id !== undefined),
+            .find((id): id is TopicId => id !== undefined) ?? null,
         })),
         eligibleParticipantIds: allParticipantIds,
         timeline: {

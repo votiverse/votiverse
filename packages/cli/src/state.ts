@@ -31,7 +31,7 @@ interface PersistedIssue {
   id: string;
   title: string;
   description: string;
-  topicIds: string[];
+  topicId: string | null;
   votingEventId: string;
 }
 
@@ -114,7 +114,7 @@ export async function loadState(): Promise<{
       id: issue.id as IssueId,
       title: issue.title,
       description: issue.description,
-      topicIds: issue.topicIds as TopicId[],
+      topicId: (issue.topicId as TopicId | null) ?? null,
       votingEventId: issue.votingEventId as VotingEventId,
     });
   }
@@ -139,7 +139,7 @@ export async function saveState(engine: VotiverseEngine, store: InMemoryEventSto
     id: i.id,
     title: i.title,
     description: i.description,
-    topicIds: [...i.topicIds],
+    topicId: i.topicId,
     votingEventId: i.votingEventId,
   }));
 

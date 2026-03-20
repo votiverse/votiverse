@@ -130,7 +130,7 @@ export async function cmdEventCreate(
       {
         title: issueTitle,
         description: issueTitle,
-        topicIds: topicId ? [topicId] : [],
+        topicId: topicId ?? null,
       },
     ],
     eligibleParticipantIds: participants.map((p) => p.id),

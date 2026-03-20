@@ -36,7 +36,7 @@ interface IssueRow {
   assembly_id: string;
   title: string;
   description: string;
-  topic_ids: string;
+  topic_id: string | null;
   voting_event_id: string;
   choices: string | null;
 }
@@ -170,7 +170,7 @@ export class AssemblyManager {
         id: row.id as IssueId,
         title: row.title,
         description: row.description,
-        topicIds: parseJson<TopicId[]>(row.topic_ids),
+        topicId: (row.topic_id as TopicId | null),
         votingEventId: row.voting_event_id as VotingEventId,
         ...(row.choices ? { choices: parseJson<string[]>(row.choices!) } : {}),
       });
@@ -254,15 +254,15 @@ export class AssemblyManager {
   async persistIssues(assemblyId: string, issues: readonly Issue[]): Promise<void> {
     for (const issue of issues) {
       await this.db.run(
-        `INSERT INTO issues (id, assembly_id, title, description, topic_ids, voting_event_id, choices)
+        `INSERT INTO issues (id, assembly_id, title, description, topic_id, voting_event_id, choices)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (assembly_id, id) DO UPDATE SET
            title = excluded.title, description = excluded.description,
-           topic_ids = excluded.topic_ids, voting_event_id = excluded.voting_event_id,
+           topic_id = excluded.topic_id, voting_event_id = excluded.voting_event_id,
            choices = excluded.choices`,
         [
           issue.id, assemblyId, issue.title, issue.description,
-          JSON.stringify(issue.topicIds), issue.votingEventId,
+          issue.topicId, issue.votingEventId,
           issue.choices ? JSON.stringify(issue.choices) : null,
         ],
       );

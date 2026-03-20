@@ -69,7 +69,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
         assembly_id     TEXT NOT NULL,
         title           TEXT NOT NULL,
         description     TEXT NOT NULL DEFAULT '',
-        topic_ids       TEXT NOT NULL DEFAULT '[]',
+        topic_id        TEXT DEFAULT NULL,
         voting_event_id TEXT NOT NULL,
         choices         TEXT,
         PRIMARY KEY (assembly_id, id)

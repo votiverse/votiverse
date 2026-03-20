@@ -80,7 +80,7 @@ export class PostgresAdapter implements DatabaseAdapter {
           assembly_id     TEXT NOT NULL,
           title           TEXT NOT NULL,
           description     TEXT NOT NULL DEFAULT '',
-          topic_ids       JSONB NOT NULL DEFAULT '[]',
+          topic_id        TEXT DEFAULT NULL,
           voting_event_id TEXT NOT NULL,
           choices         JSONB,
           PRIMARY KEY (assembly_id, id)
