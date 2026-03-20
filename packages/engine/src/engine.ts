@@ -219,15 +219,11 @@ export class VotiverseEngine {
         if (payload.issues) {
           for (const issueMeta of payload.issues) {
             if (!this.issues.has(issueMeta.id)) {
-              // Backward compat: old events may have topicIds array instead of topicId
-              const topicId = issueMeta.topicId !== undefined
-                ? issueMeta.topicId
-                : (issueMeta.topicIds?.[0] ?? null);
               this.issues.set(issueMeta.id, {
                 id: issueMeta.id,
                 title: issueMeta.title,
                 description: issueMeta.description,
-                topicId,
+                topicId: issueMeta.topicId,
                 votingEventId: payload.votingEventId,
                 ...(issueMeta.choices ? { choices: issueMeta.choices } : {}),
               });

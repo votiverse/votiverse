@@ -96,12 +96,6 @@ export interface VotingEventIssuePayload {
   readonly title: string;
   readonly description: string;
   readonly topicId: TopicId | null;
-  /**
-   * @deprecated Retained for backward compatibility with pre-existing events.
-   * New events use `topicId`. During rehydration, `topicIds[0]` is used as
-   * fallback when `topicId` is not present.
-   */
-  readonly topicIds?: readonly TopicId[];
   readonly choices?: readonly string[];
 }
 
