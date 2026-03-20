@@ -83,6 +83,8 @@ export type {
   DelegationCreatedEvent,
   DelegationRevokedEvent,
   VoteCastEvent,
+  IssueCancelledEvent,
+  IssueCancelledPayload,
   PredictionCommittedEvent,
   OutcomeRecordedEvent,
   SurveyCreatedEvent,

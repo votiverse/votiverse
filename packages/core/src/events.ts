@@ -72,7 +72,8 @@ export type EventType =
   | "CommunityNoteWithdrawn"
   | "ProposalEndorsed"
   | "RoleGranted"
-  | "RoleRevoked";
+  | "RoleRevoked"
+  | "IssueCancelled";
 
 // ---------------------------------------------------------------------------
 // Event payload types
@@ -155,6 +156,13 @@ export interface VoteCastPayload {
   readonly participantId: ParticipantId;
   readonly issueId: IssueId;
   readonly choice: VoteChoice;
+}
+
+export interface IssueCancelledPayload {
+  readonly issueId: IssueId;
+  readonly votingEventId: VotingEventId;
+  readonly cancelledBy: ParticipantId;
+  readonly reason: string;
 }
 
 export interface PredictionCommittedPayload {
@@ -320,6 +328,8 @@ export type DelegationRevokedEvent = BaseEvent<"DelegationRevoked", DelegationRe
 
 export type VoteCastEvent = BaseEvent<"VoteCast", VoteCastPayload>;
 
+export type IssueCancelledEvent = BaseEvent<"IssueCancelled", IssueCancelledPayload>;
+
 export type PredictionCommittedEvent = BaseEvent<"PredictionCommitted", PredictionCommittedPayload>;
 
 export type OutcomeRecordedEvent = BaseEvent<"OutcomeRecorded", OutcomeRecordedPayload>;
@@ -364,6 +374,7 @@ export type DomainEvent =
   | DelegationCreatedEvent
   | DelegationRevokedEvent
   | VoteCastEvent
+  | IssueCancelledEvent
   | PredictionCommittedEvent
   | OutcomeRecordedEvent
   | SurveyCreatedEvent

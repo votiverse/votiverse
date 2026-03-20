@@ -21,6 +21,7 @@ import type {
   VotingEventCreatedEvent,
   VotingEventIssuePayload,
   TopicCreatedEvent,
+  IssueCancelledEvent,
   TimeProvider,
 } from "@votiverse/core";
 import {
@@ -153,6 +154,7 @@ export class VotiverseEngine {
   private readonly topicAncestors = new Map<TopicId, TopicId[]>();
   private readonly votingEvents = new Map<VotingEventId, VotingEvent>();
   private readonly issues = new Map<IssueId, Issue>();
+  private readonly cancelledIssues = new Set<IssueId>();
 
   constructor(options: EngineOptions) {
     this.governanceConfig = options.config;
@@ -244,6 +246,9 @@ export class VotiverseEngine {
             }
           }
         }
+      } else if (event.type === "IssueCancelled") {
+        const payload = event.payload as { issueId: IssueId };
+        this.cancelledIssues.add(payload.issueId);
       }
     }
   }
@@ -410,6 +415,48 @@ export class VotiverseEngine {
     listIssues: (): readonly Issue[] => [...this.issues.values()],
 
     list: (): readonly VotingEvent[] => [...this.votingEvents.values()],
+
+    /** Whether an issue has been cancelled. */
+    isIssueCancelled: (id: IssueId): boolean => this.cancelledIssues.has(id),
+
+    /**
+     * Cancel an issue during the deliberation phase.
+     * Cancelled issues cannot receive votes. Active proposals are auto-withdrawn.
+     */
+    cancelIssue: async (issueId: IssueId, cancelledBy: ParticipantId, reason: string): Promise<void> => {
+      const issue = this.issues.get(issueId);
+      if (!issue) throw new NotFoundError("Issue", issueId);
+      if (this.cancelledIssues.has(issueId)) {
+        throw new GovernanceRuleViolation("Issue is already cancelled", "ISSUE_ALREADY_CANCELLED");
+      }
+      const votingEvent = this.votingEvents.get(issue.votingEventId);
+      if (votingEvent) {
+        const currentTime = this.timeProvider.now();
+        if (currentTime >= votingEvent.timeline.votingStart) {
+          throw new GovernanceRuleViolation(
+            "Cannot cancel an issue after voting has started",
+            "CANCELLATION_TOO_LATE",
+          );
+        }
+      }
+
+      const event = createEvent<IssueCancelledEvent>(
+        "IssueCancelled",
+        { issueId, votingEventId: issue.votingEventId, cancelledBy, reason },
+        generateEventId(),
+        now(),
+      );
+      await this.eventStore.append(event);
+      this.cancelledIssues.add(issueId);
+
+      // Auto-withdraw active proposals for this issue
+      const proposals = await this.proposalService.listByIssue(issueId);
+      for (const proposal of proposals) {
+        if (proposal.status === "submitted") {
+          await this.proposalService.withdraw(proposal.id, cancelledBy as string);
+        }
+      }
+    },
   };
 
   /**
@@ -489,6 +536,10 @@ export class VotiverseEngine {
   /** Voting operations. */
   readonly voting = {
     cast: async (participantId: ParticipantId, issueId: IssueId, choice: VoteChoice): Promise<void> => {
+      // Reject votes on cancelled issues
+      if (this.cancelledIssues.has(issueId)) {
+        throw new GovernanceRuleViolation("Issue has been cancelled", "ISSUE_CANCELLED");
+      }
       const issue = this.issues.get(issueId);
       // Timeline enforcement: reject votes outside the voting window
       if (issue) {
