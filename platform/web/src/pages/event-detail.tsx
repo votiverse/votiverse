@@ -184,6 +184,7 @@ export function EventDetail() {
               description={issue.description}
               choices={issue.choices}
               topicId={issue.topicId}
+              cancelled={issue.cancelled ?? false}
               tally={tally ?? null}
               weightDist={weightDist ?? null}
               nameMap={nameMap}
@@ -327,6 +328,7 @@ function IssueVotingCard({
   description,
   choices,
   topicId,
+  cancelled,
   tally,
   weightDist,
   nameMap,
@@ -348,6 +350,7 @@ function IssueVotingCard({
   description: string;
   choices?: string[];
   topicId?: string | null;
+  cancelled?: boolean;
   tally: Tally | null;
   weightDist: WeightDist | null;
   nameMap: Map<string, string>;
@@ -400,6 +403,27 @@ function IssueVotingCard({
 
   // Determine if the "needs your vote" indicator should show
   const needsVote = votingOpen && !!participantId && !issueStatus.hasVoted && !issueStatus.isDelegated && !issueStatus.loading;
+
+  if (cancelled) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2 opacity-50">
+            <div className="flex items-center gap-2 min-w-0">
+              {topicId && (
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 line-through">
+                  {topicPath(topicId, new Map(topics.map((t) => [t.id, t])))}
+                </span>
+              )}
+              <h2 className="font-medium text-gray-900 truncate line-through">{title}</h2>
+            </div>
+            <Badge color="red">Cancelled</Badge>
+          </div>
+          <p className="text-sm text-gray-400 mt-1">{description}</p>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card>
