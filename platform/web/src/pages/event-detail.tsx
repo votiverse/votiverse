@@ -300,20 +300,35 @@ function IssueSummary({ votedCount, totalCount }: {
 }
 
 // ---------------------------------------------------------------------------
-// topicPath — builds "Parent / Child" path string for a topic
+// TopicEyebrow — renders "Parent › Child" as a subdued pretitle element
 // ---------------------------------------------------------------------------
 
-function topicPath(
-  topicId: string,
-  topicMap: Map<string, { id: string; name: string; parentId: string | null }>,
-): string {
+function TopicEyebrow({
+  topicId,
+  topicMap,
+  className = "",
+}: {
+  topicId: string;
+  topicMap: Map<string, { id: string; name: string; parentId: string | null }>;
+  className?: string;
+}) {
   const topic = topicMap.get(topicId);
-  if (!topic) return topicId.slice(0, 8);
-  if (topic.parentId) {
-    const parent = topicMap.get(topic.parentId);
-    if (parent) return `${parent.name} / ${topic.name}`;
-  }
-  return topic.name;
+  if (!topic) return null;
+  const parent = topic.parentId ? topicMap.get(topic.parentId) : null;
+
+  return (
+    <span className={`text-xs font-medium tracking-wide uppercase text-gray-400 ${className}`}>
+      {parent ? (
+        <>
+          {parent.name}
+          <span className="mx-1 text-gray-300">›</span>
+          {topic.name}
+        </>
+      ) : (
+        topic.name
+      )}
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -404,22 +419,20 @@ function IssueVotingCard({
   // Determine if the "needs your vote" indicator should show
   const needsVote = votingOpen && !!participantId && !issueStatus.hasVoted && !issueStatus.isDelegated && !issueStatus.loading;
 
+  const topicMap = useMemo(() => new Map(topics.map((t) => [t.id, t])), [topics]);
+
   if (cancelled) {
     return (
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-2 opacity-50">
-            <div className="flex items-center gap-2 min-w-0">
-              {topicId && (
-                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 line-through">
-                  {topicPath(topicId, new Map(topics.map((t) => [t.id, t])))}
-                </span>
-              )}
-              <h2 className="font-medium text-gray-900 truncate line-through">{title}</h2>
-            </div>
+          <div className="flex items-center justify-between opacity-50">
+            {topicId && (
+              <TopicEyebrow topicId={topicId} topicMap={topicMap} className="line-through" />
+            )}
             <Badge color="red">Cancelled</Badge>
           </div>
-          <p className="text-sm text-gray-400 mt-1">{description}</p>
+          <h2 className="font-medium text-gray-900 mt-1 line-through opacity-50">{title}</h2>
+          <p className="text-sm text-gray-400 mt-0.5">{description}</p>
         </CardHeader>
       </Card>
     );
@@ -428,34 +441,37 @@ function IssueVotingCard({
   return (
     <Card>
       <CardHeader>
-        {/* Title row — indicator stays pinned to the right */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {topicId && (
-              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
-                {topicPath(topicId, new Map(topics.map((t) => [t.id, t])))}
-              </span>
+        {/* Eyebrow row — topic label left, status indicators right */}
+        {(topicId || needsVote || (tally?.winner && eventStatus === "closed")) && (
+          <div className="flex items-center justify-between mb-1">
+            {topicId ? (
+              <TopicEyebrow topicId={topicId} topicMap={topicMap} />
+            ) : (
+              <span />
             )}
-            <h2 className="font-medium text-gray-900 truncate">{title}</h2>
-            {choices && choices.length > 0 && (
-              <Badge color="blue">{choices.length} candidates</Badge>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {needsVote && (
+                <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  Needs your vote
+                </span>
+              )}
+              {tally?.winner && eventStatus === "closed" && (
+                <Badge color="green">
+                  Result: {tally.winner === "for" ? "Approved" : tally.winner === "against" ? "Not approved" : tally.winner}
+                </Badge>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {needsVote && (
-              <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                Needs your vote
-              </span>
-            )}
-            {tally?.winner && eventStatus === "closed" && (
-              <Badge color="green">
-                Result: {tally.winner === "for" ? "Approved" : tally.winner === "against" ? "Not approved" : tally.winner}
-              </Badge>
-            )}
-          </div>
+        )}
+        {/* Title row */}
+        <div className="flex items-center gap-2">
+          <h2 className="font-medium text-gray-900 truncate">{title}</h2>
+          {choices && choices.length > 0 && (
+            <Badge color="blue">{choices.length} candidates</Badge>
+          )}
         </div>
-        {/* Description below the title row */}
+        {/* Description */}
         {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
         {/* Voting booklet link — when proposals exist */}
         {proposals.length > 0 && (
