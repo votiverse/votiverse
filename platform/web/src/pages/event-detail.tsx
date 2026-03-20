@@ -306,26 +306,51 @@ function IssueSummary({ votedCount, totalCount }: {
 function TopicEyebrow({
   topicId,
   topicMap,
+  assemblyId,
   className = "",
 }: {
   topicId: string;
   topicMap: Map<string, { id: string; name: string; parentId: string | null }>;
+  assemblyId?: string;
   className?: string;
 }) {
   const topic = topicMap.get(topicId);
   if (!topic) return null;
   const parent = topic.parentId ? topicMap.get(topic.parentId) : null;
 
+  const Wrapper = assemblyId ? Link : "span";
+  const parentProps = assemblyId && parent
+    ? { to: `/assembly/${assemblyId}/topics/${parent.id}` }
+    : {};
+  const topicProps = assemblyId
+    ? { to: `/assembly/${assemblyId}/topics/${topic.id}` }
+    : {};
+
   return (
     <span className={`text-xs font-medium tracking-wide uppercase text-gray-400 ${className}`}>
       {parent ? (
         <>
-          {parent.name}
+          <Wrapper
+            {...parentProps as Record<string, string>}
+            className={assemblyId ? "hover:text-gray-600 transition-colors" : undefined}
+          >
+            {parent.name}
+          </Wrapper>
           <span className="mx-1 text-gray-300">›</span>
-          {topic.name}
+          <Wrapper
+            {...topicProps as Record<string, string>}
+            className={assemblyId ? "hover:text-gray-600 transition-colors" : undefined}
+          >
+            {topic.name}
+          </Wrapper>
         </>
       ) : (
-        topic.name
+        <Wrapper
+          {...topicProps as Record<string, string>}
+          className={assemblyId ? "hover:text-gray-600 transition-colors" : undefined}
+        >
+          {topic.name}
+        </Wrapper>
       )}
     </span>
   );
@@ -427,7 +452,7 @@ function IssueVotingCard({
         <CardHeader>
           <div className="flex items-center justify-between opacity-50">
             {topicId && (
-              <TopicEyebrow topicId={topicId} topicMap={topicMap} className="line-through" />
+              <TopicEyebrow topicId={topicId} topicMap={topicMap} assemblyId={assemblyId} className="line-through" />
             )}
             <Badge color="red">Cancelled</Badge>
           </div>
@@ -445,7 +470,7 @@ function IssueVotingCard({
         {(topicId || needsVote || (tally?.winner && eventStatus === "closed")) && (
           <div className="flex items-center justify-between mb-1">
             {topicId ? (
-              <TopicEyebrow topicId={topicId} topicMap={topicMap} />
+              <TopicEyebrow topicId={topicId} topicMap={topicMap} assemblyId={assemblyId} />
             ) : (
               <span />
             )}
