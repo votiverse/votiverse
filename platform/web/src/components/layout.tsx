@@ -158,6 +158,13 @@ function IdentityIndicator({ name }: { name: string | null }) {
             Me
           </Link>
           <Link
+            to="/profile/delegators"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+          >
+            Delegators
+          </Link>
+          <Link
             to="/settings/notifications"
             onClick={() => setOpen(false)}
             className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"

@@ -48,7 +48,6 @@ export function Delegations() {
   const topicNameMap = new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name]));
 
   const myOutgoing = allDelegations.filter((d) => d.sourceId === participantId);
-  const myIncoming = allDelegations.filter((d) => d.targetId === participantId);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -75,13 +74,7 @@ export function Delegations() {
         refetch={refetch}
       />
 
-      {/* Incoming delegations — collapsed */}
-      <IncomingSection
-        myIncoming={myIncoming}
-        nameMap={nameMap}
-        topicNameMap={topicNameMap}
-        assemblyId={assemblyId}
-      />
+      {/* Incoming delegations live on the profile page (/profile/delegators) */}
     </div>
   );
 }
@@ -245,81 +238,6 @@ function DelegationRow({
         </div>
       </div>
       {revokeSlot}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Incoming delegations — collapsed section
-// ---------------------------------------------------------------------------
-
-function IncomingSection({
-  myIncoming,
-  nameMap,
-  topicNameMap,
-  assemblyId,
-}: {
-  myIncoming: Delegation[];
-  nameMap: Map<string, string>;
-  topicNameMap: Map<string, string>;
-  assemblyId?: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  if (myIncoming.length === 0) return null;
-
-  return (
-    <div className="border-t border-gray-200 pt-6">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 w-full text-left min-h-[36px]"
-      >
-        <svg
-          className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-        <span>
-          {myIncoming.length} member{myIncoming.length !== 1 ? "s" : ""} delegate{myIncoming.length === 1 ? "s" : ""} to you
-        </span>
-      </button>
-
-      {expanded && (
-        <div className="mt-3 space-y-1">
-          {myIncoming.map((d) => {
-            const sourceName = nameMap.get(d.sourceId) ?? d.sourceId.slice(0, 8);
-            const scopeElement = d.topicScope.length === 0
-              ? "all topics"
-              : d.topicScope.map((id, i) => {
-                  const name = topicNameMap.get(id) ?? id.slice(0, 8);
-                  return (
-                    <span key={id}>
-                      {i > 0 && ", "}
-                      {assemblyId ? (
-                        <Link
-                          to={`/assembly/${assemblyId}/topics/${id}`}
-                          className="hover:text-gray-600 transition-colors"
-                        >
-                          {name}
-                        </Link>
-                      ) : name}
-                    </span>
-                  );
-                });
-            return (
-              <div key={d.id} className="flex items-center gap-2 text-sm text-gray-600 pl-6 py-1.5">
-                <Avatar name={sourceName} size="xs" />
-                <span className="truncate">{sourceName}</span>
-                <span className="text-xs text-gray-400">({scopeElement})</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
