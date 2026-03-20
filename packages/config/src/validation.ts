@@ -229,6 +229,16 @@ export function validateConfig(config: GovernanceConfig): ValidationResult {
     });
   }
 
+  // --- Topics ---
+
+  if (!Number.isInteger(config.topics.maxTopicDepth) || config.topics.maxTopicDepth < 1) {
+    issues.push({
+      field: "topics.maxTopicDepth",
+      message: "maxTopicDepth must be an integer >= 1",
+      severity: "error",
+    });
+  }
+
   // --- Timeline ---
 
   if (!Number.isInteger(config.timeline.deliberationDays) || config.timeline.deliberationDays < 1) {

@@ -13,6 +13,7 @@ import type {
   FeatureConfig,
   ThresholdConfig,
   TimelineConfig,
+  TopicConfig,
 } from "./types.js";
 
 /** Deep partial override for DelegationConfig, with nested visibility support. */
@@ -29,6 +30,7 @@ export interface ConfigOverrides {
   readonly features?: Partial<FeatureConfig>;
   readonly thresholds?: Partial<ThresholdConfig>;
   readonly timeline?: Partial<TimelineConfig>;
+  readonly topics?: Partial<TopicConfig>;
 }
 
 /**
@@ -64,6 +66,10 @@ export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides)
     timeline: {
       ...base.timeline,
       ...overrides.timeline,
+    },
+    topics: {
+      ...base.topics,
+      ...overrides.topics,
     },
   };
 }

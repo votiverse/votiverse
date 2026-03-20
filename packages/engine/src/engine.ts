@@ -283,6 +283,17 @@ export class VotiverseEngine {
   /** Topic operations. */
   readonly topics_api = {
     create: async (name: string, parentId?: TopicId): Promise<Topic> => {
+      // Validate topic depth against config
+      if (parentId) {
+        const parentDepth = this.getTopicDepth(parentId);
+        if (parentDepth + 1 > this.governanceConfig.topics.maxTopicDepth) {
+          throw new GovernanceRuleViolation(
+            `Topic depth would exceed maximum of ${this.governanceConfig.topics.maxTopicDepth}`,
+            "TOPIC_DEPTH_EXCEEDED",
+          );
+        }
+      }
+
       const topicId = generateTopicId();
       const topic: Topic = {
         id: topicId,
@@ -306,6 +317,17 @@ export class VotiverseEngine {
     get: (id: TopicId): Topic | undefined => this.topics.get(id),
     list: (): readonly Topic[] => [...this.topics.values()],
   };
+
+  /** Returns the depth of a topic (1 for root, 2 for child of root, etc.). */
+  private getTopicDepth(topicId: TopicId): number {
+    let depth = 1;
+    let current = this.topics.get(topicId);
+    while (current?.parentId) {
+      depth++;
+      current = this.topics.get(current.parentId);
+    }
+    return depth;
+  }
 
   private buildTopicAncestors(topicId: TopicId, parentId: TopicId | null): void {
     const ancestors: TopicId[] = [];

@@ -13,6 +13,7 @@ export type {
   FeatureConfig,
   ThresholdConfig,
   TimelineConfig,
+  TopicConfig,
   PresetName,
   BallotSecrecy,
   DelegateVoteVisibility,

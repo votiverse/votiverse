@@ -165,6 +165,20 @@ export interface TimelineConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Topic configuration
+// ---------------------------------------------------------------------------
+
+/** Controls the structure of the topic taxonomy. */
+export interface TopicConfig {
+  /**
+   * Maximum depth of the topic hierarchy.
+   * 1 = flat (root topics only), 2 = one level of nesting (root + child).
+   * Must be >= 1.
+   */
+  readonly maxTopicDepth: number;
+}
+
+// ---------------------------------------------------------------------------
 // Complete governance configuration
 // ---------------------------------------------------------------------------
 
@@ -188,6 +202,8 @@ export interface GovernanceConfig {
   readonly thresholds: ThresholdConfig;
   /** Timeline durations for voting events. */
   readonly timeline: TimelineConfig;
+  /** Topic taxonomy structure. */
+  readonly topics: TopicConfig;
 }
 
 // ---------------------------------------------------------------------------

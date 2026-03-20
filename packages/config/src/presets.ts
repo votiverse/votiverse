@@ -58,6 +58,9 @@ const MODERN_DEMOCRACY: GovernanceConfig = Object.freeze({
     curationDays: 2,
     votingDays: 7,
   }),
+  topics: Object.freeze({
+    maxTopicDepth: 2,
+  }),
 });
 
 /**
@@ -105,6 +108,9 @@ const TOWN_HALL: GovernanceConfig = Object.freeze({
     deliberationDays: 7,
     curationDays: 0,
     votingDays: 7,
+  }),
+  topics: Object.freeze({
+    maxTopicDepth: 2,
   }),
 });
 
@@ -155,6 +161,9 @@ const SWISS_MODEL: GovernanceConfig = Object.freeze({
     curationDays: 2,
     votingDays: 7,
   }),
+  topics: Object.freeze({
+    maxTopicDepth: 2,
+  }),
 });
 
 /**
@@ -203,6 +212,9 @@ const LIQUID_STANDARD: GovernanceConfig = Object.freeze({
     deliberationDays: 5,
     curationDays: 0,
     votingDays: 5,
+  }),
+  topics: Object.freeze({
+    maxTopicDepth: 2,
   }),
 });
 
@@ -254,6 +266,9 @@ const LIQUID_ACCOUNTABLE: GovernanceConfig = Object.freeze({
     curationDays: 3,
     votingDays: 7,
   }),
+  topics: Object.freeze({
+    maxTopicDepth: 2,
+  }),
 });
 
 /**
@@ -302,6 +317,9 @@ const BOARD_PROXY: GovernanceConfig = Object.freeze({
     deliberationDays: 3,
     curationDays: 0,
     votingDays: 3,
+  }),
+  topics: Object.freeze({
+    maxTopicDepth: 2,
   }),
 });
 
@@ -352,6 +370,9 @@ const CIVIC_PARTICIPATORY: GovernanceConfig = Object.freeze({
     deliberationDays: 14,
     curationDays: 3,
     votingDays: 14,
+  }),
+  topics: Object.freeze({
+    maxTopicDepth: 2,
   }),
 });
 
