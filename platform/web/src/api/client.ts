@@ -229,6 +229,20 @@ export function listTopics(assemblyId: string): Promise<{ topics: Topic[] }> {
   return request("GET", `/assemblies/${assemblyId}/topics`);
 }
 
+export function getTopicIssues(assemblyId: string, topicId: string): Promise<{
+  issues: import("./types.js").TopicIssueItem[];
+  pagination: import("./types.js").PaginationMeta;
+}> {
+  return request("GET", `/assemblies/${assemblyId}/topics/${topicId}/issues`);
+}
+
+export function getTopicDelegations(assemblyId: string, topicId: string): Promise<{
+  delegations: import("./types.js").TopicDelegationItem[];
+  pagination: import("./types.js").PaginationMeta;
+}> {
+  return request("GET", `/assemblies/${assemblyId}/topics/${topicId}/delegations`);
+}
+
 // ---- Delegations ----
 
 export function listDelegations(

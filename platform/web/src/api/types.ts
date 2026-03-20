@@ -386,6 +386,19 @@ export interface BookletData {
   recommendation: BookletRecommendation | null;
 }
 
+// ---- Topic Queries ----
+
+export interface TopicIssueItem {
+  issue: Issue & { cancelled: boolean };
+  event: { id: string; title: string; timeline: { deliberationStart: string; votingStart: string; votingEnd: string } };
+}
+
+export interface TopicDelegationItem {
+  delegate: { id: string; name: string };
+  delegators: Array<{ id: string; name: string }>;
+  totalWeight: number;
+}
+
 // ---- Candidacies ----
 
 export interface Candidacy {
