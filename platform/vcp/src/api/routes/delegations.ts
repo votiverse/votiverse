@@ -34,12 +34,31 @@ export function delegationRoutes(manager: AssemblyManager) {
 
       // Sovereignty: source is always the authenticated participant
       const authenticatedPid = c.get("participantId") as string;
+      const topicScope = (body.topicScope ?? []) as TopicId[];
 
       const { engine } = await manager.getEngine(assemblyId);
+
+      // Auto-replace: if there's already an active delegation from this source
+      // with the exact same topic scope, revoke it first.
+      const existing = await engine.delegation.listActive(authenticatedPid as ParticipantId);
+      const duplicate = existing.find((d) => {
+        if (d.topicScope.length !== topicScope.length) return false;
+        const sorted = [...d.topicScope].sort();
+        const sortedNew = [...topicScope].sort();
+        return sorted.every((id, i) => id === sortedNew[i]);
+      });
+      if (duplicate) {
+        await engine.delegation.revoke({
+          sourceId: authenticatedPid as ParticipantId,
+          topicScope: duplicate.topicScope as TopicId[],
+          revokedBy: { kind: "system", reason: "Replaced by new delegation" },
+        });
+      }
+
       const delegation = await engine.delegation.create({
         sourceId: authenticatedPid as ParticipantId,
         targetId: body.targetId as ParticipantId,
-        topicScope: (body.topicScope ?? []) as TopicId[],
+        topicScope,
         ...(body.issueScope ? { issueScope: body.issueScope as IssueId } : {}),
       });
 
