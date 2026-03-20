@@ -19,6 +19,8 @@ import type { Delegation, Topic } from "../api/types.js";
 export interface TopicDelegationStatus {
   /** The participant ID of the delegate. */
   delegateId: string;
+  /** Display name of the delegate. */
+  delegateName: string;
   /** How this topic is covered. */
   reason: "direct" | "inherited" | "global";
   /** Display name for the reason: e.g. "Delegated to Sam" or "Via Programs → Sam". */
@@ -49,6 +51,7 @@ export function resolveTopicDelegation(
   if (direct) {
     return {
       delegateId: direct.targetId,
+      delegateName: nameOf(direct.targetId),
       reason: "direct",
       label: `Delegated to ${nameOf(direct.targetId)}`,
     };
@@ -64,6 +67,7 @@ export function resolveTopicDelegation(
       const parentName = parentTopic?.name ?? "parent";
       return {
         delegateId: parentMatch.targetId,
+        delegateName: nameOf(parentMatch.targetId),
         reason: "inherited",
         label: `Via ${parentName} → ${nameOf(parentMatch.targetId)}`,
       };
@@ -75,6 +79,7 @@ export function resolveTopicDelegation(
   if (global) {
     return {
       delegateId: global.targetId,
+      delegateName: nameOf(global.targetId),
       reason: "global",
       label: `Global delegation → ${nameOf(global.targetId)}`,
     };

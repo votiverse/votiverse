@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
-import { useMyDelegations, resolveTopicDelegation } from "../hooks/use-my-delegations.js";
+import { useMyDelegations, resolveTopicDelegation, type TopicDelegationStatus } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
 import type { TopicIssueItem, TopicDelegationItem } from "../api/types.js";
 import { Card, CardBody, Badge, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
@@ -101,14 +101,10 @@ export function TopicPage() {
           </div>
         </div>
         {delegationStatus && (
-          <Link
-            to={`/assembly/${assemblyId}/delegations`}
-            className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-700 transition-colors shrink-0 mt-1"
-            title="View your delegations"
-          >
-            <DelegatedIcon size={16} className="text-blue-400" />
-            <span>{delegationStatus.label}</span>
-          </Link>
+          <DelegationBadge
+            status={delegationStatus}
+            assemblyId={assemblyId!}
+          />
         )}
       </div>
 
@@ -247,5 +243,32 @@ function DelegateRow({ item }: { item: TopicDelegationItem }) {
         {totalWeight}× weight
       </span>
     </div>
+  );
+}
+
+/** Compact delegation indicator: delegate avatar with badge overlay + "Delegated" label. */
+function DelegationBadge({
+  status,
+  assemblyId,
+}: {
+  status: TopicDelegationStatus;
+  assemblyId: string;
+}) {
+  return (
+    <Link
+      to={`/assembly/${assemblyId}/delegations`}
+      className="flex flex-col items-center gap-0.5 shrink-0 group"
+      title={status.label}
+    >
+      <div className="relative">
+        <Avatar name={status.delegateName} size="sm" />
+        <span className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-px">
+          <DelegatedIcon size={12} className="text-blue-400" />
+        </span>
+      </div>
+      <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors leading-tight">
+        Delegated
+      </span>
+    </Link>
   );
 }
