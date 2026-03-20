@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
+import { useMyDelegations, resolveTopicDelegation } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
 import type { TopicIssueItem, TopicDelegationItem } from "../api/types.js";
 import { Card, CardBody, Badge, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
+import { DelegatedIcon } from "../components/delegated-icon.js";
 
 export function TopicPage() {
   const { assemblyId, topicId } = useParams();
@@ -21,6 +23,7 @@ export function TopicPage() {
     () => api.getTopicDelegations(assemblyId!, topicId!),
     [assemblyId, topicId],
   );
+  const { myDelegations, participantNames } = useMyDelegations();
 
   const topics = topicsData?.topics ?? [];
   const topic = useMemo(() => topics.find((t) => t.id === topicId), [topics, topicId]);
@@ -35,6 +38,13 @@ export function TopicPage() {
 
   const issues = issuesData?.issues ?? [];
   const delegations = delegationsData?.delegations ?? [];
+
+  const delegationStatus = useMemo(
+    () => topic && myDelegations.length > 0
+      ? resolveTopicDelegation(topic.id, topics, myDelegations, participantNames)
+      : null,
+    [topic, topics, myDelegations, participantNames],
+  );
 
   const loading = topicsLoading || issuesLoading;
   if (loading) return <Spinner />;
@@ -81,13 +91,25 @@ export function TopicPage() {
         <span className="text-gray-500">{topic.name}</span>
       </div>
 
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{topic.name}</h1>
-        <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-          <span>{issues.length} issue{issues.length !== 1 ? "s" : ""}</span>
-          <span>{delegations.length} delegate{delegations.length !== 1 ? "s" : ""}</span>
+      {/* Header with delegation status */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{topic.name}</h1>
+          <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+            <span>{issues.length} issue{issues.length !== 1 ? "s" : ""}</span>
+            <span>{delegations.length} delegate{delegations.length !== 1 ? "s" : ""}</span>
+          </div>
         </div>
+        {delegationStatus && (
+          <Link
+            to={`/assembly/${assemblyId}/delegations`}
+            className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-700 transition-colors shrink-0 mt-1"
+            title="View your delegations"
+          >
+            <DelegatedIcon size={16} className="text-blue-400" />
+            <span>{delegationStatus.label}</span>
+          </Link>
+        )}
       </div>
 
       {/* Child topics (root topics only) */}
@@ -108,10 +130,10 @@ export function TopicPage() {
         </div>
       )}
 
-      {/* Issues section */}
+      {/* Issues sections */}
       <IssuesSection
         assemblyId={assemblyId!}
-        label="Active"
+        label="Voting Now"
         issues={activeIssues}
         showBadge
       />

@@ -1,9 +1,12 @@
 import { useMemo } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { useApi } from "../hooks/use-api.js";
+import { useMyDelegations, resolveRootTopicDelegation } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
 import type { Topic, VotingEvent, Delegation } from "../api/types.js";
 import { Card, CardBody, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
+import { DelegatedIcon } from "../components/delegated-icon.js";
+import type { TopicDelegationStatus } from "../hooks/use-my-delegations.js";
 
 interface TopicNode {
   topic: Topic;
@@ -57,14 +60,17 @@ export function TopicsList() {
     () => api.listDelegations(assemblyId!),
     [assemblyId],
   );
+  const { myDelegations, participantNames } = useMyDelegations();
+
+  const topics = topicsData?.topics ?? [];
 
   const tree = useMemo(
     () => buildTree(
-      topicsData?.topics ?? [],
+      topics,
       eventsData?.events ?? [],
       delegationsData?.delegations ?? [],
     ),
-    [topicsData, eventsData, delegationsData],
+    [topics, eventsData, delegationsData],
   );
 
   if (loading) return <Spinner />;
@@ -90,25 +96,50 @@ export function TopicsList() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {tree.map((node) => (
-          <TopicCard key={node.topic.id} node={node} assemblyId={assemblyId!} />
+          <TopicCard
+            key={node.topic.id}
+            node={node}
+            assemblyId={assemblyId!}
+            delegationStatus={
+              myDelegations.length > 0
+                ? resolveRootTopicDelegation(node.topic.id, topics, myDelegations, participantNames)
+                : null
+            }
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function TopicCard({ node, assemblyId }: { node: TopicNode; assemblyId: string }) {
+function TopicCard({
+  node,
+  assemblyId,
+  delegationStatus,
+}: {
+  node: TopicNode;
+  assemblyId: string;
+  delegationStatus: TopicDelegationStatus | null;
+}) {
   const { topic, children, issueCount, delegationCount } = node;
+  const navigate = useNavigate();
 
   return (
-    <Card>
+    <Card
+      className="cursor-pointer hover:border-gray-300 transition-colors"
+      onClick={() => navigate(`/assembly/${assemblyId}/topics/${topic.id}`)}
+    >
       <CardBody>
-        <Link
-          to={`/assembly/${assemblyId}/topics/${topic.id}`}
-          className="text-base font-semibold text-gray-900 hover:text-brand transition-colors"
-        >
-          {topic.name}
-        </Link>
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-base font-semibold text-gray-900">
+            {topic.name}
+          </span>
+          {delegationStatus && (
+            <span title={delegationStatus.label}>
+              <DelegatedIcon size={18} className="text-blue-400 shrink-0 mt-0.5" />
+            </span>
+          )}
+        </div>
 
         {children.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -116,6 +147,7 @@ function TopicCard({ node, assemblyId }: { node: TopicNode; assemblyId: string }
               <Link
                 key={child.id}
                 to={`/assembly/${assemblyId}/topics/${child.id}`}
+                onClick={(e) => e.stopPropagation()}
                 className="text-xs text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full px-2.5 py-0.5 transition-colors"
               >
                 {child.name}
