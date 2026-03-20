@@ -188,28 +188,57 @@ export function topicQueryRoutes(manager: AssemblyManager) {
     }
 
     // Count direct incoming delegations per delegate.
-    // Weight = 1 (self) + number of people who resolve to this delegate.
+    // directWeight = 1 (self) + number of people who resolve to this delegate.
     // This represents "how many votes they'd carry if they voted directly"
     // (the override rule would break any outgoing chain).
     const participants = await manager.listParticipants(assemblyId);
-    const incomingCount = new Map<string, number>();
+    const directIncoming = new Map<string, Set<string>>();
 
-    for (const [_sourceId, targetId] of resolved) {
-      incomingCount.set(targetId, (incomingCount.get(targetId) ?? 0) + 1);
+    for (const [sourceId, targetId] of resolved) {
+      const set = directIncoming.get(targetId) ?? new Set();
+      set.add(sourceId);
+      directIncoming.set(targetId, set);
     }
 
-    // Build response: only include participants who receive at least one delegation
-    const nameMap = new Map(participants.map((p) => [p.id, p.name]));
-    const delegationItems: Array<{ delegate: { id: string; name: string }; weight: number }> = [];
+    // Compute indirect weight: additional votes flowing through transitive chains.
+    // For each delegate's direct delegators, count THEIR incoming delegations recursively.
+    function countIndirect(delegateId: string, visited: Set<string>): number {
+      let indirect = 0;
+      const delegators = directIncoming.get(delegateId);
+      if (!delegators) return 0;
+      for (const delegatorId of delegators) {
+        if (visited.has(delegatorId)) continue;
+        visited.add(delegatorId);
+        // If this delegator also receives delegations, those flow through
+        const sub = directIncoming.get(delegatorId);
+        if (sub) {
+          indirect += sub.size;
+          indirect += countIndirect(delegatorId, visited);
+        }
+      }
+      return indirect;
+    }
 
-    for (const [pid, count] of incomingCount) {
+    // Build response
+    const nameMap = new Map(participants.map((p) => [p.id, p.name]));
+    const delegationItems: Array<{
+      delegate: { id: string; name: string };
+      weight: number;
+      indirect: number;
+    }> = [];
+
+    for (const [pid, delegators] of directIncoming) {
+      const directWeight = delegators.size + 1; // delegators + self
+      const indirect = countIndirect(pid, new Set([pid]));
       delegationItems.push({
         delegate: { id: pid, name: nameMap.get(pid) ?? pid },
-        weight: count + 1, // incoming delegations + self
+        weight: directWeight,
+        indirect,
       });
     }
 
-    delegationItems.sort((a, b) => b.weight - a.weight);
+    // Sort by total (direct + indirect) descending
+    delegationItems.sort((a, b) => (b.weight + b.indirect) - (a.weight + a.indirect));
 
     const { data, pagination } = paginate(delegationItems, parsePagination(c));
     return c.json({ delegations: data, pagination });
