@@ -273,9 +273,11 @@ The principle is consistent: a direct vote severs the chain at that point. Every
 
 ### 5.5 Delegation Scope and Precedence
 
-Topics in Votiverse are organized hierarchically. A topic like "Education" might contain subtopics like "K-12," "Higher Education," and "Vocational Training." A delegation scoped to "Education" covers all subtopics. A delegation scoped to "K-12" covers only that subtopic.
+Topics in Votiverse are organized hierarchically, with a configurable maximum depth (`maxTopicDepth`, default 2). A topic like "Education" might contain subtopics like "K-12," "Higher Education," and "Vocational Training." Each issue belongs to exactly one topic (or none — unclassified issues are scoped only by global delegations). A delegation scoped to "Education" covers all subtopics. A delegation scoped to "K-12" covers only that subtopic.
 
-When multiple delegations from the same person are active for the same issue, the most specific one wins. If you delegate all of Education to David but delegate K-12 specifically to Elena, then for a K-12 issue, Elena is your delegate, not David.
+Delegations operate at three levels of scope: **global** (all issues), **topic** (issues classified under a specific topic), and **issue** (a single specific issue). When multiple delegations from the same person are active for the same issue, the most specific one wins: an issue-scoped delegation overrides a child-topic delegation, which overrides a parent-topic delegation, which overrides a global delegation. Issue-scoped delegations are transitive, just like topic-scoped and global delegations.
+
+For example, if you delegate all of Education to David but delegate K-12 specifically to Elena, then for a K-12 issue, Elena is your delegate, not David. And if you further delegate a specific K-12 budget issue to Frank, Frank takes precedence over Elena for that issue alone.
 
 If two delegations have the same specificity, the most recently created one takes precedence.
 
@@ -313,6 +315,8 @@ A voting event has:
 - one or more **issues**, each independently votable,
 - a set of **eligible participants**,
 - a **governance configuration** that determines which primitives are active.
+
+During deliberation, individual issues can be **cancelled** — for example, to correct a topic misclassification or withdraw an issue that is no longer relevant. Cancelled issues cannot receive votes, and any active proposals associated with a cancelled issue are automatically withdrawn. Cancellation is permanent; a cancelled issue cannot be reopened.
 
 ### 6.2 The Digital Voting Booklet
 
@@ -961,7 +965,7 @@ This appendix provides a mathematical specification of the governance model desc
 
 ### C.1 Participants and Issues
 
-Let $P = \{p_1, p_2, \ldots, p_n\}$ be the set of participants and $I = \{i_1, i_2, \ldots, i_m\}$ the set of issues to be decided. Each issue $i$ belongs to a set of topics $T(i) \subseteq \mathcal{T}$, where $\mathcal{T}$ is a hierarchical topic taxonomy.
+Let $P = \{p_1, p_2, \ldots, p_n\}$ be the set of participants and $I = \{i_1, i_2, \ldots, i_m\}$ the set of issues to be decided. Each issue $i$ has at most one topic: $T(i) \in \mathcal{T} \cup \{\bot\}$, where $\mathcal{T}$ is a hierarchical topic taxonomy (with configurable maximum depth) and $\bot$ denotes an unclassified issue.
 
 ### C.2 Delegations
 
@@ -969,17 +973,26 @@ A delegation is a tuple $d = (p_s, p_t, \sigma)$ where:
 
 - $p_s \in P$ is the delegating participant (source),
 - $p_t \in P$ is the delegate (target), $p_t \neq p_s$,
-- $\sigma \subseteq \mathcal{T}$ is the scope (a set of topics the delegation covers).
+- $\sigma$ is the scope, which takes one of three forms:
+  - $\text{issue}(i)$ for $i \in I$: applies only to a specific issue (highest precedence),
+  - $\text{topic}(t)$ for $t \in \mathcal{T}$: applies to issues classified under topic $t$ (or any of its descendants in the topic hierarchy),
+  - $\text{global}$: applies to all issues (lowest precedence).
 
-Let $D$ be the set of all active delegations. A delegation is *active* for issue $i$ if $T(i) \cap \sigma \neq \emptyset$ — that is, if the issue falls within the delegation's topic scope.
+All three scope types are transitive — delegations chain regardless of scope level.
 
-When multiple delegations from the same source are active for the same issue, precedence is resolved by specificity: a delegation scoped to a more specific topic (lower in the hierarchy) overrides one scoped to a more general topic. If two delegations have equal specificity for an issue, the most recently created delegation takes precedence.
+Let $D$ be the set of all active delegations. A delegation is *active* for issue $i$ according to its scope:
+
+- $\text{issue}(i)$: active only for issue $i$.
+- $\text{topic}(t)$: active if $T(i) \neq \bot$ and $T(i)$ is equal to or a descendant of $t$ in the topic hierarchy.
+- $\text{global}$: active for all issues.
+
+When multiple delegations from the same source are active for the same issue, precedence is resolved by specificity: issue > child topic > parent topic > global. That is, an issue-scoped delegation overrides any topic-scoped delegation, a delegation scoped to a more specific topic (lower in the hierarchy) overrides one scoped to a more general topic, and any topic-scoped delegation overrides a global delegation. If two delegations have equal specificity for an issue, the most recently created delegation takes precedence.
 
 ### C.3 The Delegation Graph
 
 For a given issue $i$, the active delegations form a directed graph $G_i = (P, E_i)$ where:
 
-$$E_i = \{(p_s, p_t) \mid \exists\, d = (p_s, p_t, \sigma) \in D \text{ such that } T(i) \cap \sigma \neq \emptyset\}$$
+$$E_i = \{(p_s, p_t) \mid \exists\, d = (p_s, p_t, \sigma) \in D \text{ such that } d \text{ is active for issue } i\}$$
 
 Each participant has at most one outgoing edge per issue (the highest-precedence active delegation). The graph $G_i$ is therefore a collection of directed trees (a forest), with delegates at the roots.
 
