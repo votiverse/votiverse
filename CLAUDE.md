@@ -389,11 +389,21 @@ platform/
 ### Starting Fresh
 
 ```bash
-cd platform/vcp && pnpm reset    # wipes VCP DB, starts server, seeds data, stops server
-cd platform/backend && pnpm reset # wipes backend DB, starts backend, seeds users from VCP, stops (requires VCP running)
+# Step 1: Rebuild engine packages (if pulling new code or switching branches)
+./scripts/check-dist.sh --rebuild
+
+# Step 2: Reset VCP (self-contained — starts its own server, seeds, stops)
+cd platform/vcp && pnpm reset
+
+# Step 3: Reset backend (requires VCP running — start VCP first, then reset)
+cd platform/vcp && pnpm dev &    # start VCP in background
+cd platform/backend && pnpm reset
+kill %1                           # stop background VCP
 ```
 
-The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 6 assemblies with participants, topics, events, delegations, surveys, proposals, and community notes), then stops the server. The VCP seed also writes `platform/vcp/seed-manifest.json` — a JSON file mapping all semantic keys to generated UUIDs (see **Seed Manifest** below). The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
+**Important:** The backend reset fetches participant data from the VCP via HTTP. If the VCP is not running, the backend reset fails with `ECONNREFUSED`. The VCP reset is self-contained (starts/stops its own server), but the backend reset requires an already-running VCP.
+
+The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 7 assemblies with participants, topics, events, delegations, surveys, proposals, and community notes), then stops the server. The VCP seed also writes `platform/vcp/seed-manifest.json` — a JSON file mapping all semantic keys to generated UUIDs (see **Seed Manifest** below). The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
 
 ### Running Dev Servers
 
@@ -413,7 +423,7 @@ Or use the `.claude/launch.json` configurations (`vcp`, `backend`, and `web`) wi
 
 ### Seed Data Overview
 
-The seed creates 6 assemblies using different governance presets:
+The seed creates 7 assemblies using different governance presets:
 
 | Assembly       | Key          | Preset              | Delegation               | Surveys | Predictions |
 |----------------|--------------|---------------------|--------------------------|---------|-------------|
@@ -423,10 +433,11 @@ The seed creates 6 assemblies using different governance presets:
 | Youth          | `youth`      | LIQUID_ACCOUNTABLE  | Transitive, topic-scoped | Yes     | Opt-in      |
 | Board          | `board`      | BOARD_PROXY         | Non-transitive, 1 delegate | No    | Off         |
 | Maple Heights  | `maple`      | MODERN_DEMOCRACY    | Candidacy, topic-scoped  | Yes     | Encouraged  |
+| Riverside      | `riverside`  | CIVIC_PARTICIPATORY | Transitive, topic-scoped | No      | Off         |
 
-Each assembly has hierarchical topics (36 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and surveys (Municipal + Youth only). The Maple Heights assembly provides seed data for the Maple Heights Condo Board case study (proposals, community notes, closed results).
+Each assembly has hierarchical topics (45 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and surveys (Municipal + Youth only). The Maple Heights assembly provides seed data for the Maple Heights Condo Board case study (proposals, community notes, closed results). The Riverside Community Center assembly provides seed data for the Riverside case study (topic navigation, issue cancellation/reclassification, community notes on misclassification).
 
-The backend seed creates 59 user accounts mapped to VCP participants, with 8 cross-assembly users who have memberships in multiple assemblies.
+The backend seed creates 71 user accounts mapped to VCP participants, with 8 cross-assembly users who have memberships in multiple assemblies.
 
 See `platform/web/TESTING.md` for full details on test identities and delegation graphs.
 
@@ -645,6 +656,26 @@ curl -X POST http://localhost:3000/dev/clock/reset
 ```
 
 **Note:** Dev clock endpoints are only available when `NODE_ENV !== "production"`. They are double-gated: not mounted in production AND a middleware guard blocks even if misconfigured.
+
+### 7. VCP list vs detail endpoint divergence
+
+**Symptom:** A page shows correct data when viewing a single entity (e.g., event detail shows issues with topics) but an overview/list page shows missing data (e.g., events list has no issues, so topic counts are 0).
+
+**Cause:** The VCP has separate list and detail endpoints that may return different response shapes. For example, `GET /assemblies/:id/events` (list) historically returned only `issueIds` while `GET /assemblies/:id/events/:eid` (detail) returned full `issues[]` with `topicId`, `cancelled`, etc. When new fields are added to the detail endpoint, the list endpoint may not be updated.
+
+**Fix:** Check the VCP route handler for the list endpoint (e.g., `platform/vcp/src/api/routes/events.ts`) and compare its response shape to the detail endpoint. Ensure both return the fields that consumers need.
+
+**Prevention:** When adding new fields to entity responses, update both the list and detail endpoints. The web client's TypeScript types (in `platform/web/src/api/types.ts`) define optional fields like `issues?: Issue[]` — if a list endpoint doesn't populate them, code using `event.issues ?? []` silently returns empty arrays rather than erroring.
+
+### 8. Delegation visibility hides data by design
+
+**Symptom:** Delegations show as empty (0 delegations) for some assemblies or users.
+
+**Cause:** Not a bug. Assemblies with `delegation.visibility.mode: "private"` only return delegations where the caller is the source or target. If the logged-in user hasn't delegated and nobody delegates to them, the API correctly returns 0.
+
+**Which assemblies are public vs private:** Check with `sqlite3 platform/vcp/vcp-dev.db "SELECT name, json_extract(config, '$.delegation.visibility.mode') FROM assemblies;"`. Currently: OSC, Youth, and Maple are public; Greenfield, Municipal, Board, and Riverside are private.
+
+**Fix:** If you need to verify delegations exist, test with a participant who is a delegation source or target (check `seed-data/delegations.ts`), or query the VCP database directly.
 
 ### Troubleshooting Routine
 
