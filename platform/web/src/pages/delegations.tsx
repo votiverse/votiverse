@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router";
+import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
@@ -80,6 +80,7 @@ export function Delegations() {
         myIncoming={myIncoming}
         nameMap={nameMap}
         topicNameMap={topicNameMap}
+        assemblyId={assemblyId}
       />
     </div>
   );
@@ -179,6 +180,7 @@ function DelegatesList({
               delegation={d}
               nameMap={nameMap}
               topicNameMap={topicNameMap}
+              assemblyId={assemblyId}
               revokeSlot={
                 <RevokeButton
                   assemblyId={assemblyId}
@@ -202,19 +204,36 @@ function DelegationRow({
   delegation: d,
   nameMap,
   topicNameMap,
+  assemblyId,
   revokeSlot,
 }: {
   delegation: Delegation;
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
+  assemblyId?: string;
   revokeSlot?: React.ReactNode;
 }) {
   const targetName = nameMap.get(d.targetId) ?? d.targetId.slice(0, 8);
-  const scopeLabel =
-    d.topicScope.length === 0
-      ? "All topics"
-      : d.topicScope.map((id) => topicNameMap.get(id) ?? id.slice(0, 8)).join(", ");
   const since = new Date(d.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+  const scopeElement = d.topicScope.length === 0
+    ? <span>All topics</span>
+    : d.topicScope.map((id, i) => {
+        const name = topicNameMap.get(id) ?? id.slice(0, 8);
+        return (
+          <span key={id}>
+            {i > 0 && ", "}
+            {assemblyId ? (
+              <Link
+                to={`/assembly/${assemblyId}/topics/${id}`}
+                className="hover:text-gray-600 transition-colors"
+              >
+                {name}
+              </Link>
+            ) : name}
+          </span>
+        );
+      });
 
   return (
     <div className="flex items-center justify-between py-3 gap-3 min-h-[56px]">
@@ -222,7 +241,7 @@ function DelegationRow({
         <Avatar name={targetName} size="sm" />
         <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">{targetName}</p>
-          <p className="text-xs text-gray-400 truncate">{scopeLabel} · Since {since}</p>
+          <p className="text-xs text-gray-400 truncate">{scopeElement} · Since {since}</p>
         </div>
       </div>
       {revokeSlot}
@@ -238,10 +257,12 @@ function IncomingSection({
   myIncoming,
   nameMap,
   topicNameMap,
+  assemblyId,
 }: {
   myIncoming: Delegation[];
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
+  assemblyId?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -271,15 +292,29 @@ function IncomingSection({
         <div className="mt-3 space-y-1">
           {myIncoming.map((d) => {
             const sourceName = nameMap.get(d.sourceId) ?? d.sourceId.slice(0, 8);
-            const scopeLabel =
-              d.topicScope.length === 0
-                ? "all topics"
-                : d.topicScope.map((id) => topicNameMap.get(id) ?? id.slice(0, 8)).join(", ");
+            const scopeElement = d.topicScope.length === 0
+              ? "all topics"
+              : d.topicScope.map((id, i) => {
+                  const name = topicNameMap.get(id) ?? id.slice(0, 8);
+                  return (
+                    <span key={id}>
+                      {i > 0 && ", "}
+                      {assemblyId ? (
+                        <Link
+                          to={`/assembly/${assemblyId}/topics/${id}`}
+                          className="hover:text-gray-600 transition-colors"
+                        >
+                          {name}
+                        </Link>
+                      ) : name}
+                    </span>
+                  );
+                });
             return (
               <div key={d.id} className="flex items-center gap-2 text-sm text-gray-600 pl-6 py-1.5">
                 <Avatar name={sourceName} size="xs" />
                 <span className="truncate">{sourceName}</span>
-                <span className="text-xs text-gray-400">({scopeLabel})</span>
+                <span className="text-xs text-gray-400">({scopeElement})</span>
               </div>
             );
           })}
