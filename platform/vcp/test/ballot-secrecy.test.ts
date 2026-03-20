@@ -54,7 +54,7 @@ describe("Ballot secrecy enforcement", () => {
     const secretEventRes = await vcp.request("POST", `/assemblies/${secretAsmId}/events`, {
       title: "Secret Vote",
       description: "",
-      issues: [{ title: "Issue 1", description: "", topicIds: [] }],
+      issues: [{ title: "Issue 1", description: "", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id],
       timeline: {
         deliberationStart: now - 86400000 * 2,
@@ -92,7 +92,7 @@ describe("Ballot secrecy enforcement", () => {
     const publicEventRes = await vcp.request("POST", `/assemblies/${publicAsmId}/events`, {
       title: "Public Vote",
       description: "",
-      issues: [{ title: "Issue 1", description: "", topicIds: [] }],
+      issues: [{ title: "Issue 1", description: "", topicId: null }],
       eligibleParticipantIds: [pAlice.id, pBob.id],
       timeline: {
         deliberationStart: now - 86400000 * 2,

@@ -43,7 +43,7 @@ describe("Curation phase enforcement", () => {
       const eventRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/events`, {
         title: "Auto-timeline Event",
         description: "Test",
-        issues: [{ title: "Issue 1", description: "Test", topicIds: [] }],
+        issues: [{ title: "Issue 1", description: "Test", topicId: null }],
         eligibleParticipantIds: [alice.id, bob.id],
         startDate,
       });
@@ -73,7 +73,7 @@ describe("Curation phase enforcement", () => {
       const eventRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/events`, {
         title: "Phase Test",
         description: "Test",
-        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        issues: [{ title: "Issue", description: "Test", topicId: null }],
         eligibleParticipantIds: [alice.id, bob.id],
         timeline: {
           deliberationStart: now - 3 * DAY,
@@ -171,7 +171,7 @@ describe("Curation phase enforcement", () => {
       const eventRes = await vcp.request("POST", `/assemblies/${noCurAsmId}/events`, {
         title: "Direct Vote",
         description: "Test",
-        issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+        issues: [{ title: "Issue", description: "Test", topicId: null }],
         eligibleParticipantIds: [dave.id],
         timeline: {
           deliberationStart: now - 8 * DAY,

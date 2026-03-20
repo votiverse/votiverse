@@ -160,7 +160,7 @@ describe("Assembly roles", () => {
     const eventRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/events`, {
       title: "Test",
       description: "Test",
-      issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+      issues: [{ title: "Issue", description: "Test", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id],
       timeline: {
         deliberationStart: now - 3 * DAY,
@@ -195,7 +195,7 @@ describe("Assembly roles", () => {
     const eventRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/events`, {
       title: "Exclusive Feature Test",
       description: "Test",
-      issues: [{ title: "Issue", description: "Test", topicIds: [] }],
+      issues: [{ title: "Issue", description: "Test", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id],
       timeline: {
         deliberationStart: now - 3 * DAY,

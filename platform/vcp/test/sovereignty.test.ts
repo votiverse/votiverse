@@ -124,7 +124,7 @@ describe("Delegation sovereignty & visibility", () => {
       const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
         title: "Chain Test",
         description: "",
-        issues: [{ title: "Issue", description: "", topicIds: [] }],
+        issues: [{ title: "Issue", description: "", topicId: null }],
         eligibleParticipantIds: [alice.id, bob.id, carol.id],
         timeline: {
           deliberationStart: now - 86400000,
@@ -203,7 +203,7 @@ describe("Delegation sovereignty & visibility", () => {
       const eventRes = await vcp.request("POST", `/assemblies/${privateAsmId}/events`, {
         title: "Private Chain Test",
         description: "",
-        issues: [{ title: "Issue", description: "", topicIds: [] }],
+        issues: [{ title: "Issue", description: "", topicId: null }],
         eligibleParticipantIds: [pAlice.id, pBob.id, pCarol.id],
         timeline: {
           deliberationStart: now - 86400000,

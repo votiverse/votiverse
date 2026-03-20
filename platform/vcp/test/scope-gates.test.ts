@@ -54,7 +54,7 @@ describe("Scope gates on write operations", () => {
     const res = await vcp.requestWithKey(LIMITED_API_KEY, "POST", `/assemblies/${assemblyId}/events`, {
       title: "Unauthorized Event",
       description: "",
-      issues: [{ title: "Issue", description: "", topicIds: [] }],
+      issues: [{ title: "Issue", description: "", topicId: null }],
       eligibleParticipantIds: [participantId],
       timeline: {
         deliberationStart: now - 86400000,

@@ -144,7 +144,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
               const relevantDelegation = myDelegations.find((d) => {
                 if (!d.active) return false;
                 if (d.topicScope.length === 0) return true; // global delegation
-                const issueTopics = issue.topicIds ?? [];
+                const issueTopics = issue.topicId ? [issue.topicId] : [];
                 return d.topicScope.some((t) => issueTopics.includes(t));
               });
               const isDelegated = Boolean(relevantDelegation) && !hasVoted;

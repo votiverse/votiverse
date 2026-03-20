@@ -42,7 +42,7 @@ describe("Content lifecycle — proposals", () => {
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Budget Vote",
       description: "Test",
-      issues: [{ title: "Fund the park?", description: "Test", topicIds: [] }],
+      issues: [{ title: "Fund the park?", description: "Test", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id],
       timeline: {
         deliberationStart: now - 3 * DAY,
@@ -358,7 +358,7 @@ describe("Proposal endorsements and curation", () => {
     const eventRes = await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/events`, {
       title: "Endorsement Vote",
       description: "Test",
-      issues: [{ title: "Should we endorse?", description: "Test", topicIds: [] }],
+      issues: [{ title: "Should we endorse?", description: "Test", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id, dave.id],
       timeline: {
         deliberationStart: now - 3 * DAY,

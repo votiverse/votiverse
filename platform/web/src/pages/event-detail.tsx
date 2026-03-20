@@ -185,7 +185,7 @@ export function EventDetail() {
               title={issue.title}
               description={issue.description}
               choices={issue.choices}
-              topicIds={issue.topicIds}
+              topicId={issue.topicId}
               topicNameMap={topicNameMap}
               tally={tally ?? null}
               weightDist={weightDist ?? null}
@@ -312,7 +312,7 @@ function IssueVotingCard({
   title,
   description,
   choices,
-  topicIds,
+  topicId,
   topicNameMap,
   tally,
   weightDist,
@@ -334,7 +334,7 @@ function IssueVotingCard({
   title: string;
   description: string;
   choices?: string[];
-  topicIds?: string[];
+  topicId?: string | null;
   topicNameMap: Map<string, string>;
   tally: Tally | null;
   weightDist: WeightDist | null;
@@ -416,13 +416,11 @@ function IssueVotingCard({
         </div>
         {/* Description and topic tags below the title row */}
         {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
-        {topicIds && topicIds.length > 0 && (
+        {topicId && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {topicIds.map((tid) => (
-              <span key={tid} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                {topicNameMap.get(tid) ?? tid.slice(0, 8)}
-              </span>
-            ))}
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+              {topicNameMap.get(topicId) ?? topicId.slice(0, 8)}
+            </span>
           </div>
         )}
         {/* Voting booklet link — when proposals exist */}
@@ -468,7 +466,7 @@ function IssueVotingCard({
             delegationConfig={delegationConfig}
             chainNames={chainNames}
             terminalVoterName={issueStatus.terminalVoterId ? (nameMap.get(issueStatus.terminalVoterId) ?? null) : null}
-            issueTopicIds={topicIds ?? []}
+            issueTopicIds={topicId ? [topicId] : []}
             participants={participants}
             topics={topics}
             participantId={participantId!}

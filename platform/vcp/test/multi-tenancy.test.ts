@@ -56,7 +56,7 @@ describe("Multi-tenancy isolation", () => {
     const evtRes = await vcp.request("POST", `/assemblies/${asm1.id}/events`, {
       title: "Assembly 1 Event",
       description: "",
-      issues: [{ title: "Issue", description: "", topicIds: [] }],
+      issues: [{ title: "Issue", description: "", topicId: null }],
       eligibleParticipantIds: [alice.id],
       timeline: {
         deliberationStart: now - 86400000,
@@ -105,7 +105,7 @@ describe("Multi-tenancy isolation", () => {
     const evt1 = (await (await vcp.request("POST", `/assemblies/${asm1.id}/events`, {
       title: "Event A",
       description: "",
-      issues: [{ title: "Issue A", description: "", topicIds: [] }],
+      issues: [{ title: "Issue A", description: "", topicId: null }],
       eligibleParticipantIds: [alice1.id],
       timeline,
     })).json()) as { id: string; issueIds: string[] };
@@ -113,7 +113,7 @@ describe("Multi-tenancy isolation", () => {
     const evt2 = (await (await vcp.request("POST", `/assemblies/${asm2.id}/events`, {
       title: "Event B",
       description: "",
-      issues: [{ title: "Issue B", description: "", topicIds: [] }],
+      issues: [{ title: "Issue B", description: "", topicId: null }],
       eligibleParticipantIds: [alice2.id],
       timeline,
     })).json()) as { id: string; issueIds: string[] };

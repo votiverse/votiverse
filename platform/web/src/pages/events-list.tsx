@@ -186,7 +186,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
       await api.createEvent(assemblyId, {
         title: title.trim(),
         description: description.trim(),
-        issues: issues.map((i) => ({ title: i.title.trim(), description: i.description.trim(), topicIds: [] })),
+        issues: issues.map((i) => ({ title: i.title.trim(), description: i.description.trim(), topicId: null })),
         eligibleParticipantIds: participants.map((p) => p.id),
         startDate: start,
       });

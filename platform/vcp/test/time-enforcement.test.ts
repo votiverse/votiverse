@@ -60,7 +60,7 @@ describe("Time enforcement — voting windows", () => {
     const res = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Test Event",
       description: "Testing time enforcement",
-      issues: [{ title: "Issue 1", description: "Test issue", topicIds: [] }],
+      issues: [{ title: "Issue 1", description: "Test issue", topicId: null }],
       eligibleParticipantIds: [aliceId, bobId],
       timeline,
     });
@@ -268,7 +268,7 @@ describe("Time enforcement — sealed results", () => {
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Sealed Vote",
       description: "Tests sealed results visibility",
-      issues: [{ title: "Issue", description: "", topicIds: [] }],
+      issues: [{ title: "Issue", description: "", topicId: null }],
       eligibleParticipantIds: [aliceId],
       timeline: {
         deliberationStart: now - 3 * DAY,

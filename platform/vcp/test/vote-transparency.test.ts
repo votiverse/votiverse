@@ -77,7 +77,7 @@ describe("Vote transparency for delegate candidates", () => {
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Transparency Test Vote",
       description: "Test",
-      issues: [{ title: "Issue 1", description: "Test issue", topicIds: [] }],
+      issues: [{ title: "Issue 1", description: "Test issue", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id, dave.id, eve.id],
       timeline: {
         deliberationStart: now - 10 * DAY,
@@ -207,7 +207,7 @@ describe("Vote transparency under SECRET ballot", () => {
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Secret Ballot Vote",
       description: "Test",
-      issues: [{ title: "Budget", description: "Test", topicIds: [] }],
+      issues: [{ title: "Budget", description: "Test", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id, dave.id, eve.id],
       timeline: {
         deliberationStart: now - 10 * DAY,
@@ -278,7 +278,7 @@ describe("Vote transparency under SECRET ballot", () => {
     const event2Res = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Second Vote",
       description: "Test",
-      issues: [{ title: "Issue 2", description: "Test", topicIds: [] }],
+      issues: [{ title: "Issue 2", description: "Test", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id, dave.id, eve.id],
       timeline: {
         deliberationStart: now - 5 * DAY,

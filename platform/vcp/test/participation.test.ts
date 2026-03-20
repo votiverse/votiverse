@@ -44,7 +44,7 @@ describe("Participation records", () => {
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Participation Test Event",
       description: "",
-      issues: [{ title: "Issue 1", description: "", topicIds: [] }],
+      issues: [{ title: "Issue 1", description: "", topicId: null }],
       eligibleParticipantIds: [alice.id, bob.id, carol.id, dave.id],
       timeline: {
         deliberationStart: now - 86400000 * 2,
@@ -299,7 +299,7 @@ describe("Participation records", () => {
       const eventRes = await vcp.request("POST", `/assemblies/${secretAsmId}/events`, {
         title: "Secret Vote",
         description: "",
-        issues: [{ title: "Secret Issue", description: "", topicIds: [] }],
+        issues: [{ title: "Secret Issue", description: "", topicId: null }],
         eligibleParticipantIds: [sAlice.id, sBob.id, sCarol.id],
         timeline: {
           deliberationStart: now - 86400000 * 2,
@@ -453,7 +453,7 @@ describe("Participation records", () => {
       const eventRes = await vcp.request("POST", `/assemblies/${civicAsmId}/events`, {
         title: "Civic Vote",
         description: "",
-        issues: [{ title: "Civic Issue", description: "", topicIds: [] }],
+        issues: [{ title: "Civic Issue", description: "", topicId: null }],
         eligibleParticipantIds: [cAlice.id, cBob.id, cCarol.id],
         timeline: {
           deliberationStart: now - 86400000 * 2,
@@ -562,7 +562,7 @@ describe("Participation records", () => {
       const eventRes = await vcp.request("POST", `/assemblies/${privAsmId}/events`, {
         title: "Private Event",
         description: "",
-        issues: [{ title: "Issue", description: "", topicIds: [] }],
+        issues: [{ title: "Issue", description: "", topicId: null }],
         eligibleParticipantIds: [pAlice.id, pBob.id],
         timeline: {
           deliberationStart: now - 86400000 * 2,

@@ -55,7 +55,7 @@ describe("Full governance lifecycle", () => {
       title: "Test Vote",
       description: "A test voting event",
       issues: [
-        { title: "Issue 1", description: "First issue", topicIds: [] },
+        { title: "Issue 1", description: "First issue", topicId: null },
       ],
       eligibleParticipantIds: participants.map((p) => p.id),
       timeline: {
@@ -133,7 +133,7 @@ describe("Full governance lifecycle", () => {
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "Override Test Event",
       description: "",
-      issues: [{ title: "Issue", description: "", topicIds: [] }],
+      issues: [{ title: "Issue", description: "", topicId: null }],
       eligibleParticipantIds: participants.map((p) => p.id),
       timeline: {
         deliberationStart: now - 86400000,
@@ -192,7 +192,7 @@ describe("Full governance lifecycle", () => {
     const eventRes = await vcp.request("POST", `/assemblies/${asmId}/events`, {
       title: "OPOV",
       description: "",
-      issues: [{ title: "Issue", description: "", topicIds: [] }],
+      issues: [{ title: "Issue", description: "", topicId: null }],
       eligibleParticipantIds: ps.map((p) => p.id),
       timeline: {
         deliberationStart: now - 86400000,

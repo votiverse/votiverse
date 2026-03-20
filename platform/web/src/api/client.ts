@@ -208,7 +208,7 @@ export function createEvent(
   params: {
     title: string;
     description: string;
-    issues: Array<{ title: string; description: string; topicIds: string[] }>;
+    issues: Array<{ title: string; description: string; topicId: string | null }>;
     eligibleParticipantIds: string[];
     /** Start date — system computes full timeline from assembly config. */
     startDate?: string | number;

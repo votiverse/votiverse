@@ -143,7 +143,7 @@ export async function main() {
       issues: def.issues.map((i) => ({
         title: i.title,
         description: i.description,
-        topicIds: (i.topicKeys ?? []).map((tk) => tid(def.assemblyKey, tk)),
+        topicId: i.topicKey ? tid(def.assemblyKey, i.topicKey) : null,
         ...(i.choices ? { choices: i.choices } : {}),
       })),
       eligibleParticipantIds: eligibleIds,
