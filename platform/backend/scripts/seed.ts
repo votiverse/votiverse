@@ -11,6 +11,35 @@ const BACKEND_URL = process.env["BACKEND_URL"] ?? "http://localhost:4000";
 
 const DEFAULT_PASSWORD = "password";
 
+// ---------------------------------------------------------------------------
+// Avatar generation — gender-appropriate DiceBear URLs
+// Mirrors PARTICIPANT_GENDER from platform/vcp/scripts/seed-data/participants.ts
+// ---------------------------------------------------------------------------
+
+const FEMALE_NAMES = new Set([
+  "Elena Vasquez", "Amara Johnson", "Claire Dubois", "Fatima Al-Hassan",
+  "Linda Muller", "Yuki Nakamura", "Ingrid Svensson", "Sofia Reyes",
+  "Anika Patel", "Mei-Ling Wu", "Chiara Rossi", "Zara Ibrahim",
+  "Rina Kurosawa", "Nadia Boutros", "Tanya Volkov", "Priya Sharma",
+  "Carmen Delgado", "Nkechi Adeyemi", "Sunita Rao", "Hana Yokota",
+  "Isabel Cruz", "Fiona MacLeod", "Ayesha Khan", "Gabriela Santos",
+  "Aisha Moyo", "Chloe Beaumont", "Nina Kowalski", "Emilia Strand",
+  "Victoria Harrington", "Catherine Zhao", "Margaret Ashworth",
+  "Elizabeth Fairfax", "Diana Reyes", "Leah Chen", "Priya Nair",
+  "Janet Kim", "Fatima Al-Rashid", "Nina Volkov",
+]);
+
+const DICEBEAR_BASE = "https://api.dicebear.com/9.x/avataaars/svg";
+
+/** Generate a gender-appropriate DiceBear avatar URL. */
+function makeAvatarUrl(name: string): string {
+  const seed = encodeURIComponent(name);
+  if (FEMALE_NAMES.has(name)) {
+    return `${DICEBEAR_BASE}?seed=${seed}&facialHairProbability=0`;
+  }
+  return `${DICEBEAR_BASE}?seed=${seed}&facialHairProbability=33`;
+}
+
 interface VCPAssembly {
   id: string;
   name: string;
@@ -43,6 +72,16 @@ async function backendPost<T>(path: string, body: unknown, token?: string): Prom
   const res = await fetch(`${BACKEND_URL}${path}`, {
     method: "POST",
     headers,
+    body: JSON.stringify(body),
+  });
+  const data = await res.json() as T;
+  return { status: res.status, body: data };
+}
+
+async function backendPut<T>(path: string, body: unknown, token: string): Promise<{ status: number; body: T }> {
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   });
   const data = await res.json() as T;
@@ -120,6 +159,9 @@ export async function main() {
     const userId = body.user.id;
     const token = body.accessToken;
     if (!firstToken) firstToken = token;
+
+    // Set gender-appropriate avatar
+    await backendPut("/me/profile", { avatarUrl: makeAvatarUrl(user.name) }, token);
 
     // Create membership records directly via backend DB
     // We use a special internal endpoint or direct DB access via the seed

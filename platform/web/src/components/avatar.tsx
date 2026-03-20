@@ -73,9 +73,34 @@ export type AvatarStyle = typeof AVATAR_STYLES[number];
 
 const DICEBEAR_BASE = "https://api.dicebear.com/9.x";
 
+/**
+ * Names with feminine presentation — used to set facialHairProbability=0
+ * in generated DiceBear avatars. Mirrors the canonical list in
+ * platform/vcp/scripts/seed-data/participants.ts (PARTICIPANT_GENDER).
+ */
+const FEMININE_NAMES = new Set([
+  "Elena Vasquez", "Amara Johnson", "Claire Dubois", "Fatima Al-Hassan",
+  "Linda Muller", "Yuki Nakamura", "Ingrid Svensson", "Sofia Reyes",
+  "Anika Patel", "Mei-Ling Wu", "Chiara Rossi", "Zara Ibrahim",
+  "Rina Kurosawa", "Nadia Boutros", "Tanya Volkov", "Priya Sharma",
+  "Carmen Delgado", "Nkechi Adeyemi", "Sunita Rao", "Hana Yokota",
+  "Isabel Cruz", "Fiona MacLeod", "Ayesha Khan", "Gabriela Santos",
+  "Aisha Moyo", "Chloe Beaumont", "Nina Kowalski", "Emilia Strand",
+  "Victoria Harrington", "Catherine Zhao", "Margaret Ashworth",
+  "Elizabeth Fairfax", "Diana Reyes", "Leah Chen", "Priya Nair",
+  "Janet Kim", "Fatima Al-Rashid", "Nina Volkov",
+]);
+
 /** Generate a DiceBear avatar URL for a given style and seed. */
 export function avatarUrl(seed: string, style: AvatarStyle = "avataaars"): string {
-  return `${DICEBEAR_BASE}/${style}/svg?seed=${encodeURIComponent(seed)}`;
+  const base = `${DICEBEAR_BASE}/${style}/svg?seed=${encodeURIComponent(seed)}`;
+  if (style === "avataaars" && FEMININE_NAMES.has(seed)) {
+    return `${base}&facialHairProbability=0`;
+  }
+  if (style === "avataaars") {
+    return `${base}&facialHairProbability=33`;
+  }
+  return base;
 }
 
 export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
