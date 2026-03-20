@@ -183,13 +183,34 @@ export function eventRoutes(manager: AssemblyManager) {
   app.get("/assemblies/:id/events", async (c) => {
     const assemblyId = c.req.param("id");
     const { engine } = await manager.getEngine(assemblyId);
-    const allEvents = engine.events.list().map((e) => ({
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      issueIds: e.issueIds,
-      createdAt: new Date(e.createdAt).toISOString(),
-    }));
+    const allEvents = engine.events.list().map((e) => {
+      const issues = e.issueIds.map((id) => {
+        const issue = engine.events.getIssue(id as IssueId);
+        if (!issue) return { id, title: "", description: "", topicId: null };
+        return {
+          id: issue.id,
+          title: issue.title,
+          description: issue.description,
+          topicId: issue.topicId,
+          ...(issue.choices ? { choices: issue.choices } : {}),
+          cancelled: engine.events.isIssueCancelled(id as IssueId),
+        };
+      });
+      return {
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        issueIds: e.issueIds,
+        issues,
+        eligibleParticipantIds: e.eligibleParticipantIds,
+        timeline: {
+          deliberationStart: new Date(e.timeline.deliberationStart).toISOString(),
+          votingStart: new Date(e.timeline.votingStart).toISOString(),
+          votingEnd: new Date(e.timeline.votingEnd).toISOString(),
+        },
+        createdAt: new Date(e.createdAt).toISOString(),
+      };
+    });
     const { data, pagination } = paginate(allEvents, parsePagination(c));
     return c.json({ events: data, pagination });
   });
