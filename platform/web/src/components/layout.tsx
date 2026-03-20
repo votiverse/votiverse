@@ -60,7 +60,7 @@ export function Header() {
                 </Link>
                 <Link
                   to={`/assembly/${assemblyId}`}
-                  className="text-sm font-medium text-gray-900 hover:text-brand truncate max-w-[180px] sm:max-w-[240px] ml-1"
+                  className="text-sm font-medium text-gray-900 hover:text-brand truncate max-w-[55vw] sm:max-w-[280px] lg:max-w-[320px] ml-1"
                 >
                   {assembly?.name ?? "Loading..."}
                 </Link>
