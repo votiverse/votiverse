@@ -318,39 +318,25 @@ function TopicEyebrow({
   if (!topic) return null;
   const parent = topic.parentId ? topicMap.get(topic.parentId) : null;
 
-  const Wrapper = assemblyId ? Link : "span";
-  const parentProps = assemblyId && parent
-    ? { to: `/assembly/${assemblyId}/topics/${parent.id}` }
-    : {};
-  const topicProps = assemblyId
-    ? { to: `/assembly/${assemblyId}/topics/${topic.id}` }
-    : {};
+  const label = (tid: string, name: string) =>
+    assemblyId ? (
+      <Link to={`/assembly/${assemblyId}/topics/${tid}`} className="hover:text-gray-600 transition-colors">
+        {name}
+      </Link>
+    ) : (
+      <>{name}</>
+    );
 
   return (
     <span className={`text-xs font-medium tracking-wide uppercase text-gray-400 ${className}`}>
       {parent ? (
         <>
-          <Wrapper
-            {...parentProps as Record<string, string>}
-            className={assemblyId ? "hover:text-gray-600 transition-colors" : undefined}
-          >
-            {parent.name}
-          </Wrapper>
+          {label(parent.id, parent.name)}
           <span className="mx-1 text-gray-300">›</span>
-          <Wrapper
-            {...topicProps as Record<string, string>}
-            className={assemblyId ? "hover:text-gray-600 transition-colors" : undefined}
-          >
-            {topic.name}
-          </Wrapper>
+          {label(topic.id, topic.name)}
         </>
       ) : (
-        <Wrapper
-          {...topicProps as Record<string, string>}
-          className={assemblyId ? "hover:text-gray-600 transition-colors" : undefined}
-        >
-          {topic.name}
-        </Wrapper>
+        label(topic.id, topic.name)
       )}
     </span>
   );

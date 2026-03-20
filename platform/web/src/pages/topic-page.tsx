@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
-import type { TopicIssueItem, TopicDelegationItem, Topic } from "../api/types.js";
+import type { TopicIssueItem, TopicDelegationItem } from "../api/types.js";
 import { Card, CardBody, Badge, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 
