@@ -9,7 +9,7 @@ import type { VCPRole, VCPAssembly, VCPParticipant } from "../src/services/vcp-c
 
 const ASSEMBLY_ID = "asm-hub-001";
 const ASSEMBLY_NAME = "Hub Test Assembly";
-const ASSEMBLY_CONFIG = { preset: "MODERN_DEMOCRACY" };
+const ASSEMBLY_CONFIG = { preset: "LIQUID_DELEGATION" };
 
 function authHeader(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };

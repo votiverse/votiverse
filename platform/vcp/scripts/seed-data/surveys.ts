@@ -2,8 +2,8 @@
  * Survey definitions and responses.
  *
  * Only for assemblies with surveys enabled:
- *   - Youth Advisory Panel (LIQUID_ACCOUNTABLE)
- *   - Municipal Budget Committee (CIVIC_PARTICIPATORY)
+ *   - Youth Advisory Panel (LIQUID_DELEGATION)
+ *   - Municipal Budget Committee (CIVIC)
  */
 
 export interface SurveyQuestionDef {

@@ -23,10 +23,10 @@ describe("Content lifecycle — proposals", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // Create assembly with LIQUID_ACCOUNTABLE (community notes enabled)
+    // Create assembly with LIQUID_DELEGATION (community notes enabled)
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Content Test",
-      preset: "LIQUID_ACCOUNTABLE",
+      preset: "LIQUID_DELEGATION",
     });
     const assembly = (await asmRes.json()) as { id: string };
     asmId = assembly.id;
@@ -134,7 +134,7 @@ describe("Content lifecycle — candidacies", () => {
     vcp = await createTestVCP();
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Candidacy Test",
-      preset: "LIQUID_ACCOUNTABLE",
+      preset: "LIQUID_DELEGATION",
     });
     asmId = ((await asmRes.json()) as { id: string }).id;
 
@@ -204,7 +204,7 @@ describe("Content lifecycle — community notes", () => {
     vcp = await createTestVCP();
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Notes Test",
-      preset: "LIQUID_ACCOUNTABLE",
+      preset: "LIQUID_DELEGATION",
     });
     asmId = ((await asmRes.json()) as { id: string }).id;
 
@@ -339,7 +339,7 @@ describe("Proposal endorsements and curation", () => {
 
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Endorsement Test",
-      preset: "LIQUID_ACCOUNTABLE",
+      preset: "LIQUID_DELEGATION",
     });
     asmId = ((await asmRes.json()) as { id: string }).id;
 

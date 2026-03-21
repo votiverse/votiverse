@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, getParticipantId } from "../middleware/auth.js";
-import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
+import { getDelegationVisibility } from "./shared.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function delegationRoutes(manager: AssemblyManager) {
@@ -131,8 +131,8 @@ export function delegationRoutes(manager: AssemblyManager) {
       sourceId ? (sourceId as ParticipantId) : undefined,
     );
 
-    // Visibility filtering (default to public if not set for backward compat)
-    const visibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
+    // Visibility filtering: derived from candidacy flag
+    const visibility = getDelegationVisibility(info.config);
     if (visibility.mode === "private") {
       const rawCallerId = getParticipantId(c);
       if (!rawCallerId) {
@@ -182,7 +182,7 @@ export function delegationRoutes(manager: AssemblyManager) {
     const participantId = rawParticipantId;
 
     // Visibility: in private mode, only resolve your own chain
-    const chainVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
+    const chainVisibility = getDelegationVisibility(info.config);
     if (chainVisibility.mode === "private") {
       const rawCallerId = getParticipantId(c);
       const callerId = rawCallerId ?? undefined;
@@ -250,30 +250,8 @@ export function delegationRoutes(manager: AssemblyManager) {
     const allDelegations = await engine.delegation.listActive();
     const delegatorsToMe = allDelegations.filter((d) => d.targetId === callerId);
 
-    // Filter delegators by incomingVisibility config
-    const weightVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
-    let delegators: string[];
-    if (weightVisibility.incomingVisibility === "direct") {
-      delegators = delegatorsToMe.map((d) => d.sourceId);
-    } else {
-      // chain: include all upstream delegators (transitive)
-      delegators = delegatorsToMe.map((d) => d.sourceId);
-      // For chain visibility, also include indirect delegators
-      const indirectDelegators = new Set<string>();
-      const findUpstream = (targetId: string) => {
-        const upstream = allDelegations.filter((d) => d.targetId === targetId && d.sourceId !== callerId);
-        for (const d of upstream) {
-          if (!indirectDelegators.has(d.sourceId)) {
-            indirectDelegators.add(d.sourceId);
-            findUpstream(d.sourceId);
-          }
-        }
-      };
-      for (const d of delegatorsToMe) {
-        findUpstream(d.sourceId);
-      }
-      delegators = [...new Set([...delegators, ...indirectDelegators])];
-    }
+    // incomingVisibility is always "direct" — show direct delegators only
+    const delegators: string[] = delegatorsToMe.map((d) => d.sourceId);
 
     return c.json({
       participantId: callerId,

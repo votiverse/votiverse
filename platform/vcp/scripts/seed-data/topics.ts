@@ -4,7 +4,7 @@
  * Each topic has a key (for referencing in issue/delegation assignments),
  * a display name, an optional parentKey, and a sortOrder.
  *
- * Greenfield uses TOWN_HALL (no delegation) so no topics needed.
+ * Greenfield uses DIRECT_DEMOCRACY (no delegation) so no topics needed.
  */
 
 export interface TopicDef {

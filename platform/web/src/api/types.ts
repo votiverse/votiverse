@@ -31,47 +31,26 @@ export interface AssemblyProfile extends Assembly {
   memberCount: number;
 }
 
-export interface DelegationVisibilityConfig {
-  mode: "public" | "private";
-  incomingVisibility: "direct" | "chain";
-}
-
 export type ParticipantStatus = "active" | "inactive" | "sunset";
 
 export interface GovernanceConfig {
   name: string;
   description: string;
   delegation: {
-    delegationMode: "open" | "candidacy" | "none";
-    topicScoped: boolean;
-    transitive: boolean;
-    revocableAnytime: boolean;
-    maxDelegatesPerParticipant: number | null;
-    maxAge: number | null;
-    visibility: DelegationVisibilityConfig;
+    candidacy: boolean;
+    transferable: boolean;
   };
   ballot: {
-    secrecy: string;
-    delegateVoteVisibility: string;
-    votingMethod: string;
-    supermajorityThreshold: number;
-    quorum: number;
-    participationMode: string;
-    resultsVisibility: string;
+    secret: boolean;
+    liveResults: boolean;
     allowVoteChange: boolean;
+    quorum: number;
+    method: "majority" | "supermajority";
   };
   features: {
-    predictions: string;
     communityNotes: boolean;
-    noteVisibilityThreshold: number;
-    noteMinEvaluations: number;
+    predictions: boolean;
     surveys: boolean;
-    surveyResponseAnonymity: string;
-    awarenessIntensity: string;
-    blockchainIntegrity: boolean;
-  };
-  thresholds: {
-    concentrationAlertThreshold: number;
   };
   timeline: {
     deliberationDays: number;

@@ -33,8 +33,8 @@ describe("Ballot secrecy enforcement", () => {
     vcp = await createTestVCP();
 
     // --- Secret ballot assembly ---
-    const secretConfig = deriveConfig(getPreset("LIQUID_STANDARD"), {
-      ballot: { secrecy: "secret", delegateVoteVisibility: "private" },
+    const secretConfig = deriveConfig(getPreset("LIQUID_OPEN"), {
+      ballot: { secret: true },
     });
     const secretAsmRes = await vcp.request("POST", "/assemblies", {
       name: "Secret Assembly",
@@ -77,7 +77,7 @@ describe("Ballot secrecy enforcement", () => {
     // --- Public ballot assembly ---
     const publicAsmRes = await vcp.request("POST", "/assemblies", {
       name: "Public Assembly",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const publicAsm = (await publicAsmRes.json()) as { id: string };
     publicAsmId = publicAsm.id;

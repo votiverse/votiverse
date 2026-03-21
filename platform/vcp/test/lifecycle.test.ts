@@ -34,7 +34,7 @@ describe("Full governance lifecycle", () => {
     // 1. Create Assembly
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Test Assembly",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     expect(asmRes.status).toBe(201);
     const assembly = (await asmRes.json()) as { id: string };
@@ -115,7 +115,7 @@ describe("Full governance lifecycle", () => {
     // Create assembly + participants
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Override Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const assembly = (await asmRes.json()) as { id: string };
     const asmId = assembly.id;
@@ -176,7 +176,7 @@ describe("Full governance lifecycle", () => {
     // Setup: 5 participants, various delegations, 3 vote directly
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "OPOV Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const assembly = (await asmRes.json()) as { id: string };
     const asmId = assembly.id;

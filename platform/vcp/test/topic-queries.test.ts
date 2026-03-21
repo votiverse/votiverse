@@ -18,10 +18,10 @@ describe("Topic query endpoints", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // Create assembly with LIQUID_STANDARD (transitive, topic-scoped delegations)
+    // Create assembly with LIQUID_OPEN (transferable=true, topic-scoped delegations)
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Topic Queries Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const assembly = (await asmRes.json()) as { id: string };
     asmId = assembly.id;
@@ -237,7 +237,7 @@ describe("Topic query endpoints", () => {
       // Create assembly with private delegation visibility
       const privateAsmRes = await vcp.request("POST", "/assemblies", {
         name: "Private Delegations",
-        preset: "BOARD_PROXY",
+        preset: "REPRESENTATIVE",
       });
       const privateAsm = (await privateAsmRes.json()) as { id: string };
 

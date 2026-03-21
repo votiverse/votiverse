@@ -19,13 +19,14 @@ export function Delegations() {
   const { data, loading, error, refetch } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
-  const delegationMode = assembly?.config.delegation.delegationMode ?? "none";
+  const delegationCandidacy = assembly?.config.delegation.candidacy ?? false;
+  const delegationEnabled = delegationCandidacy || (assembly?.config.delegation.transferable ?? false);
   const { data: candidaciesData } = useApi(
-    () => delegationMode === "candidacy" ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
-    [assemblyId, delegationMode],
+    () => delegationCandidacy ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
+    [assemblyId, delegationCandidacy],
   );
 
-  const isTopicScoped = assembly?.config.delegation.topicScoped ?? false;
+  const isTopicScoped = delegationEnabled;
 
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
@@ -90,7 +91,7 @@ export function Delegations() {
         topicNameMap={topicNameMap}
         isTopicScoped={isTopicScoped}
         candidates={candidaciesData?.candidacies ?? []}
-        delegationMode={delegationMode}
+        delegationCandidacy={delegationCandidacy}
         refetch={refetch}
       />
 
@@ -113,7 +114,7 @@ function DelegatesList({
   topicNameMap,
   isTopicScoped,
   candidates,
-  delegationMode,
+  delegationCandidacy,
   refetch,
 }: {
   assemblyId: string;
@@ -125,7 +126,7 @@ function DelegatesList({
   topicNameMap: Map<string, string>;
   isTopicScoped: boolean;
   candidates: Candidacy[];
-  delegationMode: string;
+  delegationCandidacy: boolean;
   refetch: () => void;
 }) {
   const [creating, setCreating] = useState(false);
@@ -154,7 +155,7 @@ function DelegatesList({
             participants={participants}
             isTopicScoped={isTopicScoped}
             candidates={candidates}
-            delegationMode={delegationMode}
+            delegationCandidacy={delegationCandidacy}
             topicNameMap={topicNameMap}
             onClose={() => setCreating(false)}
             onCreated={() => { refetch(); setCreating(false); }}
@@ -180,7 +181,7 @@ function DelegatesList({
           participants={participants}
           isTopicScoped={isTopicScoped}
           candidates={candidates}
-          delegationMode={delegationMode}
+          delegationCandidacy={delegationCandidacy}
           topicNameMap={topicNameMap}
           onClose={() => setCreating(false)}
           onCreated={() => { refetch(); setCreating(false); }}
@@ -284,7 +285,7 @@ function CreateDelegationForm({
   participants,
   isTopicScoped,
   candidates,
-  delegationMode,
+  delegationCandidacy,
   topicNameMap,
   onClose,
   onCreated,
@@ -294,7 +295,7 @@ function CreateDelegationForm({
   participants: Array<{ id: string; name: string }>;
   isTopicScoped: boolean;
   candidates: Candidacy[];
-  delegationMode: string;
+  delegationCandidacy: boolean;
   topicNameMap: Map<string, string>;
   onClose: () => void;
   onCreated: () => void;
@@ -354,9 +355,9 @@ function CreateDelegationForm({
                 participants={participants}
                 currentParticipantId={participantId}
                 onSelect={setTargetId}
-                candidates={delegationMode === "candidacy" ? candidates : undefined}
+                candidates={delegationCandidacy ? candidates : undefined}
                 topicNameMap={topicNameMap}
-                placeholder={delegationMode === "candidacy"
+                placeholder={delegationCandidacy
                   ? "Browse candidates or search any member..."
                   : "Search for a member by name..."}
               />

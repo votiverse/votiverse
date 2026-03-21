@@ -1,9 +1,24 @@
 /**
- * Shared constants for route handlers.
+ * Shared helpers for route handlers.
  */
 
-/** Default delegation visibility config, used when config.delegation.visibility is undefined. */
-export const DEFAULT_DELEGATION_VISIBILITY = {
-  mode: "public" as const,
-  incomingVisibility: "direct" as const,
-};
+import type { GovernanceConfig } from "@votiverse/config";
+
+/**
+ * Derives delegation visibility from the governance config.
+ *
+ * Visibility is derived (not stored) in the new config model:
+ * - "public" when candidacy=true (declared candidates are public by design)
+ * - "private" otherwise
+ *
+ * incomingVisibility is always "direct" (delegates see direct delegators only).
+ */
+export function getDelegationVisibility(config: GovernanceConfig): {
+  mode: "public" | "private";
+  incomingVisibility: "direct";
+} {
+  return {
+    mode: config.delegation.candidacy ? "public" : "private",
+    incomingVisibility: "direct",
+  };
+}

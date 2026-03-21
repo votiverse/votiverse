@@ -23,10 +23,13 @@ describe("Participation records", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // Create assembly with LIQUID_STANDARD (public secrecy, public delegation visibility)
+    // Create assembly with custom config: public ballot + candidacy=true (public delegation visibility)
+    const config = deriveConfig(getPreset("LIQUID_DELEGATION"), {
+      ballot: { secret: false, liveResults: true },
+    });
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Participation Test",
-      preset: "LIQUID_STANDARD",
+      config,
     });
     const assembly = (await asmRes.json()) as { id: string };
     asmId = assembly.id;
@@ -61,7 +64,7 @@ describe("Participation records", () => {
     vcp.cleanup();
   });
 
-  describe("public secrecy (LIQUID_STANDARD)", () => {
+  describe("public ballot (LIQUID_OPEN)", () => {
     it("returns direct participation with choice visible to anyone", async () => {
       await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/votes`, {
         issueId,
@@ -71,7 +74,7 @@ describe("Participation records", () => {
       // Advance clock past votingEnd so event is closed
       vcp.clock.advance(7200000);
 
-      // Carol asking about Alice — public secrecy + public delegation visibility = visible
+      // Carol asking about Alice — public ballot + public delegation visibility = visible
       const res = await vcp.request(
         "GET",
         `/assemblies/${asmId}/events/${eventId}/participation?participantId=${alice.id}`,
@@ -136,7 +139,7 @@ describe("Participation records", () => {
       expect(record.chain).toEqual([bob.id]);
     });
 
-    it("returns transitive delegation chain", async () => {
+    it("returns delegation chain", async () => {
       await vcp.requestAs(alice.id, "POST", `/assemblies/${asmId}/delegations`, {
         targetId: bob.id,
         topicScope: [],
@@ -265,8 +268,8 @@ describe("Participation records", () => {
     });
   });
 
-  describe("secret ballot secrecy filtering", () => {
-    // Use a custom config: secret secrecy + public delegation visibility
+  describe("secret ballot filtering", () => {
+    // Use a custom config: secret ballot + public delegation visibility (candidacy=false, transferable=true)
     // This isolates secrecy filtering from delegation visibility restrictions.
     let secretAsmId: string;
     let sAlice: { id: string };
@@ -276,9 +279,11 @@ describe("Participation records", () => {
     let secretIssueId: string;
 
     beforeEach(async () => {
-      // Derive from LIQUID_STANDARD: keep public delegation visibility, override ballot to secret
-      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
-        ballot: { secrecy: "secret", delegateVoteVisibility: "private" },
+      // Derive from LIQUID_OPEN: keep public delegation visibility (candidacy=false so private),
+      // override ballot to secret. But LIQUID_OPEN has candidacy=false → private delegation visibility.
+      // We need a preset with candidacy=true for public delegation visibility + secret ballot.
+      const config = deriveConfig(getPreset("LIQUID_DELEGATION"), {
+        ballot: { secret: true },
       });
 
       const asmRes = await vcp.request("POST", "/assemblies", {
@@ -360,7 +365,7 @@ describe("Participation records", () => {
       expect(data.participation[0]!.effectiveChoice).toBeNull(); // secret = hidden from others
     });
 
-    it("delegated vote: choice HIDDEN when delegateVoteVisibility is private", async () => {
+    it("delegated vote: choice VISIBLE to delegator (delegates always accountable)", async () => {
       await vcp.requestAs(sAlice.id, "POST", `/assemblies/${secretAsmId}/delegations`, {
         targetId: sBob.id,
         topicScope: [],
@@ -373,7 +378,7 @@ describe("Participation records", () => {
       // Advance clock past votingEnd so event is closed
       vcp.clock.advance(7200000);
 
-      // Alice asks about herself — delegated, but delegateVoteVisibility=private
+      // Alice asks about herself — delegated, delegates always accountable to delegators
       const res = await vcp.request(
         "GET",
         `/assemblies/${secretAsmId}/events/${secretEventId}/participation?participantId=${sAlice.id}`,
@@ -386,7 +391,7 @@ describe("Participation records", () => {
 
       const record = data.participation[0]!;
       expect(record.status).toBe("delegated");
-      expect(record.effectiveChoice).toBeNull(); // private = can't see delegate's choice
+      expect(record.effectiveChoice).toBe("against"); // delegates always accountable — delegator sees choice
       expect(record.delegateId).toBe(sBob.id); // structural info is visible
     });
 
@@ -415,14 +420,16 @@ describe("Participation records", () => {
         participation: Array<{ status: string; effectiveChoice: unknown }>;
       };
 
-      // Carol sees she delegated, but NOT what Alice voted (secret + private)
+      // Carol sees she delegated, and CAN see what Alice voted
+      // (delegates always accountable to delegators)
       expect(data.participation[0]!.status).toBe("delegated");
-      expect(data.participation[0]!.effectiveChoice).toBeNull();
+      expect(data.participation[0]!.effectiveChoice).toBe("for");
     });
   });
 
-  describe("delegators-only delegate vote visibility", () => {
-    // Custom config: secret secrecy + delegators-only + public delegation visibility
+  describe("delegate accountability under secret ballot", () => {
+    // Delegates are always accountable to their delegators in the new model.
+    // Secret ballot + candidacy=true (public delegation visibility).
     let civicAsmId: string;
     let cAlice: { id: string };
     let cBob: { id: string };
@@ -431,8 +438,8 @@ describe("Participation records", () => {
     let civicIssueId: string;
 
     beforeEach(async () => {
-      const config = deriveConfig(getPreset("LIQUID_STANDARD"), {
-        ballot: { secrecy: "secret", delegateVoteVisibility: "delegators-only" },
+      const config = deriveConfig(getPreset("LIQUID_DELEGATION"), {
+        ballot: { secret: true },
       });
 
       const asmRes = await vcp.request("POST", "/assemblies", {
@@ -543,10 +550,10 @@ describe("Participation records", () => {
 
   describe("private delegation visibility mode", () => {
     it("blocks querying another participant's participation", async () => {
-      // CIVIC_PARTICIPATORY has private delegation visibility
+      // LIQUID_OPEN has private delegation visibility (candidacy=false)
       const asmRes = await vcp.request("POST", "/assemblies", {
         name: "Private Delegation",
-        preset: "CIVIC_PARTICIPATORY",
+        preset: "LIQUID_OPEN",
       });
       const assembly = (await asmRes.json()) as { id: string };
       const privAsmId = assembly.id;

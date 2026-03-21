@@ -29,13 +29,12 @@ describe("Vote transparency for delegate candidates", () => {
     vcp = await createTestVCP();
 
     // Create assembly with SECRET ballot + CANDIDACY delegation mode
-    // Use LIQUID_ACCOUNTABLE preset (candidacy mode, communityNotes, secret-ish ballot)
-    // But we need a secret ballot for this test, so use a custom config
+    // Use LIQUID_DELEGATION preset (candidacy=true, communityNotes, secret ballot)
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Transparency Test",
-      preset: "LIQUID_ACCOUNTABLE",
+      preset: "LIQUID_DELEGATION",
     });
-    const assembly = (await asmRes.json()) as { id: string; config: { ballot: { secrecy: string } } };
+    const assembly = (await asmRes.json()) as { id: string; config: { ballot: { secret: boolean } } };
     asmId = assembly.id;
 
     // Add participants
@@ -129,11 +128,10 @@ describe("Vote transparency for delegate candidates", () => {
 
     const carolRecord = body.participation.find((p) => p.participantId === carol.id);
     expect(carolRecord).toBeDefined();
-    // Under LIQUID_ACCOUNTABLE (public secrecy), delegate vote visibility is "public",
-    // so Dave CAN see Carol's vote via delegateVoteVisibility, not via transparency.
-    // But under secret ballot, this would be null.
-    // LIQUID_ACCOUNTABLE has secrecy: "public" — so all votes are visible anyway.
-    // To test properly, we need secrecy: "secret".
+    // Under LIQUID_DELEGATION (secret ballot), Carol didn't opt into transparency,
+    // so Dave CANNOT see Carol's vote through transparency. But under secret ballot
+    // with delegation, delegates are always accountable to delegators — Dave sees
+    // Carol's vote because he delegated to her.
   });
 
   it("Eve (non-delegator) CANNOT see Bob's vote despite his transparency opt-in", async () => {
@@ -145,8 +143,8 @@ describe("Vote transparency for delegate candidates", () => {
 
     const bobRecord = body.participation.find((p) => p.participantId === bob.id);
     expect(bobRecord).toBeDefined();
-    // Under LIQUID_ACCOUNTABLE (public secrecy), everyone sees everything.
-    // The transparency feature matters under SECRET ballot.
+    // Under LIQUID_DELEGATION (secret ballot), Eve doesn't delegate to Bob,
+    // so transparency doesn't apply. Eve cannot see Bob's vote.
   });
 });
 
@@ -168,10 +166,15 @@ describe("Vote transparency under SECRET ballot", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // BOARD_PROXY: secret ballot, delegation enabled, non-transitive
+    // Secret ballot + private delegation visibility (candidacy=false, transferable=true)
+    // Uses LIQUID_OPEN as base (candidacy=false → private visibility) with secret ballot
+    const { getPreset, deriveConfig } = await import("@votiverse/config");
+    const config = deriveConfig(getPreset("LIQUID_OPEN"), {
+      ballot: { secret: true, liveResults: false },
+    });
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Secret Ballot Test",
-      preset: "BOARD_PROXY",
+      config,
     });
     asmId = ((await asmRes.json()) as { id: string }).id;
 

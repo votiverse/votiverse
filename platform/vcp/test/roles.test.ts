@@ -18,7 +18,7 @@ describe("Assembly roles", () => {
     // Create assembly
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Roles Test",
-      preset: "MODERN_DEMOCRACY",
+      preset: "LIQUID_DELEGATION",
     });
     asmId = ((await asmRes.json()) as { id: string }).id;
 
@@ -141,7 +141,7 @@ describe("Assembly roles", () => {
   it("creatorParticipantId at assembly creation grants owner+admin", async () => {
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Auto-Role Test",
-      preset: "MODERN_DEMOCRACY",
+      preset: "LIQUID_DELEGATION",
       creatorParticipantId: "creator-p1",
     });
     const asm = (await asmRes.json()) as { id: string };

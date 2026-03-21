@@ -21,13 +21,13 @@ describe("Multi-tenancy isolation", () => {
     // Create two assemblies
     const asm1Res = await vcp.request("POST", "/assemblies", {
       name: "Assembly One",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm1 = (await asm1Res.json()) as { id: string };
 
     const asm2Res = await vcp.request("POST", "/assemblies", {
       name: "Assembly Two",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm2 = (await asm2Res.json()) as { id: string };
 
@@ -80,13 +80,13 @@ describe("Multi-tenancy isolation", () => {
     // Create two assemblies with same participant names
     const asm1Res = await vcp.request("POST", "/assemblies", {
       name: "Assembly A",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm1 = (await asm1Res.json()) as { id: string };
 
     const asm2Res = await vcp.request("POST", "/assemblies", {
       name: "Assembly B",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm2 = (await asm2Res.json()) as { id: string };
 
@@ -160,7 +160,7 @@ describe("Client-assembly access enforcement", () => {
     // Default test key has "*" access
     const createRes = await vcp.request("POST", "/assemblies", {
       name: "Open Assembly",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     expect(createRes.status).toBe(201);
     const asm = (await createRes.json()) as { id: string };
@@ -173,7 +173,7 @@ describe("Client-assembly access enforcement", () => {
     // Create assembly with the default (wildcard) key
     const createRes = await vcp.request("POST", "/assemblies", {
       name: "Restricted Assembly",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     expect(createRes.status).toBe(201);
     const asm = (await createRes.json()) as { id: string };
@@ -189,12 +189,12 @@ describe("Client-assembly access enforcement", () => {
     // Create two assemblies
     const asm1 = (await (await vcp.request("POST", "/assemblies", {
       name: "Assembly Alpha",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     })).json()) as { id: string };
 
     const asm2 = (await (await vcp.request("POST", "/assemblies", {
       name: "Assembly Beta",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     })).json()) as { id: string };
 
     // Wildcard key sees both
@@ -216,7 +216,7 @@ describe("Client-assembly access enforcement", () => {
     // Limited client creates an assembly — should auto-get access
     const createRes = await vcp.requestWithKey(LIMITED_API_KEY, "POST", "/assemblies", {
       name: "Auto-Linked Assembly",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     // Note: POST /assemblies requires operational scope, limited key only has participant
     // So this should be rejected by scope gate — but assembly creation doesn't have a scope gate yet.
@@ -238,7 +238,7 @@ describe("Client-assembly access enforcement", () => {
     // Create assembly with wildcard key
     const asm = (await (await vcp.request("POST", "/assemblies", {
       name: "Token Test Assembly",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     })).json()) as { id: string };
 
     // Add a participant

@@ -8,13 +8,8 @@ import { Card, CardHeader, CardBody, Spinner, ErrorBox, StatusBadge, Badge } fro
 import { Avatar } from "../components/avatar.js";
 import {
   presetLabel,
-  humanizeVotingMethod,
-  humanizeSecrecy,
-  humanizeParticipation,
-  humanizePredictions,
-  humanizeAwareness,
   humanizeBoolean,
-  humanizeResultsVisibility,
+  isDelegationEnabled,
   summarizeRules,
 } from "../lib/presets.js";
 import { OnboardingDialog, shouldShowOnboarding } from "../components/onboarding-dialog.js";
@@ -77,10 +72,10 @@ export function AssemblyDashboard() {
       {!showOnboarding && <WelcomeCard assemblyId={assemblyId!} assemblyName={assembly.name} config={config} />}
 
       {/* Stats row — participant-centric */}
-      <div className={`grid grid-cols-2 ${config.delegation.delegationMode !== "none" ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
+      <div className={`grid grid-cols-2 ${isDelegationEnabled(config) ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
         <StatCard label="Members" value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
         <StatCard label="Votes" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
-        {config.delegation.delegationMode !== "none" && (
+        {isDelegationEnabled(config) && (
           <StatCard
             label="Your Delegates"
             value={delegations.length}
@@ -115,26 +110,13 @@ export function AssemblyDashboard() {
               </CardHeader>
               <CardBody className="space-y-3">
                 <ConfigRow label="Decision Model" value={presetLabel(config.name)} />
-                <ConfigRow label="Voting Method" value={humanizeVotingMethod(config.ballot.votingMethod)} />
-                <ConfigRow label="Ballot Secrecy" value={humanizeSecrecy(config.ballot.secrecy)} />
-                <ConfigRow label="Participation" value={humanizeParticipation(config.ballot.participationMode)} />
-                <ConfigRow label="Results" value={humanizeResultsVisibility(config.ballot.resultsVisibility)} />
+                <ConfigRow label="Voting Method" value={config.ballot.method === "supermajority" ? "Supermajority" : "Majority"} />
+                <ConfigRow label="Ballot" value={config.ballot.secret ? "Secret" : "Public"} />
+                <ConfigRow label="Live Results" value={humanizeBoolean(config.ballot.liveResults)} />
                 <ConfigRow label="Quorum" value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
                 <ConfigRow label="Vote Changes" value={config.ballot.allowVoteChange ? "Allowed" : "Final — no changes"} />
-                <ConfigRow label="Delegation" value={
-                  config.delegation.delegationMode === "none" ? "Disabled"
-                    : config.delegation.delegationMode === "candidacy" ? "Declared candidates"
-                    : "Open to any member"
-                } />
-                {config.delegation.delegationMode !== "none" && (
-                  <>
-                    <ConfigRow label="Topic-Scoped" value={humanizeBoolean(config.delegation.topicScoped)} />
-                    <ConfigRow label="Transitive" value={humanizeBoolean(config.delegation.transitive)} />
-                    {config.delegation.maxDelegatesPerParticipant !== null && (
-                      <ConfigRow label="Max Delegates" value={String(config.delegation.maxDelegatesPerParticipant)} />
-                    )}
-                  </>
-                )}
+                <ConfigRow label="Candidates" value={humanizeBoolean(config.delegation.candidacy, "enabled-disabled")} />
+                <ConfigRow label="Transferable" value={humanizeBoolean(config.delegation.transferable, "enabled-disabled")} />
               </CardBody>
             </Card>
             <Card>
@@ -155,12 +137,9 @@ export function AssemblyDashboard() {
                 <h2 className="font-medium text-gray-900">Features</h2>
               </CardHeader>
               <CardBody className="space-y-3">
-                <ConfigRow label="Predictions" value={humanizePredictions(config.features.predictions)} />
-                <ConfigRow label="Surveys" value={humanizeBoolean(config.features.surveys, "enabled-disabled")} />
-                <ConfigRow label="Insights" value={humanizeAwareness(config.features.awarenessIntensity)} />
                 <ConfigRow label="Community Notes" value={humanizeBoolean(config.features.communityNotes, "enabled-disabled")} />
-                <ConfigRow label="Blockchain" value={humanizeBoolean(config.features.blockchainIntegrity, "enabled-disabled")} />
-                <ConfigRow label="Concentration Alert" value={`${(config.thresholds.concentrationAlertThreshold * 100).toFixed(0)}%`} />
+                <ConfigRow label="Predictions" value={humanizeBoolean(config.features.predictions, "enabled-disabled")} />
+                <ConfigRow label="Surveys" value={humanizeBoolean(config.features.surveys, "enabled-disabled")} />
               </CardBody>
             </Card>
           </div>

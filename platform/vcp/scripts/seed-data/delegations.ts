@@ -19,7 +19,7 @@ export interface DelegationDef {
 }
 
 export const DELEGATIONS: DelegationDef[] = [
-  // ── OSC Governance Board (LIQUID_STANDARD — transitive, topic-scoped) ──
+  // ── OSC Governance Board (LIQUID_OPEN — transitive, topic-scoped) ──
 
   // Simple delegations
   { assemblyKey: "osc", source: "Zara Ibrahim", target: "Anika Patel", topicScope: [] },
@@ -36,7 +36,7 @@ export const DELEGATIONS: DelegationDef[] = [
   // Chain depth 2: Tanya → Stefan → Jordan
   { assemblyKey: "osc", source: "Tanya Volkov", target: "Stefan Kovac", topicScope: [] },
 
-  // ── Municipal Budget Committee (CIVIC_PARTICIPATORY — depth cap 3) ─────
+  // ── Municipal Budget Committee (CIVIC — transitive) ───────────────────
 
   { assemblyKey: "municipal", source: "Sunita Rao", target: "Carmen Delgado", topicScope: [] },
   { assemblyKey: "municipal", source: "Benjamin Archer", target: "Antoine Lefebvre", topicScope: [] },
@@ -51,7 +51,7 @@ export const DELEGATIONS: DelegationDef[] = [
   { assemblyKey: "municipal", source: "Lars Johansson", target: "Fiona MacLeod", topicScope: [] },
   { assemblyKey: "municipal", source: "Fiona MacLeod", target: "Isabel Cruz", topicScope: [] },
 
-  // ── Youth Advisory Panel (LIQUID_ACCOUNTABLE — transitive) ─────────────
+  // ── Youth Advisory Panel (LIQUID_DELEGATION — transitive) ──────────────
 
   { assemblyKey: "youth", source: "Jin Park", target: "Sofia Reyes", topicScope: [] },
   { assemblyKey: "youth", source: "Chloe Beaumont", target: "Priya Sharma", topicScope: [] },
@@ -74,13 +74,13 @@ export const DELEGATIONS: DelegationDef[] = [
   // Youth: Tariq delegates to Liam on wellness topics
   { assemblyKey: "youth", source: "Tariq Hassan", target: "Liam Torres", topicScope: [], topicKeys: ["wellness"] },
 
-  // ── Board of Directors (BOARD_PROXY — non-transitive, single delegate) ─
+  // ── Board of Directors (REPRESENTATIVE — non-transitive, single delegate)
 
   { assemblyKey: "board", source: "Margaret Ashworth", target: "Victoria Harrington", topicScope: [] },
   { assemblyKey: "board", source: "David Greenfield", target: "Robert Blackwell", topicScope: [] },
   { assemblyKey: "board", source: "Elizabeth Fairfax", target: "Catherine Zhao", topicScope: [] },
 
-  // ── Riverside Community Center (CIVIC_PARTICIPATORY — topic-scoped) ──
+  // ── Riverside Community Center (CIVIC — topic-scoped) ───────────────
 
   // Priya trusts Sam on all budget matters
   { assemblyKey: "riverside", source: "Priya Nair", target: "Sam Okonkwo", topicScope: [], topicKeys: ["budget"] },

@@ -31,7 +31,7 @@ export interface EventDef {
 }
 
 export const EVENTS: EventDef[] = [
-  // ── Greenfield Community Council (TOWN_HALL) ─────────────────────────
+  // ── Greenfield Community Council (DIRECT_DEMOCRACY) ──────────────────
 
   {
     key: "greenfield-spring",
@@ -105,7 +105,7 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
-  // ── OSC Governance Board (LIQUID_STANDARD) ───────────────────────────
+  // ── OSC Governance Board (LIQUID_OPEN) ───────────────────────────────
 
   {
     key: "osc-retro",
@@ -225,7 +225,7 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
-  // ── Municipal Budget Committee (CIVIC_PARTICIPATORY) ─────────────────
+  // ── Municipal Budget Committee (CIVIC) ───────────────────────────────
 
   {
     key: "municipal-budget",
@@ -286,7 +286,7 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
-  // ── Youth Advisory Panel (LIQUID_ACCOUNTABLE) ────────────────────────
+  // ── Youth Advisory Panel (LIQUID_DELEGATION) ─────────────────────────
 
   {
     key: "youth-priorities",
@@ -337,7 +337,7 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
-  // ── Board of Directors (BOARD_PROXY) ─────────────────────────────────
+  // ── Board of Directors (REPRESENTATIVE) ──────────────────────────────
 
   {
     key: "board-q4",
@@ -388,7 +388,7 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
-  // ── Maple Heights Condo Board (MODERN_DEMOCRACY) ────────────────────────
+  // ── Maple Heights Condo Board (LIQUID_DELEGATION) ───────────────────────
 
   {
     key: "maple-roof",
@@ -431,7 +431,7 @@ export const EVENTS: EventDef[] = [
     ],
   },
 
-  // ── Riverside Community Center (CIVIC_PARTICIPATORY) ─────────────────
+  // ── Riverside Community Center (CIVIC) ───────────────────────────────
 
   {
     key: "riverside-spring",

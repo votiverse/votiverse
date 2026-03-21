@@ -16,7 +16,7 @@ describe("Scope gates on write operations", () => {
     // Create assembly and participant with the operational (wildcard) key
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Scope Test Assembly",
-      preset: "CIVIC_PARTICIPATORY",
+      preset: "CIVIC",
     });
     const asm = (await asmRes.json()) as { id: string };
     assemblyId = asm.id;

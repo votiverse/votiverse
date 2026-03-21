@@ -11,72 +11,64 @@ function computeTabs(assemblyId: string, config: Partial<GovernanceConfig>) {
     { to: `/assembly/${assemblyId}/events`, label: "Votes" },
   ];
 
-  const delegationMode = config.delegation?.delegationMode ?? "none";
+  const delegationEnabled = (config.delegation?.candidacy || config.delegation?.transferable) ?? false;
   if (config.features?.surveys) {
     tabs.push({ to: `/assembly/${assemblyId}/surveys`, label: "Surveys" });
   }
-  if (delegationMode !== "none") {
+  if (delegationEnabled) {
     tabs.push({ to: `/assembly/${assemblyId}/delegations`, label: "Delegates" });
+    tabs.push({ to: `/assembly/${assemblyId}/topics`, label: "Topics" });
   }
   if (config.features?.communityNotes) {
     tabs.push({ to: `/assembly/${assemblyId}/notes`, label: "Notes" });
   }
-  if (delegationMode === "candidacy") {
+  if (config.delegation?.candidacy) {
     tabs.push({ to: `/assembly/${assemblyId}/candidacies`, label: "Candidates" });
   }
-  tabs.push({ to: `/assembly/${assemblyId}`, label: "Group" });
   return tabs;
 }
 
 describe("Assembly tabs logic", () => {
   const baseConfig: Partial<GovernanceConfig> = {
     delegation: {
-      delegationMode: "none",
-      topicScoped: false,
-      transitive: false,
-      revocableAnytime: false,
-      maxDelegatesPerParticipant: null,
-      maxAge: null,
-      visibility: { mode: "private", incomingVisibility: "direct" },
+      candidacy: false,
+      transferable: false,
     },
     features: {
-      predictions: "disabled",
+      predictions: false,
       communityNotes: false,
-      noteVisibilityThreshold: 0.3,
-      noteMinEvaluations: 3,
       surveys: false,
-      surveyResponseAnonymity: "anonymous",
-      awarenessIntensity: "minimal",
-      blockchainIntegrity: false,
     },
   };
 
-  it("shows only Votes and Group for TOWN_HALL (no delegation)", () => {
+  it("shows only Votes for DIRECT_DEMOCRACY (no delegation)", () => {
     const tabs = computeTabs("asm-1", baseConfig);
     const labels = tabs.map((t) => t.label);
-    expect(labels).toEqual(["Votes", "Group"]);
+    expect(labels).toEqual(["Votes"]);
     expect(labels).not.toContain("Delegates");
     expect(labels).not.toContain("Candidates");
   });
 
-  it("shows Delegates tab when delegationMode is 'open'", () => {
+  it("shows Delegates and Topics tabs when transferable is true", () => {
     const config = {
       ...baseConfig,
-      delegation: { ...baseConfig.delegation!, delegationMode: "open" as const },
+      delegation: { ...baseConfig.delegation!, transferable: true },
     };
     const tabs = computeTabs("asm-1", config);
     expect(tabs.map((t) => t.label)).toContain("Delegates");
+    expect(tabs.map((t) => t.label)).toContain("Topics");
     expect(tabs.map((t) => t.label)).not.toContain("Candidates");
   });
 
-  it("shows both Delegates and Candidates tabs for candidacy mode", () => {
+  it("shows Delegates, Topics, and Candidates tabs when candidacy is true", () => {
     const config = {
       ...baseConfig,
-      delegation: { ...baseConfig.delegation!, delegationMode: "candidacy" as const },
+      delegation: { ...baseConfig.delegation!, candidacy: true },
     };
     const tabs = computeTabs("asm-1", config);
     const labels = tabs.map((t) => t.label);
     expect(labels).toContain("Delegates");
+    expect(labels).toContain("Topics");
     expect(labels).toContain("Candidates");
   });
 
@@ -98,18 +90,17 @@ describe("Assembly tabs logic", () => {
     expect(tabs.map((t) => t.label)).toContain("Notes");
   });
 
-  it("LIQUID_ACCOUNTABLE config shows all relevant tabs", () => {
+  it("LIQUID_DELEGATION config shows all relevant tabs", () => {
     const config = {
-      delegation: { ...baseConfig.delegation!, delegationMode: "candidacy" as const },
+      delegation: { candidacy: true, transferable: true },
       features: {
-        ...baseConfig.features!,
-        predictions: "mandatory",
+        predictions: true,
         communityNotes: true,
         surveys: true,
       },
     };
     const tabs = computeTabs("asm-1", config);
     const labels = tabs.map((t) => t.label);
-    expect(labels).toEqual(["Votes", "Surveys", "Delegates", "Notes", "Candidates", "Group"]);
+    expect(labels).toEqual(["Votes", "Surveys", "Delegates", "Topics", "Notes", "Candidates"]);
   });
 });

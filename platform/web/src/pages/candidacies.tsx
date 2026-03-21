@@ -32,7 +32,7 @@ export function Candidacies() {
 
   const [showDeclareForm, setShowDeclareForm] = useState(false);
 
-  const delegationMode = assembly?.config.delegation.delegationMode ?? "none";
+  const delegationCandidacy = assembly?.config.delegation.candidacy ?? false;
 
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
@@ -43,7 +43,7 @@ export function Candidacies() {
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Delegate Candidates</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {delegationMode === "candidacy"
+            {delegationCandidacy
               ? "Declared candidates seeking your delegation. You can also delegate to anyone via search."
               : "Participants who have declared their availability as delegates."}
           </p>

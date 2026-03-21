@@ -7,9 +7,9 @@
  *
  * Only assemblies with the relevant features enabled get content:
  * - Proposals: all assemblies with events in deliberation
- * - Candidacies: assemblies with delegationMode 'candidacy' or 'open'
+ * - Candidacies: assemblies with candidacy=true or transferable=true
  * - Community notes: assemblies with communityNotes: true
- *   (LIQUID_ACCOUNTABLE, CIVIC_PARTICIPATORY, SWISS_MODEL)
+ *   (LIQUID_DELEGATION, CIVIC, SWISS_VOTATION)
  */
 
 export interface ProposalDef {
@@ -279,7 +279,7 @@ The financial model works (see attached budget), but the design comes first.`,
 ];
 
 // ── Candidacies ──────────────────────────────────────────────────────────
-// OSC uses LIQUID_ACCOUNTABLE (candidacy mode), Youth uses LIQUID_ACCOUNTABLE
+// OSC uses LIQUID_OPEN (candidacy=false, transferable=true), Youth uses LIQUID_DELEGATION
 
 export const CANDIDACIES: CandidacyDef[] = [
   {
@@ -362,7 +362,7 @@ I opt into transparent voting so my delegators can hold me accountable.
 // Notes on proposals and candidacies in assemblies with communityNotes: true
 
 export const NOTES: NoteDef[] = [
-  // Note on Marcus's lobby renovation proposal (Maple — MODERN_DEMOCRACY, communityNotes: true)
+  // Note on Marcus's lobby renovation proposal (Maple — LIQUID_DELEGATION, communityNotes: true)
   {
     assemblyKey: "maple",
     authorName: "Kai Andersen",
@@ -371,7 +371,7 @@ export const NOTES: NoteDef[] = [
     markdown: "The $120,000 budget does not include permit fees (typically $3,000-5,000 for work of this scope), nor temporary lobby closure costs such as security for the side entrance. The 10% contingency is below the industry standard of 15-20% for renovation projects with unknowns behind existing walls.",
   },
 
-  // Note on Aisha's "Digital Literacy Workshops" proposal (Youth — LIQUID_ACCOUNTABLE, communityNotes: true)
+  // Note on Aisha's "Digital Literacy Workshops" proposal (Youth — LIQUID_DELEGATION, communityNotes: true)
   {
     assemblyKey: "youth",
     authorName: "Liam Torres",

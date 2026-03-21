@@ -9,36 +9,32 @@ import { presetLabel } from "../lib/presets.js";
 // ── Preset definitions ───────────────────────────────────────────────
 
 const PRESETS = [
-  { value: "MODERN_DEMOCRACY", label: "Modern Democracy", desc: "The recommended starting point. Balances delegation, deliberation, and accountability." },
-  { value: "TOWN_HALL", label: "Direct Democracy", desc: "Everyone votes on everything. No delegation, no curation." },
-  { value: "SWISS_MODEL", label: "Swiss Votation", desc: "Like Direct Democracy, but with structured deliberation and community verification." },
-  { value: "LIQUID_STANDARD", label: "Liquid Open", desc: "Anyone can delegate to anyone. Informal, for groups where members know each other." },
-  { value: "LIQUID_ACCOUNTABLE", label: "Full Accountability", desc: "Like Modern Democracy, but with mandatory predictions and public ballots." },
-  { value: "BOARD_PROXY", label: "Board Proxy", desc: "One delegate per member, non-transitive. For formal boards and committees." },
-  { value: "CIVIC_PARTICIPATORY", label: "Civic Participatory", desc: "Longer timelines, chain depth limits, blockchain integrity. For municipalities." },
+  { value: "LIQUID_DELEGATION", label: "Liquid Delegation", desc: "The recommended default. Delegation, deliberation, and full accountability." },
+  { value: "DIRECT_DEMOCRACY", label: "Direct Democracy", desc: "Everyone votes on everything. No delegation, no curation." },
+  { value: "SWISS_VOTATION", label: "Swiss Votation", desc: "Direct vote with structured deliberation and community verification." },
+  { value: "LIQUID_OPEN", label: "Liquid Open", desc: "Open delegation with public ballots and live results. For close-knit groups." },
+  { value: "REPRESENTATIVE", label: "Representative", desc: "Appointed representatives through declared candidates." },
+  { value: "CIVIC", label: "Civic", desc: "Longer timelines, full features. For municipalities and large organizations." },
 ];
 
 /** Full config shape for the customization modal. Matches GovernanceConfig sections. */
 interface ConfigDraft {
   preset: string;
   delegation: {
-    delegationMode: string;
-    topicScoped: boolean;
-    transitive: boolean;
-    maxDelegatesPerParticipant: number | null;
+    candidacy: boolean;
+    transferable: boolean;
   };
   ballot: {
-    secrecy: string;
-    votingMethod: string;
-    quorum: number;
-    resultsVisibility: string;
+    secret: boolean;
+    liveResults: boolean;
     allowVoteChange: boolean;
-    participationMode: string;
+    quorum: number;
+    method: "majority" | "supermajority";
   };
   features: {
     communityNotes: boolean;
+    predictions: boolean;
     surveys: boolean;
-    predictions: string;
   };
   timeline: {
     deliberationDays: number;
@@ -48,59 +44,52 @@ interface ConfigDraft {
 }
 
 const PRESET_CONFIGS: Record<string, ConfigDraft> = {
-  MODERN_DEMOCRACY: {
-    preset: "MODERN_DEMOCRACY",
-    delegation: { delegationMode: "candidacy", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
-    ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
-    features: { communityNotes: true, surveys: true, predictions: "encouraged" },
+  LIQUID_DELEGATION: {
+    preset: "LIQUID_DELEGATION",
+    delegation: { candidacy: true, transferable: true },
+    ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.1, method: "majority" },
+    features: { communityNotes: true, predictions: true, surveys: true },
     timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 },
   },
-  TOWN_HALL: {
-    preset: "TOWN_HALL",
-    delegation: { delegationMode: "none", topicScoped: false, transitive: false, maxDelegatesPerParticipant: null },
-    ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
-    features: { communityNotes: false, surveys: false, predictions: "disabled" },
+  DIRECT_DEMOCRACY: {
+    preset: "DIRECT_DEMOCRACY",
+    delegation: { candidacy: false, transferable: false },
+    ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0, method: "majority" },
+    features: { communityNotes: false, predictions: false, surveys: false },
     timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 },
   },
-  SWISS_MODEL: {
-    preset: "SWISS_MODEL",
-    delegation: { delegationMode: "none", topicScoped: false, transitive: false, maxDelegatesPerParticipant: null },
-    ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0.2, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
-    features: { communityNotes: true, surveys: false, predictions: "encouraged" },
+  SWISS_VOTATION: {
+    preset: "SWISS_VOTATION",
+    delegation: { candidacy: false, transferable: false },
+    ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.2, method: "majority" },
+    features: { communityNotes: true, predictions: true, surveys: false },
     timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 },
   },
-  LIQUID_STANDARD: {
-    preset: "LIQUID_STANDARD",
-    delegation: { delegationMode: "open", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
-    ballot: { secrecy: "public", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "live", allowVoteChange: false, participationMode: "voluntary" },
-    features: { communityNotes: false, surveys: false, predictions: "optional" },
+  LIQUID_OPEN: {
+    preset: "LIQUID_OPEN",
+    delegation: { candidacy: false, transferable: true },
+    ballot: { secret: false, liveResults: true, allowVoteChange: true, quorum: 0.1, method: "majority" },
+    features: { communityNotes: false, predictions: false, surveys: false },
     timeline: { deliberationDays: 5, curationDays: 0, votingDays: 5 },
   },
-  LIQUID_ACCOUNTABLE: {
-    preset: "LIQUID_ACCOUNTABLE",
-    delegation: { delegationMode: "candidacy", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
-    ballot: { secrecy: "public", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "live", allowVoteChange: false, participationMode: "voluntary" },
-    features: { communityNotes: true, surveys: true, predictions: "mandatory" },
-    timeline: { deliberationDays: 7, curationDays: 3, votingDays: 7 },
-  },
-  BOARD_PROXY: {
-    preset: "BOARD_PROXY",
-    delegation: { delegationMode: "open", topicScoped: false, transitive: false, maxDelegatesPerParticipant: 1 },
-    ballot: { secrecy: "secret", votingMethod: "simple-majority", quorum: 0.5, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
-    features: { communityNotes: false, surveys: false, predictions: "disabled" },
+  REPRESENTATIVE: {
+    preset: "REPRESENTATIVE",
+    delegation: { candidacy: true, transferable: false },
+    ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.5, method: "majority" },
+    features: { communityNotes: false, predictions: false, surveys: false },
     timeline: { deliberationDays: 3, curationDays: 0, votingDays: 3 },
   },
-  CIVIC_PARTICIPATORY: {
-    preset: "CIVIC_PARTICIPATORY",
-    delegation: { delegationMode: "open", topicScoped: true, transitive: true, maxDelegatesPerParticipant: null },
-    ballot: { secrecy: "anonymous-auditable", votingMethod: "simple-majority", quorum: 0.1, resultsVisibility: "sealed", allowVoteChange: true, participationMode: "voluntary" },
-    features: { communityNotes: true, surveys: true, predictions: "mandatory" },
+  CIVIC: {
+    preset: "CIVIC",
+    delegation: { candidacy: true, transferable: true },
+    ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.1, method: "majority" },
+    features: { communityNotes: true, predictions: true, surveys: true },
     timeline: { deliberationDays: 14, curationDays: 3, votingDays: 14 },
   },
 };
 
 function getDefaultConfig(): ConfigDraft {
-  return structuredClone(PRESET_CONFIGS["MODERN_DEMOCRACY"]!);
+  return structuredClone(PRESET_CONFIGS["LIQUID_DELEGATION"]!);
 }
 
 // ── Assembly list page ───────────────────────────────────────────────
@@ -176,7 +165,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
   const [error, setError] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
 
-  const isCustomized = config.preset !== "MODERN_DEMOCRACY";
+  const isCustomized = config.preset !== "LIQUID_DELEGATION";
   const presetInfo = PRESETS.find((p) => p.value === config.preset);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,7 +209,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
             {/* Governance summary — subtle, with customize link */}
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">
-                Governance: <span className="font-medium text-gray-700">{presetInfo?.label ?? "Modern Democracy"}</span>
+                Governance: <span className="font-medium text-gray-700">{presetInfo?.label ?? "Liquid Delegation"}</span>
                 {isCustomized && <span className="text-amber-600 ml-1">(customized)</span>}
               </span>
               <button
@@ -234,6 +223,41 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
             <p className="text-xs text-gray-400 -mt-2">
               Governance rules are permanent and apply to all votes in this group.
             </p>
+
+            {/* Timeline inputs */}
+            <div>
+              <Label>Timeline per vote</Label>
+              <div className="flex items-center gap-4 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="number" min={1} max={90}
+                    value={config.timeline.deliberationDays}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, deliberationDays: Number(e.target.value) } }))}
+                    className="w-16"
+                  />
+                  <span className="text-xs text-gray-500">deliberation</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="number" min={0} max={30}
+                    value={config.timeline.curationDays}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, curationDays: Number(e.target.value) } }))}
+                    className="w-16"
+                  />
+                  <span className="text-xs text-gray-500">curation</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="number" min={1} max={90}
+                    value={config.timeline.votingDays}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, votingDays: Number(e.target.value) } }))}
+                    className="w-16"
+                  />
+                  <span className="text-xs text-gray-500">voting</span>
+                </div>
+                <span className="text-xs text-gray-400">days</span>
+              </div>
+            </div>
 
             {/* Admission mode */}
             <div>
@@ -290,7 +314,7 @@ function ConfigModal({
 }) {
   const [draft, setDraft] = useState<ConfigDraft>(() => structuredClone(config));
 
-  const update = (section: "delegation" | "ballot" | "features" | "timeline", values: Record<string, unknown>) => {
+  const update = (section: "delegation" | "ballot" | "features", values: Record<string, unknown>) => {
     setDraft((prev) => ({ ...prev, [section]: { ...prev[section], ...values } }));
   };
 
@@ -344,42 +368,15 @@ function ConfigModal({
 
           {/* Delegation */}
           <Section title="Delegation">
-            <Row label="Mode">
-              <Select value={draft.delegation.delegationMode} onChange={(e) => update("delegation", { delegationMode: e.target.value })}>
-                <option value="candidacy">Declared candidates</option>
-                <option value="open">Open to any member</option>
-                <option value="none">Disabled (direct democracy)</option>
-              </Select>
-            </Row>
-            {draft.delegation.delegationMode !== "none" && (
-              <>
-                <Toggle label="Topic-scoped delegation" checked={draft.delegation.topicScoped} onChange={(v) => update("delegation", { topicScoped: v })} />
-                <Toggle label="Transitive chains" checked={draft.delegation.transitive} onChange={(v) => update("delegation", { transitive: v })} />
-              </>
-            )}
+            <Toggle label="Declared candidates" checked={draft.delegation.candidacy} onChange={(v) => update("delegation", { candidacy: v })} />
+            <Toggle label="Transferable (any member)" checked={draft.delegation.transferable} onChange={(v) => update("delegation", { transferable: v })} />
           </Section>
 
           {/* Ballot */}
           <Section title="Ballot & Voting">
-            <Row label="Secrecy">
-              <Select value={draft.ballot.secrecy} onChange={(e) => update("ballot", { secrecy: e.target.value })}>
-                <option value="secret">Secret ballot</option>
-                <option value="public">Public ballot</option>
-                <option value="anonymous-auditable">Anonymous (auditable)</option>
-              </Select>
-            </Row>
-            <Row label="Voting method">
-              <Select value={draft.ballot.votingMethod} onChange={(e) => update("ballot", { votingMethod: e.target.value })}>
-                <option value="simple-majority">Simple majority</option>
-                <option value="supermajority">Supermajority</option>
-              </Select>
-            </Row>
-            <Row label="Results visibility">
-              <Select value={draft.ballot.resultsVisibility} onChange={(e) => update("ballot", { resultsVisibility: e.target.value })}>
-                <option value="sealed">After voting ends</option>
-                <option value="live">Live (real-time)</option>
-              </Select>
-            </Row>
+            <Toggle label="Secret ballot" checked={draft.ballot.secret} onChange={(v) => update("ballot", { secret: v })} />
+            <Toggle label="Live results" checked={draft.ballot.liveResults} onChange={(v) => update("ballot", { liveResults: v })} />
+            <Toggle label="Allow vote changes during voting" checked={draft.ballot.allowVoteChange} onChange={(v) => update("ballot", { allowVoteChange: v })} />
             <Row label="Quorum">
               <div className="flex items-center gap-2">
                 <Input
@@ -391,62 +388,19 @@ function ConfigModal({
                 <span className="text-sm text-gray-500">%</span>
               </div>
             </Row>
-            <Toggle label="Allow vote changes during voting" checked={draft.ballot.allowVoteChange} onChange={(v) => update("ballot", { allowVoteChange: v })} />
-          </Section>
-
-          {/* Timeline */}
-          <Section title="Timeline">
-            <Row label="Deliberation">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number" min={1} max={90}
-                  value={draft.timeline.deliberationDays}
-                  onChange={(e) => update("timeline", { deliberationDays: Number(e.target.value) })}
-                  className="w-20"
-                />
-                <span className="text-sm text-gray-500">days</span>
-              </div>
+            <Row label="Voting method">
+              <Select value={draft.ballot.method} onChange={(e) => update("ballot", { method: e.target.value })}>
+                <option value="majority">Majority</option>
+                <option value="supermajority">Supermajority</option>
+              </Select>
             </Row>
-            <Row label="Curation">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number" min={0} max={30}
-                  value={draft.timeline.curationDays}
-                  onChange={(e) => update("timeline", { curationDays: Number(e.target.value) })}
-                  className="w-20"
-                />
-                <span className="text-sm text-gray-500">days</span>
-                {draft.timeline.curationDays === 0 && <span className="text-xs text-gray-400">(no curation phase)</span>}
-              </div>
-            </Row>
-            <Row label="Voting">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number" min={1} max={90}
-                  value={draft.timeline.votingDays}
-                  onChange={(e) => update("timeline", { votingDays: Number(e.target.value) })}
-                  className="w-20"
-                />
-                <span className="text-sm text-gray-500">days</span>
-              </div>
-            </Row>
-            <p className="text-xs text-gray-400">
-              Total: {draft.timeline.deliberationDays + draft.timeline.curationDays + draft.timeline.votingDays} days per vote
-            </p>
           </Section>
 
           {/* Features */}
           <Section title="Features">
             <Toggle label="Community notes" checked={draft.features.communityNotes} onChange={(v) => update("features", { communityNotes: v })} />
+            <Toggle label="Predictions" checked={draft.features.predictions} onChange={(v) => update("features", { predictions: v })} />
             <Toggle label="Surveys" checked={draft.features.surveys} onChange={(v) => update("features", { surveys: v })} />
-            <Row label="Predictions">
-              <Select value={draft.features.predictions} onChange={(e) => update("features", { predictions: e.target.value })}>
-                <option value="disabled">Disabled</option>
-                <option value="optional">Optional</option>
-                <option value="encouraged">Encouraged</option>
-                <option value="mandatory">Mandatory</option>
-              </Select>
-            </Row>
           </Section>
         </div>
 

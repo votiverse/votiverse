@@ -16,7 +16,7 @@ export interface VoteDef {
 
 export const VOTES: VoteDef[] = [
   // ════════════════════════════════════════════════════════════════════════
-  // Greenfield Community Council — TOWN_HALL (no delegation, all direct)
+  // Greenfield Community Council — DIRECT_DEMOCRACY (no delegation, all direct)
   // ════════════════════════════════════════════════════════════════════════
 
   // ── Spring Community Improvement Vote (CLOSED) ─────────────────────
@@ -92,7 +92,7 @@ export const VOTES: VoteDef[] = [
   ]),
 
   // ════════════════════════════════════════════════════════════════════════
-  // OSC Governance Board — LIQUID_STANDARD (with delegations)
+  // OSC Governance Board — LIQUID_OPEN (with delegations)
   // ════════════════════════════════════════════════════════════════════════
 
   // ── 2025 Roadmap Retrospective (CLOSED) ────────────────────────────
@@ -171,7 +171,7 @@ export const VOTES: VoteDef[] = [
   // No votes cast — all issues pending
 
   // ════════════════════════════════════════════════════════════════════════
-  // Municipal Budget Committee — CIVIC_PARTICIPATORY (with delegation chains)
+  // Municipal Budget Committee — CIVIC (with delegation chains)
   // ════════════════════════════════════════════════════════════════════════
 
   // ── Participatory Budget Cycle 2025 (CLOSED) ──────────────────────
@@ -260,7 +260,7 @@ export const VOTES: VoteDef[] = [
   ]),
 
   // ════════════════════════════════════════════════════════════════════════
-  // Youth Advisory Panel — LIQUID_ACCOUNTABLE (with simple delegations)
+  // Youth Advisory Panel — LIQUID_DELEGATION (with simple delegations)
   // ════════════════════════════════════════════════════════════════════════
 
   // ── Youth Program Priorities 2026 (VOTING — some votes) ────────────
@@ -288,7 +288,7 @@ export const VOTES: VoteDef[] = [
   ]),
 
   // ════════════════════════════════════════════════════════════════════════
-  // Maple Heights Condo Board — MODERN_DEMOCRACY
+  // Maple Heights Condo Board — LIQUID_DELEGATION
   // ════════════════════════════════════════════════════════════════════════
 
   // ── Emergency Roof Repair (CLOSED) ───────────────────────────────────
@@ -307,7 +307,7 @@ export const VOTES: VoteDef[] = [
   ]),
 
   // ════════════════════════════════════════════════════════════════════════
-  // Riverside Community Center — CIVIC_PARTICIPATORY (with topic delegations)
+  // Riverside Community Center — CIVIC (with topic delegations)
   // ════════════════════════════════════════════════════════════════════════
 
   // ── Spring Program & Facilities Review (CLOSED) ─────────────────────
@@ -367,7 +367,7 @@ export const VOTES: VoteDef[] = [
   ]),
 
   // ════════════════════════════════════════════════════════════════════════
-  // Board of Directors — BOARD_PROXY (non-transitive proxy)
+  // Board of Directors — REPRESENTATIVE (non-transitive proxy)
   // ════════════════════════════════════════════════════════════════════════
 
   // ── Q4 2025 Board Resolutions (CLOSED) ─────────────────────────────

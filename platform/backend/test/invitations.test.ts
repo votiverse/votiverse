@@ -10,7 +10,7 @@ import type { VCPRole, VCPAssembly, VCPParticipant } from "../src/services/vcp-c
 
 const ASSEMBLY_ID = "asm-test-001";
 const ASSEMBLY_NAME = "Test Assembly";
-const ASSEMBLY_CONFIG = { preset: "MODERN_DEMOCRACY" };
+const ASSEMBLY_CONFIG = { preset: "LIQUID_DELEGATION" };
 
 // ── Helpers ──────────────────────────────────────────────────────────
 

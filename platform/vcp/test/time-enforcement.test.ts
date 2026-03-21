@@ -30,7 +30,7 @@ describe("Time enforcement — voting windows", () => {
 
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Time Test Assembly",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const assembly = (await asmRes.json()) as { id: string };
     asmId = assembly.id;
@@ -245,10 +245,10 @@ describe("Time enforcement — sealed results", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // Use CIVIC_PARTICIPATORY which has sealed results
+    // Use CIVIC which has sealed results (liveResults=false)
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Sealed Test",
-      preset: "CIVIC_PARTICIPATORY",
+      preset: "CIVIC",
     });
     const assembly = (await asmRes.json()) as { id: string };
     asmId = assembly.id;
@@ -317,10 +317,10 @@ describe("Time enforcement — survey windows", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // Use LIQUID_ACCOUNTABLE which has surveys enabled
+    // Use LIQUID_DELEGATION which has surveys enabled
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Survey Time Test",
-      preset: "LIQUID_ACCOUNTABLE",
+      preset: "LIQUID_DELEGATION",
     });
     const assembly = (await asmRes.json()) as { id: string };
     asmId = assembly.id;

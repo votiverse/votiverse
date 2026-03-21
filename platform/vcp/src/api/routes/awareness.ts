@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import type { IssueId, ParticipantId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { getParticipantId } from "../middleware/auth.js";
-import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
+import { getDelegationVisibility } from "./shared.js";
 
 export function awarenessRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -31,14 +31,14 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secrecy } = info.config.ballot;
+    const { secret: isSecretBallot } = info.config.ballot;
 
     // Try materialized data first
     const cached = await manager.getConcentration(assemblyId, issueId);
     if (cached) {
       return c.json({
         ...cached,
-        maxWeightHolder: secrecy === "public" ? cached.maxWeightHolder : null,
+        maxWeightHolder: !isSecretBallot ? cached.maxWeightHolder : null,
       });
     }
 
@@ -50,7 +50,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
       issueId: metrics.issueId,
       giniCoefficient: metrics.giniCoefficient,
       maxWeight: metrics.maxWeight,
-      maxWeightHolder: secrecy === "public" ? metrics.maxWeightHolder : null,
+      maxWeightHolder: !isSecretBallot ? metrics.maxWeightHolder : null,
       chainLengthDistribution: Object.fromEntries(metrics.chainLengthDistribution),
       delegatingCount: metrics.delegatingCount,
       directVoterCount: metrics.directVoterCount,
@@ -71,12 +71,12 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secrecy } = info.config.ballot;
+    const { secret: isSecretBallot } = info.config.ballot;
     const isOwnHistory = callerId === pid;
 
-    // Under secret/anonymous-auditable ballot, only the participant can view their own history
+    // Under secret ballot, only the participant can view their own history
     // (participation patterns — which issues, when — are individual-level information)
-    if (secrecy !== "public" && !isOwnHistory) {
+    if (isSecretBallot && !isOwnHistory) {
       return c.json(
         { error: { code: "FORBIDDEN", message: "Voting history is restricted to the participant under secret ballot" } },
         403,
@@ -107,8 +107,8 @@ export function awarenessRoutes(manager: AssemblyManager) {
       })
       .map((e) => {
         const payload = e.payload as { participantId: string; issueId: string; choice: string };
-        // Under secret/anonymous-auditable ballot, only the participant sees their own choices
-        const includeChoice = secrecy === "public" || isOwnHistory;
+        // Under secret ballot, only the participant sees their own choices
+        const includeChoice = !isSecretBallot || isOwnHistory;
         return {
           issueId: payload.issueId,
           issueTitle: issueTitles.get(payload.issueId) ?? null,
@@ -135,7 +135,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
 
     const { engine } = await manager.getEngine(assemblyId);
     const callerId = getParticipantId(c);
-    const visibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
+    const visibility = getDelegationVisibility(info.config);
 
     // Build profile from delegations
     const allDelegations = await engine.delegation.listActive();
@@ -152,25 +152,9 @@ export function awarenessRoutes(manager: AssemblyManager) {
     if (visibility.mode === "private" && !isProfileSubject) {
       // Not the profile subject in private mode: count only, no IDs
       delegatorsIds = undefined;
-    } else if (isProfileSubject && visibility.incomingVisibility === "direct") {
-      // Profile subject sees direct delegators only
-      delegatorsIds = delegatorsToMe.map((d) => d.sourceId);
-    } else if (isProfileSubject && visibility.incomingVisibility === "chain") {
-      // Profile subject sees full upstream chain
-      const allUpstream = new Set<string>();
-      const findUpstream = (targetId: string) => {
-        const upstream = allDelegations.filter((d) => d.targetId === targetId);
-        for (const d of upstream) {
-          if (!allUpstream.has(d.sourceId)) {
-            allUpstream.add(d.sourceId);
-            findUpstream(d.sourceId);
-          }
-        }
-      };
-      findUpstream(pid);
-      delegatorsIds = [...allUpstream];
     } else {
-      // Public mode, not the subject: show all
+      // Public mode or profile subject: show direct delegators
+      // (incomingVisibility is always "direct" in the new config model)
       delegatorsIds = delegatorsToMe.map((d) => d.sourceId);
     }
 

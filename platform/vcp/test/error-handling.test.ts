@@ -20,7 +20,7 @@ describe("Error handling", () => {
     const req = new Request("http://localhost/assemblies", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Test", preset: "LIQUID_STANDARD" }),
+      body: JSON.stringify({ name: "Test", preset: "LIQUID_OPEN" }),
     });
     const res = await vcp.app.fetch(req);
     expect(res.status).toBe(401);
@@ -35,7 +35,7 @@ describe("Error handling", () => {
         "Content-Type": "application/json",
         Authorization: "Bearer invalid_key",
       },
-      body: JSON.stringify({ name: "Test", preset: "LIQUID_STANDARD" }),
+      body: JSON.stringify({ name: "Test", preset: "LIQUID_OPEN" }),
     });
     const res = await vcp.app.fetch(req);
     expect(res.status).toBe(401);
@@ -67,7 +67,7 @@ describe("Error handling", () => {
     // Create an assembly
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm = (await asmRes.json()) as { id: string };
 
@@ -79,7 +79,7 @@ describe("Error handling", () => {
   it("returns 501 for stub endpoints", async () => {
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm = (await asmRes.json()) as { id: string };
 
@@ -92,7 +92,7 @@ describe("Error handling", () => {
   it("handles duplicate participant names", async () => {
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm = (await asmRes.json()) as { id: string };
 
@@ -108,7 +108,7 @@ describe("Error handling", () => {
   it("returns 404 when deleting non-existent participant", async () => {
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_OPEN",
     });
     const asm = (await asmRes.json()) as { id: string };
 

@@ -10,7 +10,7 @@ import type { AdmissionMode } from "../src/services/assembly-cache.js";
 
 const ASSEMBLY_ID = "asm-admission-001";
 const ASSEMBLY_NAME = "Admission Test Assembly";
-const ASSEMBLY_CONFIG = { preset: "MODERN_DEMOCRACY" };
+const ASSEMBLY_CONFIG = { preset: "LIQUID_DELEGATION" };
 
 function authHeader(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };

@@ -58,7 +58,7 @@ function buildSteps(config: GovernanceConfig, assemblyName: string): Step[] {
     timelineLines.push(`Curation: ${tl.curationDays} day${tl.curationDays !== 1 ? "s" : ""} for the panel to review and finalize proposals.`);
   }
   timelineLines.push(`Voting: ${tl.votingDays} day${tl.votingDays !== 1 ? "s" : ""} to cast your vote.`);
-  if (config.ballot.secrecy === "secret") {
+  if (config.ballot.secret) {
     timelineLines.push("Ballots are secret — results are revealed only after voting closes.");
   }
   if (config.ballot.allowVoteChange) {
@@ -71,16 +71,15 @@ function buildSteps(config: GovernanceConfig, assemblyName: string): Step[] {
   });
 
   // 3. Delegation (conditional)
-  if (config.delegation.delegationMode !== "none") {
+  const delegationEnabled = config.delegation.candidacy || config.delegation.transferable;
+  if (delegationEnabled) {
     const delegationLines = [
       "You don't have to vote on everything.",
-      config.delegation.delegationMode === "candidacy"
+      config.delegation.candidacy
         ? "You can delegate your vote to declared candidates who have published their positions."
         : "You can delegate your vote to any member you trust.",
     ];
-    if (config.delegation.topicScoped) {
-      delegationLines.push("Delegations can be scoped by topic — different delegates for different subjects.");
-    }
+    delegationLines.push("Delegations can be scoped by topic — different delegates for different subjects.");
     delegationLines.push(
       "You always keep the final say: voting directly on any question automatically overrides your delegation for that question.",
     );
@@ -99,7 +98,7 @@ function buildSteps(config: GovernanceConfig, assemblyName: string): Step[] {
   if (config.features.surveys) {
     featureLines.push("Surveys capture member observations — what's working, what isn't. This evidence feeds into accountability and helps inform future decisions.");
   }
-  if (config.features.predictions !== "disabled") {
+  if (config.features.predictions) {
     featureLines.push("Predictions let members forecast outcomes before votes close, building a track record of judgment over time.");
   }
   if (featureLines.length > 0) {
@@ -114,7 +113,7 @@ function buildSteps(config: GovernanceConfig, assemblyName: string): Step[] {
   // 5. Getting started (always)
   const startLines = ["You're all set. Here's what you can do now:"];
   startLines.push("Browse active votes and upcoming proposals on the dashboard.");
-  if (config.delegation.delegationMode !== "none") {
+  if (delegationEnabled) {
     startLines.push("Set up your delegations — choose people you trust to vote on your behalf.");
   }
   startLines.push("Explore the member list to see who's in this group.");

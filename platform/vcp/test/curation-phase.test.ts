@@ -18,10 +18,10 @@ describe("Curation phase enforcement", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // Create assembly with MODERN_DEMOCRACY (7d deliberation, 2d curation, 7d voting)
+    // Create assembly with LIQUID_DELEGATION (7d deliberation, 2d curation, 7d voting)
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Curation Phase Test",
-      preset: "MODERN_DEMOCRACY",
+      preset: "LIQUID_DELEGATION",
     });
     asmId = ((await asmRes.json()) as { id: string }).id;
 
@@ -57,7 +57,7 @@ describe("Curation phase enforcement", () => {
       const votingStart = new Date(event.timeline.votingStart).getTime();
       const votingEnd = new Date(event.timeline.votingEnd).getTime();
 
-      // MODERN_DEMOCRACY: 7d deliberation + 2d curation + 7d voting
+      // LIQUID_DELEGATION: 7d deliberation + 2d curation + 7d voting
       expect(deliberationStart).toBe(startDate);
       expect(votingStart).toBe(startDate + (7 + 2) * DAY);
       expect(votingEnd).toBe(startDate + (7 + 2 + 7) * DAY);
@@ -155,10 +155,10 @@ describe("Curation phase enforcement", () => {
 
   describe("no-curation assembly (curationDays=0)", () => {
     it("transitions directly from deliberation to voting without curation phase", async () => {
-      // Create assembly with TOWN_HALL (0 curation days)
+      // Create assembly with DIRECT_DEMOCRACY (0 curation days)
       const asmRes = await vcp.request("POST", "/assemblies", {
         name: "No-Curation Test",
-        preset: "TOWN_HALL",
+        preset: "DIRECT_DEMOCRACY",
       });
       const noCurAsmId = ((await asmRes.json()) as { id: string }).id;
 
@@ -166,7 +166,7 @@ describe("Curation phase enforcement", () => {
       const dave = (await p1Res.json()) as { id: string };
 
       const now = vcp.clock.now() as number;
-      // TOWN_HALL: 7d deliberation, 0d curation, 7d voting
+      // DIRECT_DEMOCRACY: 7d deliberation, 0d curation, 7d voting
       // Start deliberation 8 days ago → deliberation ended 1 day ago → should be in voting
       const eventRes = await vcp.request("POST", `/assemblies/${noCurAsmId}/events`, {
         title: "Direct Vote",

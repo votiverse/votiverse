@@ -7,7 +7,7 @@ import type { ParticipantId, IssueId, VotingEventId, VoteChoice } from "@votiver
 import { ValidationError } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, getParticipantId } from "../middleware/auth.js";
-import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
+import { getDelegationVisibility } from "./shared.js";
 
 export function votingRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -74,10 +74,9 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { resultsVisibility } = info.config.ballot;
     const now = manager.timeProvider.now();
     const votingEnded = votingEvent.timeline.votingEnd <= now;
-    const isSealed = resultsVisibility === "sealed" && !votingEnded;
+    const isSealed = !info.config.ballot.liveResults && !votingEnded;
 
     // For closed events, try materialized data first; compute live for open events
     const tallies = [];
@@ -165,8 +164,8 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secrecy, delegateVoteVisibility } = info.config.ballot;
-    const delegationVisibility = info.config.delegation.visibility ?? DEFAULT_DELEGATION_VISIBILITY;
+    const { secret: isSecretBallot } = info.config.ballot;
+    const delegationVisibility = getDelegationVisibility(info.config);
 
     // Access control: in private delegation mode, you can only query your own participation
     // Exception: vote transparency — delegators can query their transparent delegate's records
@@ -236,17 +235,14 @@ export function votingRoutes(manager: AssemblyManager) {
       const isOwnRecord = callerId === record.participantId;
       let filteredChoice: unknown = record.effectiveChoice;
 
-      if (secrecy !== "public") {
-        // Secret or anonymous-auditable: restrict who sees choices
+      if (isSecretBallot) {
+        // Secret ballot: restrict who sees choices
         if (isOwnRecord && record.status === "direct") {
           // You always know your own direct vote
           filteredChoice = record.effectiveChoice;
         } else if (isOwnRecord && record.status === "delegated") {
-          // You delegated — can you see how your delegate voted?
-          if (delegateVoteVisibility === "private") {
-            filteredChoice = null;
-          }
-          // "public" or "delegators-only": you ARE the delegator, so you can see
+          // Delegates are always accountable to delegators — you can see how they voted
+          filteredChoice = record.effectiveChoice;
         } else if (
           // Vote transparency: caller delegates to this participant,
           // and the participant is an opted-in candidate
@@ -319,10 +315,10 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secrecy, resultsVisibility } = info.config.ballot;
+    const { secret: isSecretBallot, liveResults } = info.config.ballot;
 
     // Per-participant weights reveal who voted — forbidden under secret ballot
-    if (secrecy !== "public") {
+    if (isSecretBallot) {
       return c.json(
         { error: { code: "FORBIDDEN", message: "Per-participant weight breakdown is not available under secret ballot" } },
         403,
@@ -332,7 +328,7 @@ export function votingRoutes(manager: AssemblyManager) {
     // Sealed results: weights not available until voting ends
     const now = manager.timeProvider.now();
     if (
-      resultsVisibility === "sealed" &&
+      !liveResults &&
       votingEvent.timeline.votingEnd > now
     ) {
       return c.json(

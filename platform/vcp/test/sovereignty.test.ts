@@ -21,10 +21,10 @@ describe("Delegation sovereignty & visibility", () => {
   beforeEach(async () => {
     vcp = await createTestVCP();
 
-    // Create assembly with LIQUID_STANDARD (public visibility, revocableAnytime)
+    // Create assembly with LIQUID_DELEGATION (candidacy=true → public delegation visibility)
     const asmRes = await vcp.request("POST", "/assemblies", {
       name: "Sovereignty Test",
-      preset: "LIQUID_STANDARD",
+      preset: "LIQUID_DELEGATION",
     });
     const assembly = (await asmRes.json()) as { id: string };
     asmId = assembly.id;
@@ -109,7 +109,7 @@ describe("Delegation sovereignty & visibility", () => {
     });
 
     it("public mode: all delegations visible to anyone", async () => {
-      // LIQUID_STANDARD has public visibility
+      // LIQUID_DELEGATION has public delegation visibility (candidacy=true)
       const res = await vcp.request("GET", `/assemblies/${asmId}/delegations`, undefined, {
         "X-Participant-Id": carol.id,
       });
@@ -152,10 +152,10 @@ describe("Delegation sovereignty & visibility", () => {
     let pCarol: { id: string };
 
     beforeEach(async () => {
-      // Create assembly with CIVIC_PARTICIPATORY (private visibility)
+      // Create assembly with LIQUID_OPEN (candidacy=false → private delegation visibility)
       const asmRes = await vcp.request("POST", "/assemblies", {
         name: "Private Visibility Test",
-        preset: "CIVIC_PARTICIPATORY",
+        preset: "LIQUID_OPEN",
       });
       const assembly = (await asmRes.json()) as { id: string };
       privateAsmId = assembly.id;
@@ -295,12 +295,12 @@ describe("Delegation sovereignty & visibility", () => {
     });
   });
 
-  describe("revocableAnytime enforcement", () => {
-    it("BOARD_PROXY rejects revocation (revocableAnytime=false)", async () => {
-      // Create assembly with BOARD_PROXY
+  describe("revocation always allowed", () => {
+    it("REPRESENTATIVE allows revocation (revocable by design)", async () => {
+      // Create assembly with REPRESENTATIVE
       const asmRes = await vcp.request("POST", "/assemblies", {
         name: "Board Test",
-        preset: "BOARD_PROXY",
+        preset: "REPRESENTATIVE",
       });
       const boardAsm = (await asmRes.json()) as { id: string };
 
@@ -319,9 +319,9 @@ describe("Delegation sovereignty & visibility", () => {
       expect(delRes.status).toBe(201);
       const delegation = (await delRes.json()) as { id: string };
 
-      // Try to revoke — should fail with governance rule violation
+      // Revocation is always allowed in the new model
       const revokeRes = await vcp.requestAs(bAlice!.id, "DELETE", `/assemblies/${boardAsm.id}/delegations/${delegation.id}`);
-      expect(revokeRes.status).toBe(409); // GovernanceRuleViolation returns 409
+      expect(revokeRes.status).toBe(204);
     });
   });
 });

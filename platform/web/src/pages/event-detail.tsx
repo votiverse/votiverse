@@ -102,11 +102,11 @@ export function EventDetail() {
 
   // Extract config from assembly (must be before early returns — rules of hooks)
   const delegationConfig: DelegationConfig = useMemo(() => ({
-    enabled: (assembly?.config.delegation.delegationMode ?? "none") !== "none",
-    topicScoped: assembly?.config.delegation.topicScoped ?? false,
+    enabled: (assembly?.config.delegation.candidacy || assembly?.config.delegation.transferable) ?? false,
+    topicScoped: (assembly?.config.delegation.candidacy || assembly?.config.delegation.transferable) ?? false,
   }), [assembly]);
 
-  const resultsVisibility = assembly?.config.ballot.resultsVisibility ?? "sealed";
+  const resultsVisibility = assembly?.config.ballot.secret ? "sealed" : (assembly?.config.ballot.liveResults ? "live" : "sealed");
   const allowVoteChange = assembly?.config.ballot.allowVoteChange ?? true;
   const attention = useAttention();
 

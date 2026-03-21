@@ -6,11 +6,9 @@
  */
 
 import { Hono } from "hono";
-import type { TopicId, ParticipantId } from "@votiverse/core";
+import type { TopicId } from "@votiverse/core";
 import type { Delegation } from "@votiverse/delegation";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { getParticipantId } from "../middleware/auth.js";
-import { DEFAULT_DELEGATION_VISIBILITY } from "./shared.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function topicQueryRoutes(manager: AssemblyManager) {
