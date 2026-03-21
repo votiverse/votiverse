@@ -11,6 +11,7 @@ export default defineConfig({
     css: false,
   },
   server: {
+    host: process.env.TAURI_DEV_HOST || "localhost",
     port: 5173,
     proxy: {
       "/api": {

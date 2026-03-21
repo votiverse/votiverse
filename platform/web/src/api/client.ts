@@ -614,4 +614,23 @@ export function withdrawNote(
   return request("POST", `/assemblies/${assemblyId}/notes/${noteId}/withdraw`);
 }
 
+// ---- Push Notification Device Tokens ----
+
+export function registerDevice(
+  platform: "ios" | "android",
+  token: string,
+): Promise<{ deviceId: string }> {
+  return request("POST", "/me/devices", { platform, token });
+}
+
+export function listDevices(): Promise<{
+  devices: Array<{ id: string; platform: string; token_preview: string; created_at: string; updated_at: string }>;
+}> {
+  return request("GET", "/me/devices");
+}
+
+export function unregisterDevice(deviceId: string): Promise<void> {
+  return request("DELETE", `/me/devices/${deviceId}`);
+}
+
 export { ApiError };
