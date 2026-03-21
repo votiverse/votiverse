@@ -7,6 +7,9 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import * as auth from "../api/auth.js";
+import { registerForPushNotifications } from "../lib/push.js";
+import { registerDevice } from "../api/client.js";
+import { isTauri } from "../lib/tauri.js";
 
 export interface IdentityMembership {
   assemblyId: string;
@@ -64,6 +67,22 @@ interface UserState {
   memberships: IdentityMembership[];
 }
 
+/** Register for push notifications and send device token to backend. Fire-and-forget. */
+function tryPushRegistration(): void {
+  if (!isTauri) return;
+  void (async () => {
+    try {
+      const token = await registerForPushNotifications();
+      if (token) {
+        const platform = /iPad|iPhone|iPod/.test(navigator.userAgent) ? "ios" as const : "android" as const;
+        await registerDevice(platform, token);
+      }
+    } catch (err) {
+      console.warn("Push registration failed:", err);
+    }
+  })();
+}
+
 export function useIdentityProvider(): IdentityCtx {
   const [user, setUser] = useState<UserState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,6 +105,7 @@ export function useIdentityProvider(): IdentityCtx {
               participantId: m.participantId,
             })),
           });
+          tryPushRegistration();
         }
       } catch {
         // No valid session
@@ -115,11 +135,13 @@ export function useIdentityProvider(): IdentityCtx {
     } else {
       setUser({ id: authUser.id, name: authUser.name, handle: authUser.handle ?? null, email: authUser.email, memberships: [] });
     }
+    tryPushRegistration();
   }, []);
 
   const register = useCallback(async (email: string, password: string, name: string, handle?: string) => {
     const { user: authUser } = await auth.register(email, password, name, handle);
     setUser({ id: authUser.id, name: authUser.name, handle: authUser.handle ?? null, email: authUser.email, memberships: [] });
+    tryPushRegistration();
   }, []);
 
   const doLogout = useCallback(async () => {
