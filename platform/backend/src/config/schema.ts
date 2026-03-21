@@ -65,7 +65,7 @@ export function loadConfig(): BackendConfig {
 }
 
 function parseCorsOrigins(envValue: string | undefined): string[] {
-  if (!envValue) return ["http://localhost:5173", "http://localhost:5174", "tauri://localhost", "https://tauri.localhost"];
+  if (!envValue) return ["http://localhost:5173", "http://localhost:5174", "tauri://localhost", "https://tauri.localhost", "http://tauri.localhost"];
   return envValue.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
