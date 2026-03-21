@@ -13,7 +13,7 @@ describe("PredictionService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new PredictionService(store, getPreset("LIQUID_ACCOUNTABLE"));
+    service = new PredictionService(store, getPreset("LIQUID_DELEGATION"));
   });
 
   const claim: PredictionClaim = {
@@ -50,7 +50,7 @@ describe("PredictionService", () => {
     });
 
     it("throws when predictions are disabled", async () => {
-      const disabled = new PredictionService(store, getPreset("TOWN_HALL"));
+      const disabled = new PredictionService(store, getPreset("DIRECT_DEMOCRACY"));
       await expect(
         disabled.commit({
           proposalId: "prop-1" as ProposalId,

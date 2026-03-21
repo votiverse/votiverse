@@ -13,7 +13,7 @@ describe("SurveyService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new SurveyService(store, getPreset("LIQUID_ACCOUNTABLE"));
+    service = new SurveyService(store, getPreset("LIQUID_DELEGATION"));
   });
 
   describe("create()", () => {
@@ -44,7 +44,7 @@ describe("SurveyService", () => {
     });
 
     it("throws when surveys are disabled", async () => {
-      const disabled = new SurveyService(store, getPreset("TOWN_HALL"));
+      const disabled = new SurveyService(store, getPreset("DIRECT_DEMOCRACY"));
       await expect(
         disabled.create({
           title: "Test",

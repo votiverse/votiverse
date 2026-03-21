@@ -52,7 +52,7 @@ export class PredictionService {
    * a PredictionCommitted event. The prediction is immutable after this.
    */
   async commit(params: CommitPredictionParams): Promise<Prediction> {
-    if (this.config.features.predictions === "disabled") {
+    if (!this.config.features.predictions) {
       throw new ValidationError(
         "predictions",
         "Predictions are disabled in the current configuration",

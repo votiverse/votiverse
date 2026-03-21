@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore } from "@votiverse/core";
-import { getPreset, deriveConfig } from "@votiverse/config";
+// No config imports needed — IntegrityService no longer takes config
 import {
   hashArtifact,
   commitArtifact,
@@ -164,20 +164,20 @@ describe("IntegrityService", () => {
     store = new InMemoryEventStore();
   });
 
-  it("uses NoOpAnchor by default when blockchain disabled", () => {
-    const service = new IntegrityService(store, getPreset("LIQUID_STANDARD"));
+  it("uses NoOpAnchor by default", () => {
+    const service = new IntegrityService(store);
     expect(service.getAnchor().anchorName).toBe("no-op");
   });
 
   it("accepts custom anchor", () => {
     const anchor = new InMemoryAnchor();
-    const service = new IntegrityService(store, getPreset("CIVIC_PARTICIPATORY"), anchor);
+    const service = new IntegrityService(store, anchor);
     expect(service.getAnchor().anchorName).toBe("in-memory");
   });
 
   it("full commit/verify flow through service", async () => {
     const anchor = new InMemoryAnchor();
-    const service = new IntegrityService(store, getPreset("CIVIC_PARTICIPATORY"), anchor);
+    const service = new IntegrityService(store, anchor);
 
     const data = { event: "budget-vote", result: "passed" };
     const commitment = await service.commit("vote-tally", data);

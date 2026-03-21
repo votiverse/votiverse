@@ -13,7 +13,7 @@ import type {
   DelegationCreatedEvent,
   VoteCastEvent,
 } from "@votiverse/core";
-import { getPreset, deriveConfig } from "@votiverse/config";
+import { getPreset } from "@votiverse/config";
 import { AwarenessService } from "../../src/awareness-service.js";
 import type { IssueContext } from "../../src/awareness-service.js";
 
@@ -69,12 +69,7 @@ describe("AwarenessService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new AwarenessService(
-      store,
-      deriveConfig(getPreset("LIQUID_STANDARD"), {
-        thresholds: { concentrationAlertThreshold: 0.3 },
-      }),
-    );
+    service = new AwarenessService(store, getPreset("LIQUID_OPEN"));
     ts = 1000;
   });
 
@@ -93,20 +88,19 @@ describe("AwarenessService", () => {
       expect(report.hasAlerts).toBe(true);
       expect(report.alerts).toHaveLength(1);
       expect(report.alerts[0]!.delegateId).toBe(pid("dave"));
-      // Dave has weight 4 out of 5 eligible = 80% > 30% threshold
+      // Dave has weight 4 out of 5 eligible = 80% > 15% threshold
       expect(report.alerts[0]!.weight).toBe(4);
       expect(report.alerts[0]!.weightFraction).toBeCloseTo(0.8);
     });
 
     it("no alerts when weight is evenly distributed", async () => {
-      // With 5 voters each having weight 1, fraction = 0.2 < 0.3 threshold
-      await store.append(voteEvent("alice", "issue-1"));
-      await store.append(voteEvent("bob", "issue-1"));
-      await store.append(voteEvent("carol", "issue-1"));
-      await store.append(voteEvent("dave", "issue-1"));
-      await store.append(voteEvent("eve", "issue-1"));
+      // With 7 voters each having weight 1, fraction = 1/7 ≈ 0.143 < 0.15 threshold
+      const voters = ["alice", "bob", "carol", "dave", "eve", "frank", "grace"];
+      for (const v of voters) {
+        await store.append(voteEvent(v, "issue-1"));
+      }
 
-      const ctx = makeContext("issue-1", ["alice", "bob", "carol", "dave", "eve"]);
+      const ctx = makeContext("issue-1", voters);
       const report = await service.concentration(ctx);
 
       expect(report.hasAlerts).toBe(false);

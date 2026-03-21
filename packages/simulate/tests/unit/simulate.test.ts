@@ -16,7 +16,7 @@ function makeScenario(overrides?: Partial<SimulationScenario>): SimulationScenar
     name: "Test Scenario",
     description: "A basic test scenario",
     seed: 42,
-    config: "LIQUID_ACCOUNTABLE",
+    config: "LIQUID_DELEGATION",
     topics: [{ name: "Finance" }, { name: "Education" }],
     population: {
       count: 20,

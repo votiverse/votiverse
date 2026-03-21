@@ -19,7 +19,6 @@ import {
   generateEventId,
   now,
   ValidationError,
-  GovernanceRuleViolation,
 } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import type {
@@ -40,6 +39,9 @@ import {
   computeConcentrationMetrics,
 } from "./graph.js";
 
+/** Callback to check whether a participant has declared candidacy. */
+export type CandidacyChecker = (participantId: ParticipantId) => Promise<boolean>;
+
 /**
  * Service for managing delegations and computing delegation graphs.
  */
@@ -47,13 +49,24 @@ export class DelegationService {
   constructor(
     private readonly eventStore: EventStore,
     private readonly config: GovernanceConfig,
+    private readonly candidacyChecker?: CandidacyChecker,
   ) {}
+
+  /** Whether delegation is enabled in the current config. */
+  private get delegationEnabled(): boolean {
+    return this.config.delegation.candidacy || this.config.delegation.transferable;
+  }
+
+  /** Whether we're in proxy/representative mode (candidacy only, no chains). */
+  private get isProxyMode(): boolean {
+    return this.config.delegation.candidacy && !this.config.delegation.transferable;
+  }
 
   /**
    * Creates a new delegation from source to target on the given topic scope.
    */
   async create(params: CreateDelegationParams): Promise<Delegation> {
-    if (this.config.delegation.delegationMode === "none") {
+    if (!this.delegationEnabled) {
       throw new ValidationError(
         "delegation",
         "Delegation is disabled in the current configuration",
@@ -64,14 +77,13 @@ export class DelegationService {
       throw new ValidationError("targetId", "Cannot delegate to yourself");
     }
 
-    // Check max delegates per participant
-    if (this.config.delegation.maxDelegatesPerParticipant !== null) {
-      const active = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
-      const existingDelegations = active.filter((d) => d.sourceId === params.sourceId);
-      if (existingDelegations.length >= this.config.delegation.maxDelegatesPerParticipant) {
+    // In proxy mode, only declared candidates can receive delegations
+    if (this.isProxyMode && this.candidacyChecker) {
+      const isCandidate = await this.candidacyChecker(params.targetId);
+      if (!isCandidate) {
         throw new ValidationError(
-          "delegation",
-          `Maximum ${this.config.delegation.maxDelegatesPerParticipant} delegation(s) per participant exceeded`,
+          "targetId",
+          "In representative mode, you can only delegate to declared candidates",
         );
       }
     }
@@ -108,21 +120,10 @@ export class DelegationService {
   /**
    * Revokes a delegation from source on the given topic scope.
    * Finds the matching active delegation and records a revocation event.
+   * Revocation is always permitted — it is a core sovereignty right.
    */
   async revoke(params: RevokeDelegationParams): Promise<void> {
-    // Enforce revocableAnytime governance rule (sunset bypass via revokedBy)
-    const initiator = params.revokedBy ?? { kind: "source" as const };
-    if (!this.config.delegation.revocableAnytime && initiator.kind === "source") {
-      // DECISION NEEDED: BOARD_PROXY has revocableAnytime=false. The whitepaper's
-      // "revocable before meeting" semantic requires future work where the engine
-      // accepts a voting event context and checks timing.
-      throw new GovernanceRuleViolation(
-        "revocableAnytime",
-        "Delegation revocation is not permitted in the current configuration",
-      );
-    }
-
-    const active = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
+    const active = await buildActiveDelegations(this.eventStore);
     const matching = active.find(
       (d) => d.sourceId === params.sourceId && topicScopeMatches(d.topicScope, params.topicScope),
     );
@@ -151,7 +152,7 @@ export class DelegationService {
    * Lists all active delegations, optionally filtered by source participant.
    */
   async listActive(sourceId?: ParticipantId): Promise<readonly Delegation[]> {
-    const all = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
+    const all = await buildActiveDelegations(this.eventStore);
     if (sourceId !== undefined) {
       return all.filter((d) => d.sourceId === sourceId);
     }
@@ -160,14 +161,16 @@ export class DelegationService {
 
   /**
    * Builds the delegation graph for an issue.
+   * In proxy mode (candidacy=true, transferable=false), chains are truncated at depth 1.
    */
   async buildGraph(
     issueId: IssueId,
     topicId: TopicId | null,
     topicAncestors?: ReadonlyMap<TopicId, readonly TopicId[]>,
   ): Promise<DelegationGraph> {
-    const delegations = await buildActiveDelegations(this.eventStore, { maxAge: this.config.delegation.maxAge });
-    return buildDelegationGraph(issueId, topicId, delegations, topicAncestors ?? new Map());
+    const delegations = await buildActiveDelegations(this.eventStore);
+    const maxChainDepth = this.isProxyMode ? 1 : Infinity;
+    return buildDelegationGraph(issueId, topicId, delegations, topicAncestors ?? new Map(), maxChainDepth);
   }
 
   /**

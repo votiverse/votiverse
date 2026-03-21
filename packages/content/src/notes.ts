@@ -143,10 +143,13 @@ export class NoteService {
    * Compute the visibility of a note based on the assembly's configured thresholds.
    */
   computeVisibility(note: NoteMetadata): NoteVisibility {
+    const NOTE_MIN_EVALUATIONS = 3;
+    const NOTE_VISIBILITY_THRESHOLD = 0.3;
+
     const total = note.endorsementCount + note.disputeCount;
-    const belowMin = total < this.config.features.noteMinEvaluations;
+    const belowMin = total < NOTE_MIN_EVALUATIONS;
     const ratio = total === 0 ? 0 : note.endorsementCount / total;
-    const visible = !belowMin && ratio >= this.config.features.noteVisibilityThreshold;
+    const visible = !belowMin && ratio >= NOTE_VISIBILITY_THRESHOLD;
 
     return {
       visible,

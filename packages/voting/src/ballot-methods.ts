@@ -311,12 +311,13 @@ export class ApprovalVoting implements BallotMethod {
 /**
  * Creates a BallotMethod instance from the voting method name.
  */
-export function createBallotMethod(method: string, supermajorityThreshold?: number): BallotMethod {
+export function createBallotMethod(method: string, supermajorityThreshold: number = 2 / 3): BallotMethod {
   switch (method) {
+    case "majority":
     case "simple-majority":
       return new SimpleMajority();
     case "supermajority":
-      return new Supermajority(supermajorityThreshold ?? 0.67);
+      return new Supermajority(supermajorityThreshold);
     case "ranked-choice":
       return new RankedChoice();
     case "approval":

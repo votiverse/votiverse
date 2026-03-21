@@ -40,7 +40,7 @@ describe("CLI end-to-end: voting event with delegations", () => {
     const out = new TestOutput();
 
     // 1. Initialize with Liquid Standard preset
-    await cmdInit("LIQUID_STANDARD", out);
+    await cmdInit("LIQUID_OPEN", out);
     expect(out.messages.some((m) => m.includes("Initialized"))).toBe(true);
 
     // 2. Add participants
@@ -108,7 +108,7 @@ describe("CLI end-to-end: voting event with delegations", () => {
   it("override rule: direct vote overrides delegation", async () => {
     const out = new TestOutput();
 
-    await cmdInit("LIQUID_STANDARD", out);
+    await cmdInit("LIQUID_OPEN", out);
     await cmdParticipantAdd("Alice", out);
     await cmdParticipantAdd("Bob", out);
 
@@ -141,7 +141,7 @@ describe("CLI end-to-end: voting event with delegations", () => {
 
     // Init then show/validate
     const out = new TestOutput();
-    await cmdInit("TOWN_HALL", out);
+    await cmdInit("DIRECT_DEMOCRACY", out);
 
     const showOut = new TestOutput();
     await cmdConfigShow(showOut);
@@ -154,7 +154,7 @@ describe("CLI end-to-end: voting event with delegations", () => {
 
   it("status command shows instance info", async () => {
     const out = new TestOutput();
-    await cmdInit("LIQUID_STANDARD", out);
+    await cmdInit("LIQUID_OPEN", out);
     await cmdParticipantAdd("Alice", out);
 
     const statusOut = new TestOutput();
@@ -165,7 +165,7 @@ describe("CLI end-to-end: voting event with delegations", () => {
 
   it("events log shows recorded events", async () => {
     const out = new TestOutput();
-    await cmdInit("LIQUID_STANDARD", out);
+    await cmdInit("LIQUID_OPEN", out);
     await cmdParticipantAdd("Alice", out);
 
     const logOut = new TestOutput();

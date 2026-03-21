@@ -10,7 +10,7 @@ function hash(s: string): ContentHash { return s as ContentHash; }
 
 /** Create a config with community notes enabled. */
 function notesConfig(overrides?: Partial<GovernanceConfig["features"]>): GovernanceConfig {
-  const base = getPreset("LIQUID_ACCOUNTABLE"); // has communityNotes: true
+  const base = getPreset("LIQUID_DELEGATION"); // has communityNotes: true
   return {
     ...base,
     features: { ...base.features, ...overrides },

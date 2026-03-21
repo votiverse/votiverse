@@ -25,8 +25,8 @@ function tid(s: string): TopicId { return s as TopicId; }
 function hash(s: string): ContentHash { return s as ContentHash; }
 
 const config = {
-  ...getPreset("LIQUID_ACCOUNTABLE"),
-  features: { ...getPreset("LIQUID_ACCOUNTABLE").features, communityNotes: true },
+  ...getPreset("LIQUID_DELEGATION"),
+  features: { ...getPreset("LIQUID_DELEGATION").features, communityNotes: true },
 };
 
 describe("Immutability guarantees", () => {

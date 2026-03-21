@@ -158,10 +158,7 @@ export class VotingService {
     }
 
     // Get ballot method from config
-    const method = createBallotMethod(
-      this.config.ballot.votingMethod,
-      this.config.ballot.supermajorityThreshold,
-    );
+    const method = createBallotMethod(this.config.ballot.method);
 
     return method.tally(
       weightedVotes,

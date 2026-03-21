@@ -34,15 +34,10 @@ import type {
 export interface BuildActiveDelegationsOptions {
   /** Only consider events before this timestamp. */
   readonly before?: Timestamp;
-  /** Maximum delegation age in ms. null = no expiry. */
-  readonly maxAge?: number | null;
-  /** Reference time for expiry computation. Defaults to Date.now(). */
-  readonly asOf?: Timestamp;
 }
 
 /**
  * Replays the event log to build the current set of active delegations.
- * Optionally filters out expired delegations when `maxAge` is set.
  */
 export async function buildActiveDelegations(
   eventStore: EventStore,
@@ -74,16 +69,7 @@ export async function buildActiveDelegations(
     }
   }
 
-  let result = [...delegations.values()].filter((d) => d.active);
-
-  // Apply TTL expiry filtering
-  const maxAge = options?.maxAge;
-  if (maxAge !== undefined && maxAge !== null) {
-    const asOf = options?.asOf ?? (Date.now() as Timestamp);
-    result = result.filter((d) => (asOf - d.createdAt) <= maxAge);
-  }
-
-  return result;
+  return [...delegations.values()].filter((d) => d.active);
 }
 
 /**
@@ -221,6 +207,7 @@ export function buildDelegationGraph(
   topicId: TopicId | null,
   activeDelegations: readonly Delegation[],
   topicAncestors: ReadonlyMap<TopicId, readonly TopicId[]>,
+  maxChainDepth: number = Infinity,
 ): DelegationGraph {
   // Group delegations by source
   const bySource = new Map<ParticipantId, Delegation[]>();
@@ -247,6 +234,25 @@ export function buildDelegationGraph(
       });
       adjacency.set(sourceId, best.targetId);
     }
+  }
+
+  // Enforce maxChainDepth: when depth=1 (proxy mode), remove edges where
+  // the source is itself a delegation target (no chains beyond one hop)
+  if (maxChainDepth !== Infinity) {
+    const targets = new Set(adjacency.values());
+    const toRemove: ParticipantId[] = [];
+    for (const [source] of adjacency) {
+      if (targets.has(source)) {
+        toRemove.push(source);
+      }
+    }
+    for (const source of toRemove) {
+      adjacency.delete(source);
+    }
+    // Rebuild edges list to match pruned adjacency
+    const prunedEdges = edges.filter((e) => adjacency.has(e.sourceId));
+    const cycleParticipants = detectCycles(adjacency);
+    return { issueId, edges: prunedEdges, cycleParticipants };
   }
 
   // Detect cycles using color-based DFS

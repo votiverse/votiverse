@@ -284,12 +284,13 @@ export class VotiverseEngine {
   /** Topic operations. */
   readonly topics_api = {
     create: async (name: string, parentId?: TopicId): Promise<Topic> => {
-      // Validate topic depth against config
+      // Validate topic depth (max 2: root + one level of children)
+      const MAX_TOPIC_DEPTH = 2;
       if (parentId) {
         const parentDepth = this.getTopicDepth(parentId);
-        if (parentDepth + 1 > this.governanceConfig.topics.maxTopicDepth) {
+        if (parentDepth + 1 > MAX_TOPIC_DEPTH) {
           throw new GovernanceRuleViolation(
-            `Topic depth would exceed maximum of ${this.governanceConfig.topics.maxTopicDepth}`,
+            `Topic depth would exceed maximum of ${MAX_TOPIC_DEPTH}`,
             "TOPIC_DEPTH_EXCEEDED",
           );
         }

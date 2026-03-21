@@ -26,7 +26,7 @@ describe("Survey time window enforcement", () => {
   beforeEach(() => {
     store = new InMemoryEventStore();
     clock = new TestClock();
-    service = new SurveyService(store, getPreset("LIQUID_ACCOUNTABLE"), clock);
+    service = new SurveyService(store, getPreset("LIQUID_DELEGATION"), clock);
   });
 
   function makeSurveyParams(overrides?: Partial<CreateSurveyParams>): CreateSurveyParams {

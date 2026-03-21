@@ -4,6 +4,7 @@ import type { ParticipantId, TopicId, IssueId, Timestamp, VoteCastEvent } from "
 import { getPreset, deriveConfig } from "@votiverse/config";
 import type { GovernanceConfig } from "@votiverse/config";
 import { DelegationService } from "../../src/delegation-service.js";
+import type { CandidacyChecker } from "../../src/delegation-service.js";
 
 const pid = (s: string) => s as ParticipantId;
 const tid = (s: string) => s as TopicId;
@@ -16,7 +17,7 @@ describe("DelegationService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    config = getPreset("LIQUID_STANDARD");
+    config = getPreset("LIQUID_OPEN");
     service = new DelegationService(store, config);
   });
 
@@ -38,7 +39,7 @@ describe("DelegationService", () => {
     });
 
     it("throws when delegation is disabled", async () => {
-      const noDelConfig = getPreset("TOWN_HALL");
+      const noDelConfig = getPreset("DIRECT_DEMOCRACY");
       const noDelService = new DelegationService(store, noDelConfig);
 
       await expect(
@@ -60,23 +61,16 @@ describe("DelegationService", () => {
       ).rejects.toThrow(ValidationError);
     });
 
-    it("enforces max delegates per participant", async () => {
-      const limitedConfig = deriveConfig(config, {
-        delegation: { maxDelegatesPerParticipant: 1 },
-      });
-      const limitedService = new DelegationService(store, limitedConfig);
-
-      await limitedService.create({
-        sourceId: pid("alice"),
-        targetId: pid("bob"),
-        topicScope: [tid("finance")],
-      });
+    it("rejects non-candidate targets in proxy mode", async () => {
+      const proxyConfig = getPreset("REPRESENTATIVE"); // candidacy=true, transferable=false
+      const candidacyChecker: CandidacyChecker = async () => false;
+      const proxyService = new DelegationService(store, proxyConfig, candidacyChecker);
 
       await expect(
-        limitedService.create({
+        proxyService.create({
           sourceId: pid("alice"),
-          targetId: pid("carol"),
-          topicScope: [tid("health")],
+          targetId: pid("bob"),
+          topicScope: [],
         }),
       ).rejects.toThrow(ValidationError);
     });

@@ -89,7 +89,8 @@ export class AwarenessService {
     const weightDist = computeWeights(graph, voters, eligible);
     const metrics = computeConcentrationMetrics(weightDist, graph, voters);
 
-    const threshold = this.config.thresholds.concentrationAlertThreshold;
+    const CONCENTRATION_ALERT_THRESHOLD = 0.15;
+    const threshold = CONCENTRATION_ALERT_THRESHOLD;
     const alerts: ConcentrationAlert[] = [];
 
     for (const [pid, weight] of weightDist.weights) {

@@ -43,7 +43,7 @@ describe("VotingService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new VotingService(store, getPreset("LIQUID_STANDARD"));
+    service = new VotingService(store, getPreset("LIQUID_OPEN"));
     ts = 1000;
   });
 
@@ -82,7 +82,7 @@ describe("VotingService", () => {
     it("keeps only the latest vote per participant (when vote change allowed)", async () => {
       // Use a config with allowVoteChange: true
       const changeStore = new InMemoryEventStore();
-      const changeService = new VotingService(changeStore, getPreset("TOWN_HALL"));
+      const changeService = new VotingService(changeStore, getPreset("DIRECT_DEMOCRACY"));
 
       await changeService.cast({
         participantId: pid("alice"),
@@ -185,7 +185,7 @@ describe("VotingService", () => {
     it("respects quorum configuration", async () => {
       const highQuorumService = new VotingService(
         store,
-        deriveConfig(getPreset("LIQUID_STANDARD"), {
+        deriveConfig(getPreset("LIQUID_OPEN"), {
           ballot: { quorum: 0.5 },
         }),
       );
@@ -210,10 +210,9 @@ describe("VotingService", () => {
     it("uses supermajority method when configured", async () => {
       const superService = new VotingService(
         store,
-        deriveConfig(getPreset("LIQUID_STANDARD"), {
+        deriveConfig(getPreset("LIQUID_OPEN"), {
           ballot: {
-            votingMethod: "supermajority",
-            supermajorityThreshold: 0.67,
+            method: "supermajority",
           },
         }),
       );
@@ -381,11 +380,9 @@ describe("VotingService", () => {
 
   describe("allowVoteChange enforcement", () => {
     it("allows re-voting when allowVoteChange is true (default)", async () => {
-      // LIQUID_STANDARD has allowVoteChange: false (live results)
-      // But default service uses LIQUID_STANDARD — let's use a config with allowVoteChange: true
       const changeStore = new InMemoryEventStore();
-      const changeService = new VotingService(changeStore, deriveConfig(getPreset("TOWN_HALL"), {}));
-      // TOWN_HALL has allowVoteChange: true
+      const changeService = new VotingService(changeStore, getPreset("DIRECT_DEMOCRACY"));
+      // DIRECT_DEMOCRACY has allowVoteChange: true
 
       await changeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
       // Re-vote should succeed
@@ -396,9 +393,11 @@ describe("VotingService", () => {
     });
 
     it("rejects re-voting when allowVoteChange is false", async () => {
-      // LIQUID_STANDARD has allowVoteChange: false
       const noChangeStore = new InMemoryEventStore();
-      const noChangeService = new VotingService(noChangeStore, getPreset("LIQUID_STANDARD"));
+      const noChangeService = new VotingService(
+        noChangeStore,
+        deriveConfig(getPreset("LIQUID_OPEN"), { ballot: { allowVoteChange: false } }),
+      );
 
       await noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
 
@@ -410,7 +409,10 @@ describe("VotingService", () => {
 
     it("allows different participants to vote even when allowVoteChange is false", async () => {
       const noChangeStore = new InMemoryEventStore();
-      const noChangeService = new VotingService(noChangeStore, getPreset("LIQUID_STANDARD"));
+      const noChangeService = new VotingService(
+        noChangeStore,
+        deriveConfig(getPreset("LIQUID_OPEN"), { ballot: { allowVoteChange: false } }),
+      );
 
       await noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
       // Different participant — should succeed
@@ -422,7 +424,10 @@ describe("VotingService", () => {
 
     it("allows voting on different issues even when allowVoteChange is false", async () => {
       const noChangeStore = new InMemoryEventStore();
-      const noChangeService = new VotingService(noChangeStore, getPreset("LIQUID_STANDARD"));
+      const noChangeService = new VotingService(
+        noChangeStore,
+        deriveConfig(getPreset("LIQUID_OPEN"), { ballot: { allowVoteChange: false } }),
+      );
 
       await noChangeService.cast({ participantId: pid("alice"), issueId: iid("issue-1"), choice: "for" });
       // Same participant, different issue — should succeed

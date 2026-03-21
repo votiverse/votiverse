@@ -20,7 +20,7 @@ describe("Multi-option ballot support", () => {
     let service: VotingService;
 
     beforeEach(() => {
-      service = new VotingService(store, getPreset("TOWN_HALL"));
+      service = new VotingService(store, getPreset("DIRECT_DEMOCRACY"));
     });
 
     it("accepts a valid declared choice", async () => {
@@ -84,8 +84,8 @@ describe("Multi-option ballot support", () => {
     beforeEach(() => {
       service = new VotingService(
         store,
-        deriveConfig(getPreset("TOWN_HALL"), {
-          ballot: { votingMethod: "ranked-choice" },
+        deriveConfig(getPreset("DIRECT_DEMOCRACY"), {
+          ballot: { method: "ranked-choice" as never },
         }),
       );
     });
@@ -164,8 +164,8 @@ describe("Multi-option ballot support", () => {
     beforeEach(() => {
       service = new VotingService(
         store,
-        deriveConfig(getPreset("TOWN_HALL"), {
-          ballot: { votingMethod: "approval" },
+        deriveConfig(getPreset("DIRECT_DEMOCRACY"), {
+          ballot: { method: "approval" as never },
         }),
       );
     });
@@ -232,7 +232,7 @@ describe("Multi-option ballot support", () => {
     let service: VotingService;
 
     beforeEach(() => {
-      service = new VotingService(store, getPreset("TOWN_HALL"));
+      service = new VotingService(store, getPreset("DIRECT_DEMOCRACY"));
     });
 
     it("tallies simple majority with named candidates", async () => {

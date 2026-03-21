@@ -29,7 +29,7 @@ describe("VotiverseEngine — integration", () => {
     provider = new InvitationProvider(store);
     clock = new TestClock();
     engine = createEngine({
-      config: getPreset("LIQUID_STANDARD"),
+      config: getPreset("LIQUID_OPEN"),
       eventStore: store,
       identityProvider: provider,
       timeProvider: clock,
@@ -286,7 +286,7 @@ describe("VotiverseEngine — integration", () => {
 
     it("returns available presets", () => {
       const names = engine.config.getPresetNames();
-      expect(names).toHaveLength(7);
+      expect(names).toHaveLength(6);
     });
 
     it("derives a new config from current", () => {
@@ -350,7 +350,7 @@ describe("VotiverseEngine — integration", () => {
       const rankedProvider = new InvitationProvider(rankedStore);
       const rankedClock = new TestClock();
       const rankedEngine = createEngine({
-        config: deriveConfig(getPreset("LIQUID_STANDARD"), { ballot: { votingMethod: "ranked-choice" } }),
+        config: deriveConfig(getPreset("LIQUID_OPEN"), { ballot: { method: "ranked-choice" as never } }),
         eventStore: rankedStore,
         identityProvider: rankedProvider,
         timeProvider: rankedClock,
@@ -395,7 +395,7 @@ describe("VotiverseEngine — integration", () => {
       });
 
       const engine2 = createEngine({
-        config: getPreset("LIQUID_STANDARD"),
+        config: getPreset("LIQUID_OPEN"),
         eventStore: store,
         identityProvider: provider,
         timeProvider: clock,
@@ -418,7 +418,7 @@ describe("VotiverseEngine — integration", () => {
       const surveyProvider = new InvitationProvider(surveyStore);
       const surveyClock = new TestClock();
       const surveyEngine = createEngine({
-        config: getPreset("LIQUID_ACCOUNTABLE"),
+        config: getPreset("LIQUID_DELEGATION"),
         eventStore: surveyStore,
         identityProvider: surveyProvider,
         timeProvider: surveyClock,
@@ -454,7 +454,7 @@ describe("VotiverseEngine — integration", () => {
       const surveyProvider = new InvitationProvider(surveyStore);
       const surveyClock = new TestClock();
       const surveyEngine = createEngine({
-        config: getPreset("LIQUID_ACCOUNTABLE"),
+        config: getPreset("LIQUID_DELEGATION"),
         eventStore: surveyStore,
         identityProvider: surveyProvider,
         timeProvider: surveyClock,
@@ -505,7 +505,7 @@ describe("VotiverseEngine — integration", () => {
       const surveyProvider = new InvitationProvider(surveyStore);
       const surveyClock = new TestClock();
       const surveyEngine = createEngine({
-        config: getPreset("LIQUID_ACCOUNTABLE"),
+        config: getPreset("LIQUID_DELEGATION"),
         eventStore: surveyStore,
         identityProvider: surveyProvider,
         timeProvider: surveyClock,
@@ -636,7 +636,7 @@ describe("VotiverseEngine — integration", () => {
       const notesProvider = new InvitationProvider(notesStore);
       const notesClock = new TestClock();
       const notesEngine = createEngine({
-        config: getPreset("LIQUID_ACCOUNTABLE"),
+        config: getPreset("LIQUID_DELEGATION"),
         eventStore: notesStore,
         identityProvider: notesProvider,
         timeProvider: notesClock,

@@ -5,7 +5,6 @@
  */
 
 import type { EventStore } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
 import type { ArtifactType, Commitment, VerificationResult, BlockchainAnchor } from "./types.js";
 import { commitArtifact, verifyArtifact, getCommitments } from "./commitment.js";
 import { NoOpAnchor } from "./anchors.js";
@@ -18,11 +17,9 @@ export class IntegrityService {
 
   constructor(
     private readonly eventStore: EventStore,
-    config: GovernanceConfig,
     anchor?: BlockchainAnchor,
   ) {
-    this.anchor =
-      anchor ?? (config.features.blockchainIntegrity ? new NoOpAnchor() : new NoOpAnchor());
+    this.anchor = anchor ?? new NoOpAnchor();
   }
 
   /**

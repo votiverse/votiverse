@@ -33,7 +33,7 @@ program.name("votiverse").description("Votiverse governance engine CLI").version
 program
   .command("init")
   .description("Initialize a new Votiverse instance")
-  .option("--preset <name>", "governance preset", "LIQUID_STANDARD")
+  .option("--preset <name>", "governance preset", "LIQUID_DELEGATION")
   .action(async (opts: { preset: string }) => {
     await cmdInit(opts.preset, out);
   });
