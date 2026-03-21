@@ -1,7 +1,9 @@
 /**
  * @votiverse/config — Named presets
  *
- * Curated governance configurations with sensible defaults.
+ * Curated governance configurations — named points in the 13-parameter space.
+ * Each represents a genuinely different governance philosophy, not a parameter tweak.
+ *
  * Presets are frozen objects — customization produces a new config
  * derived from a preset, never mutates the preset.
  */
@@ -9,370 +11,204 @@
 import type { GovernanceConfig, PresetName } from "./types.js";
 
 /**
- * Modern Democracy: The recommended default for any group.
- * Liquid delegation with candidate profiles, Swiss-style voting booklets,
- * community notes, surveys, and prediction tracking.
+ * Liquid Delegation: The recommended default for any group.
+ * Candidates for discoverability and accountability, transitive delegation
+ * chains, community notes, predictions, surveys, and structured deliberation
+ * with a curation phase. Secret ballot, sealed results.
  * Typical use: any group that wants a well-rounded governance system.
  */
-const MODERN_DEMOCRACY: GovernanceConfig = Object.freeze({
-  name: "Modern Democracy",
+const LIQUID_DELEGATION: GovernanceConfig = Object.freeze({
+  name: "Liquid Delegation",
   description:
-    "Liquid delegation with candidate profiles, Swiss-style voting booklets, " +
-    "community notes, surveys, and prediction tracking. " +
-    "The recommended starting point for any group.",
+    "Delegate to trusted candidates or any member, verify with community notes, " +
+    "or vote directly. The recommended starting point for any group.",
   delegation: Object.freeze({
-    delegationMode: "candidacy" as const,
-    topicScoped: true,
-    transitive: true,
-    revocableAnytime: true,
-
-    maxDelegatesPerParticipant: null,
-    maxAge: null,
-    visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "direct" as const }),
+    candidacy: true,
+    transferable: true,
   }),
   ballot: Object.freeze({
-    secrecy: "secret" as const,
-    delegateVoteVisibility: "delegators-only" as const,
-    votingMethod: "simple-majority" as const,
-    supermajorityThreshold: 0.5,
-    quorum: 0.1,
-    participationMode: "voluntary" as const,
-    resultsVisibility: "sealed" as const,
+    secret: true,
+    liveResults: false,
     allowVoteChange: true,
+    quorum: 0.1,
+    method: "majority" as const,
   }),
   features: Object.freeze({
-    predictions: "encouraged" as const,
     communityNotes: true,
-    noteVisibilityThreshold: 0.3,
-    noteMinEvaluations: 3,
+    predictions: true,
     surveys: true,
-    surveyResponseAnonymity: "anonymous" as const,
-    awarenessIntensity: "standard" as const,
-    blockchainIntegrity: false,
-  }),
-  thresholds: Object.freeze({
-    concentrationAlertThreshold: 0.15,
   }),
   timeline: Object.freeze({
     deliberationDays: 7,
     curationDays: 2,
     votingDays: 7,
   }),
-  topics: Object.freeze({
-    maxTopicDepth: 2,
-  }),
 });
 
 /**
  * Direct Democracy: Every member votes on every question.
- * Secret ballot, simple majority, no delegation.
+ * No delegation, no community notes, no curation.
  * Typical use: small clubs, parent committees, informal groups.
  */
-const TOWN_HALL: GovernanceConfig = Object.freeze({
+const DIRECT_DEMOCRACY: GovernanceConfig = Object.freeze({
   name: "Direct Democracy",
   description: "Every member votes on every question. No delegation. Simple majority decides.",
   delegation: Object.freeze({
-    delegationMode: "none" as const,
-    topicScoped: false,
-    transitive: false,
-    revocableAnytime: false,
-
-    maxDelegatesPerParticipant: null,
-    maxAge: null,
-    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
+    candidacy: false,
+    transferable: false,
   }),
   ballot: Object.freeze({
-    secrecy: "secret" as const,
-    delegateVoteVisibility: "private" as const,
-    votingMethod: "simple-majority" as const,
-    supermajorityThreshold: 0.5,
-    quorum: 0,
-    participationMode: "voluntary" as const,
-    resultsVisibility: "sealed" as const,
+    secret: true,
+    liveResults: false,
     allowVoteChange: true,
+    quorum: 0,
+    method: "majority" as const,
   }),
   features: Object.freeze({
-    predictions: "disabled" as const,
     communityNotes: false,
-    noteVisibilityThreshold: 0.3,
-    noteMinEvaluations: 3,
+    predictions: false,
     surveys: false,
-    surveyResponseAnonymity: "anonymous" as const,
-    awarenessIntensity: "minimal" as const,
-    blockchainIntegrity: false,
-  }),
-  thresholds: Object.freeze({
-    concentrationAlertThreshold: 1.0,
   }),
   timeline: Object.freeze({
     deliberationDays: 7,
     curationDays: 0,
     votingDays: 7,
   }),
-  topics: Object.freeze({
-    maxTopicDepth: 2,
-  }),
 });
 
 /**
- * Swiss Votation: Direct democracy per issue with structured information.
- * Predictions encouraged, community notes enabled, curation phase for booklet preparation.
- * Typical use: associations, cooperatives, civic groups.
+ * Swiss Votation: Direct democracy with structured deliberation.
+ * No delegation, but community notes provide crowd-sourced context
+ * and predictions encourage accountability. Curation phase for the
+ * voting booklet.
+ * Typical use: cooperatives, associations, civic groups.
  */
-const SWISS_MODEL: GovernanceConfig = Object.freeze({
+const SWISS_VOTATION: GovernanceConfig = Object.freeze({
   name: "Swiss Votation",
   description:
-    "Direct democracy per issue with structured voting booklets, predictions encouraged, community notes enabled.",
+    "Direct democracy with structured voting booklets, community notes, and predictions. " +
+    "Informed direct participation.",
   delegation: Object.freeze({
-    delegationMode: "none" as const,
-    topicScoped: false,
-    transitive: false,
-    revocableAnytime: false,
-
-    maxDelegatesPerParticipant: null,
-    maxAge: null,
-    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
+    candidacy: false,
+    transferable: false,
   }),
   ballot: Object.freeze({
-    secrecy: "secret" as const,
-    delegateVoteVisibility: "private" as const,
-    votingMethod: "simple-majority" as const,
-    supermajorityThreshold: 0.5,
-    quorum: 0.2,
-    participationMode: "voluntary" as const,
-    resultsVisibility: "sealed" as const,
+    secret: true,
+    liveResults: false,
     allowVoteChange: true,
+    quorum: 0.2,
+    method: "majority" as const,
   }),
   features: Object.freeze({
-    predictions: "encouraged" as const,
     communityNotes: true,
-    noteVisibilityThreshold: 0.3,
-    noteMinEvaluations: 3,
+    predictions: true,
     surveys: false,
-    surveyResponseAnonymity: "anonymous" as const,
-    awarenessIntensity: "minimal" as const,
-    blockchainIntegrity: false,
-  }),
-  thresholds: Object.freeze({
-    concentrationAlertThreshold: 1.0,
   }),
   timeline: Object.freeze({
     deliberationDays: 7,
     curationDays: 2,
     votingDays: 7,
   }),
-  topics: Object.freeze({
-    maxTopicDepth: 2,
-  }),
 });
 
 /**
- * Liquid Open: Topic-specific liquid delegation for groups where everyone knows each other.
- * Open delegation without candidacy profiles, transitive, revocable anytime.
- * Typical use: medium organizations, tech communities, professional associations.
+ * Liquid Open: Informal liquid democracy for groups where everyone knows each other.
+ * No formal candidates — anyone delegates to anyone. Public ballots with live results.
+ * Typical use: tech communities, professional associations, medium organizations with high trust.
  */
-const LIQUID_STANDARD: GovernanceConfig = Object.freeze({
+const LIQUID_OPEN: GovernanceConfig = Object.freeze({
   name: "Liquid Open",
   description:
-    "Open delegation without candidacy profiles. Topic-specific, transitive, revocable anytime. For groups where everyone knows each other.",
+    "Anyone can delegate to anyone. Public ballots, live results. " +
+    "For groups where everyone knows each other.",
   delegation: Object.freeze({
-    delegationMode: "open" as const,
-    topicScoped: true,
-    transitive: true,
-    revocableAnytime: true,
-
-    maxDelegatesPerParticipant: null,
-    maxAge: null,
-    visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "direct" as const }),
+    candidacy: false,
+    transferable: true,
   }),
   ballot: Object.freeze({
-    secrecy: "public" as const,
-    delegateVoteVisibility: "delegators-only" as const,
-    votingMethod: "simple-majority" as const,
-    supermajorityThreshold: 0.5,
+    secret: false,
+    liveResults: true,
+    allowVoteChange: true,
     quorum: 0.1,
-    participationMode: "voluntary" as const,
-    resultsVisibility: "live" as const,
-    allowVoteChange: false,
+    method: "majority" as const,
   }),
   features: Object.freeze({
-    predictions: "optional" as const,
     communityNotes: false,
-    noteVisibilityThreshold: 0.3,
-    noteMinEvaluations: 3,
+    predictions: false,
     surveys: false,
-    surveyResponseAnonymity: "anonymous" as const,
-    awarenessIntensity: "standard" as const,
-    blockchainIntegrity: false,
-  }),
-  thresholds: Object.freeze({
-    concentrationAlertThreshold: 0.15,
   }),
   timeline: Object.freeze({
     deliberationDays: 5,
     curationDays: 0,
     votingDays: 5,
   }),
-  topics: Object.freeze({
-    maxTopicDepth: 2,
-  }),
 });
 
 /**
- * Full Accountability: Everything on, predictions mandatory, aggressive awareness.
- * Candidacy-mode delegation with maximum transparency and accountability.
- * Typical use: organizations that prioritize long-term accountability.
+ * Representative: Classic proxy voting.
+ * Declare a candidate, appoint them as your representative.
+ * They vote for you but cannot transfer your vote further.
+ * Typical use: corporate boards, HOAs, unions, formal committees.
  */
-const LIQUID_ACCOUNTABLE: GovernanceConfig = Object.freeze({
-  name: "Full Accountability",
+const REPRESENTATIVE: GovernanceConfig = Object.freeze({
+  name: "Representative",
   description:
-    "Everything on: candidacy-mode delegation, mandatory predictions, full awareness layer, " +
-    "community notes, surveys. Maximum transparency and accountability.",
+    "Appoint a declared candidate as your proxy. Non-transitive — " +
+    "representatives vote directly, no chains.",
   delegation: Object.freeze({
-    delegationMode: "candidacy" as const,
-    topicScoped: true,
-    transitive: true,
-    revocableAnytime: true,
-
-    maxDelegatesPerParticipant: null,
-    maxAge: null,
-    visibility: Object.freeze({ mode: "public" as const, incomingVisibility: "chain" as const }),
+    candidacy: true,
+    transferable: false,
   }),
   ballot: Object.freeze({
-    secrecy: "public" as const,
-    delegateVoteVisibility: "public" as const,
-    votingMethod: "simple-majority" as const,
-    supermajorityThreshold: 0.5,
-    quorum: 0.1,
-    participationMode: "voluntary" as const,
-    resultsVisibility: "live" as const,
-    allowVoteChange: false,
-  }),
-  features: Object.freeze({
-    predictions: "mandatory" as const,
-    communityNotes: true,
-    noteVisibilityThreshold: 0.3,
-    noteMinEvaluations: 3,
-    surveys: true,
-    surveyResponseAnonymity: "anonymous" as const,
-    awarenessIntensity: "aggressive" as const,
-    blockchainIntegrity: false,
-  }),
-  thresholds: Object.freeze({
-    concentrationAlertThreshold: 0.1,
-  }),
-  timeline: Object.freeze({
-    deliberationDays: 7,
-    curationDays: 3,
-    votingDays: 7,
-  }),
-  topics: Object.freeze({
-    maxTopicDepth: 2,
-  }),
-});
-
-/**
- * Board Proxy: Single-delegate proxy voting.
- * Non-transitive, revocable before meeting, secret ballot.
- * Typical use: corporate boards, formal governance bodies.
- */
-const BOARD_PROXY: GovernanceConfig = Object.freeze({
-  name: "Board Proxy",
-  description:
-    "Single-delegate proxy voting. Non-transitive, revocable before meeting, secret ballot.",
-  delegation: Object.freeze({
-    delegationMode: "open" as const,
-    topicScoped: false,
-    transitive: false,
-    revocableAnytime: false,
-
-    maxDelegatesPerParticipant: 1,
-    maxAge: null,
-    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
-  }),
-  ballot: Object.freeze({
-    secrecy: "secret" as const,
-    delegateVoteVisibility: "private" as const,
-    votingMethod: "simple-majority" as const,
-    supermajorityThreshold: 0.5,
-    quorum: 0.5,
-    participationMode: "voluntary" as const,
-    resultsVisibility: "sealed" as const,
+    secret: true,
+    liveResults: false,
     allowVoteChange: true,
+    quorum: 0.5,
+    method: "majority" as const,
   }),
   features: Object.freeze({
-    predictions: "disabled" as const,
     communityNotes: false,
-    noteVisibilityThreshold: 0.3,
-    noteMinEvaluations: 3,
+    predictions: false,
     surveys: false,
-    surveyResponseAnonymity: "anonymous" as const,
-    awarenessIntensity: "minimal" as const,
-    blockchainIntegrity: false,
-  }),
-  thresholds: Object.freeze({
-    concentrationAlertThreshold: 0.5,
   }),
   timeline: Object.freeze({
     deliberationDays: 3,
     curationDays: 0,
     votingDays: 3,
   }),
-  topics: Object.freeze({
-    maxTopicDepth: 2,
-  }),
 });
 
 /**
- * Civic Participatory: Liquid delegation with chain depth cap and full accountability.
- * Mandatory predictions, community notes, surveys, blockchain integrity.
- * Typical use: municipal deployments, participatory budgeting, citizen assemblies.
+ * Civic Participatory: Liquid delegation at municipal scale.
+ * Longer timelines, full feature set with community notes, predictions,
+ * and surveys.
+ * Typical use: cities, participatory budgeting, citizen assemblies.
  */
-const CIVIC_PARTICIPATORY: GovernanceConfig = Object.freeze({
+const CIVIC: GovernanceConfig = Object.freeze({
   name: "Civic Participatory",
   description:
-    "Municipal-scale governance with liquid delegation (depth cap), mandatory predictions, " +
-    "community notes, surveys, and blockchain integrity.",
+    "Municipal-scale governance with liquid delegation, community notes, " +
+    "predictions, surveys, and longer timelines for broad participation.",
   delegation: Object.freeze({
-    delegationMode: "open" as const,
-    topicScoped: true,
-    transitive: true,
-    revocableAnytime: true,
-
-    maxDelegatesPerParticipant: null,
-    maxAge: 31_536_000_000,
-    visibility: Object.freeze({ mode: "private" as const, incomingVisibility: "direct" as const }),
+    candidacy: true,
+    transferable: true,
   }),
   ballot: Object.freeze({
-    secrecy: "anonymous-auditable" as const,
-    delegateVoteVisibility: "delegators-only" as const,
-    votingMethod: "simple-majority" as const,
-    supermajorityThreshold: 0.5,
-    quorum: 0.1,
-    participationMode: "voluntary" as const,
-    resultsVisibility: "sealed" as const,
+    secret: true,
+    liveResults: false,
     allowVoteChange: true,
+    quorum: 0.1,
+    method: "majority" as const,
   }),
   features: Object.freeze({
-    predictions: "mandatory" as const,
     communityNotes: true,
-    noteVisibilityThreshold: 0.3,
-    noteMinEvaluations: 3,
+    predictions: true,
     surveys: true,
-    surveyResponseAnonymity: "anonymous" as const,
-    awarenessIntensity: "aggressive" as const,
-    blockchainIntegrity: true,
-  }),
-  thresholds: Object.freeze({
-    concentrationAlertThreshold: 0.05,
   }),
   timeline: Object.freeze({
     deliberationDays: 14,
     curationDays: 3,
     votingDays: 14,
-  }),
-  topics: Object.freeze({
-    maxTopicDepth: 2,
   }),
 });
 
@@ -381,17 +217,16 @@ const CIVIC_PARTICIPATORY: GovernanceConfig = Object.freeze({
  * Presets are frozen — use deriveConfig() to create customizations.
  */
 export const PRESETS: Readonly<Record<PresetName, GovernanceConfig>> = Object.freeze({
-  MODERN_DEMOCRACY,
-  TOWN_HALL,
-  SWISS_MODEL,
-  LIQUID_STANDARD,
-  LIQUID_ACCOUNTABLE,
-  BOARD_PROXY,
-  CIVIC_PARTICIPATORY,
+  LIQUID_DELEGATION,
+  DIRECT_DEMOCRACY,
+  SWISS_VOTATION,
+  LIQUID_OPEN,
+  REPRESENTATIVE,
+  CIVIC,
 });
 
 /** The default preset used for new group creation. */
-export const DEFAULT_PRESET: PresetName = "MODERN_DEMOCRACY";
+export const DEFAULT_PRESET: PresetName = "LIQUID_DELEGATION";
 
 /** Returns a preset by name, or undefined if the name is not recognized. */
 export function getPreset(name: PresetName): GovernanceConfig {

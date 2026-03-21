@@ -3,66 +3,56 @@ import { deriveConfig, getPreset } from "../../src/index.js";
 
 describe("deriveConfig", () => {
   it("returns the base config when no overrides provided", () => {
-    const base = getPreset("TOWN_HALL");
+    const base = getPreset("DIRECT_DEMOCRACY");
     const derived = deriveConfig(base, {});
     expect(derived).toEqual(base);
   });
 
   it("does not mutate the base config", () => {
-    const base = getPreset("TOWN_HALL");
-    const originalMode = base.delegation.delegationMode;
-    deriveConfig(base, { delegation: { delegationMode: "open" } });
-    expect(base.delegation.delegationMode).toBe(originalMode);
+    const base = getPreset("DIRECT_DEMOCRACY");
+    const originalCandidacy = base.delegation.candidacy;
+    deriveConfig(base, { delegation: { candidacy: true } });
+    expect(base.delegation.candidacy).toBe(originalCandidacy);
   });
 
   it("overrides top-level properties", () => {
-    const base = getPreset("TOWN_HALL");
+    const base = getPreset("DIRECT_DEMOCRACY");
     const derived = deriveConfig(base, { name: "My Config" });
     expect(derived.name).toBe("My Config");
     expect(derived.description).toBe(base.description);
   });
 
-  it("overrides nested delegation properties", () => {
-    const base = getPreset("TOWN_HALL");
+  it("overrides delegation properties", () => {
+    const base = getPreset("DIRECT_DEMOCRACY");
     const derived = deriveConfig(base, {
-      delegation: { delegationMode: "open", transitive: true },
+      delegation: { candidacy: true, transferable: true },
     });
-    expect(derived.delegation.delegationMode).toBe("open");
-    expect(derived.delegation.transitive).toBe(true);
-    // Non-overridden properties should keep base values
-    expect(derived.delegation.topicScoped).toBe(base.delegation.topicScoped);
+    expect(derived.delegation.candidacy).toBe(true);
+    expect(derived.delegation.transferable).toBe(true);
   });
 
-  it("overrides nested ballot properties", () => {
-    const base = getPreset("LIQUID_STANDARD");
+  it("overrides ballot properties", () => {
+    const base = getPreset("LIQUID_DELEGATION");
     const derived = deriveConfig(base, {
-      ballot: { quorum: 0.5, votingMethod: "supermajority" },
+      ballot: { quorum: 0.5, method: "supermajority" },
     });
     expect(derived.ballot.quorum).toBe(0.5);
-    expect(derived.ballot.votingMethod).toBe("supermajority");
-    expect(derived.ballot.secrecy).toBe(base.ballot.secrecy);
+    expect(derived.ballot.method).toBe("supermajority");
+    expect(derived.ballot.secret).toBe(base.ballot.secret);
   });
 
-  it("overrides nested feature properties", () => {
-    const base = getPreset("TOWN_HALL");
+  it("overrides feature properties", () => {
+    const base = getPreset("DIRECT_DEMOCRACY");
     const derived = deriveConfig(base, {
-      features: { predictions: "mandatory", communityNotes: true },
+      features: { predictions: true, communityNotes: true },
     });
-    expect(derived.features.predictions).toBe("mandatory");
+    expect(derived.features.predictions).toBe(true);
     expect(derived.features.communityNotes).toBe(true);
     expect(derived.features.surveys).toBe(base.features.surveys);
   });
 
-  it("overrides nested threshold properties", () => {
-    const base = getPreset("LIQUID_STANDARD");
-    const derived = deriveConfig(base, {
-      thresholds: { concentrationAlertThreshold: 0.05 },
-    });
-    expect(derived.thresholds.concentrationAlertThreshold).toBe(0.05);
-  });
-
-  it("overrides nested timeline properties", () => {
-    const base = getPreset("MODERN_DEMOCRACY");
+  it("overrides timeline properties", () => {
+    const base = getPreset("LIQUID_DELEGATION");
     const derived = deriveConfig(base, {
       timeline: { deliberationDays: 14, curationDays: 5 },
     });
@@ -72,13 +62,12 @@ describe("deriveConfig", () => {
   });
 
   it("produces a new config that can be validated", () => {
-    const base = getPreset("LIQUID_STANDARD");
+    const base = getPreset("LIQUID_OPEN");
     const derived = deriveConfig(base, {
       name: "Custom Liquid",
-      ballot: { votingMethod: "supermajority", supermajorityThreshold: 0.67 },
+      ballot: { method: "supermajority" },
     });
     expect(derived.name).toBe("Custom Liquid");
-    expect(derived.ballot.votingMethod).toBe("supermajority");
-    expect(derived.ballot.supermajorityThreshold).toBe(0.67);
+    expect(derived.ballot.method).toBe("supermajority");
   });
 });

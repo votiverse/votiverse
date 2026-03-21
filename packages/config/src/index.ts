@@ -8,22 +8,11 @@
 export type {
   GovernanceConfig,
   DelegationConfig,
-  DelegationVisibilityConfig,
   BallotConfig,
   FeatureConfig,
-  ThresholdConfig,
   TimelineConfig,
-  TopicConfig,
   PresetName,
-  BallotSecrecy,
-  DelegateVoteVisibility,
   VotingMethod,
-  ParticipationMode,
-  ResultsVisibility,
-  PredictionRequirement,
-  AwarenessIntensity,
-  DelegationMode,
-  SurveyResponseAnonymity,
 } from "./types.js";
 
 // Presets

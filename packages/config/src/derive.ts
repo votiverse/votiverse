@@ -8,48 +8,32 @@
 import type {
   GovernanceConfig,
   DelegationConfig,
-  DelegationVisibilityConfig,
   BallotConfig,
   FeatureConfig,
-  ThresholdConfig,
   TimelineConfig,
-  TopicConfig,
 } from "./types.js";
 
-/** Deep partial override for DelegationConfig, with nested visibility support. */
-export type DelegationOverrides = Partial<Omit<DelegationConfig, "visibility">> & {
-  readonly visibility?: Partial<DelegationVisibilityConfig>;
-};
-
-/** Deep partial type for GovernanceConfig overrides. */
+/** Partial override type for GovernanceConfig. */
 export interface ConfigOverrides {
   readonly name?: string;
   readonly description?: string;
-  readonly delegation?: DelegationOverrides;
+  readonly delegation?: Partial<DelegationConfig>;
   readonly ballot?: Partial<BallotConfig>;
   readonly features?: Partial<FeatureConfig>;
-  readonly thresholds?: Partial<ThresholdConfig>;
   readonly timeline?: Partial<TimelineConfig>;
-  readonly topics?: Partial<TopicConfig>;
 }
 
 /**
  * Creates a new GovernanceConfig by applying overrides to a base config.
- * The base config is never mutated. Nested objects (e.g. delegation.visibility)
- * are merged at two levels.
+ * The base config is never mutated.
  */
 export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides): GovernanceConfig {
-  const { visibility: visibilityOverride, ...delegationFlat } = overrides.delegation ?? {};
   return {
     name: overrides.name ?? base.name,
     description: overrides.description ?? base.description,
     delegation: {
       ...base.delegation,
-      ...delegationFlat,
-      visibility: {
-        ...base.delegation.visibility,
-        ...visibilityOverride,
-      },
+      ...overrides.delegation,
     },
     ballot: {
       ...base.ballot,
@@ -59,17 +43,9 @@ export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides)
       ...base.features,
       ...overrides.features,
     },
-    thresholds: {
-      ...base.thresholds,
-      ...overrides.thresholds,
-    },
     timeline: {
       ...base.timeline,
       ...overrides.timeline,
-    },
-    topics: {
-      ...base.topics,
-      ...overrides.topics,
     },
   };
 }
