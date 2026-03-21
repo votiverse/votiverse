@@ -23,6 +23,11 @@ export interface BackendConfig {
   smtpUser: string;
   smtpPass: string;
   smtpFrom: string;
+  apnsKeyPath: string | null;
+  apnsKeyId: string;
+  apnsTeamId: string;
+  apnsBundleId: string;
+  apnsSandbox: boolean;
 }
 
 const DEFAULT_JWT_SECRET = "backend-dev-secret-do-not-use-in-production";
@@ -51,11 +56,16 @@ export function loadConfig(): BackendConfig {
     smtpUser: process.env["BACKEND_SMTP_USER"] ?? "",
     smtpPass: process.env["BACKEND_SMTP_PASS"] ?? "",
     smtpFrom: process.env["BACKEND_SMTP_FROM"] ?? "noreply@votiverse.example.com",
+    apnsKeyPath: process.env["APNS_KEY_PATH"] ?? null,
+    apnsKeyId: process.env["APNS_KEY_ID"] ?? "",
+    apnsTeamId: process.env["APNS_TEAM_ID"] ?? "Q3NAYGQX43",
+    apnsBundleId: process.env["APNS_BUNDLE_ID"] ?? "app.votiverse.mobile",
+    apnsSandbox: process.env["APNS_SANDBOX"] !== "false",
   };
 }
 
 function parseCorsOrigins(envValue: string | undefined): string[] {
-  if (!envValue) return ["http://localhost:5173", "http://localhost:5174"];
+  if (!envValue) return ["http://localhost:5173", "http://localhost:5174", "tauri://localhost", "https://tauri.localhost"];
   return envValue.split(",").map((s) => s.trim()).filter(Boolean);
 }
 

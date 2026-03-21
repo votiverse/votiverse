@@ -33,6 +33,7 @@ import type { NotificationAdapter } from "../services/notification-adapter.js";
 import type { ContentService } from "../services/content-service.js";
 import type { VCPClient } from "../services/vcp-client.js";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
+import type { PushDeliveryService } from "../services/push-delivery.js";
 
 export interface AppDependencies {
   database: DatabaseAdapter;
@@ -44,6 +45,7 @@ export interface AppDependencies {
   surveyCacheService: SurveyCacheService;
   notificationService: NotificationService;
   notificationAdapter?: NotificationAdapter;
+  pushService?: PushDeliveryService;
   contentService: ContentService;
   vcpClient: VCPClient;
   config: BackendConfig;
@@ -94,6 +96,10 @@ export function createApp(deps: AppDependencies): Hono {
   );
   // Wire hub into notification service so scheduled notifications also create hub records
   notificationService.setHub(notificationHub);
+  // Wire push delivery into hub
+  if (deps.pushService) {
+    notificationHub.setPushService(deps.pushService);
+  }
   const invitationService = new InvitationService(database, membershipService);
   const joinRequestService = new JoinRequestService(database);
   const frontendUrl = config.corsOrigins.find((o) => o !== "*") ?? "http://localhost:5174";
@@ -105,7 +111,7 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService));
-  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub));
+  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub, database));
   app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier, notificationHub));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
   app.route("/", contentRoutes(membershipService, contentService, config));

@@ -213,6 +213,18 @@ export class PostgresAdapter implements DatabaseAdapter {
           PRIMARY KEY (assembly_id, survey_id, participant_id)
         );
 
+        -- Push notification device tokens
+        CREATE TABLE IF NOT EXISTS device_tokens (
+          id         TEXT PRIMARY KEY,
+          user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          platform   TEXT NOT NULL CHECK(platform IN ('ios', 'android')),
+          token      TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_device_tokens_user_platform_token
+          ON device_tokens(user_id, platform, token);
+
         -- Proposal drafts (backend-only, mutable, discarded on submit)
         CREATE TABLE IF NOT EXISTS proposal_drafts (
           id            TEXT PRIMARY KEY,

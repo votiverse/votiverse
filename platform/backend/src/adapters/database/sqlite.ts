@@ -279,6 +279,18 @@ export class SQLiteAdapter implements DatabaseAdapter {
         responded_at   TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (assembly_id, survey_id, participant_id)
       );
+
+      -- Push notification device tokens
+      CREATE TABLE IF NOT EXISTS device_tokens (
+        id         TEXT PRIMARY KEY,
+        user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        platform   TEXT NOT NULL CHECK(platform IN ('ios', 'android')),
+        token      TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_device_tokens_user_platform_token
+        ON device_tokens(user_id, platform, token);
     `);
   }
 

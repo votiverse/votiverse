@@ -13,6 +13,7 @@ import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
 
 import type { NotificationHubService } from "../../services/notification-hub.js";
+import type { DatabaseAdapter } from "../../adapters/database/interface.js";
 import * as devClock from "../../lib/dev-clock.js";
 
 export function meRoutes(
@@ -23,6 +24,7 @@ export function meRoutes(
   surveyCacheService: SurveyCacheService,
   notificationService: NotificationService,
   notificationHub: NotificationHubService,
+  database: DatabaseAdapter,
 ) {
   const app = new Hono();
 
@@ -406,6 +408,53 @@ export function meRoutes(
     const { id } = getUser(c);
     const assemblyId = c.req.query("assemblyId") ?? undefined;
     await notificationHub.markAllRead(id, assemblyId);
+    return c.json({ status: "ok" });
+  });
+
+  // ---- Push notification device tokens ----
+
+  /** POST /me/devices — register a push notification device token. */
+  app.post("/me/devices", async (c) => {
+    const { id: userId } = getUser(c);
+    const body = await c.req.json<{ platform: string; token: string }>();
+
+    if (!body.platform || !body.token) {
+      throw new ValidationError("platform and token are required");
+    }
+    if (body.platform !== "ios" && body.platform !== "android") {
+      throw new ValidationError("platform must be 'ios' or 'android'");
+    }
+
+    const id = crypto.randomUUID();
+    await database.run(
+      `INSERT INTO device_tokens (id, user_id, platform, token)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(user_id, platform, token) DO UPDATE SET updated_at = datetime('now')`,
+      [id, userId, body.platform, body.token],
+    );
+
+    return c.json({ deviceId: id });
+  });
+
+  /** GET /me/devices — list registered device tokens. */
+  app.get("/me/devices", async (c) => {
+    const { id: userId } = getUser(c);
+    const devices = await database.query(
+      `SELECT id, platform, substr(token, 1, 8) || '...' as token_preview, created_at, updated_at
+       FROM device_tokens WHERE user_id = ? ORDER BY updated_at DESC`,
+      [userId],
+    );
+    return c.json({ devices });
+  });
+
+  /** DELETE /me/devices/:id — unregister a device token. */
+  app.delete("/me/devices/:id", async (c) => {
+    const { id: userId } = getUser(c);
+    const deviceId = c.req.param("id");
+    await database.run(
+      `DELETE FROM device_tokens WHERE id = ? AND user_id = ?`,
+      [deviceId, userId],
+    );
     return c.json({ status: "ok" });
   });
 

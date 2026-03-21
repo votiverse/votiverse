@@ -19,6 +19,7 @@ import { NotificationService } from "./services/notification-service.js";
 import { ConsoleNotificationAdapter, FileNotificationAdapter, SmtpNotificationAdapter } from "./services/notification-adapter.js";
 import type { NotificationAdapter } from "./services/notification-adapter.js";
 import { ContentService } from "./services/content-service.js";
+import { PushDeliveryService } from "./services/push-delivery.js";
 import { createApp } from "./api/server.js";
 
 async function main() {
@@ -98,8 +99,17 @@ async function main() {
   // Wire content service
   const contentService = new ContentService(database);
 
+  // Wire push delivery service
+  const pushService = new PushDeliveryService(database, {
+    apnsKeyPath: config.apnsKeyPath,
+    apnsKeyId: config.apnsKeyId,
+    apnsTeamId: config.apnsTeamId,
+    apnsBundleId: config.apnsBundleId,
+    apnsSandbox: config.apnsSandbox,
+  });
+
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, contentService, vcpClient, config });
+  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, pushService, contentService, vcpClient, config });
 
   // Start HTTP server
   const server = serve({
@@ -122,6 +132,7 @@ async function main() {
   function shutdown() {
     logger.info("Shutting down...");
     clearInterval(schedulerInterval);
+    pushService.close();
     void database.close();
     if (server && "close" in server) {
       (server as { close: () => void }).close();

@@ -14,6 +14,7 @@ import type { MembershipService } from "./membership-service.js";
 import type { VCPClient } from "./vcp-client.js";
 import type { AssemblyCacheService } from "./assembly-cache.js";
 import { renderTemplate, type NotificationType as EmailTemplateType } from "./notification-templates.js";
+import type { PushDeliveryService } from "./push-delivery.js";
 import { logger } from "../lib/logger.js";
 
 const log = logger.child({ component: "notification-hub" });
@@ -87,6 +88,8 @@ const EMAIL_TEMPLATE_MAP: Partial<Record<NotificationType, EmailTemplateType>> =
 };
 
 export class NotificationHubService {
+  private pushService: PushDeliveryService | null = null;
+
   constructor(
     private readonly db: DatabaseAdapter,
     private readonly membershipService: MembershipService,
@@ -95,6 +98,11 @@ export class NotificationHubService {
     private readonly notificationService: NotificationService,
     private readonly vcpClient: VCPClient,
   ) {}
+
+  /** Set the push delivery service (called during app wiring). */
+  setPushService(service: PushDeliveryService): void {
+    this.pushService = service;
+  }
 
   /** Create a notification for a single user. Set skipEmail when the caller already handles email delivery. */
   async notify(params: {
@@ -119,6 +127,19 @@ export class NotificationHubService {
     if (!params.skipEmail && this.notificationAdapter) {
       void this.dispatchEmail(params.userId, params.assemblyId, params.type, params.title).catch((err) =>
         log.error("Email dispatch failed", { error: String(err) }),
+      );
+    }
+
+    // Fire-and-forget push notification delivery
+    if (this.pushService?.enabled) {
+      void this.pushService.sendToUser({
+        userId: params.userId,
+        title: params.title,
+        body: params.body ?? params.title,
+        category: params.type,
+        actionUrl: params.actionUrl,
+      }).catch((err) =>
+        log.error("Push dispatch failed", { error: String(err) }),
       );
     }
   }
