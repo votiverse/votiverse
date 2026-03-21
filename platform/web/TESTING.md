@@ -46,11 +46,11 @@ These users belong to multiple assemblies, making them the best starting points 
 
 | Assembly | Preset | Members | Delegation | Surveys | Predictions | Key Feature |
 |---|---|---|---|---|---|---|
-| **Greenfield Community Council** | TOWN_HALL | 12 | Disabled | No | Off | Direct voting only |
-| **OSC Governance Board** | LIQUID_STANDARD | 15 | Transitive, topic-scoped | No | Mandatory | Delegation chains, multi-option elections |
-| **Municipal Budget Committee** | CIVIC_PARTICIPATORY | 18 | Transitive | Yes | Opt-in | Surveys + delegation chains |
-| **Youth Advisory Panel** | LIQUID_ACCOUNTABLE | 10 | Transitive, topic-scoped | Yes | Opt-in | Surveys, delegation, candidacy mode |
-| **Board of Directors** | BOARD_PROXY | 8 | Non-transitive, 1 delegate | No | Off | Single-delegate proxy |
+| **Greenfield Community Council** | DIRECT_DEMOCRACY | 12 | None | No | Off | Direct voting only |
+| **OSC Governance Board** | LIQUID_OPEN | 15 | Open, transferable | No | Mandatory | Delegation chains, multi-option elections |
+| **Municipal Budget Committee** | CIVIC | 18 | Open, transferable | Yes | Opt-in | Surveys + delegation chains |
+| **Youth Advisory Panel** | LIQUID_DELEGATION | 10 | Candidacy, transferable | Yes | Opt-in | Surveys, delegation, candidacy mode |
+| **Board of Directors** | REPRESENTATIVE | 8 | Open, non-transferable | No | Off | Single-delegate proxy |
 
 ---
 
@@ -186,7 +186,7 @@ Governance
 ### Greenfield Community Council
 
 ```
-No topics — TOWN_HALL preset has no delegation.
+No topics — DIRECT_DEMOCRACY preset has no delegation.
 ```
 
 ### Topic-Scoped Delegations
@@ -331,7 +331,7 @@ For timeline decay details and reseeding instructions, see [`docs/testing.md`](.
 
 ### Assembly tab visibility
 
-- **Candidates tab** appears only for assemblies with `delegationMode: 'candidacy'` — currently **Youth Advisory Panel** only.
+- **Candidates tab** appears only for assemblies with `delegation.candidacy: true` — currently **Youth Advisory Panel** and **Maple Heights** only.
 - **Proposals** are accessible from within events that are in Deliberation phase (via "View Proposals" button).
 
 ### Member search with candidacy discovery

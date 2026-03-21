@@ -183,7 +183,7 @@ cli → engine → [awareness, voting, survey, prediction, integrity, content]
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
 
-**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, surveys, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. Group creation with MODERN_DEMOCRACY default, assembly roles (owner/admin), curation phase enforcement. Onboarding system: handles (@username), invite links with public group preview, direct invitations by handle, multi-step onboarding dialog, avatar style picker, profile editing. Invitation hardening: email notifications (InvitationNotifier with adapter pattern), bulk CSV import with preview. Admission control: backend-owned mutable `admissionMode` (open/approval/invite-only), join request flow, Sybil risk warnings in UI. 778+ tests across engine (471), VCP (134), backend (133), web (16), and config (88).
+**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, surveys, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. Group creation with LIQUID_DELEGATION default, assembly roles (owner/admin), curation phase enforcement. Onboarding system: handles (@username), invite links with public group preview, direct invitations by handle, multi-step onboarding dialog, avatar style picker, profile editing. Invitation hardening: email notifications (InvitationNotifier with adapter pattern), bulk CSV import with preview. Admission control: backend-owned mutable `admissionMode` (open/approval/invite-only), join request flow, Sybil risk warnings in UI. 830+ tests across engine (471), VCP (143), backend (146), web (16), and config (88).
 
 ### Phase 1: Foundation
 1. `@votiverse/core` — base types, event definitions, EventStore interface, Result type, error base class
@@ -250,8 +250,8 @@ See `docs/design/content-architecture.md` for the full design. The VCP stores go
 **A. Foundation types and events**
 1. Add `CandidacyId`, `NoteId`, `AssetId`, `ContentHash` branded types to `@votiverse/core`
 2. Add new event types and payload interfaces to `@votiverse/core/events.ts`
-3. Add `delegationMode`, `allowVoteChange`, `noteVisibilityThreshold`, `noteMinEvaluations`, `surveyResponseAnonymity` to `@votiverse/config`
-4. Replace `DelegationConfig.enabled` with `delegationMode` in all presets and tests
+3. Add delegation `candidacy`/`transferable` booleans, `allowVoteChange`, `noteVisibilityThreshold`, `noteMinEvaluations`, `surveyResponseAnonymity` to `@votiverse/config`
+4. Replace `DelegationConfig.enabled` with `candidacy`/`transferable` in all presets and tests
 5. Update config validation
 
 **B. Content package**
@@ -419,15 +419,15 @@ Or use the `.claude/launch.json` configurations (`vcp`, `backend`, and `web`) wi
 
 The seed creates 7 assemblies using different governance presets:
 
-| Assembly       | Key          | Preset              | Delegation               | Surveys | Predictions |
-|----------------|--------------|---------------------|--------------------------|---------|-------------|
-| Greenfield     | `greenfield` | TOWN_HALL           | Disabled                 | No      | Off         |
-| OSC            | `osc`        | LIQUID_STANDARD     | Transitive, topic-scoped | No      | Mandatory   |
-| Municipal      | `municipal`  | CIVIC_PARTICIPATORY | Transitive               | Yes     | Opt-in      |
-| Youth          | `youth`      | LIQUID_ACCOUNTABLE  | Transitive, topic-scoped | Yes     | Opt-in      |
-| Board          | `board`      | BOARD_PROXY         | Non-transitive, 1 delegate | No    | Off         |
-| Maple Heights  | `maple`      | MODERN_DEMOCRACY    | Candidacy, topic-scoped  | Yes     | Encouraged  |
-| Riverside      | `riverside`  | CIVIC_PARTICIPATORY | Transitive, topic-scoped | No      | Off         |
+| Assembly       | Key          | Preset              | Delegation                | Surveys | Predictions |
+|----------------|--------------|---------------------|---------------------------|---------|-------------|
+| Greenfield     | `greenfield` | DIRECT_DEMOCRACY    | None                      | No      | Off         |
+| OSC            | `osc`        | LIQUID_OPEN         | Open, transferable        | No      | Mandatory   |
+| Municipal      | `municipal`  | CIVIC               | Open, transferable        | Yes     | Opt-in      |
+| Youth          | `youth`      | LIQUID_DELEGATION   | Candidacy, transferable   | Yes     | Opt-in      |
+| Board          | `board`      | REPRESENTATIVE      | Open, non-transferable    | No      | Off         |
+| Maple Heights  | `maple`      | LIQUID_DELEGATION   | Candidacy, transferable   | Yes     | Encouraged  |
+| Riverside      | `riverside`  | CIVIC               | Open, transferable        | No      | Off         |
 
 Each assembly has hierarchical topics (45 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and surveys (Municipal + Youth only). The Maple Heights assembly provides seed data for the Maple Heights Condo Board case study (proposals, community notes, closed results). The Riverside Community Center assembly provides seed data for the Riverside case study (topic navigation, issue cancellation/reclassification, community notes on misclassification).
 
