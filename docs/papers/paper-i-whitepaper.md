@@ -222,7 +222,7 @@ A voting event is a structured period during which one or more issues are put to
 
 ### 6.2 The Digital Voting Booklet
 
-Inspired by the Swiss Federal Council's practice of mailing a physical booklet to every citizen before a vote, Votiverse provides a **digital voting booklet** for each issue. The booklet is not optional decoration — it is a structural requirement. No issue can proceed to vote without a complete booklet.
+Inspired by the Swiss Federal Council's practice of mailing a physical booklet to every citizen before a vote, Votiverse provides a **digital voting booklet** for each issue. When enabled, the booklet is a structural requirement: no issue can proceed to vote without a complete booklet. Organizations that do not need structured deliberation can disable the booklet entirely.
 
 For each issue, the booklet contains: (1) an official description — a neutral summary prepared by the event administrators; (2) proposal text — the specific proposal being voted on; (3) supporting arguments submitted by the proponents; (4) opposing arguments submitted by opponents or administrators; (5) falsifiable predictions about expected outcomes; and (6) current state of affairs — relevant metrics and context at the time of voting.
 
