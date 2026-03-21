@@ -28,6 +28,7 @@ export interface BackendConfig {
   apnsTeamId: string;
   apnsBundleId: string;
   apnsSandbox: boolean;
+  fcmServiceAccountPath: string | null;
 }
 
 const DEFAULT_JWT_SECRET = "backend-dev-secret-do-not-use-in-production";
@@ -61,6 +62,7 @@ export function loadConfig(): BackendConfig {
     apnsTeamId: process.env["APNS_TEAM_ID"] ?? "Q3NAYGQX43",
     apnsBundleId: process.env["APNS_BUNDLE_ID"] ?? "app.votiverse.mobile",
     apnsSandbox: process.env["APNS_SANDBOX"] !== "false",
+    fcmServiceAccountPath: process.env["FCM_SERVICE_ACCOUNT_PATH"] ?? null,
   };
 }
 

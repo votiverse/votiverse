@@ -106,6 +106,7 @@ async function main() {
     apnsTeamId: config.apnsTeamId,
     apnsBundleId: config.apnsBundleId,
     apnsSandbox: config.apnsSandbox,
+    fcmServiceAccountPath: config.fcmServiceAccountPath,
   });
 
   // Create HTTP app

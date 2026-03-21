@@ -2,10 +2,13 @@
  * PushDeliveryService — sends push notifications to mobile devices via APNs (iOS) and FCM (Android).
  *
  * Uses the APNs HTTP/2 API directly via Node's built-in http2 module.
- * FCM support can be added later for Android.
+ * Uses the FCM v1 HTTP API with Google service account OAuth2 for Android.
  *
  * APNs authentication uses a .p8 key file (token-based auth), which is
  * the recommended approach over certificate-based auth.
+ *
+ * FCM authentication uses a Google service account JSON key file.
+ * The service account must have the `firebase.messaging` scope.
  */
 
 import { createSign } from "node:crypto";
@@ -17,7 +20,7 @@ import { logger } from "../lib/logger.js";
 const log = logger.child({ component: "push-delivery" });
 
 export interface PushConfig {
-  /** APNs .p8 key file path. If not set, push delivery is disabled. */
+  /** APNs .p8 key file path. If not set, iOS push delivery is disabled. */
   apnsKeyPath: string | null;
   /** APNs key ID (from Apple Developer Portal). */
   apnsKeyId: string;
@@ -27,6 +30,8 @@ export interface PushConfig {
   apnsBundleId: string;
   /** Use APNs sandbox (development) or production. */
   apnsSandbox: boolean;
+  /** FCM service account JSON key file path. If not set, Android push delivery is disabled. */
+  fcmServiceAccountPath: string | null;
 }
 
 interface DeviceTokenRow {
@@ -42,28 +47,49 @@ export class PushDeliveryService {
   private apnsJwtTimestamp = 0;
   private apnsConnection: http2.ClientHttp2Session | null = null;
 
+  private fcmServiceAccount: FcmServiceAccount | null = null;
+  private fcmAccessToken: string | null = null;
+  private fcmTokenExpiry = 0;
+
   constructor(
     private readonly db: DatabaseAdapter,
     private readonly config: PushConfig,
   ) {
+    // APNs setup (iOS)
     if (config.apnsKeyPath) {
       try {
         this.apnsKey = readFileSync(config.apnsKeyPath, "utf8");
         log.info("APNs key loaded", { keyId: config.apnsKeyId });
       } catch (err) {
-        log.warn("APNs key file not found — push notifications disabled", {
+        log.warn("APNs key file not found — iOS push disabled", {
           path: config.apnsKeyPath,
           error: String(err),
         });
       }
     } else {
-      log.info("APNs not configured — push notifications disabled");
+      log.info("APNs not configured — iOS push disabled");
+    }
+
+    // FCM setup (Android)
+    if (config.fcmServiceAccountPath) {
+      try {
+        const raw = readFileSync(config.fcmServiceAccountPath, "utf8");
+        this.fcmServiceAccount = JSON.parse(raw) as FcmServiceAccount;
+        log.info("FCM service account loaded", { projectId: this.fcmServiceAccount.project_id });
+      } catch (err) {
+        log.warn("FCM service account file not found — Android push disabled", {
+          path: config.fcmServiceAccountPath,
+          error: String(err),
+        });
+      }
+    } else {
+      log.info("FCM not configured — Android push disabled");
     }
   }
 
-  /** Whether push delivery is available. */
+  /** Whether any push delivery is available. */
   get enabled(): boolean {
-    return this.apnsKey !== null;
+    return this.apnsKey !== null || this.fcmServiceAccount !== null;
   }
 
   /**
@@ -95,16 +121,27 @@ export class PushDeliveryService {
             actionUrl: params.actionUrl,
             badge: params.badge,
           });
+        } else if (device.platform === "android") {
+          await this.sendFcm(device.token, {
+            title: params.title,
+            body: params.body,
+            actionUrl: params.actionUrl,
+          });
         }
-        // Android FCM: add here when needed
       } catch (err) {
         log.error("Push delivery failed", {
           platform: device.platform,
           userId: params.userId,
           error: String(err),
         });
-        // Remove invalid tokens (APNs returns 410 for unregistered devices)
+        // Remove invalid tokens
+        // APNs returns 410 for unregistered devices
         if (err instanceof ApnsError && err.status === 410) {
+          await this.db.run(`DELETE FROM device_tokens WHERE id = ?`, [device.id]);
+          log.info("Removed expired device token", { deviceId: device.id });
+        }
+        // FCM returns UNREGISTERED for invalid tokens
+        if (err instanceof FcmError && err.code === "UNREGISTERED") {
           await this.db.run(`DELETE FROM device_tokens WHERE id = ?`, [device.id]);
           log.info("Removed expired device token", { deviceId: device.id });
         }
@@ -229,7 +266,114 @@ export class PushDeliveryService {
     return this.apnsJwt;
   }
 
-  /** Close the APNs HTTP/2 connection. */
+  // ---- FCM v1 HTTP API ----
+
+  private async sendFcm(
+    registrationToken: string,
+    payload: { title: string; body: string; actionUrl?: string },
+  ): Promise<void> {
+    if (!this.fcmServiceAccount) return;
+
+    const accessToken = await this.getFcmAccessToken();
+    const projectId = this.fcmServiceAccount.project_id;
+
+    const fcmPayload = {
+      message: {
+        token: registrationToken,
+        notification: {
+          title: payload.title,
+          body: payload.body,
+        },
+        data: {
+          ...(payload.actionUrl ? { actionUrl: payload.actionUrl } : {}),
+        },
+        android: {
+          priority: "high" as const,
+          notification: {
+            sound: "default",
+            click_action: "OPEN_ACTIVITY",
+          },
+        },
+      },
+    };
+
+    const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(fcmPayload),
+    });
+
+    if (response.ok) {
+      log.debug("FCM push sent", { token: registrationToken.substring(0, 8) + "..." });
+      return;
+    }
+
+    const errorBody = await response.text();
+    let errorCode = "UNKNOWN";
+    try {
+      const parsed = JSON.parse(errorBody);
+      errorCode = parsed?.error?.details?.[0]?.errorCode ?? parsed?.error?.status ?? "UNKNOWN";
+    } catch { /* ignore parse errors */ }
+
+    log.warn("FCM push rejected", { status: response.status, error: errorBody });
+    throw new FcmError(response.status, errorCode, errorBody);
+  }
+
+  /**
+   * Get a valid FCM OAuth2 access token using the service account JWT.
+   * Tokens are cached and refreshed 5 minutes before expiry.
+   */
+  private async getFcmAccessToken(): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    if (this.fcmAccessToken && now < this.fcmTokenExpiry - 300) {
+      return this.fcmAccessToken;
+    }
+
+    const sa = this.fcmServiceAccount!;
+
+    // Create a self-signed JWT for the OAuth2 token exchange
+    const header = Buffer.from(JSON.stringify({
+      alg: "RS256",
+      typ: "JWT",
+    })).toString("base64url");
+
+    const claims = Buffer.from(JSON.stringify({
+      iss: sa.client_email,
+      scope: "https://www.googleapis.com/auth/firebase.messaging",
+      aud: "https://oauth2.googleapis.com/token",
+      iat: now,
+      exp: now + 3600,
+    })).toString("base64url");
+
+    const signer = createSign("SHA256");
+    signer.update(`${header}.${claims}`);
+    const signature = signer.sign(sa.private_key, "base64url");
+    const jwt = `${header}.${claims}.${signature}`;
+
+    // Exchange JWT for OAuth2 access token
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`FCM OAuth2 token exchange failed: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json() as { access_token: string; expires_in: number };
+    this.fcmAccessToken = data.access_token;
+    this.fcmTokenExpiry = now + data.expires_in;
+    log.debug("FCM access token refreshed", { expiresIn: data.expires_in });
+    return this.fcmAccessToken;
+  }
+
+  /** Close connections and clean up. */
   close(): void {
     if (this.apnsConnection) {
       this.apnsConnection.close();
@@ -238,9 +382,33 @@ export class PushDeliveryService {
   }
 }
 
+// ---- Types ----
+
+interface FcmServiceAccount {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+}
+
 class ApnsError extends Error {
   constructor(public readonly status: number, public readonly reason: string) {
     super(`APNs error ${status}: ${reason}`);
     this.name = "ApnsError";
+  }
+}
+
+class FcmError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    public readonly reason: string,
+  ) {
+    super(`FCM error ${status} (${code}): ${reason}`);
+    this.name = "FcmError";
   }
 }
