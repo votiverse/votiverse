@@ -154,6 +154,49 @@ export function authRoutes(
     return c.json({ status: "sent" });
   });
 
+  /** POST /auth/forgot-password — request a password reset email. */
+  app.post("/auth/forgot-password", async (c) => {
+    const body = await c.req.json() as Record<string, unknown>;
+    const email = typeof body.email === "string" ? body.email : null;
+    if (!email) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "email is required" } },
+        400,
+      );
+    }
+
+    const result = await userService.createResetToken(email);
+
+    // Always return success to prevent email enumeration
+    if (result && notificationAdapter) {
+      void sendPasswordResetEmail(notificationAdapter, email, result.token, config).catch((err) => {
+        log.error("Failed to send password reset email", { error: String(err) });
+      });
+    }
+
+    return c.json({ status: "sent" });
+  });
+
+  /** POST /auth/reset-password — reset password with token. */
+  app.post("/auth/reset-password", async (c) => {
+    const body = await c.req.json() as Record<string, unknown>;
+    const token = typeof body.token === "string" ? body.token : null;
+    const newPassword = typeof body.password === "string" ? body.password : null;
+    if (!token || !newPassword) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "token and password are required" } },
+        400,
+      );
+    }
+
+    const user = await userService.resetPassword(token, newPassword);
+
+    // Revoke all existing sessions — forces re-login with new password
+    await sessionService.revokeAllSessions(user.id);
+
+    return c.json({ status: "reset" });
+  });
+
   return app;
 }
 
@@ -169,6 +212,22 @@ async function sendVerificationEmail(
     assemblyName: "Votiverse",
     title: "Verify your email",
     baseUrl: verifyUrl,
+  });
+  await adapter.send({ to: email, subject, body, bodyHtml });
+}
+
+async function sendPasswordResetEmail(
+  adapter: NotificationAdapter,
+  email: string,
+  token: string,
+  config: BackendConfig,
+): Promise<void> {
+  const baseUrl = config.corsOrigins[0] ?? "http://localhost:5173";
+  const resetUrl = `${baseUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
+  const { subject, body, bodyHtml } = renderTemplate("password_reset", {
+    assemblyName: "Votiverse",
+    title: "Reset your password",
+    baseUrl: resetUrl,
   });
   await adapter.send({ to: email, subject, body, bodyHtml });
 }

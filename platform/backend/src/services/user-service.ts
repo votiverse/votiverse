@@ -11,6 +11,9 @@ import { ValidationError, ConflictError, AuthenticationError, NotFoundError } fr
 /** Verification token expiry: 24 hours. */
 const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
+/** Password reset token expiry: 1 hour. */
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
+
 interface UserRow {
   id: string;
   email: string;
@@ -26,6 +29,8 @@ interface UserRow {
   email_verified: number | boolean;
   verification_token: string | null;
   verification_expires: string | null;
+  reset_token: string | null;
+  reset_expires: string | null;
 }
 
 /** Maximum failed login attempts before account is locked. */
@@ -356,5 +361,49 @@ export class UserService {
     }
 
     return this.getByIdOrThrow(userId);
+  }
+
+  /** Create a password reset token. Returns the token for email sending, or null if email not found. */
+  async createResetToken(email: string): Promise<{ token: string; userId: string } | null> {
+    const row = await this.db.queryOne<{ id: string }>(
+      "SELECT id FROM users WHERE email = ? AND status = 'active'",
+      [email.toLowerCase()],
+    );
+    if (!row) return null;
+
+    const token = randomBytes(32).toString("base64url");
+    const expires = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS).toISOString();
+
+    await this.db.run(
+      "UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?",
+      [token, expires, row.id],
+    );
+    return { token, userId: row.id };
+  }
+
+  /** Reset password using a reset token. Returns the user on success. */
+  async resetPassword(token: string, newPassword: string): Promise<User> {
+    if (!newPassword || newPassword.length < 12) {
+      throw new ValidationError("Password must be at least 12 characters");
+    }
+
+    const row = await this.db.queryOne<UserRow>(
+      "SELECT * FROM users WHERE reset_token = ?",
+      [token],
+    );
+    if (!row) {
+      throw new ValidationError("Invalid or expired reset token");
+    }
+    if (row.reset_expires && new Date(row.reset_expires) < new Date()) {
+      throw new ValidationError("Reset token has expired. Request a new one.");
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    await this.db.run(
+      "UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires = NULL, failed_login_attempts = 0, locked_until = NULL WHERE id = ?",
+      [passwordHash, row.id],
+    );
+
+    return rowToUser(row);
   }
 }

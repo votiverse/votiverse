@@ -31,7 +31,9 @@ export class SQLiteAdapter implements DatabaseAdapter {
         locked_until          TEXT,
         email_verified        INTEGER NOT NULL DEFAULT 0,
         verification_token    TEXT,
-        verification_expires  TEXT
+        verification_expires  TEXT,
+        reset_token           TEXT,
+        reset_expires         TEXT
       );
       CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 
