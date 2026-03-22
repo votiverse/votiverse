@@ -31,7 +31,7 @@ export class PostgresAdapter implements DatabaseAdapter {
       await client.query(`
         -- User accounts
         CREATE TABLE IF NOT EXISTS users (
-          id            TEXT PRIMARY KEY,
+          id            UUID PRIMARY KEY,
           email         TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
           name          TEXT NOT NULL,
@@ -45,8 +45,8 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Refresh tokens for session management
         CREATE TABLE IF NOT EXISTS refresh_tokens (
-          id          TEXT PRIMARY KEY,
-          user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          id          UUID PRIMARY KEY,
+          user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           token_hash  TEXT NOT NULL UNIQUE,
           expires_at  TIMESTAMPTZ NOT NULL,
           created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -59,9 +59,9 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- User-to-participant mapping across assemblies
         CREATE TABLE IF NOT EXISTS memberships (
-          user_id        TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          assembly_id    TEXT NOT NULL,
-          participant_id TEXT NOT NULL,
+          user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          assembly_id    UUID NOT NULL,
+          participant_id UUID NOT NULL,
           assembly_name  TEXT NOT NULL,
           joined_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (user_id, assembly_id)
@@ -71,8 +71,8 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Events tracked for notification scheduling
         CREATE TABLE IF NOT EXISTS tracked_events (
-          id                   TEXT PRIMARY KEY,
-          assembly_id          TEXT NOT NULL,
+          id                   UUID PRIMARY KEY,
+          assembly_id          UUID NOT NULL,
           title                TEXT NOT NULL,
           voting_start         TEXT NOT NULL,
           voting_end           TEXT NOT NULL,
@@ -87,8 +87,8 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Surveys tracked for notification scheduling
         CREATE TABLE IF NOT EXISTS tracked_surveys (
-          id                   TEXT PRIMARY KEY,
-          assembly_id          TEXT NOT NULL,
+          id                   UUID PRIMARY KEY,
+          assembly_id          UUID NOT NULL,
           title                TEXT NOT NULL,
           schedule             TEXT NOT NULL,
           closes_at            TEXT NOT NULL,
@@ -102,7 +102,7 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- User notification preferences
         CREATE TABLE IF NOT EXISTS notification_preferences (
-          user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          user_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           key       TEXT NOT NULL,
           value     TEXT NOT NULL,
           PRIMARY KEY (user_id, key)
@@ -110,11 +110,11 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Invitations (link-based and direct)
         CREATE TABLE IF NOT EXISTS invitations (
-          id              TEXT PRIMARY KEY,
-          assembly_id     TEXT NOT NULL,
+          id              UUID PRIMARY KEY,
+          assembly_id     UUID NOT NULL,
           type            TEXT NOT NULL,
           token           TEXT UNIQUE,
-          invited_by      TEXT NOT NULL,
+          invited_by      UUID NOT NULL,
           invitee_handle  TEXT,
           max_uses        INTEGER,
           use_count       INTEGER NOT NULL DEFAULT 0,
@@ -126,15 +126,15 @@ export class PostgresAdapter implements DatabaseAdapter {
         CREATE INDEX IF NOT EXISTS idx_invitations_assembly ON invitations(assembly_id);
 
         CREATE TABLE IF NOT EXISTS invitation_acceptances (
-          id              TEXT PRIMARY KEY,
-          invitation_id   TEXT NOT NULL,
-          user_id         TEXT NOT NULL,
+          id              UUID PRIMARY KEY,
+          invitation_id   UUID NOT NULL,
+          user_id         UUID NOT NULL,
           accepted_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 
         -- Local assembly cache (immutable after creation — avoids VCP round-trips)
         CREATE TABLE IF NOT EXISTS assemblies_cache (
-          id              TEXT PRIMARY KEY,
+          id              UUID PRIMARY KEY,
           organization_id TEXT,
           name            TEXT NOT NULL,
           config          JSONB NOT NULL,
@@ -146,13 +146,13 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Join requests (for approval admission mode)
         CREATE TABLE IF NOT EXISTS join_requests (
-          id              TEXT PRIMARY KEY,
-          assembly_id     TEXT NOT NULL,
-          user_id         TEXT NOT NULL,
+          id              UUID PRIMARY KEY,
+          assembly_id     UUID NOT NULL,
+          user_id         UUID NOT NULL,
           user_name       TEXT NOT NULL,
           user_handle     TEXT,
           status          TEXT NOT NULL DEFAULT 'pending',
-          reviewed_by     TEXT,
+          reviewed_by     UUID,
           reviewed_at     TIMESTAMPTZ,
           created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
@@ -163,10 +163,10 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Local topic cache (immutable after creation — avoids VCP round-trips)
         CREATE TABLE IF NOT EXISTS topics_cache (
-          id            TEXT NOT NULL,
-          assembly_id   TEXT NOT NULL,
+          id            UUID NOT NULL,
+          assembly_id   UUID NOT NULL,
           name          TEXT NOT NULL,
-          parent_id     TEXT,
+          parent_id     UUID,
           sort_order    INTEGER NOT NULL DEFAULT 0,
           cached_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (assembly_id, id)
@@ -174,23 +174,23 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Local survey cache (metadata is immutable after creation)
         CREATE TABLE IF NOT EXISTS surveys_cache (
-          id            TEXT NOT NULL,
-          assembly_id   TEXT NOT NULL,
+          id            UUID NOT NULL,
+          assembly_id   UUID NOT NULL,
           title         TEXT NOT NULL,
           questions     JSONB NOT NULL,
           topic_ids     JSONB NOT NULL DEFAULT '[]',
           schedule      BIGINT NOT NULL,
           closes_at     BIGINT NOT NULL,
-          created_by    TEXT NOT NULL,
+          created_by    UUID NOT NULL,
           cached_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (assembly_id, id)
         );
 
         -- In-app notification feed (persistent, independent of email delivery)
         CREATE TABLE IF NOT EXISTS notifications (
-          id              TEXT PRIMARY KEY,
-          user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          assembly_id     TEXT NOT NULL,
+          id              UUID PRIMARY KEY,
+          user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          assembly_id     UUID NOT NULL,
           type            TEXT NOT NULL,
           urgency         TEXT NOT NULL DEFAULT 'info',
           title           TEXT NOT NULL,
@@ -206,17 +206,17 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Survey response tracking (one-way latch: once responded, never reverted)
         CREATE TABLE IF NOT EXISTS survey_responses (
-          assembly_id    TEXT NOT NULL,
-          survey_id      TEXT NOT NULL,
-          participant_id TEXT NOT NULL,
+          assembly_id    UUID NOT NULL,
+          survey_id      UUID NOT NULL,
+          participant_id UUID NOT NULL,
           responded_at   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (assembly_id, survey_id, participant_id)
         );
 
         -- Push notification device tokens
         CREATE TABLE IF NOT EXISTS device_tokens (
-          id         TEXT PRIMARY KEY,
-          user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          id         UUID PRIMARY KEY,
+          user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           platform   TEXT NOT NULL CHECK(platform IN ('ios', 'android')),
           token      TEXT NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -227,11 +227,11 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Proposal drafts (backend-only, mutable, discarded on submit)
         CREATE TABLE IF NOT EXISTS proposal_drafts (
-          id            TEXT PRIMARY KEY,
-          assembly_id   TEXT NOT NULL,
-          issue_id      TEXT NOT NULL,
+          id            UUID PRIMARY KEY,
+          assembly_id   UUID NOT NULL,
+          issue_id      UUID NOT NULL,
           choice_key    TEXT,
-          author_id     TEXT NOT NULL,
+          author_id     UUID NOT NULL,
           title         TEXT NOT NULL,
           markdown      TEXT NOT NULL DEFAULT '',
           assets        JSONB NOT NULL DEFAULT '[]',
@@ -243,8 +243,8 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Proposal content (immutable versions, keyed by VCP proposal ID)
         CREATE TABLE IF NOT EXISTS proposal_content (
-          proposal_id    TEXT NOT NULL,
-          assembly_id    TEXT NOT NULL,
+          proposal_id    UUID NOT NULL,
+          assembly_id    UUID NOT NULL,
           version_number INTEGER NOT NULL,
           markdown       TEXT NOT NULL,
           assets         JSONB NOT NULL DEFAULT '[]',
@@ -256,8 +256,8 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Candidacy content (immutable versions, keyed by VCP candidacy ID)
         CREATE TABLE IF NOT EXISTS candidacy_content (
-          candidacy_id   TEXT NOT NULL,
-          assembly_id    TEXT NOT NULL,
+          candidacy_id   UUID NOT NULL,
+          assembly_id    UUID NOT NULL,
           version_number INTEGER NOT NULL,
           markdown       TEXT NOT NULL,
           assets         JSONB NOT NULL DEFAULT '[]',
@@ -269,8 +269,8 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Note content (immutable, keyed by VCP note ID)
         CREATE TABLE IF NOT EXISTS note_content (
-          note_id      TEXT NOT NULL,
-          assembly_id  TEXT NOT NULL,
+          note_id      UUID NOT NULL,
+          assembly_id  UUID NOT NULL,
           markdown     TEXT NOT NULL,
           assets       JSONB NOT NULL DEFAULT '[]',
           content_hash TEXT NOT NULL,
@@ -280,18 +280,30 @@ export class PostgresAdapter implements DatabaseAdapter {
 
         -- Binary assets (images, videos, PDFs)
         CREATE TABLE IF NOT EXISTS assets (
-          id           TEXT PRIMARY KEY,
-          assembly_id  TEXT NOT NULL,
+          id           UUID PRIMARY KEY,
+          assembly_id  UUID NOT NULL,
           filename     TEXT NOT NULL,
           mime_type    TEXT NOT NULL,
           size_bytes   INTEGER NOT NULL,
           hash         TEXT NOT NULL,
-          uploaded_by  TEXT NOT NULL,
+          uploaded_by  UUID NOT NULL,
           uploaded_at  BIGINT NOT NULL,
           data         BYTEA
         );
         CREATE INDEX IF NOT EXISTS idx_assets_assembly
           ON assets(assembly_id);
+
+        -- Booklet recommendation content (backend-owned, linked to VCP metadata)
+        CREATE TABLE IF NOT EXISTS booklet_recommendation_content (
+          assembly_id  UUID NOT NULL,
+          event_id     UUID NOT NULL,
+          issue_id     UUID NOT NULL,
+          markdown     TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          created_at   BIGINT NOT NULL,
+          updated_at   BIGINT NOT NULL,
+          PRIMARY KEY (assembly_id, event_id, issue_id)
+        );
       `);
     } finally {
       client.release();
