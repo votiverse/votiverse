@@ -23,6 +23,7 @@ import type {
   SurveyResults,
 } from "./types.js";
 import { getAccessToken, refreshSession } from "./auth.js";
+import { isTauri } from "../lib/tauri.js";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
@@ -42,12 +43,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     "Content-Type": "application/json",
   };
 
-  const token = getAccessToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  // Mobile (Tauri): use Authorization header from localStorage
+  // Web browser: rely on httpOnly cookies (sent automatically)
+  if (isTauri) {
+    const token = getAccessToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
 
-  const init: RequestInit = { method, headers };
+  const init: RequestInit = { method, headers, credentials: "include" };
   if (body !== undefined) {
     init.body = JSON.stringify(body);
   }
@@ -55,11 +60,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   let res = await fetch(`${BASE_URL}${path}`, init);
 
   // Auto-refresh on 401
-  if (res.status === 401 && token) {
+  if (res.status === 401) {
     const newToken = await refreshSession();
     if (newToken) {
-      headers["Authorization"] = `Bearer ${newToken}`;
-      res = await fetch(`${BASE_URL}${path}`, { method, headers, body: init.body });
+      if (isTauri && newToken !== "refreshed") {
+        headers["Authorization"] = `Bearer ${newToken}`;
+      }
+      res = await fetch(`${BASE_URL}${path}`, { method, headers, credentials: "include", body: init.body });
     }
   }
 

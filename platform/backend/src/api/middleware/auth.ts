@@ -1,9 +1,14 @@
 /**
- * Authentication middleware — verifies user JWT access tokens.
+ * Authentication middleware — extracts and verifies user JWT access tokens.
+ *
+ * Token sources (checked in order):
+ * 1. httpOnly cookie `votiverse_access` — used by web browsers
+ * 2. Authorization: Bearer <token> header — used by mobile apps and API consumers
  */
 
 import type { Context, Next } from "hono";
 import { verifyAccessToken } from "../../lib/jwt.js";
+import { getAccessTokenFromCookie } from "../../lib/cookies.js";
 
 const PUBLIC_PATHS = new Set(["/health", "/metrics"]);
 const PUBLIC_PREFIXES = ["/auth/", "/dev/clock"];
@@ -20,23 +25,26 @@ export function createAuthMiddleware(jwtSecret: string) {
       return next();
     }
 
-    const header = c.req.header("Authorization");
-    if (!header) {
+    // 1. Try httpOnly cookie (web browsers)
+    let token = getAccessTokenFromCookie(c);
+
+    // 2. Fall back to Authorization header (mobile / API consumers)
+    if (!token) {
+      const header = c.req.header("Authorization");
+      if (header) {
+        const match = /^Bearer\s+(.+)$/i.exec(header);
+        token = match?.[1] ?? null;
+      }
+    }
+
+    if (!token) {
       return c.json(
-        { error: { code: "UNAUTHORIZED", message: "Missing Authorization header" } },
+        { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
         401,
       );
     }
 
-    const match = /^Bearer\s+(.+)$/i.exec(header);
-    if (!match?.[1]) {
-      return c.json(
-        { error: { code: "UNAUTHORIZED", message: "Invalid Authorization header format" } },
-        401,
-      );
-    }
-
-    const payload = await verifyAccessToken(match[1], jwtSecret);
+    const payload = await verifyAccessToken(token, jwtSecret);
     if (!payload) {
       return c.json(
         { error: { code: "UNAUTHORIZED", message: "Invalid or expired token" } },

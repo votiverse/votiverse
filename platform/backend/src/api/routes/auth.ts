@@ -1,12 +1,17 @@
 /**
  * Auth routes — registration, login, token refresh, logout.
+ *
+ * Tokens are delivered via httpOnly cookies (for web browsers) AND in the
+ * response body (for mobile apps that use Authorization headers).
  */
 
 import { Hono } from "hono";
 import type { UserService } from "../../services/user-service.js";
 import type { SessionService } from "../../services/session-service.js";
+import type { BackendConfig } from "../../config/schema.js";
+import { setAuthCookies, clearAuthCookies, getRefreshTokenFromCookie } from "../../lib/cookies.js";
 
-export function authRoutes(userService: UserService, sessionService: SessionService) {
+export function authRoutes(userService: UserService, sessionService: SessionService, config: BackendConfig) {
   const app = new Hono();
 
   /** POST /auth/register — create account. */
@@ -14,6 +19,8 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     const body = await c.req.json<{ email: string; password: string; name: string; handle?: string }>();
     const user = await userService.register(body.email, body.password, body.name, body.handle);
     const tokens = await sessionService.createSession(user);
+
+    setAuthCookies(c, tokens.accessToken, tokens.refreshToken, config.jwtAccessExpiry, config.jwtRefreshExpiry);
 
     return c.json({
       user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio },
@@ -28,6 +35,8 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     const user = await userService.authenticate(body.email, body.password);
     const tokens = await sessionService.createSession(user);
 
+    setAuthCookies(c, tokens.accessToken, tokens.refreshToken, config.jwtAccessExpiry, config.jwtRefreshExpiry);
+
     return c.json({
       user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio },
       accessToken: tokens.accessToken,
@@ -37,8 +46,14 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
 
   /** POST /auth/refresh — rotate refresh token, get new access token. */
   app.post("/auth/refresh", async (c) => {
-    const body = await c.req.json<{ refreshToken: string }>();
-    if (!body.refreshToken) {
+    // Read refresh token from cookie first, fall back to request body
+    let refreshToken = getRefreshTokenFromCookie(c);
+    if (!refreshToken) {
+      const body = await c.req.json<{ refreshToken?: string }>().catch(() => ({}));
+      refreshToken = body.refreshToken ?? null;
+    }
+
+    if (!refreshToken) {
       return c.json(
         { error: { code: "VALIDATION_ERROR", message: "refreshToken is required" } },
         400,
@@ -46,9 +61,11 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     }
 
     const tokens = await sessionService.refreshSession(
-      body.refreshToken,
+      refreshToken,
       (id) => userService.getById(id),
     );
+
+    setAuthCookies(c, tokens.accessToken, tokens.refreshToken, config.jwtAccessExpiry, config.jwtRefreshExpiry);
 
     return c.json({
       accessToken: tokens.accessToken,
@@ -58,10 +75,18 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
 
   /** POST /auth/logout — revoke refresh token. */
   app.post("/auth/logout", async (c) => {
-    const body = await c.req.json<{ refreshToken: string }>();
-    if (body.refreshToken) {
-      await sessionService.revokeSession(body.refreshToken);
+    // Read refresh token from cookie first, fall back to body
+    let refreshToken = getRefreshTokenFromCookie(c);
+    if (!refreshToken) {
+      const body = await c.req.json<{ refreshToken?: string }>().catch(() => ({}));
+      refreshToken = body.refreshToken ?? null;
     }
+
+    if (refreshToken) {
+      await sessionService.revokeSession(refreshToken);
+    }
+
+    clearAuthCookies(c);
     return c.body(null, 204);
   });
 
