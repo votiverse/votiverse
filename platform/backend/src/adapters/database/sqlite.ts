@@ -18,15 +18,17 @@ export class SQLiteAdapter implements DatabaseAdapter {
     this.db.exec(`
       -- User accounts
       CREATE TABLE IF NOT EXISTS users (
-        id            TEXT PRIMARY KEY,
-        email         TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        name          TEXT NOT NULL,
-        handle        TEXT UNIQUE,
-        avatar_url    TEXT,
-        bio           TEXT NOT NULL DEFAULT '',
-        created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-        status        TEXT NOT NULL DEFAULT 'active'
+        id                    TEXT PRIMARY KEY,
+        email                 TEXT UNIQUE NOT NULL,
+        password_hash         TEXT NOT NULL,
+        name                  TEXT NOT NULL,
+        handle                TEXT UNIQUE,
+        avatar_url            TEXT,
+        bio                   TEXT NOT NULL DEFAULT '',
+        created_at            TEXT NOT NULL DEFAULT (datetime('now')),
+        status                TEXT NOT NULL DEFAULT 'active',
+        failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+        locked_until          TEXT
       );
       CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 

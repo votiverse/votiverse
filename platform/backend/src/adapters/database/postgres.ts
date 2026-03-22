@@ -31,15 +31,17 @@ export class PostgresAdapter implements DatabaseAdapter {
       await client.query(`
         -- User accounts
         CREATE TABLE IF NOT EXISTS users (
-          id            UUID PRIMARY KEY,
-          email         TEXT UNIQUE NOT NULL,
-          password_hash TEXT NOT NULL,
-          name          TEXT NOT NULL,
-          handle        TEXT UNIQUE,
-          avatar_url    TEXT,
-          bio           TEXT NOT NULL DEFAULT '',
-          created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          status        TEXT NOT NULL DEFAULT 'active'
+          id                    UUID PRIMARY KEY,
+          email                 TEXT UNIQUE NOT NULL,
+          password_hash         TEXT NOT NULL,
+          name                  TEXT NOT NULL,
+          handle                TEXT UNIQUE,
+          avatar_url            TEXT,
+          bio                   TEXT NOT NULL DEFAULT '',
+          created_at            TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          status                TEXT NOT NULL DEFAULT 'active',
+          failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+          locked_until          TIMESTAMPTZ
         );
         CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 

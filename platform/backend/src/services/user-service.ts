@@ -17,7 +17,15 @@ interface UserRow {
   bio: string;
   created_at: string;
   status: string;
+  failed_login_attempts: number;
+  locked_until: string | null;
 }
+
+/** Maximum failed login attempts before account is locked. */
+const MAX_FAILED_ATTEMPTS = 5;
+
+/** Account lockout duration in milliseconds (15 minutes). */
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 export interface User {
   id: string;
@@ -153,9 +161,44 @@ export class UserService {
       throw new AuthenticationError();
     }
 
+    // Check if account is locked
+    if (row.locked_until) {
+      const lockExpiry = new Date(row.locked_until).getTime();
+      if (Date.now() < lockExpiry) {
+        throw new AuthenticationError("Account is temporarily locked. Try again later.");
+      }
+      // Lock has expired — clear it
+      await this.db.run(
+        "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?",
+        [row.id],
+      );
+    }
+
     const valid = await verifyPassword(password, row.password_hash);
     if (!valid) {
+      const attempts = row.failed_login_attempts + 1;
+      if (attempts >= MAX_FAILED_ATTEMPTS) {
+        // Lock the account
+        const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS).toISOString();
+        await this.db.run(
+          "UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?",
+          [attempts, lockedUntil, row.id],
+        );
+      } else {
+        await this.db.run(
+          "UPDATE users SET failed_login_attempts = ? WHERE id = ?",
+          [attempts, row.id],
+        );
+      }
       throw new AuthenticationError();
+    }
+
+    // Successful login — clear failed attempts
+    if (row.failed_login_attempts > 0) {
+      await this.db.run(
+        "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?",
+        [row.id],
+      );
     }
 
     return rowToUser(row);
