@@ -22,12 +22,13 @@
     "@votiverse/delegation": "workspace:*",
     "@votiverse/engine": "workspace:*",
     "@votiverse/identity": "workspace:*",
-    "@votiverse/survey": "workspace:*",
     "@votiverse/prediction": "workspace:*",
+    "@votiverse/survey": "workspace:*",
     "@votiverse/voting": "workspace:*",
     "better-sqlite3": "^11.9.0",
     "hono": "^4.7.0",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

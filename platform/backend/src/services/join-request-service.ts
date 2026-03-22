@@ -2,7 +2,7 @@
  * JoinRequestService — manages pending join requests for approval-mode assemblies.
  */
 
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import { ConflictError, NotFoundError } from "../api/middleware/error-handler.js";
 
@@ -63,7 +63,7 @@ export class JoinRequestService {
       throw new ConflictError("You already have a pending request to join this group");
     }
 
-    const id = randomUUID();
+    const id = uuidv7();
     const createdAt = new Date().toISOString();
 
     await this.db.run(

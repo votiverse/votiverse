@@ -3,7 +3,7 @@
  */
 
 import { Hono } from "hono";
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireScope } from "../middleware/auth.js";
 
@@ -36,7 +36,7 @@ export function topicRoutes(manager: AssemblyManager) {
       );
     }
 
-    const id = randomUUID();
+    const id = uuidv7();
     await manager.createTopic(assemblyId, {
       id,
       name: body.name,

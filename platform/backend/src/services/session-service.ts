@@ -5,7 +5,8 @@
  * On refresh, the old token is revoked and a new one is issued (rotation).
  */
 
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import { signAccessToken, generateRefreshToken, parseDurationMs } from "../lib/jwt.js";
 import { AuthenticationError } from "../api/middleware/error-handler.js";
@@ -40,7 +41,7 @@ export class SessionService {
 
     await this.db.run(
       "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)",
-      [randomUUID(), user.id, tokenHash, expiresAt],
+      [uuidv7(), user.id, tokenHash, expiresAt],
     );
 
     return { accessToken, refreshToken };

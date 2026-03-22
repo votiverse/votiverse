@@ -11,6 +11,7 @@ import type { SurveyCacheService } from "../../services/survey-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
+import { v7 as uuidv7 } from "uuid";
 
 import type { NotificationHubService } from "../../services/notification-hub.js";
 import type { DatabaseAdapter } from "../../adapters/database/interface.js";
@@ -425,7 +426,7 @@ export function meRoutes(
       throw new ValidationError("platform must be 'ios' or 'android'");
     }
 
-    const id = crypto.randomUUID();
+    const id = uuidv7();
     await database.run(
       `INSERT INTO device_tokens (id, user_id, platform, token)
        VALUES (?, ?, ?, ?)

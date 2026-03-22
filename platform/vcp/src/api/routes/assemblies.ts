@@ -3,7 +3,7 @@
  */
 
 import { Hono } from "hono";
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { GovernanceConfig } from "@votiverse/config";
 import { validateConfig, getPreset } from "@votiverse/config";
 import type { PresetName } from "@votiverse/config";
@@ -65,7 +65,7 @@ export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
       );
     }
 
-    const id = randomUUID();
+    const id = uuidv7();
     const assembly = await manager.createAssembly(id, {
       name: body.name,
       organizationId: body.organizationId,

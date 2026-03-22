@@ -6,7 +6,7 @@
  * In-app notifications are always created regardless of delivery preferences.
  */
 
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { NotificationAdapter } from "./notification-adapter.js";
 import type { NotificationService } from "./notification-service.js";
@@ -115,7 +115,7 @@ export class NotificationHubService {
     actionUrl?: string;
     skipEmail?: boolean;
   }): Promise<void> {
-    const id = randomUUID();
+    const id = uuidv7();
     await this.db.run(
       `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, body, action_url, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

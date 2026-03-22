@@ -378,6 +378,9 @@ importers:
       pg:
         specifier: ^8.20.0
         version: 8.20.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -445,6 +448,9 @@ importers:
       pg:
         specifier: ^8.20.0
         version: 8.20.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13

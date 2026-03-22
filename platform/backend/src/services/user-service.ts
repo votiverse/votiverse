@@ -2,7 +2,7 @@
  * UserService — registration, authentication, user CRUD, profile management.
  */
 
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
 import { ValidationError, ConflictError, AuthenticationError, NotFoundError } from "../api/middleware/error-handler.js";
@@ -125,10 +125,10 @@ export class UserService {
       finalHandle = handle;
     } else {
       const base = generateHandle(name.trim());
-      finalHandle = base.length >= 3 ? await this.findUniqueHandle(base) : await this.findUniqueHandle(`user-${randomUUID().slice(0, 8)}`);
+      finalHandle = base.length >= 3 ? await this.findUniqueHandle(base) : await this.findUniqueHandle(`user-${uuidv7().slice(0, 8)}`);
     }
 
-    const id = randomUUID();
+    const id = uuidv7();
     const passwordHash = await hashPassword(password);
     const createdAt = new Date().toISOString();
 

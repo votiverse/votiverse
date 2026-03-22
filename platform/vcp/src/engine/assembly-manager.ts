@@ -11,7 +11,7 @@ import type { VotiverseEngine } from "@votiverse/engine";
 import { createEngine } from "@votiverse/engine";
 import { InvitationProvider } from "@votiverse/identity";
 import type { ParticipantId, TopicId, IssueId, VotingEventId, Issue } from "@votiverse/core";
-import { isOk, systemTime } from "@votiverse/core";
+import { isOk, systemTime, generateEventId } from "@votiverse/core";
 import type { TimeProvider } from "@votiverse/core";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { QueueAdapter } from "../adapters/queue/interface.js";
@@ -322,12 +322,11 @@ export class AssemblyManager {
     const { engine } = await this.getEngine(assemblyId);
     const store = this.engines.get(assemblyId)!.store;
     const { createEvent } = await import("@votiverse/core");
-    const { randomUUID } = await import("node:crypto");
     const event = createEvent("RoleGranted", {
       participantId,
       role,
       grantedBy,
-    }, randomUUID() as import("@votiverse/core").EventId, now as import("@votiverse/core").Timestamp);
+    }, generateEventId(), now as import("@votiverse/core").Timestamp);
     await store.append(event);
   }
 
@@ -365,13 +364,12 @@ export class AssemblyManager {
     // Record the event
     const store = this.engines.get(assemblyId)?.store ?? (() => { throw new Error("Engine not loaded"); })();
     const { createEvent } = await import("@votiverse/core");
-    const { randomUUID } = await import("node:crypto");
     const now = this.timeProvider.now();
     const event = createEvent("RoleRevoked", {
       participantId,
       role,
       revokedBy,
-    }, randomUUID() as import("@votiverse/core").EventId, now as import("@votiverse/core").Timestamp);
+    }, generateEventId(), now as import("@votiverse/core").Timestamp);
     await store.append(event);
   }
 

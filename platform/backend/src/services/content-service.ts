@@ -6,7 +6,7 @@
  * metadata and content hashes. This service orchestrates both.
  */
 
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import { createHash } from "node:crypto";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 
@@ -58,7 +58,7 @@ export class ContentService {
     title: string;
     markdown?: string;
   }): Promise<ProposalDraft> {
-    const id = randomUUID();
+    const id = uuidv7();
     const now = Date.now();
     await this.db.run(
       `INSERT INTO proposal_drafts (id, assembly_id, issue_id, choice_key, author_id, title, markdown, assets, created_at, updated_at)
@@ -282,7 +282,7 @@ export class ContentService {
     data: Buffer;
     uploadedBy: string;
   }): Promise<{ id: string; hash: string; sizeBytes: number }> {
-    const id = randomUUID();
+    const id = uuidv7();
     const hash = createHash("sha256").update(params.data).digest("hex");
     const sizeBytes = params.data.length;
     const now = Date.now();

@@ -4,7 +4,7 @@
  * Tasks are stored in an array and processed by a setInterval loop.
  */
 
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { QueueAdapter, WorkerTask, WorkerTaskType, TaskHandler } from "./interface.js";
 
 const PRIORITY_ORDER = { high: 0, normal: 1, low: 2 } as const;
@@ -20,7 +20,7 @@ export class MemoryQueueAdapter implements QueueAdapter {
   ): void {
     this.tasks.push({
       ...task,
-      id: randomUUID(),
+      id: uuidv7(),
       createdAt: new Date().toISOString(),
       attempts: 0,
       maxAttempts: task.maxAttempts ?? 3,

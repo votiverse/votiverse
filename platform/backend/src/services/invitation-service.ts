@@ -2,7 +2,8 @@
  * InvitationService — manages invite links and direct invitations.
  */
 
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { MembershipService } from "./membership-service.js";
 import { NotFoundError, ConflictError, ValidationError } from "../api/middleware/error-handler.js";
@@ -66,7 +67,7 @@ export class InvitationService {
     invitedByUserId: string,
     options?: { maxUses?: number; expiresAt?: string },
   ): Promise<Invitation> {
-    const id = randomUUID();
+    const id = uuidv7();
     const token = randomBytes(32).toString("base64url");
     const expiresAt = options?.expiresAt
       ?? new Date(Date.now() + InvitationService.DEFAULT_LINK_EXPIRY_DAYS * 86400000).toISOString();
@@ -91,7 +92,7 @@ export class InvitationService {
     invitedByUserId: string,
     inviteeHandle: string,
   ): Promise<Invitation> {
-    const id = randomUUID();
+    const id = uuidv7();
 
     await this.db.run(
       `INSERT INTO invitations (id, assembly_id, type, invited_by, invitee_handle, status, created_at)
@@ -183,7 +184,7 @@ export class InvitationService {
     // Record acceptance
     await this.db.run(
       "INSERT INTO invitation_acceptances (id, invitation_id, user_id, accepted_at) VALUES (?, ?, ?, ?)",
-      [randomUUID(), invitation.id, userId, new Date().toISOString()],
+      [uuidv7(), invitation.id, userId, new Date().toISOString()],
     );
 
     // Increment use count
