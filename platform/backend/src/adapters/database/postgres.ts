@@ -54,6 +54,7 @@ export class PostgresAdapter implements DatabaseAdapter {
         CREATE TABLE IF NOT EXISTS refresh_tokens (
           id          UUID PRIMARY KEY,
           user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          family_id   UUID NOT NULL,
           token_hash  TEXT NOT NULL UNIQUE,
           expires_at  TIMESTAMPTZ NOT NULL,
           created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
