@@ -28,6 +28,7 @@ import { contentRoutes } from "./routes/content.js";
 import { invitationRoutes } from "./routes/invitations.js";
 import { InvitationService } from "../services/invitation-service.js";
 import { InvitationNotifier } from "../services/invitation-notifier.js";
+import { rateLimiter } from "./middleware/rate-limiter.js";
 import { JoinRequestService } from "../services/join-request-service.js";
 import { NotificationHubService } from "../services/notification-hub.js";
 import type { NotificationAdapter } from "../services/notification-adapter.js";
@@ -75,6 +76,15 @@ export function createApp(deps: AppDependencies): Hono {
   }));
   app.use("*", createRequestLogger(logger));
   app.use("*", errorHandler);
+
+  // Rate limiting (can be disabled when AWS WAF handles it)
+  if (config.rateLimitEnabled) {
+    // Stricter limit on auth endpoints (10 req/min per IP)
+    app.use("/auth/*", rateLimiter(10, 60_000, "auth"));
+    // Global baseline (100 req/min per IP)
+    app.use("*", rateLimiter(100, 60_000, "global"));
+  }
+
   app.use("*", createAuthMiddleware(config.jwtSecret));
 
   // Fallback error handler (catches errors from route handlers)

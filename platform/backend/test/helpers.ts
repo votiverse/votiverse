@@ -35,6 +35,8 @@ const TEST_CONFIG: BackendConfig = {
   logLevel: "error",
   corsOrigins: ["*"],
   rateLimitRpm: 0,
+  rateLimitEnabled: false,
+  cookieDomain: null,
   maxBodySize: 1024 * 1024,
   notificationAdapter: "console",
   notificationIntervalMs: 60000,

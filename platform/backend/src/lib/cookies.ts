@@ -94,7 +94,11 @@ interface CookieOptions {
   sameSite: "Strict" | "Lax" | "None";
   path: string;
   maxAge: number;
+  domain?: string;
 }
+
+/** Cookie domain from BACKEND_COOKIE_DOMAIN env var. Set for cross-subdomain setups. */
+const cookieDomain = process.env["BACKEND_COOKIE_DOMAIN"] ?? undefined;
 
 function buildCookieString(name: string, value: string, opts: CookieOptions): string {
   const parts = [`${name}=${encodeURIComponent(value)}`];
@@ -103,6 +107,8 @@ function buildCookieString(name: string, value: string, opts: CookieOptions): st
   parts.push(`SameSite=${opts.sameSite}`);
   parts.push(`Path=${opts.path}`);
   parts.push(`Max-Age=${opts.maxAge}`);
+  const domain = opts.domain ?? cookieDomain;
+  if (domain) parts.push(`Domain=${domain}`);
   return parts.join("; ");
 }
 

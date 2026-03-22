@@ -14,6 +14,8 @@ export interface BackendConfig {
   logLevel: "debug" | "info" | "warn" | "error";
   corsOrigins: string[];
   rateLimitRpm: number;
+  rateLimitEnabled: boolean;
+  cookieDomain: string | null;
   maxBodySize: number;
   notificationAdapter: "console" | "file" | "smtp" | "ses" | "twilio";
   notificationIntervalMs: number;
@@ -42,12 +44,14 @@ export function loadConfig(): BackendConfig {
     jwtAccessExpiry: process.env["BACKEND_JWT_ACCESS_EXPIRY"] ??
       (process.env["NODE_ENV"] === "production" ? "15m" : "7d"),
     jwtRefreshExpiry: process.env["BACKEND_JWT_REFRESH_EXPIRY"] ??
-      (process.env["NODE_ENV"] === "production" ? "90d" : "365d"),
+      (process.env["NODE_ENV"] === "production" ? "30d" : "365d"),
     vcpBaseUrl: process.env["BACKEND_VCP_URL"] ?? "http://localhost:3000",
     vcpApiKey: process.env["BACKEND_VCP_API_KEY"] ?? "vcp_dev_key_00000000",
     logLevel: (process.env["BACKEND_LOG_LEVEL"] as BackendConfig["logLevel"]) ?? "info",
     corsOrigins: parseCorsOrigins(process.env["BACKEND_CORS_ORIGINS"]),
     rateLimitRpm: parseInt(process.env["BACKEND_RATE_LIMIT_RPM"] ?? "0", 10),
+    rateLimitEnabled: process.env["BACKEND_RATE_LIMIT_ENABLED"] !== "false",
+    cookieDomain: process.env["BACKEND_COOKIE_DOMAIN"] ?? null,
     maxBodySize: parseInt(process.env["BACKEND_MAX_BODY_SIZE"] ?? String(1024 * 1024), 10),
     notificationAdapter: (process.env["BACKEND_NOTIFICATION_ADAPTER"] as BackendConfig["notificationAdapter"]) ?? "console",
     notificationIntervalMs: parseInt(process.env["BACKEND_NOTIFICATION_INTERVAL"] ?? "60000", 10),
@@ -84,6 +88,20 @@ export function validateProductionConfig(config: BackendConfig): void {
 
   if (config.vcpApiKey === "vcp_dev_key_00000000") {
     errors.push("BACKEND_VCP_API_KEY must be explicitly set in production");
+  }
+
+  if (!config.databaseUrl) {
+    errors.push("BACKEND_DATABASE_URL must be set in production (PostgreSQL connection string)");
+  }
+
+  if (config.vcpBaseUrl === "http://localhost:3000") {
+    errors.push("BACKEND_VCP_URL should point to the production VCP endpoint");
+  }
+
+  if (config.notificationAdapter === "smtp") {
+    if (!config.smtpHost) errors.push("BACKEND_SMTP_HOST is required when notification adapter is 'smtp'");
+    if (!config.smtpUser) errors.push("BACKEND_SMTP_USER is required when notification adapter is 'smtp'");
+    if (!config.smtpPass) errors.push("BACKEND_SMTP_PASS is required when notification adapter is 'smtp'");
   }
 
   if (errors.length > 0) {
