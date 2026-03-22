@@ -37,8 +37,7 @@ import type { InvitationNotifier } from "../../services/invitation-notifier.js";
 import type { NotificationHubService } from "../../services/notification-hub.js";
 import { getUser } from "../middleware/auth.js";
 import { parseCsvInvites } from "../../lib/csv-parser.js";
-
-const VALID_ADMISSION_MODES = new Set<string>(["open", "approval", "invite-only"]);
+import { AdmissionModeBody, BulkInviteBody, parseBody } from "../../lib/validation.js";
 
 export function invitationRoutes(
   invitationService: InvitationService,
@@ -201,14 +200,7 @@ export function invitationRoutes(
       return c.json({ error: { code: "FORBIDDEN", message: "Only admins can change settings" } }, 403);
     }
 
-    const body = await c.req.json<{ admissionMode?: string }>();
-    if (!body.admissionMode || !VALID_ADMISSION_MODES.has(body.admissionMode)) {
-      return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "admissionMode must be one of: open, approval, invite-only" } },
-        400,
-      );
-    }
-
+    const body = parseBody(AdmissionModeBody, await c.req.json());
     await assemblyCacheService.updateAdmissionMode(assemblyId, body.admissionMode as AdmissionMode);
     return c.json({ admissionMode: body.admissionMode });
   });
@@ -340,10 +332,7 @@ export function invitationRoutes(
       return c.json({ error: { code: "FORBIDDEN", message: "Only admins can create bulk invitations" } }, 403);
     }
 
-    const body = await c.req.json<{ handles: string[] }>();
-    if (!Array.isArray(body.handles) || body.handles.length === 0) {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "handles array is required" } }, 400);
-    }
+    const body = parseBody(BulkInviteBody, await c.req.json());
 
     const results: Array<{ handle: string; status: "created" | "skipped"; reason?: string }> = [];
     let created = 0;

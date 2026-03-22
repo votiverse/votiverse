@@ -10,13 +10,14 @@ import type { UserService } from "../../services/user-service.js";
 import type { SessionService } from "../../services/session-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { setAuthCookies, clearAuthCookies, getRefreshTokenFromCookie } from "../../lib/cookies.js";
+import { RegisterBody, LoginBody, RefreshBody, parseBody } from "../../lib/validation.js";
 
 export function authRoutes(userService: UserService, sessionService: SessionService, config: BackendConfig) {
   const app = new Hono();
 
   /** POST /auth/register — create account. */
   app.post("/auth/register", async (c) => {
-    const body = await c.req.json<{ email: string; password: string; name: string; handle?: string }>();
+    const body = parseBody(RegisterBody, await c.req.json());
     const user = await userService.register(body.email, body.password, body.name, body.handle);
     const tokens = await sessionService.createSession(user);
 
@@ -31,7 +32,7 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
 
   /** POST /auth/login — authenticate. */
   app.post("/auth/login", async (c) => {
-    const body = await c.req.json<{ email: string; password: string }>();
+    const body = parseBody(LoginBody, await c.req.json());
     const user = await userService.authenticate(body.email, body.password);
     const tokens = await sessionService.createSession(user);
 
@@ -49,7 +50,7 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     // Read refresh token from cookie first, fall back to request body
     let refreshToken = getRefreshTokenFromCookie(c);
     if (!refreshToken) {
-      const body = await c.req.json<{ refreshToken?: string }>().catch(() => ({}));
+      const body = parseBody(RefreshBody, await c.req.json().catch(() => ({})));
       refreshToken = body.refreshToken ?? null;
     }
 
@@ -78,8 +79,8 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     // Read refresh token from cookie first, fall back to body
     let refreshToken = getRefreshTokenFromCookie(c);
     if (!refreshToken) {
-      const body = await c.req.json<{ refreshToken?: string }>().catch(() => ({}));
-      refreshToken = body.refreshToken ?? null;
+      const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+      refreshToken = typeof body.refreshToken === "string" ? body.refreshToken : null;
     }
 
     if (refreshToken) {

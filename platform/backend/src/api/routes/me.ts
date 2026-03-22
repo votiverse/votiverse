@@ -12,6 +12,7 @@ import type { NotificationService } from "../../services/notification-service.js
 import { getUser } from "../middleware/auth.js";
 import { ValidationError } from "../middleware/error-handler.js";
 import { v7 as uuidv7 } from "uuid";
+import { UpdateProfileBody, NotificationPrefBody, DeviceTokenBody, parseBody } from "../../lib/validation.js";
 
 import type { NotificationHubService } from "../../services/notification-hub.js";
 import type { DatabaseAdapter } from "../../adapters/database/interface.js";
@@ -295,7 +296,7 @@ export function meRoutes(
   /** PUT /me/profile — update profile fields. */
   app.put("/me/profile", async (c) => {
     const { id } = getUser(c);
-    const body = await c.req.json<{ handle?: string; name?: string; bio?: string; avatarUrl?: string | null }>();
+    const body = parseBody(UpdateProfileBody, await c.req.json());
     const updated = await userService.updateProfile(id, body);
     return c.json({
       id: updated.id,
@@ -338,11 +339,7 @@ export function meRoutes(
   /** PUT /me/notification-preferences — set a notification preference. */
   app.put("/me/notification-preferences", async (c) => {
     const { id } = getUser(c);
-    const body = await c.req.json<{ key: string; value: string }>();
-
-    if (!body.key || !body.value) {
-      throw new ValidationError("Both 'key' and 'value' are required");
-    }
+    const body = parseBody(NotificationPrefBody, await c.req.json());
 
     try {
       await notificationService.setPreference(id, body.key, body.value);
@@ -362,10 +359,7 @@ export function meRoutes(
   });
   app.put("/me/notifications", async (c) => {
     const { id } = getUser(c);
-    const body = await c.req.json<{ key: string; value: string }>();
-    if (!body.key || !body.value) {
-      throw new ValidationError("Both 'key' and 'value' are required");
-    }
+    const body = parseBody(NotificationPrefBody, await c.req.json());
     try {
       await notificationService.setPreference(id, body.key, body.value);
     } catch (err) {
@@ -417,14 +411,7 @@ export function meRoutes(
   /** POST /me/devices — register a push notification device token. */
   app.post("/me/devices", async (c) => {
     const { id: userId } = getUser(c);
-    const body = await c.req.json<{ platform: string; token: string }>();
-
-    if (!body.platform || !body.token) {
-      throw new ValidationError("platform and token are required");
-    }
-    if (body.platform !== "ios" && body.platform !== "android") {
-      throw new ValidationError("platform must be 'ios' or 'android'");
-    }
+    const body = parseBody(DeviceTokenBody, await c.req.json());
 
     const id = uuidv7();
     await database.run(

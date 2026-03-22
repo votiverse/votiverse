@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from "vitest";
-import { createTestBackend, type TestBackend } from "./helpers.js";
+import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
 import type { VCPRole, VCPAssembly, VCPParticipant } from "../src/services/vcp-client.js";
 
 const ASSEMBLY_ID = "asm-hub-001";
@@ -62,7 +62,7 @@ describe("Notification hub", () => {
 
   describe("GET /me/notifications/feed", () => {
     it("returns empty feed for new user", async () => {
-      const { accessToken } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
       const res = await backend.request("GET", "/me/notifications/feed", undefined, authHeader(accessToken));
       expect(res.status).toBe(200);
       const data = (await res.json()) as { notifications: unknown[]; unreadCount: number; total: number };
@@ -74,7 +74,7 @@ describe("Notification hub", () => {
 
   describe("GET /me/notifications/unread-count", () => {
     it("returns 0 for new user", async () => {
-      const { accessToken } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
       const res = await backend.request("GET", "/me/notifications/unread-count", undefined, authHeader(accessToken));
       expect(res.status).toBe(200);
       const data = (await res.json()) as { unreadCount: number };
@@ -90,7 +90,7 @@ describe("Notification hub", () => {
     let inviteToken: string;
 
     beforeEach(async () => {
-      const admin = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const admin = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       adminToken = admin.accessToken;
       adminUserId = admin.userId;
       await seedAssembly(backend, "approval");
@@ -107,7 +107,7 @@ describe("Notification hub", () => {
     });
 
     it("creates join_request notification for admins when someone requests to join", async () => {
-      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(joinerToken));
 
       // Give async notification a tick
@@ -127,7 +127,7 @@ describe("Notification hub", () => {
     });
 
     it("notifies requester when join request is approved", async () => {
-      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       const reqRes = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(joinerToken));
       const { joinRequestId } = (await reqRes.json()) as { joinRequestId: string };
 
@@ -149,7 +149,7 @@ describe("Notification hub", () => {
     });
 
     it("notifies requester when join request is rejected", async () => {
-      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       const reqRes = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(joinerToken));
       const { joinRequestId } = (await reqRes.json()) as { joinRequestId: string };
 
@@ -172,7 +172,7 @@ describe("Notification hub", () => {
 
   describe("Mark read", () => {
     it("marks a single notification as read", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
       // Insert a notification directly via the DB
       await backend.db.run(
@@ -197,7 +197,7 @@ describe("Notification hub", () => {
     });
 
     it("marks all notifications as read", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
       // Insert multiple notifications
       for (let i = 0; i < 3; i++) {
@@ -225,7 +225,7 @@ describe("Notification hub", () => {
 
   describe("Feed sorting", () => {
     it("returns unread action items first, then timely, then info", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
       // Insert in reverse urgency order
       await backend.db.run(
@@ -252,7 +252,7 @@ describe("Notification hub", () => {
     });
 
     it("filters by unreadOnly", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
       await backend.db.run(
         `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
@@ -272,7 +272,7 @@ describe("Notification hub", () => {
     });
 
     it("enriches notifications with assembly names", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
       await seedAssembly(backend);
 
       await backend.db.run(
@@ -291,7 +291,7 @@ describe("Notification hub", () => {
 
   describe("Scheduler creates hub records", () => {
     it("processScheduledNotifications creates notification records for tracked events", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("member@example.com", "password123", "Member");
+      const { accessToken, userId } = await backend.registerAndLogin("member@example.com", TEST_PASSWORD, "Member");
       await seedAssembly(backend, "open");
       await seedMembership(backend, userId, "p-member");
 
@@ -342,7 +342,7 @@ describe("Notification hub", () => {
 
   describe("Preference endpoints", () => {
     it("GET /me/notification-preferences returns defaults", async () => {
-      const { accessToken } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
       const res = await backend.request("GET", "/me/notification-preferences", undefined, authHeader(accessToken));
       expect(res.status).toBe(200);
       const data = (await res.json()) as { preferences: Record<string, string> };
@@ -350,7 +350,7 @@ describe("Notification hub", () => {
     });
 
     it("old /me/notifications path still works (backward compat)", async () => {
-      const { accessToken } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
       const res = await backend.request("GET", "/me/notifications", undefined, authHeader(accessToken));
       expect(res.status).toBe(200);
       const data = (await res.json()) as { preferences: Record<string, string> };

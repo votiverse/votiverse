@@ -20,6 +20,9 @@ import type { BackendConfig } from "../src/config/schema.js";
 
 const TEST_JWT_SECRET = "test-secret-for-tests-only";
 
+/** Standard test password (12+ chars to satisfy validation). */
+export const TEST_PASSWORD = "test-password-123";
+
 const TEST_CONFIG: BackendConfig = {
   port: 0,
   dbPath: ":memory:",

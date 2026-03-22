@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createTestBackend, type TestBackend } from "./helpers.js";
+import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
 
 describe("Auth flow", () => {
   let backend: TestBackend;
@@ -20,7 +20,7 @@ describe("Auth flow", () => {
     it("creates a user and returns tokens", async () => {
       const res = await backend.request("POST", "/auth/register", {
         email: "alice@example.com",
-        password: "password123",
+        password: TEST_PASSWORD,
         name: "Alice",
       });
       expect(res.status).toBe(201);
@@ -37,12 +37,12 @@ describe("Auth flow", () => {
     it("rejects duplicate email", async () => {
       await backend.request("POST", "/auth/register", {
         email: "alice@example.com",
-        password: "password123",
+        password: TEST_PASSWORD,
         name: "Alice",
       });
       const res = await backend.request("POST", "/auth/register", {
         email: "alice@example.com",
-        password: "password456",
+        password: TEST_PASSWORD,
         name: "Alice 2",
       });
       expect(res.status).toBe(409);
@@ -51,7 +51,7 @@ describe("Auth flow", () => {
     it("normalizes email to lowercase", async () => {
       const res = await backend.request("POST", "/auth/register", {
         email: "Alice@Example.COM",
-        password: "password123",
+        password: TEST_PASSWORD,
         name: "Alice",
       });
       expect(res.status).toBe(201);
@@ -71,7 +71,7 @@ describe("Auth flow", () => {
     it("rejects missing name", async () => {
       const res = await backend.request("POST", "/auth/register", {
         email: "alice@example.com",
-        password: "password123",
+        password: TEST_PASSWORD,
         name: "",
       });
       expect(res.status).toBe(400);
@@ -82,7 +82,7 @@ describe("Auth flow", () => {
     beforeEach(async () => {
       await backend.request("POST", "/auth/register", {
         email: "alice@example.com",
-        password: "password123",
+        password: TEST_PASSWORD,
         name: "Alice",
       });
     });
@@ -90,7 +90,7 @@ describe("Auth flow", () => {
     it("authenticates with correct credentials", async () => {
       const res = await backend.request("POST", "/auth/login", {
         email: "alice@example.com",
-        password: "password123",
+        password: TEST_PASSWORD,
       });
       expect(res.status).toBe(200);
       const data = await res.json() as Record<string, unknown>;
@@ -109,7 +109,7 @@ describe("Auth flow", () => {
     it("rejects unknown email", async () => {
       const res = await backend.request("POST", "/auth/login", {
         email: "nobody@example.com",
-        password: "password123",
+        password: TEST_PASSWORD,
       });
       expect(res.status).toBe(401);
     });
@@ -117,7 +117,7 @@ describe("Auth flow", () => {
 
   describe("POST /auth/refresh", () => {
     it("rotates refresh token and returns new access token", async () => {
-      const { refreshToken } = await backend.registerAndLogin("alice@example.com", "password123", "Alice");
+      const { refreshToken } = await backend.registerAndLogin("alice@example.com", TEST_PASSWORD, "Alice");
 
       const res = await backend.request("POST", "/auth/refresh", { refreshToken });
       expect(res.status).toBe(200);
@@ -129,7 +129,7 @@ describe("Auth flow", () => {
     });
 
     it("rejects reused (rotated) refresh token", async () => {
-      const { refreshToken } = await backend.registerAndLogin("alice@example.com", "password123", "Alice");
+      const { refreshToken } = await backend.registerAndLogin("alice@example.com", TEST_PASSWORD, "Alice");
 
       // First refresh succeeds
       const res1 = await backend.request("POST", "/auth/refresh", { refreshToken });
@@ -143,7 +143,7 @@ describe("Auth flow", () => {
 
   describe("POST /auth/logout", () => {
     it("revokes refresh token", async () => {
-      const { refreshToken } = await backend.registerAndLogin("alice@example.com", "password123", "Alice");
+      const { refreshToken } = await backend.registerAndLogin("alice@example.com", TEST_PASSWORD, "Alice");
 
       const res = await backend.request("POST", "/auth/logout", { refreshToken });
       expect(res.status).toBe(204);
@@ -161,7 +161,7 @@ describe("Auth flow", () => {
     });
 
     it("accepts valid access token", async () => {
-      const { accessToken } = await backend.registerAndLogin("alice@example.com", "password123", "Alice");
+      const { accessToken } = await backend.registerAndLogin("alice@example.com", TEST_PASSWORD, "Alice");
       const res = await backend.request("GET", "/me", undefined, {
         Authorization: `Bearer ${accessToken}`,
       });

@@ -7,7 +7,7 @@ import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
 import { NotificationService } from "../src/services/notification-service.js";
 import { VCPClient } from "../src/services/vcp-client.js";
 import type { NotificationAdapter, NotificationParams } from "../src/services/notification-adapter.js";
-import { createTestBackend, type TestBackend } from "./helpers.js";
+import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
 
 // ─── Spy adapter for capturing sent notifications ─────────────────
 
@@ -289,7 +289,7 @@ describe("Notification preference API", () => {
 
   beforeEach(async () => {
     backend = await createTestBackend();
-    const auth = await backend.registerAndLogin("alice@example.com", "password123", "Alice");
+    const auth = await backend.registerAndLogin("alice@example.com", TEST_PASSWORD, "Alice");
     accessToken = auth.accessToken;
   });
 

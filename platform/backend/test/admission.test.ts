@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from "vitest";
-import { createTestBackend, type TestBackend } from "./helpers.js";
+import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
 import type { VCPRole, VCPAssembly, VCPParticipant } from "../src/services/vcp-client.js";
 import type { AdmissionMode } from "../src/services/assembly-cache.js";
 
@@ -69,7 +69,7 @@ describe("Admission control", () => {
 
   describe("GET /assemblies/:id/settings", () => {
     it("returns admission mode (default 'approval')", async () => {
-      const { accessToken } = await backend.registerAndLogin("user@example.com", "password123", "User");
+      const { accessToken } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
       await seedAssembly(backend, "approval");
 
       const res = await backend.request("GET", `/assemblies/${ASSEMBLY_ID}/settings`, undefined, authHeader(accessToken));
@@ -81,7 +81,7 @@ describe("Admission control", () => {
 
   describe("PUT /assemblies/:id/settings", () => {
     it("updates admission mode when admin", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "approval");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");
@@ -102,7 +102,7 @@ describe("Admission control", () => {
     });
 
     it("returns 403 for non-admin", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("member@example.com", "password123", "Member");
+      const { accessToken, userId } = await backend.registerAndLogin("member@example.com", TEST_PASSWORD, "Member");
       await seedAssembly(backend, "approval");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-member");
       vi.spyOn(backend.vcpClient, "listRoles").mockResolvedValue([]);
@@ -116,7 +116,7 @@ describe("Admission control", () => {
     });
 
     it("validates admission mode value", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "approval");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");
@@ -134,7 +134,7 @@ describe("Admission control", () => {
 
   describe("Open mode", () => {
     it("link invite auto-joins immediately (201)", async () => {
-      const { accessToken: adminToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken: adminToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "open");
       await seedMembership(backend, adminUserId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");
@@ -147,7 +147,7 @@ describe("Admission control", () => {
       const { token } = (await createRes.json()) as { token: string };
 
       // Accept as new user
-      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       mockJoinAssembly(backend);
 
       const res = await backend.request("POST", `/invite/${token}/accept`, undefined, authHeader(joinerToken));
@@ -165,7 +165,7 @@ describe("Admission control", () => {
     let inviteToken: string;
 
     beforeEach(async () => {
-      const admin = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const admin = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       adminToken = admin.accessToken;
       adminUserId = admin.userId;
       await seedAssembly(backend, "approval");
@@ -181,7 +181,7 @@ describe("Admission control", () => {
     });
 
     it("link invite creates join request (202) instead of membership", async () => {
-      const { accessToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
 
       const res = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(accessToken));
       expect(res.status).toBe(202);
@@ -193,7 +193,7 @@ describe("Admission control", () => {
 
     it("admin can approve a join request and create membership", async () => {
       // Joiner requests
-      const { accessToken: joinerToken, userId: joinerUserId } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken: joinerToken, userId: joinerUserId } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       const reqRes = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(joinerToken));
       const { joinRequestId } = (await reqRes.json()) as { joinRequestId: string };
 
@@ -209,7 +209,7 @@ describe("Admission control", () => {
     });
 
     it("admin can reject a join request", async () => {
-      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       const reqRes = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(joinerToken));
       const { joinRequestId } = (await reqRes.json()) as { joinRequestId: string };
 
@@ -223,7 +223,7 @@ describe("Admission control", () => {
     });
 
     it("admin can list pending join requests", async () => {
-      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(joinerToken));
 
       const res = await backend.request(
@@ -236,7 +236,7 @@ describe("Admission control", () => {
     });
 
     it("non-admin cannot list join requests", async () => {
-      const { accessToken: memberToken, userId: memberUserId } = await backend.registerAndLogin("member@example.com", "password123", "Member");
+      const { accessToken: memberToken, userId: memberUserId } = await backend.registerAndLogin("member@example.com", TEST_PASSWORD, "Member");
       await seedMembership(backend, memberUserId, ASSEMBLY_ID, "p-member");
       vi.spyOn(backend.vcpClient, "listRoles").mockResolvedValue([]);
 
@@ -250,7 +250,7 @@ describe("Admission control", () => {
     it("direct invitations bypass approval (instant join)", async () => {
       // Create target user
       const targetRes = await backend.request("POST", "/auth/register", {
-        email: "target@example.com", password: "password123", name: "Target User", handle: "target-user",
+        email: "target@example.com", password: TEST_PASSWORD, name: "Target User", handle: "target-user",
       });
       const targetData = (await targetRes.json()) as { accessToken: string };
 
@@ -274,7 +274,7 @@ describe("Admission control", () => {
     });
 
     it("duplicate join request returns 409", async () => {
-      const { accessToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
 
       const res1 = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(accessToken));
       expect(res1.status).toBe(202);
@@ -284,7 +284,7 @@ describe("Admission control", () => {
     });
 
     it("user can list their pending join requests", async () => {
-      const { accessToken } = await backend.registerAndLogin("joiner@example.com", "password123", "Joiner");
+      const { accessToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(accessToken));
 
       const res = await backend.request("GET", "/me/join-requests", undefined, authHeader(accessToken));
@@ -300,7 +300,7 @@ describe("Admission control", () => {
 
   describe("Invite-only mode", () => {
     it("blocks link invite creation (403)", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "invite-only");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");
@@ -315,7 +315,7 @@ describe("Admission control", () => {
     });
 
     it("allows direct invite creation", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "invite-only");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");
@@ -333,7 +333,7 @@ describe("Admission control", () => {
 
   describe("Default link expiration", () => {
     it("link invites get 7-day default expiry when none specified", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "open");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");
@@ -355,7 +355,7 @@ describe("Admission control", () => {
     });
 
     it("explicit expiresAt overrides default", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "open");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");
@@ -376,7 +376,7 @@ describe("Admission control", () => {
 
   describe("Invite preview", () => {
     it("includes admissionMode in group preview", async () => {
-      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", "password123", "Admin");
+      const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       await seedAssembly(backend, "approval");
       await seedMembership(backend, userId, ASSEMBLY_ID, "p-admin");
       mockAdminRole(backend, "p-admin");

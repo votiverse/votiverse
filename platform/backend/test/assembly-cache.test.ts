@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createTestBackend, type TestBackend } from "./helpers.js";
+import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
 
 describe("Assembly cache", () => {
   let backend: TestBackend;
@@ -30,7 +30,7 @@ describe("Assembly cache", () => {
 
   beforeEach(async () => {
     backend = await createTestBackend();
-    const auth = await backend.registerAndLogin("test@example.com", "password", "Test User");
+    const auth = await backend.registerAndLogin("test@example.com", TEST_PASSWORD, "Test User");
     accessToken = auth.accessToken;
     userId = auth.userId;
   });
@@ -133,7 +133,7 @@ describe("Topic cache", () => {
 
   beforeEach(async () => {
     backend = await createTestBackend();
-    const auth = await backend.registerAndLogin("topic@example.com", "password", "Topic Tester");
+    const auth = await backend.registerAndLogin("topic@example.com", TEST_PASSWORD, "Topic Tester");
     accessToken = auth.accessToken;
   });
 
@@ -149,7 +149,7 @@ describe("Topic cache", () => {
     ]);
 
     // Also need a membership for the user
-    const auth = await backend.registerAndLogin("topic2@example.com", "password", "Topic User 2");
+    const auth = await backend.registerAndLogin("topic2@example.com", TEST_PASSWORD, "Topic User 2");
     await backend.db.run(
       "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
       [auth.userId, ASM_ID, "p-topic-user", "Topic Assembly"],
@@ -231,7 +231,7 @@ describe("Survey cache", () => {
 
   beforeEach(async () => {
     backend = await createTestBackend();
-    const auth = await backend.registerAndLogin("survey@example.com", "password", "Survey Tester");
+    const auth = await backend.registerAndLogin("survey@example.com", TEST_PASSWORD, "Survey Tester");
     accessToken = auth.accessToken;
     userId = auth.userId;
 

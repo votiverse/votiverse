@@ -94,8 +94,8 @@ export class UserService {
     if (!email || !email.includes("@")) {
       throw new ValidationError("Valid email is required");
     }
-    if (!password || password.length < 6) {
-      throw new ValidationError("Password must be at least 6 characters");
+    if (!password || password.length < 12) {
+      throw new ValidationError("Password must be at least 12 characters");
     }
     if (!name || name.trim().length === 0) {
       throw new ValidationError("Name is required");
