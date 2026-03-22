@@ -9,6 +9,7 @@ import type { VCPAdapters } from "../adapters/index.js";
 import type { VCPConfig } from "../config/schema.js";
 import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
+import { securityHeaders } from "./middleware/security-headers.js";
 import { createRequestLogger } from "./middleware/request-logger.js";
 import type { AssemblyManager } from "../engine/assembly-manager.js";
 import { createAuthMiddleware, requireAssemblyAccess } from "./middleware/auth.js";
@@ -38,6 +39,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
 
   // Middleware (order matters)
   app.use("*", requestIdMiddleware);
+  app.use("*", securityHeaders);
   app.use("*", cors({
     origin: config?.corsOrigins ?? ["http://localhost:5173", "http://localhost:5174"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

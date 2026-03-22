@@ -15,6 +15,7 @@ import type { SurveyCacheService } from "../services/survey-cache.js";
 import type { NotificationService } from "../services/notification-service.js";
 import { logger } from "../lib/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
+import { securityHeaders } from "./middleware/security-headers.js";
 import { createRequestLogger } from "./middleware/request-logger.js";
 import { errorHandler, AppError } from "./middleware/error-handler.js";
 import { createAuthMiddleware } from "./middleware/auth.js";
@@ -57,6 +58,7 @@ export function createApp(deps: AppDependencies): Hono {
 
   // Middleware (order matters)
   app.use("*", requestIdMiddleware);
+  app.use("*", securityHeaders);
   app.use("*", cors({
     origin: config.corsOrigins,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
