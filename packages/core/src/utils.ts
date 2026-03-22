@@ -4,7 +4,7 @@
  * ID generation, timestamp handling, and schema validation helpers.
  */
 
-import { randomUUID } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 import type {
   AssetId,
   CandidacyId,
@@ -31,77 +31,77 @@ import type {
 
 /** Generates a new unique EventId. */
 export function generateEventId(): EventId {
-  return randomUUID() as EventId;
+  return uuidv7() as EventId;
 }
 
 /** Generates a new unique ParticipantId. */
 export function generateParticipantId(): ParticipantId {
-  return randomUUID() as ParticipantId;
+  return uuidv7() as ParticipantId;
 }
 
 /** Generates a new unique TopicId. */
 export function generateTopicId(): TopicId {
-  return randomUUID() as TopicId;
+  return uuidv7() as TopicId;
 }
 
 /** Generates a new unique IssueId. */
 export function generateIssueId(): IssueId {
-  return randomUUID() as IssueId;
+  return uuidv7() as IssueId;
 }
 
 /** Generates a new unique VotingEventId. */
 export function generateVotingEventId(): VotingEventId {
-  return randomUUID() as VotingEventId;
+  return uuidv7() as VotingEventId;
 }
 
 /** Generates a new unique DelegationId. */
 export function generateDelegationId(): DelegationId {
-  return randomUUID() as DelegationId;
+  return uuidv7() as DelegationId;
 }
 
 /** Generates a new unique PredictionId. */
 export function generatePredictionId(): PredictionId {
-  return randomUUID() as PredictionId;
+  return uuidv7() as PredictionId;
 }
 
 /** Generates a new unique SurveyId. */
 export function generateSurveyId(): SurveyId {
-  return randomUUID() as SurveyId;
+  return uuidv7() as SurveyId;
 }
 
 /** Generates a new unique ProposalId. */
 export function generateProposalId(): ProposalId {
-  return randomUUID() as ProposalId;
+  return uuidv7() as ProposalId;
 }
 
 /** Generates a new unique CommitmentId. */
 export function generateCommitmentId(): CommitmentId {
-  return randomUUID() as CommitmentId;
+  return uuidv7() as CommitmentId;
 }
 
 /** Generates a new unique OutcomeId. */
 export function generateOutcomeId(): OutcomeId {
-  return randomUUID() as OutcomeId;
+  return uuidv7() as OutcomeId;
 }
 
 /** Generates a new unique QuestionId. */
 export function generateQuestionId(): QuestionId {
-  return randomUUID() as QuestionId;
+  return uuidv7() as QuestionId;
 }
 
 /** Generates a new unique CandidacyId. */
 export function generateCandidacyId(): CandidacyId {
-  return randomUUID() as CandidacyId;
+  return uuidv7() as CandidacyId;
 }
 
 /** Generates a new unique NoteId. */
 export function generateNoteId(): NoteId {
-  return randomUUID() as NoteId;
+  return uuidv7() as NoteId;
 }
 
 /** Generates a new unique AssetId. */
 export function generateAssetId(): AssetId {
-  return randomUUID() as AssetId;
+  return uuidv7() as AssetId;
 }
 
 // ---------------------------------------------------------------------------
