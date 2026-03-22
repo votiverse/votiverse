@@ -123,7 +123,7 @@ export function createApp(deps: AppDependencies): Hono {
   // Routes
   app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
-  app.route("/", authRoutes(userService, sessionService, config));
+  app.route("/", authRoutes(userService, sessionService, config, deps.notificationAdapter));
   app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub, database));
   app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier, notificationHub));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence

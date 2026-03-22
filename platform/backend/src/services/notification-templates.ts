@@ -9,7 +9,9 @@ export type NotificationType =
   | "results_available"
   | "survey_created"
   | "survey_deadline"
-  | "invitation_received";
+  | "invitation_received"
+  | "email_verification"
+  | "password_reset";
 
 interface TemplateData {
   assemblyName: string;
@@ -212,6 +214,51 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
             "Votiverse is a governance platform where groups make decisions together through voting, delegation, and structured deliberation.",
           ],
           "View Group & Join",
+          data.baseUrl,
+        ),
+      };
+
+    case "email_verification":
+      return {
+        subject: "Verify your email — Votiverse",
+        body: [
+          "Welcome to Votiverse!",
+          "",
+          "Please verify your email address to complete your registration.",
+          "",
+          `Verify: ${data.baseUrl}`,
+          "",
+          "This link expires in 24 hours. If you didn't create this account, you can ignore this email.",
+        ].join("\n"),
+        bodyHtml: wrapHtml(
+          "Verify your email",
+          [
+            "Welcome to Votiverse!",
+            "Please verify your email address to complete your registration.",
+            "This link expires in 24 hours. If you didn't create this account, you can ignore this email.",
+          ],
+          "Verify Email",
+          data.baseUrl,
+        ),
+      };
+
+    case "password_reset":
+      return {
+        subject: "Reset your password — Votiverse",
+        body: [
+          "You requested a password reset for your Votiverse account.",
+          "",
+          `Reset your password: ${data.baseUrl}`,
+          "",
+          "This link expires in 1 hour. If you didn't request this, you can ignore this email.",
+        ].join("\n"),
+        bodyHtml: wrapHtml(
+          "Reset your password",
+          [
+            "You requested a password reset for your Votiverse account.",
+            "This link expires in 1 hour. If you didn't request this, you can ignore this email.",
+          ],
+          "Reset Password",
           data.baseUrl,
         ),
       };

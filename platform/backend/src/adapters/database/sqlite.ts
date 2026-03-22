@@ -28,7 +28,10 @@ export class SQLiteAdapter implements DatabaseAdapter {
         created_at            TEXT NOT NULL DEFAULT (datetime('now')),
         status                TEXT NOT NULL DEFAULT 'active',
         failed_login_attempts INTEGER NOT NULL DEFAULT 0,
-        locked_until          TEXT
+        locked_until          TEXT,
+        email_verified        INTEGER NOT NULL DEFAULT 0,
+        verification_token    TEXT,
+        verification_expires  TEXT
       );
       CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 

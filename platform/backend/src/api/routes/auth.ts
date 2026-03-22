@@ -9,10 +9,21 @@ import { Hono } from "hono";
 import type { UserService } from "../../services/user-service.js";
 import type { SessionService } from "../../services/session-service.js";
 import type { BackendConfig } from "../../config/schema.js";
+import type { NotificationAdapter } from "../../services/notification-adapter.js";
 import { setAuthCookies, clearAuthCookies, getRefreshTokenFromCookie } from "../../lib/cookies.js";
 import { RegisterBody, LoginBody, RefreshBody, parseBody } from "../../lib/validation.js";
+import { renderTemplate } from "../../services/notification-templates.js";
+import { getUser } from "../middleware/auth.js";
+import { logger } from "../../lib/logger.js";
 
-export function authRoutes(userService: UserService, sessionService: SessionService, config: BackendConfig) {
+const log = logger.child({ component: "auth" });
+
+export function authRoutes(
+  userService: UserService,
+  sessionService: SessionService,
+  config: BackendConfig,
+  notificationAdapter?: NotificationAdapter,
+) {
   const app = new Hono();
 
   /** POST /auth/register — create account. */
@@ -23,8 +34,16 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
 
     setAuthCookies(c, tokens.accessToken, tokens.refreshToken, config.jwtAccessExpiry, config.jwtRefreshExpiry);
 
+    // Send verification email (fire-and-forget)
+    if (notificationAdapter) {
+      const verificationToken = await userService.createVerificationToken(user.id);
+      void sendVerificationEmail(notificationAdapter, user.email, verificationToken, config).catch((err) => {
+        log.error("Failed to send verification email", { error: String(err) });
+      });
+    }
+
     return c.json({
-      user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio },
+      user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio, emailVerified: user.emailVerified },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     }, 201);
@@ -39,7 +58,7 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     setAuthCookies(c, tokens.accessToken, tokens.refreshToken, config.jwtAccessExpiry, config.jwtRefreshExpiry);
 
     return c.json({
-      user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio },
+      user: { id: user.id, email: user.email, name: user.name, handle: user.handle, avatarUrl: user.avatarUrl, bio: user.bio, emailVerified: user.emailVerified },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     });
@@ -98,5 +117,58 @@ export function authRoutes(userService: UserService, sessionService: SessionServ
     return c.json({ handle, available });
   });
 
+  /** POST /auth/verify — verify email address with token. */
+  app.post("/auth/verify", async (c) => {
+    const body = await c.req.json() as Record<string, unknown>;
+    const token = typeof body.token === "string" ? body.token : null;
+    if (!token) {
+      return c.json(
+        { error: { code: "VALIDATION_ERROR", message: "token is required" } },
+        400,
+      );
+    }
+    const user = await userService.verifyEmail(token);
+    return c.json({
+      user: { id: user.id, email: user.email, name: user.name, handle: user.handle, emailVerified: user.emailVerified },
+    });
+  });
+
+  /** POST /auth/resend-verification — resend verification email (authenticated). */
+  app.post("/auth/resend-verification", async (c) => {
+    const authUser = getUser(c);
+    const user = await userService.getById(authUser.id);
+    if (!user) {
+      return c.json({ error: { code: "NOT_FOUND", message: "User not found" } }, 404);
+    }
+    if (user.emailVerified) {
+      return c.json({ status: "already_verified" });
+    }
+
+    if (notificationAdapter) {
+      const verificationToken = await userService.createVerificationToken(user.id);
+      void sendVerificationEmail(notificationAdapter, user.email, verificationToken, config).catch((err) => {
+        log.error("Failed to send verification email", { error: String(err) });
+      });
+    }
+
+    return c.json({ status: "sent" });
+  });
+
   return app;
+}
+
+async function sendVerificationEmail(
+  adapter: NotificationAdapter,
+  email: string,
+  token: string,
+  config: BackendConfig,
+): Promise<void> {
+  const baseUrl = config.corsOrigins[0] ?? "http://localhost:5173";
+  const verifyUrl = `${baseUrl}/auth/verify?token=${encodeURIComponent(token)}`;
+  const { subject, body, bodyHtml } = renderTemplate("email_verification", {
+    assemblyName: "Votiverse",
+    title: "Verify your email",
+    baseUrl: verifyUrl,
+  });
+  await adapter.send({ to: email, subject, body, bodyHtml });
 }

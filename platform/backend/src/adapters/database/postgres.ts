@@ -41,7 +41,10 @@ export class PostgresAdapter implements DatabaseAdapter {
           created_at            TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
           status                TEXT NOT NULL DEFAULT 'active',
           failed_login_attempts INTEGER NOT NULL DEFAULT 0,
-          locked_until          TIMESTAMPTZ
+          locked_until          TIMESTAMPTZ,
+          email_verified        BOOLEAN NOT NULL DEFAULT FALSE,
+          verification_token    TEXT,
+          verification_expires  TIMESTAMPTZ
         );
         CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 

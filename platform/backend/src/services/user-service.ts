@@ -2,10 +2,14 @@
  * UserService — registration, authentication, user CRUD, profile management.
  */
 
+import { randomBytes } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
 import { ValidationError, ConflictError, AuthenticationError, NotFoundError } from "../api/middleware/error-handler.js";
+
+/** Verification token expiry: 24 hours. */
+const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 interface UserRow {
   id: string;
@@ -19,6 +23,9 @@ interface UserRow {
   status: string;
   failed_login_attempts: number;
   locked_until: string | null;
+  email_verified: number | boolean;
+  verification_token: string | null;
+  verification_expires: string | null;
 }
 
 /** Maximum failed login attempts before account is locked. */
@@ -36,6 +43,7 @@ export interface User {
   bio: string;
   createdAt: string;
   status: string;
+  emailVerified: boolean;
 }
 
 /** Public profile — no email, no internal IDs. */
@@ -77,6 +85,7 @@ function rowToUser(row: UserRow): User {
     bio: row.bio ?? "",
     createdAt: row.created_at,
     status: row.status,
+    emailVerified: !!row.email_verified,
   };
 }
 
@@ -140,12 +149,51 @@ export class UserService {
     const passwordHash = await hashPassword(password);
     const createdAt = new Date().toISOString();
 
+    const verificationToken = randomBytes(32).toString("base64url");
+    const verificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS).toISOString();
+
     await this.db.run(
-      "INSERT INTO users (id, email, password_hash, name, handle, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      [id, email.toLowerCase(), passwordHash, name.trim(), finalHandle, createdAt],
+      "INSERT INTO users (id, email, password_hash, name, handle, created_at, verification_token, verification_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [id, email.toLowerCase(), passwordHash, name.trim(), finalHandle, createdAt, verificationToken, verificationExpires],
     );
 
-    return { id, email: email.toLowerCase(), name: name.trim(), handle: finalHandle, avatarUrl: null, bio: "", createdAt, status: "active" };
+    return { id, email: email.toLowerCase(), name: name.trim(), handle: finalHandle, avatarUrl: null, bio: "", createdAt, status: "active", emailVerified: false };
+  }
+
+  /** Verify an email address using the verification token. */
+  async verifyEmail(token: string): Promise<User> {
+    const row = await this.db.queryOne<UserRow>(
+      "SELECT * FROM users WHERE verification_token = ?",
+      [token],
+    );
+    if (!row) {
+      throw new ValidationError("Invalid verification token");
+    }
+    if (row.verification_expires && new Date(row.verification_expires) < new Date()) {
+      throw new ValidationError("Verification token has expired. Request a new one.");
+    }
+    if (row.email_verified) {
+      return rowToUser(row);
+    }
+
+    await this.db.run(
+      "UPDATE users SET email_verified = 1, verification_token = NULL, verification_expires = NULL WHERE id = ?",
+      [row.id],
+    );
+
+    return { ...rowToUser(row), emailVerified: true };
+  }
+
+  /** Generate a new verification token for an existing user. Returns the token for email sending. */
+  async createVerificationToken(userId: string): Promise<string> {
+    const token = randomBytes(32).toString("base64url");
+    const expires = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS).toISOString();
+
+    await this.db.run(
+      "UPDATE users SET verification_token = ?, verification_expires = ? WHERE id = ?",
+      [token, expires, userId],
+    );
+    return token;
   }
 
   async authenticate(email: string, password: string): Promise<User> {

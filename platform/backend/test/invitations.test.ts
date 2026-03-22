@@ -602,7 +602,8 @@ describe("Invitation flows", () => {
         name: "Target User",
         handle: "target-user",
       });
-      const targetData = (await targetRes.json()) as { accessToken: string };
+      const targetData = (await targetRes.json()) as { user: { id: string }; accessToken: string };
+      await backend.verifyUserEmail(targetData.user.id);
 
       // Admin sends direct invite
       const inviteRes = await backend.request(

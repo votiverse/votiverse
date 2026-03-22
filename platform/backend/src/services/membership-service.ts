@@ -5,7 +5,7 @@
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { VCPClient } from "./vcp-client.js";
 import type { AssemblyCacheService } from "./assembly-cache.js";
-import { NotFoundError, ConflictError } from "../api/middleware/error-handler.js";
+import { NotFoundError, ConflictError, ForbiddenError } from "../api/middleware/error-handler.js";
 
 interface MembershipRow {
   user_id: string;
@@ -31,6 +31,15 @@ export class MembershipService {
 
   /** Join an assembly: create participant in VCP + store local mapping. */
   async joinAssembly(userId: string, assemblyId: string, participantName: string): Promise<Membership> {
+    // Require verified email before joining any assembly
+    const user = await this.db.queryOne<{ email_verified: number | boolean }>(
+      "SELECT email_verified FROM users WHERE id = ?",
+      [userId],
+    );
+    if (user && !user.email_verified) {
+      throw new ForbiddenError("Please verify your email address before joining a group");
+    }
+
     // Check for existing membership
     const existing = await this.db.queryOne<MembershipRow>(
       "SELECT * FROM memberships WHERE user_id = ? AND assembly_id = ?",
