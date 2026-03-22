@@ -14,4 +14,5 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
   c.header("Cache-Control", "no-store");
   c.header("Referrer-Policy", "strict-origin-when-cross-origin");
   c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  c.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
 };

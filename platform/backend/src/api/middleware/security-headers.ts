@@ -25,4 +25,7 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
 
   // Restrict browser features
   c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  // Content Security Policy — API returns JSON only, never renders HTML
+  c.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
 };
