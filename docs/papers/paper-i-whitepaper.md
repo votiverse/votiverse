@@ -15,7 +15,7 @@ Votiverse is a platform for exploring the rest of that space. It provides organi
 
 Votiverse introduces two structural innovations. First, a *governance awareness layer* — a built-in intelligence system that monitors the delegation network and delivers contextual, progressive-disclosure reporting to participants at the point of decision. Concentration patterns, chain anomalies, and delegate track records are not buried in dashboards; they surface when and where a participant needs them. Second, a *prediction-tracking accountability layer*. Proposals carry falsifiable predictions. Outcomes are recorded. Over time, the platform builds a collective memory of what was decided, what was promised, and what actually happened. Together, these layers transform voting from a momentary act into an ongoing process of collective learning.
 
-This document formalizes the governance model, situates it within existing work on liquid democracy and participatory decision-making, addresses known failure modes, and describes the architecture of the platform.
+This document formalizes the governance model, situates it within existing work on liquid democracy and participatory decision-making, addresses known failure modes, and describes the architecture of the platform. The core platform has been implemented and released as open-source software.
 
 ---
 
@@ -352,11 +352,15 @@ Votiverse is not a single application. It is a **configurable governance engine*
 
 The architecture is designed for real-time delegation graph computation, configurable access control, audit logging of all governance actions, and data portability.
 
-### 13.1 The Role of AI — and Its Limits
+### 13.1 Implementation and Availability
+
+The governance engine and platform logic described in this paper have been implemented and are available as open-source software under AGPL-3.0 licensing at [github.com/votiverse/votiverse](https://github.com/votiverse/votiverse). Public access is provided through web and mobile applications (iOS and Android) at [votiverse.app](https://votiverse.app). The public service is free to use; its infrastructure is funded by organizational sponsors, currently Proximify Inc. The deployed service uses the open-source core together with a thin private layer for application packaging and operational infrastructure.
+
+### 13.2 The Role of AI — and Its Limits
 
 AI can play a valuable role in the information layer — particularly in gathering evidence that confirms or contradicts predictions. However, **AI systems are not neutral.** Votiverse's approach follows the platform's own principles: transparency (which AI system is used), auditability (sources inspectable), replaceability (organizations can switch providers), separation of roles (AI gathers information, humans judge), and ensemble verification (multiple AI providers operating in parallel).
 
-### 13.2 Platform Integrity: Blockchain and Oracles
+### 13.3 Platform Integrity: Blockchain and Oracles
 
 Blockchain technology provides an optional **integrity layer** — not as the foundation of the platform, but as a tamper-evident seal on critical integrity artifacts: vote tallies, prediction commitments, outcome recordings, survey results, and delegation graph snapshots. The combination of multiple oracle sources — AI, official data providers, surveys, and community challenge — provides resilience through mutual verification.
 
