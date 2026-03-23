@@ -96,8 +96,9 @@ export function createApp(deps: AppDependencies): Hono {
       );
     }
     logger.error("Unhandled error", { message: error.message, stack: error.stack });
+    const isProduction = process.env["NODE_ENV"] === "production";
     return c.json(
-      { error: { code: "INTERNAL_ERROR", message: error.message } },
+      { error: { code: "INTERNAL_ERROR", message: isProduction ? "An internal error occurred" : error.message } },
       500,
     );
   });

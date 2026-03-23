@@ -88,9 +88,10 @@ export async function errorHandler(c: Context, next: Next) {
         );
       }
 
+      const isProduction = process.env["NODE_ENV"] === "production";
       logger.error("Internal error", { message: error.message, stack: error.stack });
       return c.json(
-        { error: { code: "INTERNAL_ERROR", message: error.message } },
+        { error: { code: "INTERNAL_ERROR", message: isProduction ? "An internal error occurred" : error.message } },
         500,
       );
     }

@@ -72,17 +72,19 @@ export async function errorHandler(c: Context, next: Next) {
       return c.json({ error: body }, error.statusCode as 400);
     }
 
+    const isProduction = process.env["NODE_ENV"] === "production";
+
     if (error instanceof Error) {
       logger.error("Internal error", { message: error.message, stack: error.stack });
       return c.json(
-        { error: { code: "INTERNAL_ERROR", message: error.message } },
+        { error: { code: "INTERNAL_ERROR", message: isProduction ? "An internal error occurred" : error.message } },
         500,
       );
     }
 
     logger.error("Unknown error", { error: String(error) });
     return c.json(
-      { error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" } },
+      { error: { code: "INTERNAL_ERROR", message: "An internal error occurred" } },
       500,
     );
   }
