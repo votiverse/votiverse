@@ -80,6 +80,17 @@ export function createApp(deps: AppDependencies): Hono {
   app.use("*", createRequestLogger(logger));
   app.use("*", errorHandler);
 
+  // Block dev/internal endpoints in production — fail closed
+  const isProduction = process.env["NODE_ENV"] === "production";
+  if (isProduction) {
+    app.use("/dev/*", (c) =>
+      c.json({ error: { code: "FORBIDDEN", message: "Dev routes are disabled in production" } }, 403),
+    );
+    app.use("/internal/*", (c) =>
+      c.json({ error: { code: "FORBIDDEN", message: "Internal routes are disabled in production" } }, 403),
+    );
+  }
+
   // Rate limiting (can be disabled when AWS WAF handles it)
   if (config.rateLimitEnabled) {
     // Stricter limit on auth endpoints (10 req/min per IP)

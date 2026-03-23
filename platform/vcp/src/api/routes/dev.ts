@@ -14,9 +14,15 @@ import { TestClock } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { logger } from "../../lib/logger.js";
 
-/** Check if dev routes are explicitly enabled. */
+/**
+ * Check if dev routes are enabled. Fail-closed: requires NODE_ENV
+ * to be explicitly set to "development" or "test", AND VCP_ENABLE_DEV_ROUTES
+ * must not be "false". If NODE_ENV is unset or any other value, dev routes
+ * are disabled.
+ */
 function isDevEnabled(): boolean {
-  return process.env["NODE_ENV"] !== "production" &&
+  const env = process.env["NODE_ENV"];
+  return (env === "development" || env === "test") &&
     process.env["VCP_ENABLE_DEV_ROUTES"] !== "false";
 }
 

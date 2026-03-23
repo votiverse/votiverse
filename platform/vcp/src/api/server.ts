@@ -145,8 +145,9 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   app.route("/", noteRoutes(manager));
   app.route("/", awarenessRoutes(manager));
   app.route("/", metricsRoutes());
-  // Dev-only routes (test clock) — never in production
-  if (process.env["NODE_ENV"] !== "production") {
+  // Dev-only routes (test clock) — fail-closed: only in development/test
+  const vcpEnv = process.env["NODE_ENV"];
+  if (vcpEnv === "development" || vcpEnv === "test") {
     app.route("/", devRoutes(manager));
   }
   app.route("/", stubRoutes());

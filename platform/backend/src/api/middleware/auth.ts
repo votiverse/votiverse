@@ -11,7 +11,7 @@ import { verifyAccessToken } from "../../lib/jwt.js";
 import { getAccessTokenFromCookie } from "../../lib/cookies.js";
 
 const PUBLIC_PATHS = new Set(["/health", "/metrics"]);
-const PUBLIC_PREFIXES = ["/auth/", "/dev/clock"];
+const PUBLIC_PREFIXES = ["/auth/"];
 
 export function createAuthMiddleware(jwtSecret: string) {
   return async (c: Context, next: Next) => {
