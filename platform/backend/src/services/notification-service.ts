@@ -36,10 +36,10 @@ interface TrackedEventRow {
   voting_start: string;
   voting_end: string;
   created_at: string;
-  notified_created: number;
-  notified_voting_open: number;
-  notified_deadline: number;
-  notified_closed: number;
+  notified_created: number | boolean;
+  notified_voting_open: number | boolean;
+  notified_deadline: number | boolean;
+  notified_closed: number | boolean;
 }
 
 interface TrackedSurveyRow {
@@ -49,9 +49,9 @@ interface TrackedSurveyRow {
   schedule: string;
   closes_at: string;
   created_at: string;
-  notified_created: number;
-  notified_deadline: number;
-  notified_closed: number;
+  notified_created: number | boolean;
+  notified_deadline: number | boolean;
+  notified_closed: number | boolean;
 }
 
 interface MembershipRow {
@@ -149,13 +149,13 @@ export class NotificationService {
   async markAllNotified(type: "event" | "survey", id: string): Promise<void> {
     if (type === "event") {
       await this.db.run(
-        "UPDATE tracked_events SET notified_created = 1, notified_voting_open = 1, notified_deadline = 1, notified_closed = 1 WHERE id = ?",
-        [id],
+        "UPDATE tracked_events SET notified_created = ?, notified_voting_open = ?, notified_deadline = ?, notified_closed = ? WHERE id = ?",
+        [true, true, true, true, id],
       );
     } else {
       await this.db.run(
-        "UPDATE tracked_surveys SET notified_created = 1, notified_deadline = 1, notified_closed = 1 WHERE id = ?",
-        [id],
+        "UPDATE tracked_surveys SET notified_created = ?, notified_deadline = ?, notified_closed = ? WHERE id = ?",
+        [true, true, true, id],
       );
     }
   }
@@ -209,44 +209,45 @@ export class NotificationService {
   private async processEventNotifications(now: string, deadline: string): Promise<void> {
     // 1. New events created
     const newEvents = await this.db.query<TrackedEventRow>(
-      "SELECT * FROM tracked_events WHERE notified_created = 0",
+      "SELECT * FROM tracked_events WHERE notified_created = ?",
+      [false],
     );
     for (const event of newEvents) {
       await this.notifyEventCreated(event);
-      await this.db.run("UPDATE tracked_events SET notified_created = 1 WHERE id = ?", [event.id]);
+      await this.db.run("UPDATE tracked_events SET notified_created = ? WHERE id = ?", [true, event.id]);
     }
 
     // 2. Voting now open
     const openEvents = await this.db.query<TrackedEventRow>(
-      "SELECT * FROM tracked_events WHERE notified_voting_open = 0 AND voting_start <= ?",
-      [now],
+      "SELECT * FROM tracked_events WHERE notified_voting_open = ? AND voting_start <= ?",
+      [false, now],
     );
     for (const event of openEvents) {
       await this.notifyVotingOpen(event);
-      await this.db.run("UPDATE tracked_events SET notified_voting_open = 1 WHERE id = ?", [event.id]);
+      await this.db.run("UPDATE tracked_events SET notified_voting_open = ? WHERE id = ?", [true, event.id]);
     }
 
     // 3. Deadline approaching (within 24h)
     const deadlineEvents = await this.db.query<TrackedEventRow>(
-      "SELECT * FROM tracked_events WHERE notified_deadline = 0 AND notified_closed = 0 AND voting_end <= ?",
-      [deadline],
+      "SELECT * FROM tracked_events WHERE notified_deadline = ? AND notified_closed = ? AND voting_end <= ?",
+      [false, false, deadline],
     );
     for (const event of deadlineEvents) {
       // Don't send deadline notification if already closed
       if (event.voting_end > now) {
         await this.notifyDeadline(event);
       }
-      await this.db.run("UPDATE tracked_events SET notified_deadline = 1 WHERE id = ?", [event.id]);
+      await this.db.run("UPDATE tracked_events SET notified_deadline = ? WHERE id = ?", [true, event.id]);
     }
 
     // 4. Voting closed
     const closedEvents = await this.db.query<TrackedEventRow>(
-      "SELECT * FROM tracked_events WHERE notified_closed = 0 AND voting_end <= ?",
-      [now],
+      "SELECT * FROM tracked_events WHERE notified_closed = ? AND voting_end <= ?",
+      [false, now],
     );
     for (const event of closedEvents) {
       await this.notifyResultsAvailable(event);
-      await this.db.run("UPDATE tracked_events SET notified_closed = 1 WHERE id = ?", [event.id]);
+      await this.db.run("UPDATE tracked_events SET notified_closed = ? WHERE id = ?", [true, event.id]);
     }
   }
 
@@ -255,32 +256,33 @@ export class NotificationService {
   private async processSurveyNotifications(now: string, deadline: string): Promise<void> {
     // 1. New surveys created
     const newSurveys = await this.db.query<TrackedSurveyRow>(
-      "SELECT * FROM tracked_surveys WHERE notified_created = 0",
+      "SELECT * FROM tracked_surveys WHERE notified_created = ?",
+      [false],
     );
     for (const survey of newSurveys) {
       await this.notifySurveyCreated(survey);
-      await this.db.run("UPDATE tracked_surveys SET notified_created = 1 WHERE id = ?", [survey.id]);
+      await this.db.run("UPDATE tracked_surveys SET notified_created = ? WHERE id = ?", [true, survey.id]);
     }
 
     // 2. Survey closing soon (within 24h)
     const deadlineSurveys = await this.db.query<TrackedSurveyRow>(
-      "SELECT * FROM tracked_surveys WHERE notified_deadline = 0 AND notified_closed = 0 AND closes_at <= ?",
-      [deadline],
+      "SELECT * FROM tracked_surveys WHERE notified_deadline = ? AND notified_closed = ? AND closes_at <= ?",
+      [false, false, deadline],
     );
     for (const survey of deadlineSurveys) {
       if (survey.closes_at > now) {
         await this.notifySurveyDeadline(survey);
       }
-      await this.db.run("UPDATE tracked_surveys SET notified_deadline = 1 WHERE id = ?", [survey.id]);
+      await this.db.run("UPDATE tracked_surveys SET notified_deadline = ? WHERE id = ?", [true, survey.id]);
     }
 
     // 3. Survey closed
     const closedSurveys = await this.db.query<TrackedSurveyRow>(
-      "SELECT * FROM tracked_surveys WHERE notified_closed = 0 AND closes_at <= ?",
-      [now],
+      "SELECT * FROM tracked_surveys WHERE notified_closed = ? AND closes_at <= ?",
+      [false, now],
     );
     for (const survey of closedSurveys) {
-      await this.db.run("UPDATE tracked_surveys SET notified_closed = 1 WHERE id = ?", [survey.id]);
+      await this.db.run("UPDATE tracked_surveys SET notified_closed = ? WHERE id = ?", [true, survey.id]);
     }
   }
 

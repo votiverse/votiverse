@@ -7,6 +7,7 @@
 import { createHash } from "node:crypto";
 import type { AuthAdapter, ClientInfo } from "./interface.js";
 import type { DatabaseAdapter } from "../database/interface.js";
+import { parseJsonColumn } from "../database/interface.js";
 
 export class SimpleAuthAdapter implements AuthAdapter {
   private readonly staticKeys: Map<string, ClientInfo>;
@@ -41,7 +42,7 @@ export class SimpleAuthAdapter implements AuthAdapter {
       if (row) {
         let assemblyAccess: readonly string[] | "*";
         try {
-          const parsed = typeof row.assembly_access === "string" ? JSON.parse(row.assembly_access) : row.assembly_access;
+          const parsed = parseJsonColumn<string[] | "*">(row.assembly_access);
           assemblyAccess = parsed === "*" ? "*" : (parsed as string[]);
         } catch {
           assemblyAccess = [];
@@ -79,7 +80,7 @@ export class SimpleAuthAdapter implements AuthAdapter {
       if (row) {
         let list: string[];
         try {
-          list = (typeof row.assembly_access === "string" ? JSON.parse(row.assembly_access) : row.assembly_access) as string[];
+          list = parseJsonColumn<string[]>(row.assembly_access);
         } catch {
           list = [];
         }

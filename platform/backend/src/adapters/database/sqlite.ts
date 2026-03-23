@@ -5,6 +5,14 @@
 import Database from "better-sqlite3";
 import type { DatabaseAdapter, RunResult } from "./interface.js";
 
+/**
+ * Convert params for better-sqlite3 which cannot bind JavaScript booleans.
+ * Maps `true` → 1, `false` → 0. All other types pass through unchanged.
+ */
+function sqliteParams(params: unknown[]): unknown[] {
+  return params.map((p) => (typeof p === "boolean" ? (p ? 1 : 0) : p));
+}
+
 export class SQLiteAdapter implements DatabaseAdapter {
   private readonly db: Database.Database;
 
@@ -304,18 +312,18 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
   async run(sql: string, params: unknown[] = []): Promise<RunResult> {
     const stmt = this.db.prepare(sql);
-    const result = stmt.run(...params);
+    const result = stmt.run(...sqliteParams(params));
     return { changes: result.changes, lastInsertRowid: result.lastInsertRowid };
   }
 
   async query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
     const stmt = this.db.prepare(sql);
-    return stmt.all(...params) as T[];
+    return stmt.all(...sqliteParams(params)) as T[];
   }
 
   async queryOne<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T | undefined> {
     const stmt = this.db.prepare(sql);
-    return stmt.get(...params) as T | undefined;
+    return stmt.get(...sqliteParams(params)) as T | undefined;
   }
 
   async transaction<T>(fn: () => Promise<T>): Promise<T> {

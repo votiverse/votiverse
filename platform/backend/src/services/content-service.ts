@@ -9,6 +9,7 @@
 import { v7 as uuidv7 } from "uuid";
 import { createHash } from "node:crypto";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
+import { parseJsonColumn } from "../adapters/database/interface.js";
 
 // ---------------------------------------------------------------------------
 // Content hash (matches @votiverse/content Appendix C spec)
@@ -326,7 +327,7 @@ function mapDraftRow(row: Record<string, unknown>): ProposalDraft {
     authorId: row["author_id"] as string,
     title: row["title"] as string,
     markdown: row["markdown"] as string,
-    assets: typeof row["assets"] === "string" ? JSON.parse(row["assets"] || "[]") : (row["assets"] ?? []),
+    assets: parseJsonColumn<unknown[]>(row["assets"] ?? "[]"),
     createdAt: row["created_at"] as number,
     updatedAt: row["updated_at"] as number,
   };

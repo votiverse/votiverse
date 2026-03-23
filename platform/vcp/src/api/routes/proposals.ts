@@ -62,8 +62,8 @@ export function proposalRoutes(manager: AssemblyManager) {
       const db = manager.getDatabase();
       await db.run(
         `INSERT INTO proposals (id, assembly_id, issue_id, choice_key, author_id, title, current_version, endorsement_count, dispute_count, featured, status, submitted_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)`,
-        [proposal.id, assemblyId, proposal.issueId, proposal.choiceKey ?? null, proposal.authorId, proposal.title, proposal.currentVersion, proposal.status, proposal.submittedAt],
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
+        [proposal.id, assemblyId, proposal.issueId, proposal.choiceKey ?? null, proposal.authorId, proposal.title, proposal.currentVersion, false, proposal.status, proposal.submittedAt],
       );
       await db.run(
         `INSERT INTO proposal_versions (assembly_id, proposal_id, version_number, content_hash, created_at)
@@ -414,15 +414,15 @@ export function proposalRoutes(manager: AssemblyManager) {
       // Exclusive featuring: unfeature any other proposal for the same choiceKey + issue
       if (proposal.choice_key) {
         await db.run(
-          `UPDATE proposals SET featured = 0
-           WHERE assembly_id = ? AND issue_id = ? AND choice_key = ? AND id != ? AND featured = 1`,
-          [assemblyId, proposal.issue_id, proposal.choice_key, proposalId],
+          `UPDATE proposals SET featured = ?
+           WHERE assembly_id = ? AND issue_id = ? AND choice_key = ? AND id != ? AND featured = ?`,
+          [false, assemblyId, proposal.issue_id, proposal.choice_key, proposalId, true],
         );
       }
 
       await db.run(
-        `UPDATE proposals SET featured = 1 WHERE assembly_id = ? AND id = ?`,
-        [assemblyId, proposalId],
+        `UPDATE proposals SET featured = ? WHERE assembly_id = ? AND id = ?`,
+        [true, assemblyId, proposalId],
       );
 
       return c.json({ status: "featured" });
@@ -454,8 +454,8 @@ export function proposalRoutes(manager: AssemblyManager) {
       }
 
       await db.run(
-        `UPDATE proposals SET featured = 0 WHERE assembly_id = ? AND id = ?`,
-        [assemblyId, proposalId],
+        `UPDATE proposals SET featured = ? WHERE assembly_id = ? AND id = ?`,
+        [false, assemblyId, proposalId],
       );
 
       return c.json({ status: "unfeatured" });
@@ -583,7 +583,7 @@ function mapProposalRow(row: Record<string, unknown>, lockTimeMap?: Map<string, 
     currentVersion: row["current_version"],
     endorsementCount: row["endorsement_count"] ?? 0,
     disputeCount: row["dispute_count"] ?? 0,
-    featured: (row["featured"] as number) === 1,
+    featured: !!row["featured"],
     status,
     submittedAt: row["submitted_at"],
     withdrawnAt: row["withdrawn_at"] ?? undefined,

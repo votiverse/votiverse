@@ -51,7 +51,7 @@ export class PostgresAdapter implements DatabaseAdapter {
           status                TEXT NOT NULL DEFAULT 'active',
           failed_login_attempts INTEGER NOT NULL DEFAULT 0,
           locked_until          TIMESTAMPTZ,
-          email_verified        SMALLINT NOT NULL DEFAULT 0,
+          email_verified        BOOLEAN NOT NULL DEFAULT FALSE,
           verification_token    TEXT,
           verification_expires  TIMESTAMPTZ,
           reset_token           TEXT,
@@ -94,10 +94,10 @@ export class PostgresAdapter implements DatabaseAdapter {
           voting_start         TEXT NOT NULL,
           voting_end           TEXT NOT NULL,
           created_at           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          notified_created     INTEGER NOT NULL DEFAULT 0,
-          notified_voting_open INTEGER NOT NULL DEFAULT 0,
-          notified_deadline    INTEGER NOT NULL DEFAULT 0,
-          notified_closed      INTEGER NOT NULL DEFAULT 0
+          notified_created     BOOLEAN NOT NULL DEFAULT FALSE,
+          notified_voting_open BOOLEAN NOT NULL DEFAULT FALSE,
+          notified_deadline    BOOLEAN NOT NULL DEFAULT FALSE,
+          notified_closed      BOOLEAN NOT NULL DEFAULT FALSE
         );
         CREATE INDEX IF NOT EXISTS idx_tracked_events_assembly
           ON tracked_events(assembly_id);
@@ -110,9 +110,9 @@ export class PostgresAdapter implements DatabaseAdapter {
           schedule             TEXT NOT NULL,
           closes_at            TEXT NOT NULL,
           created_at           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          notified_created     INTEGER NOT NULL DEFAULT 0,
-          notified_deadline    INTEGER NOT NULL DEFAULT 0,
-          notified_closed      INTEGER NOT NULL DEFAULT 0
+          notified_created     BOOLEAN NOT NULL DEFAULT FALSE,
+          notified_deadline    BOOLEAN NOT NULL DEFAULT FALSE,
+          notified_closed      BOOLEAN NOT NULL DEFAULT FALSE
         );
         CREATE INDEX IF NOT EXISTS idx_tracked_surveys_assembly
           ON tracked_surveys(assembly_id);

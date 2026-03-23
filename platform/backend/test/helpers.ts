@@ -115,13 +115,13 @@ export async function createTestBackend(): Promise<TestBackend> {
     const res = await request("POST", "/auth/register", { email, password, name });
     const data = await res.json() as { user: { id: string }; accessToken: string; refreshToken: string };
     // Auto-verify email in tests so assembly joins work
-    await db.run("UPDATE users SET email_verified = 1 WHERE id = ?", [data.user.id]);
+    await db.run("UPDATE users SET email_verified = ? WHERE id = ?", [true, data.user.id]);
     return { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.user.id };
   };
 
   /** Auto-verify a user's email (for tests where users register via raw request). */
   const verifyUserEmail = async (userId: string) => {
-    await db.run("UPDATE users SET email_verified = 1 WHERE id = ?", [userId]);
+    await db.run("UPDATE users SET email_verified = ? WHERE id = ?", [true, userId]);
   };
 
   return { app, db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, vcpClient, notificationAdapter, joinRequestService, cleanup, request, registerAndLogin, verifyUserEmail };

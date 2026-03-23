@@ -182,8 +182,8 @@ export class UserService {
     }
 
     await this.db.run(
-      "UPDATE users SET email_verified = 1, verification_token = NULL, verification_expires = NULL WHERE id = ?",
-      [row.id],
+      "UPDATE users SET email_verified = ?, verification_token = NULL, verification_expires = NULL WHERE id = ?",
+      [true, row.id],
     );
 
     return { ...rowToUser(row), emailVerified: true };

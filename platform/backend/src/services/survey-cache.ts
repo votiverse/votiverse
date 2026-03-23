@@ -7,6 +7,7 @@
  */
 
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
+import { parseJsonColumn } from "../adapters/database/interface.js";
 
 export interface CachedSurvey {
   id: string;
@@ -35,8 +36,8 @@ function rowToSurvey(row: SurveyRow): CachedSurvey {
     id: row.id,
     assemblyId: row.assembly_id,
     title: row.title,
-    questions: typeof row.questions === "string" ? JSON.parse(row.questions) : row.questions,
-    topicIds: typeof row.topic_ids === "string" ? JSON.parse(row.topic_ids) : row.topic_ids,
+    questions: parseJsonColumn<unknown[]>(row.questions),
+    topicIds: parseJsonColumn<string[]>(row.topic_ids),
     schedule: row.schedule,
     closesAt: row.closes_at,
     createdBy: row.created_by,

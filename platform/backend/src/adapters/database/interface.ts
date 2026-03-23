@@ -27,3 +27,16 @@ export interface RunResult {
   changes: number;
   lastInsertRowid: number | bigint;
 }
+
+/**
+ * Parse a value that may be a JSON string (SQLite TEXT) or an already-parsed
+ * object (PostgreSQL JSONB). Use this for every column that is JSONB in
+ * PostgreSQL / TEXT-with-JSON in SQLite.
+ *
+ * Passing `null` or `undefined` returns the value as-is (typed as T) so
+ * callers can handle nullable columns naturally.
+ */
+export function parseJsonColumn<T>(value: unknown): T {
+  if (typeof value === "string") return JSON.parse(value) as T;
+  return value as T;
+}

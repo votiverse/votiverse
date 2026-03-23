@@ -14,13 +14,9 @@ import type { ParticipantId, TopicId, IssueId, VotingEventId, Issue } from "@vot
 import { isOk, systemTime, generateEventId } from "@votiverse/core";
 import type { TimeProvider } from "@votiverse/core";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
+import { parseJsonColumn } from "../adapters/database/interface.js";
 import type { QueueAdapter } from "../adapters/queue/interface.js";
 import { SQLiteEventStore } from "./sqlite-event-store.js";
-
-/** Parse a value that may be a JSON string (SQLite) or already-parsed object (PostgreSQL JSONB). */
-function parseJson<T>(value: string | T): T {
-  return typeof value === "string" ? JSON.parse(value) as T : value;
-}
 
 interface AssemblyRecord {
   id: string;
@@ -114,7 +110,7 @@ export class AssemblyManager {
       id: row.id,
       organizationId: row.organization_id,
       name: row.name,
-      config: parseJson<GovernanceConfig>(row.config),
+      config: parseJsonColumn<GovernanceConfig>(row.config),
       status: row.status,
       createdAt: row.created_at,
     }));
@@ -131,7 +127,7 @@ export class AssemblyManager {
       id: row.id,
       organizationId: row.organization_id,
       name: row.name,
-      config: parseJson<GovernanceConfig>(row.config),
+      config: parseJsonColumn<GovernanceConfig>(row.config),
       status: row.status,
       createdAt: row.created_at,
     };
@@ -172,7 +168,7 @@ export class AssemblyManager {
         description: row.description,
         topicId: (row.topic_id as TopicId | null),
         votingEventId: row.voting_event_id as VotingEventId,
-        ...(row.choices ? { choices: parseJson<string[]>(row.choices!) } : {}),
+        ...(row.choices ? { choices: parseJsonColumn<string[]>(row.choices!) } : {}),
       });
     }
 
@@ -472,10 +468,10 @@ export class AssemblyManager {
       participantId: row.participant_id,
       issueId: row.issue_id,
       status: row.status,
-      effectiveChoice: row.effective_choice !== null ? parseJson(row.effective_choice) : null,
+      effectiveChoice: row.effective_choice !== null ? parseJsonColumn(row.effective_choice) : null,
       delegateId: row.delegate_id,
       terminalVoterId: row.terminal_voter_id,
-      chain: parseJson<string[]>(row.chain),
+      chain: parseJsonColumn<string[]>(row.chain),
     }));
   }
 
@@ -503,10 +499,10 @@ export class AssemblyManager {
       participantId: row.participant_id,
       issueId: row.issue_id,
       status: row.status,
-      effectiveChoice: row.effective_choice !== null ? parseJson(row.effective_choice) : null,
+      effectiveChoice: row.effective_choice !== null ? parseJsonColumn(row.effective_choice) : null,
       delegateId: row.delegate_id,
       terminalVoterId: row.terminal_voter_id,
-      chain: parseJson<string[]>(row.chain),
+      chain: parseJsonColumn<string[]>(row.chain),
     }));
   }
 
@@ -542,9 +538,9 @@ export class AssemblyManager {
     return {
       issueId: row.issue_id,
       winner: row.winner,
-      counts: parseJson<Record<string, number>>(row.counts),
+      counts: parseJsonColumn<Record<string, number>>(row.counts),
       totalVotes: row.total_votes,
-      quorumMet: row.quorum_met === 1,
+      quorumMet: !!row.quorum_met,
       quorumThreshold: row.quorum_threshold,
       eligibleCount: row.eligible_count,
       participatingCount: row.participating_count,
@@ -563,7 +559,7 @@ export class AssemblyManager {
       [
         assemblyId, issueId, tally.winner,
         JSON.stringify(Object.fromEntries(tally.counts)),
-        tally.totalVotes, tally.quorumMet ? 1 : 0, tally.quorumThreshold,
+        tally.totalVotes, tally.quorumMet, tally.quorumThreshold,
         tally.eligibleCount, tally.participatingCount,
         new Date().toISOString(),
       ],
@@ -582,7 +578,7 @@ export class AssemblyManager {
     if (!row) return null;
     return {
       issueId: row.issue_id,
-      weights: parseJson<Record<string, number>>(row.weights),
+      weights: parseJsonColumn<Record<string, number>>(row.weights),
       totalWeight: row.total_weight,
     };
   }
@@ -630,7 +626,7 @@ export class AssemblyManager {
       giniCoefficient: row.gini_coefficient,
       maxWeight: row.max_weight,
       maxWeightHolder: row.max_weight_holder,
-      chainLengthDistribution: parseJson<Record<number, number>>(row.chain_length_distribution),
+      chainLengthDistribution: parseJsonColumn<Record<number, number>>(row.chain_length_distribution),
       delegatingCount: row.delegating_count,
       directVoterCount: row.direct_voter_count,
     };

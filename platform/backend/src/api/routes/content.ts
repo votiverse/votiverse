@@ -12,6 +12,7 @@ import type { MembershipService } from "../../services/membership-service.js";
 import type { ContentService } from "../../services/content-service.js";
 import { computeContentHash } from "../../services/content-service.js";
 import type { BackendConfig } from "../../config/schema.js";
+import { parseJsonColumn } from "../../adapters/database/interface.js";
 import { getUser } from "../middleware/auth.js";
 import { NotFoundError, ValidationError, AppError } from "../middleware/error-handler.js";
 import type { AssetStore } from "../../services/asset-store.js";
@@ -671,7 +672,7 @@ async function callVcp(
 function mapContentRow(row: Record<string, unknown>) {
   return {
     markdown: row["markdown"],
-    assets: typeof row["assets"] === "string" ? JSON.parse(row["assets"] || "[]") : (row["assets"] ?? []),
+    assets: parseJsonColumn<unknown[]>(row["assets"] ?? "[]"),
     contentHash: row["content_hash"],
     changeSummary: row["change_summary"] ?? undefined,
     versionNumber: row["version_number"],

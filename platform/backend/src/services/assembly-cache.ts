@@ -6,6 +6,7 @@
  */
 
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
+import { parseJsonColumn } from "../adapters/database/interface.js";
 
 export type AdmissionMode = "open" | "approval" | "invite-only";
 
@@ -34,7 +35,7 @@ function rowToAssembly(row: CachedAssemblyRow): CachedAssembly {
     id: row.id,
     organizationId: row.organization_id,
     name: row.name,
-    config: typeof row.config === "string" ? JSON.parse(row.config) : row.config,
+    config: parseJsonColumn(row.config),
     status: row.status,
     createdAt: row.created_at,
     admissionMode: (row.admission_mode as AdmissionMode) ?? "approval",

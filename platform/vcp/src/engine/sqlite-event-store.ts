@@ -8,6 +8,7 @@
 import type { EventStore, EventQueryOptions, DomainEvent, EventId, Timestamp } from "@votiverse/core";
 import { DuplicateEventError } from "@votiverse/core";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
+import { parseJsonColumn } from "../adapters/database/interface.js";
 
 interface EventRow {
   id: string;
@@ -98,7 +99,7 @@ export class SQLiteEventStore implements EventStore {
       id: row.id as EventId,
       type: row.event_type,
       timestamp: new Date(row.occurred_at).getTime() as Timestamp,
-      payload: (typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload) as Record<string, unknown>,
+      payload: parseJsonColumn<Record<string, unknown>>(row.payload),
     } as DomainEvent;
   }
 }

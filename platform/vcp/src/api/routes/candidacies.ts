@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import type { ParticipantId, CandidacyId, TopicId, ContentHash } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
+import { parseJsonColumn } from "../../adapters/database/interface.js";
 import { requireParticipant } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
@@ -39,13 +40,13 @@ export function candidacyRoutes(manager: AssemblyManager) {
         `INSERT INTO candidacies (id, assembly_id, participant_id, topic_scope, vote_transparency_opt_in, current_version, status, declared_at, withdrawn_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
          ON CONFLICT (assembly_id, id) DO UPDATE SET topic_scope = EXCLUDED.topic_scope, vote_transparency_opt_in = EXCLUDED.vote_transparency_opt_in, current_version = EXCLUDED.current_version, status = EXCLUDED.status, withdrawn_at = EXCLUDED.withdrawn_at`,
-        [candidacy.id, assemblyId, candidacy.participantId, JSON.stringify(candidacy.topicScope), candidacy.voteTransparencyOptIn ? 1 : 0, candidacy.currentVersion, candidacy.status, candidacy.declaredAt],
+        [candidacy.id, assemblyId, candidacy.participantId, JSON.stringify(candidacy.topicScope), candidacy.voteTransparencyOptIn, candidacy.currentVersion, candidacy.status, candidacy.declaredAt],
       );
       const latestVersion = candidacy.versions[candidacy.versions.length - 1]!;
       await db.run(
         `INSERT INTO candidacy_versions (assembly_id, candidacy_id, version_number, content_hash, topic_scope, vote_transparency_opt_in, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [assemblyId, candidacy.id, latestVersion.versionNumber, latestVersion.contentHash, JSON.stringify(candidacy.topicScope), candidacy.voteTransparencyOptIn ? 1 : 0, latestVersion.createdAt],
+        [assemblyId, candidacy.id, latestVersion.versionNumber, latestVersion.contentHash, JSON.stringify(candidacy.topicScope), candidacy.voteTransparencyOptIn, latestVersion.createdAt],
       );
 
       return c.json({
@@ -130,13 +131,13 @@ export function candidacyRoutes(manager: AssemblyManager) {
       await db.run(
         `UPDATE candidacies SET current_version = ?, topic_scope = ?, vote_transparency_opt_in = ?, status = 'active', withdrawn_at = NULL
          WHERE assembly_id = ? AND id = ?`,
-        [updated.currentVersion, JSON.stringify(updated.topicScope), updated.voteTransparencyOptIn ? 1 : 0, assemblyId, candidacyId],
+        [updated.currentVersion, JSON.stringify(updated.topicScope), updated.voteTransparencyOptIn, assemblyId, candidacyId],
       );
       const latestVersion = updated.versions[updated.versions.length - 1]!;
       await db.run(
         `INSERT INTO candidacy_versions (assembly_id, candidacy_id, version_number, content_hash, topic_scope, vote_transparency_opt_in, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [assemblyId, candidacyId, latestVersion.versionNumber, body.contentHash, body.topicScope ? JSON.stringify(body.topicScope) : null, body.voteTransparencyOptIn !== undefined ? (body.voteTransparencyOptIn ? 1 : 0) : null, latestVersion.createdAt],
+        [assemblyId, candidacyId, latestVersion.versionNumber, body.contentHash, body.topicScope ? JSON.stringify(body.topicScope) : null, body.voteTransparencyOptIn ?? null, latestVersion.createdAt],
       );
 
       return c.json({ currentVersion: updated.currentVersion, status: updated.status }, 200);
@@ -172,8 +173,8 @@ function mapCandidacyRow(row: Record<string, unknown>) {
   return {
     id: row["id"],
     participantId: row["participant_id"],
-    topicScope: typeof row["topic_scope"] === "string" ? JSON.parse(row["topic_scope"]) : row["topic_scope"],
-    voteTransparencyOptIn: row["vote_transparency_opt_in"] === 1,
+    topicScope: parseJsonColumn<string[]>(row["topic_scope"]),
+    voteTransparencyOptIn: !!row["vote_transparency_opt_in"],
     currentVersion: row["current_version"],
     status: row["status"],
     declaredAt: row["declared_at"],
