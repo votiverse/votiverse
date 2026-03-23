@@ -110,8 +110,10 @@ export function validateProductionConfig(config: BackendConfig): void {
     errors.push("BACKEND_ASSET_STORAGE should be 's3' in production — database storage does not scale");
   }
 
-  if (config.assetStorage === "s3" && !config.s3Bucket) {
-    errors.push("BACKEND_S3_BUCKET is required when asset storage is 's3'");
+  if (config.assetStorage === "s3") {
+    if (!config.s3Bucket) {
+      errors.push("BACKEND_S3_BUCKET is required when asset storage is 's3'");
+    }
   }
 
   if (config.notificationAdapter === "smtp") {

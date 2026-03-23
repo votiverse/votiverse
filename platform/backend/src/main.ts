@@ -21,6 +21,8 @@ import type { NotificationAdapter } from "./services/notification-adapter.js";
 import { ContentService } from "./services/content-service.js";
 import { PushDeliveryService } from "./services/push-delivery.js";
 import { createApp } from "./api/server.js";
+import type { AssetStore } from "./services/asset-store.js";
+import { DatabaseAssetStore, S3AssetStore } from "./services/asset-store.js";
 
 async function main() {
   const config = loadConfig();
@@ -99,6 +101,30 @@ async function main() {
   // Wire content service
   const contentService = new ContentService(database);
 
+  // Wire asset store
+  let assetStore: AssetStore;
+  if (config.assetStorage === "s3") {
+    // Verify AWS SDK is available
+    try {
+      await import("@aws-sdk/client-s3");
+    } catch {
+      throw new Error(
+        "BACKEND_ASSET_STORAGE is 's3' but @aws-sdk/client-s3 is not installed. " +
+        "Run: pnpm add @aws-sdk/client-s3 @aws-sdk/s3-request-presigner",
+      );
+    }
+    assetStore = new S3AssetStore(database, {
+      bucket: config.s3Bucket,
+      region: config.s3Region,
+      cdnDomain: config.s3CdnDomain || undefined,
+    });
+    logger.info(`Asset storage: S3 (bucket: ${config.s3Bucket}, region: ${config.s3Region})`);
+  } else {
+    const frontendUrl = config.corsOrigins.find((o) => o !== "*") ?? "http://localhost:5174";
+    assetStore = new DatabaseAssetStore(database, frontendUrl);
+    logger.info("Asset storage: database (dev mode)");
+  }
+
   // Wire push delivery service
   const pushService = new PushDeliveryService(database, {
     apnsKeyPath: config.apnsKeyPath,
@@ -110,7 +136,7 @@ async function main() {
   });
 
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, pushService, contentService, vcpClient, config });
+  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, pushService, contentService, vcpClient, assetStore, config });
 
   // Start HTTP server
   const server = serve({
