@@ -36,8 +36,9 @@ export function candidacyRoutes(manager: AssemblyManager) {
       // Persist to VCP database
       const db = manager.getDatabase();
       await db.run(
-        `INSERT OR REPLACE INTO candidacies (id, assembly_id, participant_id, topic_scope, vote_transparency_opt_in, current_version, status, declared_at, withdrawn_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+        `INSERT INTO candidacies (id, assembly_id, participant_id, topic_scope, vote_transparency_opt_in, current_version, status, declared_at, withdrawn_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+         ON CONFLICT (assembly_id, id) DO UPDATE SET topic_scope = EXCLUDED.topic_scope, vote_transparency_opt_in = EXCLUDED.vote_transparency_opt_in, current_version = EXCLUDED.current_version, status = EXCLUDED.status, withdrawn_at = EXCLUDED.withdrawn_at`,
         [candidacy.id, assemblyId, candidacy.participantId, JSON.stringify(candidacy.topicScope), candidacy.voteTransparencyOptIn ? 1 : 0, candidacy.currentVersion, candidacy.status, candidacy.declaredAt],
       );
       const latestVersion = candidacy.versions[candidacy.versions.length - 1]!;

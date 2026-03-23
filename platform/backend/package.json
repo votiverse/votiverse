@@ -7,9 +7,9 @@
   "main": "./dist/main.js",
   "scripts": {
     "build": "tsup",
-    "dev": "tsx src/main.ts",
-    "seed": "tsx scripts/seed.ts",
-    "reset": "tsx scripts/reset.ts",
+    "dev": "tsx --env-file-if-exists=.env src/main.ts",
+    "seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
+    "reset": "tsx --env-file-if-exists=.env scripts/reset.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist"

@@ -471,7 +471,7 @@ const issueId = m.issue("maple-lobby", 0);
 
 The web UI uses JWT-based authentication through the client backend. Users log in with email/password, the backend issues JWT access tokens, and all API requests go through the backend which resolves user identity to assembly-specific participant IDs. The VCP never sees user credentials — it receives only opaque `X-Participant-Id` headers from the backend.
 
-For local development, the seed script creates test users with email format `{slug}@example.com` and password `password`. See `platform/web/TESTING.md` for the full list.
+For local development, the seed script creates test users with email format `{slug}@example.com` and password `password1234`. See `platform/web/TESTING.md` for the full list.
 
 ### Case Studies & Screenshots
 

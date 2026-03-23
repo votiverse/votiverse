@@ -25,9 +25,9 @@ Open the URL shown by Vite (typically `http://localhost:5173`, port may vary). Y
 
 ## Test Credentials
 
-All seeded users have the email format `{slugified-name}@example.com`, the password `password`, and a handle matching the slugified name.
+All seeded users have the email format `{slugified-name}@example.com`, the password `password1234`, and a handle matching the slugified name.
 
-For example, to log in as Elena Vasquez, use `elena-vasquez@example.com` / `password`. Her handle is `@elena-vasquez`.
+For example, to log in as Elena Vasquez, use `elena-vasquez@example.com` / `password1234`. Her handle is `@elena-vasquez`.
 
 ### Recommended Cross-Assembly Test Accounts
 

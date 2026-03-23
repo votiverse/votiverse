@@ -375,8 +375,9 @@ export function proposalRoutes(manager: AssemblyManager) {
 
       // Upsert endorsement record
       await db.run(
-        `INSERT OR REPLACE INTO proposal_endorsements (assembly_id, proposal_id, participant_id, evaluation, evaluated_at)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO proposal_endorsements (assembly_id, proposal_id, participant_id, evaluation, evaluated_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (assembly_id, proposal_id, participant_id) DO UPDATE SET evaluation = EXCLUDED.evaluation, evaluated_at = EXCLUDED.evaluated_at`,
         [assemblyId, proposalId, participantId, body.evaluation, Date.now()],
       );
 

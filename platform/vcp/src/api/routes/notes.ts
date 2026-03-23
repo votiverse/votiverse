@@ -151,8 +151,9 @@ export function noteRoutes(manager: AssemblyManager) {
 
       // Upsert evaluation record
       await db.run(
-        `INSERT OR REPLACE INTO note_evaluations (assembly_id, note_id, participant_id, evaluation, evaluated_at)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO note_evaluations (assembly_id, note_id, participant_id, evaluation, evaluated_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (assembly_id, note_id, participant_id) DO UPDATE SET evaluation = EXCLUDED.evaluation, evaluated_at = EXCLUDED.evaluated_at`,
         [assemblyId, noteId, participantId, body.evaluation, Date.now()],
       );
 

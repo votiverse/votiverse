@@ -60,7 +60,7 @@ cd platform/backend && pnpm dev      # port 4000
 cd platform/web && pnpm dev          # port 5173
 ```
 
-Open **http://localhost:5173**. Sign in with any seeded user (email: `{slug}@example.com`, password: `password`). The dashboard shows pending votes across all your assemblies with nearest deadlines.
+Open **http://localhost:5173**. Sign in with any seeded user (email: `{slug}@example.com`, password: `password1234`). The dashboard shows pending votes across all your assemblies with nearest deadlines.
 
 ### Sample Data
 

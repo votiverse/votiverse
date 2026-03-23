@@ -14,18 +14,37 @@ const VCP_ROOT = resolve(__dirname, "..");
 const DB_FILES = ["vcp-dev.db", "vcp-dev.db-shm", "vcp-dev.db-wal"];
 
 const BASE_URL = process.env["VCP_URL"] ?? "http://localhost:3000";
+const DATABASE_URL = process.env["VCP_DATABASE_URL"];
 
-// ── Step 1: Delete database files ────────────────────────────────────
+// ── Step 1: Wipe database ────────────────────────────────────────────
 
 console.log("\n🗑  Wiping database...\n");
-for (const file of DB_FILES) {
-  const path = resolve(VCP_ROOT, file);
-  try {
-    unlinkSync(path);
-    console.log(`  Deleted ${file}`);
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-    console.log(`  ${file} (not found, skipping)`);
+
+if (DATABASE_URL) {
+  // PostgreSQL: drop and recreate the database
+  const dbName = new URL(DATABASE_URL).pathname.slice(1);
+  const maintenanceUrl = DATABASE_URL.replace(`/${dbName}`, "/postgres");
+  console.log(`  Using PostgreSQL database: ${dbName}`);
+  const pg = await import("pg");
+  const client = new pg.default.Client({ connectionString: maintenanceUrl });
+  await client.connect();
+  // Terminate existing connections
+  await client.query(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()`, [dbName]);
+  await client.query(`DROP DATABASE IF EXISTS ${dbName}`);
+  await client.query(`CREATE DATABASE ${dbName}`);
+  await client.end();
+  console.log(`  Dropped and recreated ${dbName}`);
+} else {
+  // SQLite: delete database files
+  for (const file of DB_FILES) {
+    const path = resolve(VCP_ROOT, file);
+    try {
+      unlinkSync(path);
+      console.log(`  Deleted ${file}`);
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      console.log(`  ${file} (not found, skipping)`);
+    }
   }
 }
 
@@ -33,7 +52,7 @@ for (const file of DB_FILES) {
 
 console.log("\n🚀 Starting VCP server...\n");
 
-const server = spawn("npx", ["tsx", "src/main.ts"], {
+const server = spawn("node_modules/.bin/tsx", ["--conditions", "source", "src/main.ts"], {
   cwd: VCP_ROOT,
   stdio: ["ignore", "pipe", "pipe"],
   env: { ...process.env },

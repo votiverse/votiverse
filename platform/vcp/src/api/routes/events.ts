@@ -147,7 +147,7 @@ export function eventRoutes(manager: AssemblyManager) {
     if (creatorId) {
       const db = manager.getDatabase();
       await db.run(
-        `INSERT OR IGNORE INTO voting_event_creators (assembly_id, event_id, participant_id) VALUES (?, ?, ?)`,
+        `INSERT INTO voting_event_creators (assembly_id, event_id, participant_id) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
         [assemblyId, votingEvent.id, creatorId],
       );
     }

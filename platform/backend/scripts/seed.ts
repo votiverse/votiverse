@@ -9,7 +9,7 @@ const VCP_URL = process.env["BACKEND_VCP_URL"] ?? "http://localhost:3000";
 const VCP_API_KEY = process.env["BACKEND_VCP_API_KEY"] ?? "vcp_dev_key_00000000";
 const BACKEND_URL = process.env["BACKEND_URL"] ?? "http://localhost:4000";
 
-const DEFAULT_PASSWORD = "password";
+const DEFAULT_PASSWORD = "password1234";
 
 // ---------------------------------------------------------------------------
 // Avatar generation — gender-appropriate DiceBear URLs

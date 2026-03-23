@@ -47,7 +47,7 @@ export class PostgresAdapter implements DatabaseAdapter {
           status                TEXT NOT NULL DEFAULT 'active',
           failed_login_attempts INTEGER NOT NULL DEFAULT 0,
           locked_until          TIMESTAMPTZ,
-          email_verified        BOOLEAN NOT NULL DEFAULT FALSE,
+          email_verified        SMALLINT NOT NULL DEFAULT 0,
           verification_token    TEXT,
           verification_expires  TIMESTAMPTZ,
           reset_token           TEXT,

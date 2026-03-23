@@ -72,7 +72,7 @@ The seed script creates 5 assemblies with realistic governance configurations, 6
 
 **VCP seed** (`platform/vcp/scripts/seed.ts`): Creates assemblies, participants, topics, events, delegations, votes, and polls in the VCP database. Uses the dev clock API to set the server time into each event's voting window before casting votes.
 
-**Backend seed** (`platform/backend/scripts/seed.ts`): Reads participants from the VCP and creates matching user accounts with email `{slug}@example.com` and password `password`. Creates membership records linking users to their VCP participant IDs.
+**Backend seed** (`platform/backend/scripts/seed.ts`): Reads participants from the VCP and creates matching user accounts with email `{slug}@example.com` and password `password1234`. Creates membership records linking users to their VCP participant IDs.
 
 ### Reseeding
 
