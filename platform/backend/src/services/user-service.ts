@@ -31,6 +31,7 @@ interface UserRow {
   verification_expires: string | null;
   reset_token: string | null;
   reset_expires: string | null;
+  locale: string;
 }
 
 /** Maximum failed login attempts before account is locked. */
@@ -46,6 +47,7 @@ export interface User {
   handle: string | null;
   avatarUrl: string | null;
   bio: string;
+  locale: string;
   createdAt: string;
   status: string;
   emailVerified: boolean;
@@ -88,6 +90,7 @@ function rowToUser(row: UserRow): User {
     handle: row.handle,
     avatarUrl: row.avatar_url,
     bio: row.bio ?? "",
+    locale: row.locale ?? "en",
     createdAt: row.created_at,
     status: row.status,
     emailVerified: !!row.email_verified,
@@ -162,7 +165,7 @@ export class UserService {
       [id, email.toLowerCase(), passwordHash, name.trim(), finalHandle, createdAt, verificationToken, verificationExpires],
     );
 
-    return { id, email: email.toLowerCase(), name: name.trim(), handle: finalHandle, avatarUrl: null, bio: "", createdAt, status: "active", emailVerified: false };
+    return { id, email: email.toLowerCase(), name: name.trim(), handle: finalHandle, avatarUrl: null, bio: "", locale: "en", createdAt, status: "active", emailVerified: false };
   }
 
   /** Verify an email address using the verification token. */
@@ -323,7 +326,7 @@ export class UserService {
   }
 
   /** Update profile fields. */
-  async updateProfile(userId: string, updates: { handle?: string; name?: string; bio?: string; avatarUrl?: string | null }): Promise<User> {
+  async updateProfile(userId: string, updates: { handle?: string; name?: string; bio?: string; avatarUrl?: string | null; locale?: string }): Promise<User> {
     const user = await this.getByIdOrThrow(userId);
 
     if (updates.handle !== undefined) {
@@ -354,6 +357,7 @@ export class UserService {
     if (updates.name !== undefined) { sets.push("name = ?"); params.push(updates.name.trim()); }
     if (updates.bio !== undefined) { sets.push("bio = ?"); params.push(updates.bio); }
     if (updates.avatarUrl !== undefined) { sets.push("avatar_url = ?"); params.push(updates.avatarUrl); }
+    if (updates.locale !== undefined) { sets.push("locale = ?"); params.push(updates.locale); }
 
     if (sets.length > 0) {
       params.push(userId);

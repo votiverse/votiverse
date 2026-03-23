@@ -48,11 +48,16 @@ export const RefreshBody = z.object({
 // Profile
 // ---------------------------------------------------------------------------
 
+/** BCP 47 locale tag: 2-3 letter language, optional region. */
+const locale = z.string()
+  .regex(/^[a-z]{2,3}(-[A-Z]{2})?$/, "Invalid locale format");
+
 export const UpdateProfileBody = z.object({
   handle: handle.optional(),
   name: z.string().min(1).max(100).optional(),
   bio: z.string().max(500).optional(),
   avatarUrl: z.string().url().nullable().optional(),
+  locale: locale.optional(),
 });
 
 // ---------------------------------------------------------------------------

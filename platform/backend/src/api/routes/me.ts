@@ -289,6 +289,7 @@ export function meRoutes(
       handle: user.handle,
       avatarUrl: user.avatarUrl,
       bio: user.bio,
+      locale: user.locale,
       memberships,
     });
   });
@@ -305,6 +306,7 @@ export function meRoutes(
       handle: updated.handle,
       avatarUrl: updated.avatarUrl,
       bio: updated.bio,
+      locale: updated.locale,
     });
   });
 

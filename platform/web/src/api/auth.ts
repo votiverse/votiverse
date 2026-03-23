@@ -29,6 +29,7 @@ export interface MeResponse {
   handle?: string | null;
   avatarUrl?: string | null;
   bio?: string;
+  locale?: string;
   memberships: Array<{
     assemblyId: string;
     participantId: string;
