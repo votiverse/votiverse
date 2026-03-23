@@ -76,7 +76,9 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!memberships || memberships.length === 0) {
+    // null = identity still loading, keep spinner. [] = loaded but no memberships.
+    if (memberships === null) return;
+    if (memberships.length === 0) {
       setState({ ...defaultState, loading: false });
       return;
     }

@@ -42,7 +42,9 @@ function Layout() {
 
 export function App() {
   const identity = useIdentityProvider();
-  const attention = useAttentionProvider(identity.memberships.length > 0 ? identity.memberships : null);
+  const attention = useAttentionProvider(
+    identity.loading ? null : identity.memberships,
+  );
 
   return (
     <IdentityContext value={identity}>

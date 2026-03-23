@@ -67,6 +67,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         headers["Authorization"] = `Bearer ${newToken}`;
       }
       res = await fetch(`${BASE_URL}${path}`, { method, headers, credentials: "include", body: init.body });
+    } else {
+      // Refresh failed — session is dead. Notify the app to clear auth state.
+      window.dispatchEvent(new CustomEvent("votiverse:auth-expired"));
     }
   }
 

@@ -116,6 +116,16 @@ export function useIdentityProvider(): IdentityCtx {
     return () => { cancelled = true; };
   }, []);
 
+  // Listen for auth-expired events (fired by API client when refresh fails)
+  useEffect(() => {
+    const handler = () => {
+      setUser(null);
+      setLoading(false);
+    };
+    window.addEventListener("votiverse:auth-expired", handler);
+    return () => window.removeEventListener("votiverse:auth-expired", handler);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const { user: authUser } = await auth.login(email, password);
     // Fetch full profile with memberships
