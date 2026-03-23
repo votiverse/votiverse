@@ -97,8 +97,6 @@ export function DevClock() {
     window.dispatchEvent(new Event("dev-clock-change"));
   };
 
-  if (!available) return null;
-
   const isTestMode = clock?.mode === "test";
   const offset = clock ? clock.time - clock.systemTime : 0;
   const offsetLabel = offset === 0 ? "" : formatOffset(offset);
@@ -107,6 +105,8 @@ export function DevClock() {
   useEffect(() => {
     setDevClockOffset(offset);
   }, [offset]);
+
+  if (!available) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 lg:bottom-6 lg:right-6">

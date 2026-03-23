@@ -172,7 +172,7 @@ function mapCandidacyRow(row: Record<string, unknown>) {
   return {
     id: row["id"],
     participantId: row["participant_id"],
-    topicScope: JSON.parse(row["topic_scope"] as string),
+    topicScope: typeof row["topic_scope"] === "string" ? JSON.parse(row["topic_scope"]) : row["topic_scope"],
     voteTransparencyOptIn: row["vote_transparency_opt_in"] === 1,
     currentVersion: row["current_version"],
     status: row["status"],

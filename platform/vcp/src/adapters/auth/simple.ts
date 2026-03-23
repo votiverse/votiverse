@@ -41,7 +41,7 @@ export class SimpleAuthAdapter implements AuthAdapter {
       if (row) {
         let assemblyAccess: readonly string[] | "*";
         try {
-          const parsed = JSON.parse(row.assembly_access);
+          const parsed = typeof row.assembly_access === "string" ? JSON.parse(row.assembly_access) : row.assembly_access;
           assemblyAccess = parsed === "*" ? "*" : (parsed as string[]);
         } catch {
           assemblyAccess = [];
@@ -79,7 +79,7 @@ export class SimpleAuthAdapter implements AuthAdapter {
       if (row) {
         let list: string[];
         try {
-          list = JSON.parse(row.assembly_access) as string[];
+          list = (typeof row.assembly_access === "string" ? JSON.parse(row.assembly_access) : row.assembly_access) as string[];
         } catch {
           list = [];
         }

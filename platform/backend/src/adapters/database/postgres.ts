@@ -9,6 +9,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import pg from "pg";
 import type { DatabaseAdapter, RunResult } from "./interface.js";
 
+// PostgreSQL returns BIGINT (OID 20) as strings because JS numbers can't represent
+// all 64-bit integers. Our timestamps fit safely in JS numbers, so parse them back.
+pg.types.setTypeParser(20, (val: string) => Number(val));
+
 /**
  * Translate `?` placeholders to PostgreSQL `$1, $2, ...` style.
  */

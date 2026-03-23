@@ -12,6 +12,17 @@ export default defineConfig({
       external: ["@choochmeque/tauri-plugin-notifications-api"],
     },
   },
+  optimizeDeps: {
+    exclude: ["@choochmeque/tauri-plugin-notifications-api"],
+  },
+  resolve: {
+    alias: {
+      // Stub Tauri-only packages in browser dev mode so Vite import analysis doesn't fail.
+      ...(!process.env.TAURI_ENV_PLATFORM && {
+        "@choochmeque/tauri-plugin-notifications-api": "/src/lib/tauri-stub.ts",
+      }),
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,

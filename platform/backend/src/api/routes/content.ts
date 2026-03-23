@@ -671,7 +671,7 @@ async function callVcp(
 function mapContentRow(row: Record<string, unknown>) {
   return {
     markdown: row["markdown"],
-    assets: JSON.parse((row["assets"] as string) || "[]"),
+    assets: typeof row["assets"] === "string" ? JSON.parse(row["assets"] || "[]") : (row["assets"] ?? []),
     contentHash: row["content_hash"],
     changeSummary: row["change_summary"] ?? undefined,
     versionNumber: row["version_number"],

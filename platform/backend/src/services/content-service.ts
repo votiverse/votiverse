@@ -326,7 +326,7 @@ function mapDraftRow(row: Record<string, unknown>): ProposalDraft {
     authorId: row["author_id"] as string,
     title: row["title"] as string,
     markdown: row["markdown"] as string,
-    assets: JSON.parse((row["assets"] as string) || "[]"),
+    assets: typeof row["assets"] === "string" ? JSON.parse(row["assets"] || "[]") : (row["assets"] ?? []),
     createdAt: row["created_at"] as number,
     updatedAt: row["updated_at"] as number,
   };
