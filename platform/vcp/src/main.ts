@@ -14,6 +14,7 @@ import { SimpleAuthAdapter } from "./adapters/auth/simple.js";
 import type { VCPAdapters } from "./adapters/index.js";
 import { AssemblyManager } from "./engine/assembly-manager.js";
 import { createApp } from "./api/server.js";
+import { runMigrations } from "./adapters/database/migrator.js";
 
 async function main() {
   const config = loadConfig();
@@ -34,6 +35,13 @@ async function main() {
     logger.info(`Using SQLite database: ${config.dbPath}`);
   }
   await database.initialize();
+
+  // Run pending migrations (if any)
+  const migrationsDir = new URL("../../migrations", import.meta.url).pathname;
+  const migrationResult = await runMigrations(database, migrationsDir);
+  if (migrationResult.applied.length > 0) {
+    logger.info(`Applied ${migrationResult.applied.length} migration(s): ${migrationResult.applied.join(", ")}`);
+  }
 
   const queue = new MemoryQueueAdapter();
   const scheduler = new LocalSchedulerAdapter();

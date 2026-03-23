@@ -23,6 +23,7 @@ import { PushDeliveryService } from "./services/push-delivery.js";
 import { createApp } from "./api/server.js";
 import type { AssetStore } from "./services/asset-store.js";
 import { DatabaseAssetStore, S3AssetStore } from "./services/asset-store.js";
+import { runMigrations } from "./adapters/database/migrator.js";
 
 async function main() {
   const config = loadConfig();
@@ -42,6 +43,13 @@ async function main() {
     database = new SQLiteAdapter(config.dbPath);
     await database.initialize();
     logger.info(`Using SQLite database: ${config.dbPath}`);
+  }
+
+  // Run pending migrations (if any)
+  const migrationsDir = new URL("../../migrations", import.meta.url).pathname;
+  const migrationResult = await runMigrations(database, migrationsDir);
+  if (migrationResult.applied.length > 0) {
+    logger.info(`Applied ${migrationResult.applied.length} migration(s): ${migrationResult.applied.join(", ")}`);
   }
 
   // Wire services
