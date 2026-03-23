@@ -1,0 +1,8 @@
+{
+  "sourceLocale": "en",
+  "targetLocales": [
+    "fr", "es", "pt", "pt-BR", "de", "it", "nl",
+    "pl", "uk", "ru", "tr", "ar", "hi", "zh", "zh-TW",
+    "ja", "ko", "th", "vi", "id", "ms"
+  ]
+}

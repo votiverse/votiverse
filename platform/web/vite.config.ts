@@ -5,6 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    __APP_VERSION__: JSON.stringify(Date.now().toString(36)),
+  },
   build: {
     rollupOptions: {
       // Tauri plugin packages are only available at runtime inside the WebView.

@@ -1,0 +1,17 @@
+{
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "remove": "Remove",
+  "close": "Close",
+  "apply": "Apply",
+  "confirm": "Confirm",
+  "retry": "Retry",
+  "back": "Back",
+  "next": "Next",
+  "loading": "Loading…",
+  "error.generic": "Something went wrong. Please try again.",
+  "error.network": "Unable to connect. Check your internet connection.",
+  "error.notFound": "Not found.",
+  "empty.generic": "Nothing here yet."
+}
