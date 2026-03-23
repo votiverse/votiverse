@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
 import type { Proposal, BookletData, BookletRecommendation } from "../api/types.js";
 import { NotesList } from "./community-notes.js";
@@ -54,16 +55,12 @@ function groupByPosition(proposals: Proposal[]): Map<string, Proposal[]> {
   return map;
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  for: "Arguments For",
-  against: "Arguments Against",
-  abstain: "Case for Abstaining",
-  general: "General Analysis",
+const POSITION_LABEL_KEYS: Record<string, string> = {
+  for: "booklet.posFor",
+  against: "booklet.posAgainst",
+  abstain: "booklet.posAbstain",
+  general: "booklet.posGeneral",
 };
-
-function positionLabel(key: string): string {
-  return POSITION_LABELS[key] ?? `Arguments for "${key}"`;
-}
 
 const POSITION_COLORS: Record<string, string> = {
   for: "bg-green-50 border-green-200",
@@ -97,6 +94,13 @@ export function VotingBooklet({
   isCreator,
   onClose,
 }: BookletProps) {
+  const { t } = useTranslation("governance");
+
+  const positionLabel = useCallback((key: string): string => {
+    const labelKey = POSITION_LABEL_KEYS[key];
+    return labelKey ? t(labelKey) : t("booklet.posCustom", { key });
+  }, [t]);
+
   const positions = useMemo(() => groupByPosition(proposals), [proposals]);
   const positionKeys = useMemo(() =>
     Array.from(positions.keys()).sort((a, b) => {
@@ -165,8 +169,8 @@ export function VotingBooklet({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
-                Voting Booklet
-                {eventPhase === "deliberation" && <span className="ml-2 text-amber-500">Deliberation Phase</span>}
+                {t("booklet.title")}
+                {eventPhase === "deliberation" && <span className="ml-2 text-amber-500">{t("booklet.deliberationPhase")}</span>}
               </p>
               <h2 className="text-lg font-semibold text-gray-900">{issueTitle}</h2>
               {issueDescription && (
@@ -178,7 +182,7 @@ export function VotingBooklet({
                 <button
                   onClick={() => setShowCuration(!showCuration)}
                   className={`p-2 transition-colors rounded-lg ${showCuration ? "text-amber-600 bg-amber-50" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
-                  title="Curate booklet"
+                  title={t("booklet.curate")}
                 >
                   <Star size={18} />
                 </button>
@@ -186,7 +190,7 @@ export function VotingBooklet({
               <button
                 onClick={onClose}
                 className="p-2 text-gray-400 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
-                aria-label="Close booklet"
+                aria-label={t("booklet.close")}
               >
                 <X size={20} />
               </button>
@@ -223,8 +227,8 @@ export function VotingBooklet({
             {choices && activeKey !== "general" && (
               <p className="text-xs text-gray-400 mt-0.5">
                 {activeKey === "for" || activeKey === "against"
-                  ? `This section argues for voting "${activeKey}"`
-                  : `This section argues for choosing "${activeKey}"`}
+                  ? t("booklet.sectionArguesVoting", { position: activeKey })
+                  : t("booklet.sectionArguesChoosing", { position: activeKey })}
               </p>
             )}
           </div>
@@ -234,7 +238,7 @@ export function VotingBooklet({
             /* DELIBERATION: all proposals ranked by score with endorse buttons */
             <div className="space-y-6">
               {activeProposals.length === 0 ? (
-                <p className="text-sm text-gray-400 italic">No proposals in this position yet.</p>
+                <p className="text-sm text-gray-400 italic">{t("booklet.noProposalsYet")}</p>
               ) : (
                 activeProposals.map((proposal) => (
                   <ProposalSection
@@ -252,7 +256,7 @@ export function VotingBooklet({
               {(() => {
                 const featured = getFeaturedProposal(activeKey!);
                 if (!featured) {
-                  return <p className="text-sm text-gray-400 italic">No proposals in this position.</p>;
+                  return <p className="text-sm text-gray-400 italic">{t("booklet.noProposals")}</p>;
                 }
                 return (
                   <>
@@ -260,7 +264,7 @@ export function VotingBooklet({
                       {featured.featured && (
                         <div className="flex items-center gap-1.5 mb-2">
                           <Star size={12} className="text-amber-500 fill-amber-500" />
-                          <span className="text-xs text-amber-600 font-medium">Featured by organizer</span>
+                          <span className="text-xs text-amber-600 font-medium">{t("booklet.featuredByOrganizer")}</span>
                         </div>
                       )}
                       <ProposalSection
@@ -284,10 +288,10 @@ export function VotingBooklet({
             <div className="mt-8 pt-6 border-t">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-5 bg-blue-500 rounded-full" />
-                <h4 className="text-sm font-semibold text-gray-900">Organizer Recommendation</h4>
+                <h4 className="text-sm font-semibold text-gray-900">{t("booklet.recommendation")}</h4>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 prose prose-sm max-w-none text-gray-700">
-                <Suspense fallback={<p className="text-gray-400">Loading...</p>}>
+                <Suspense fallback={<p className="text-gray-400">{t("common:loading")}</p>}>
                   <MarkdownViewer content={recommendation.markdown} />
                 </Suspense>
               </div>
@@ -316,17 +320,17 @@ export function VotingBooklet({
               disabled={activeIdx === 0}
               className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-default inline-flex items-center gap-1"
             >
-              <ChevronLeft size={16} /> Previous
+              <ChevronLeft size={16} /> {t("booklet.previous")}
             </button>
             <span className="text-xs text-gray-400">
-              {activeIdx + 1} of {positionKeys.length} positions
+              {t("booklet.positionCount", { current: activeIdx + 1, total: positionKeys.length })}
             </span>
             <button
               onClick={goNext}
               disabled={activeIdx === positionKeys.length - 1}
               className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-default inline-flex items-center gap-1"
             >
-              Next <ChevronRight size={16} />
+              {t("booklet.next")} <ChevronRight size={16} />
             </button>
           </div>
         )}
@@ -341,6 +345,7 @@ function SeeAllExpander({ proposals, featuredId, assemblyId }: {
   featuredId: string;
   assemblyId: string;
 }) {
+  const { t } = useTranslation("governance");
   const [expanded, setExpanded] = useState(false);
   const others = proposals.filter((p) => p.id !== featuredId);
 
@@ -353,7 +358,7 @@ function SeeAllExpander({ proposals, featuredId, assemblyId }: {
         className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
       >
         <ChevronDown size={14} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-        {expanded ? "Hide" : `See all ${others.length + 1} proposals`}
+        {expanded ? t("booklet.hide") : t("booklet.seeAll", { count: others.length + 1 })}
       </button>
       {expanded && (
         <div className="mt-4 space-y-6">
@@ -372,6 +377,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
   proposal: Proposal;
   showEndorse?: boolean;
 }) {
+  const { t } = useTranslation("governance");
   const [content, setContent] = useState<string | null>(proposal.content?.markdown ?? null);
   const [loading, setLoading] = useState(!content);
   const [showNotes, setShowNotes] = useState(false);
@@ -425,13 +431,13 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
 
       {/* Proposal body */}
       <div className="prose prose-sm max-w-none text-gray-700">
-        {loading && <p className="text-gray-400">Loading...</p>}
+        {loading && <p className="text-gray-400">{t("common:loading")}</p>}
         {content ? (
-          <Suspense fallback={<p className="text-gray-400">Loading...</p>}>
+          <Suspense fallback={<p className="text-gray-400">{t("common:loading")}</p>}>
             <MarkdownViewer content={content} />
           </Suspense>
         ) : !loading ? (
-          <p className="text-gray-400 italic">Content not available</p>
+          <p className="text-gray-400 italic">{t("booklet.contentUnavailable")}</p>
         ) : null}
       </div>
 
@@ -442,7 +448,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
           className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
         >
           <MessageSquareText size={12} />
-          {showNotes ? "Hide notes" : "Notes"}
+          {showNotes ? t("booklet.hideNotes") : t("booklet.notes")}
         </button>
 
         {showEndorse && (
@@ -451,7 +457,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
               onClick={() => handleEvaluate("endorse")}
               disabled={evaluating}
               className="p-1.5 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors disabled:opacity-50"
-              title="Endorse"
+              title={t("booklet.endorse")}
             >
               <ThumbsUp size={13} />
             </button>
@@ -460,7 +466,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
               onClick={() => handleEvaluate("dispute")}
               disabled={evaluating}
               className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-              title="Dispute"
+              title={t("booklet.dispute")}
             >
               <ThumbsDown size={13} />
             </button>
@@ -488,6 +494,7 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
   recommendation: BookletRecommendation | null;
   onRecommendationChange: (rec: BookletRecommendation | null) => void;
 }) {
+  const { t } = useTranslation("governance");
   const [recText, setRecText] = useState(recommendation?.markdown ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -529,28 +536,29 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
     <div className="mt-8 pt-6 border-t">
       <div className="flex items-center gap-2 mb-4">
         <Star size={16} className="text-amber-500" />
-        <h4 className="text-sm font-semibold text-gray-900">Curation Panel</h4>
-        <span className="text-xs text-gray-400">(visible only to you as event creator)</span>
+        <h4 className="text-sm font-semibold text-gray-900">{t("booklet.curationTitle")}</h4>
+        <span className="text-xs text-gray-400">{t("booklet.curationVisibility")}</span>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-700 mb-4">
-        Pin one proposal per position for the voting booklet. Unpinned positions auto-select the highest-scored proposal.
-        Aim for fairness — the booklet should present the strongest argument from each side.
+        {t("booklet.curationHelp")}
       </div>
 
       {/* Proposals in current position */}
       <div className="space-y-2 mb-6">
-        <h5 className="text-xs font-medium text-gray-500 uppercase">{positionLabel(positionKey)} — Proposals</h5>
+        <h5 className="text-xs font-medium text-gray-500 uppercase">
+          {POSITION_LABEL_KEYS[positionKey] ? t(POSITION_LABEL_KEYS[positionKey]) : t("booklet.posCustom", { key: positionKey })} — {t("booklet.proposals")}
+        </h5>
         {proposals.length === 0 ? (
-          <p className="text-xs text-gray-400">No proposals in this position.</p>
+          <p className="text-xs text-gray-400">{t("booklet.noProposals")}</p>
         ) : (
           proposals.map((p) => (
             <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded border bg-white">
               <div className="min-w-0">
                 <span className="text-sm font-medium text-gray-900 truncate block">{p.title}</span>
                 <span className="text-xs text-gray-500">
-                  Score: {score(p) > 0 ? "+" : ""}{score(p)}
-                  {" "}({p.endorsementCount ?? 0} endorse, {p.disputeCount ?? 0} dispute)
+                  {t("booklet.score")}: {score(p) > 0 ? "+" : ""}{score(p)}
+                  {" "}({p.endorsementCount ?? 0} {t("booklet.endorse")}, {p.disputeCount ?? 0} {t("booklet.dispute")})
                 </span>
               </div>
               <button
@@ -561,7 +569,7 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
                     : "bg-white border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600"
                 }`}
               >
-                {p.featured ? "Unpin" : "Pin as featured"}
+                {p.featured ? t("booklet.unpin") : t("booklet.pinFeatured")}
               </button>
             </div>
           ))
@@ -570,13 +578,13 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
 
       {/* Recommendation editor */}
       <div>
-        <h5 className="text-xs font-medium text-gray-500 uppercase mb-2">Organizer Recommendation</h5>
+        <h5 className="text-xs font-medium text-gray-500 uppercase mb-2">{t("booklet.recommendation")}</h5>
         <textarea
           value={recText}
           onChange={(e) => setRecText(e.target.value)}
           rows={5}
           className="w-full border rounded-lg px-3 py-2 text-sm text-gray-700 resize-y"
-          placeholder="Write a recommendation for voters — this appears in the booklet during voting..."
+          placeholder={t("booklet.recPlaceholder")}
         />
         <div className="flex gap-2 mt-2">
           <button
@@ -584,7 +592,7 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
             disabled={saving || !recText.trim()}
             className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {saving ? "Saving..." : recommendation?.markdown ? "Update" : "Save"} Recommendation
+            {saving ? t("booklet.saving") : recommendation?.markdown ? t("booklet.updateRec") : t("booklet.saveRec")}
           </button>
           {recommendation?.markdown && (
             <button
@@ -592,7 +600,7 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
               disabled={saving}
               className="text-xs px-3 py-1.5 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
             >
-              Remove
+              {t("common:remove")}
             </button>
           )}
         </div>

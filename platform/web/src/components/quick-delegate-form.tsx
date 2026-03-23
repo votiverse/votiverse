@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
 import type { Topic } from "../api/types.js";
 import { Card, CardBody, Button, Select, Label, ErrorBox } from "./ui.js";
@@ -37,6 +38,7 @@ export function QuickDelegateForm({
   onCreated,
   onClose,
 }: QuickDelegateFormProps) {
+  const { t } = useTranslation("governance");
   const [targetId, setTargetId] = useState("");
   const [scopeMode, setScopeMode] = useState<ScopeMode>("issue");
   const [submitting, setSubmitting] = useState(false);
@@ -88,9 +90,9 @@ export function QuickDelegateForm({
       onCreated();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {
-        setFormError(err.message || "You don't have permission to create this delegation.");
+        setFormError(err.message || t("delegate.permissionDenied"));
       } else {
-        setFormError(err instanceof Error ? err.message : "Failed to create delegation");
+        setFormError(err instanceof Error ? err.message : t("delegate.createError"));
       }
     } finally {
       setSubmitting(false);
@@ -103,15 +105,15 @@ export function QuickDelegateForm({
     <Card className="mt-3">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-900">Delegate this vote</h3>
+          <h3 className="text-sm font-medium text-gray-900">{t("delegate.title")}</h3>
 
           {formError && <ErrorBox message={formError} />}
 
           {/* Person picker */}
           <div>
-            <Label>Who should vote for you?</Label>
+            <Label>{t("delegate.whoLabel")}</Label>
             <Select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-              <option value="">Select a member...</option>
+              <option value="">{t("delegate.selectMember")}</option>
               {others.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -121,7 +123,7 @@ export function QuickDelegateForm({
           {/* Scope selector — only for topic-scoped assemblies with topic context */}
           {isTopicScoped && preselectedTopicIds.length > 0 && (
             <div>
-              <Label>Scope</Label>
+              <Label>{t("delegate.scope")}</Label>
               <div className="space-y-1.5">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -131,7 +133,7 @@ export function QuickDelegateForm({
                     onChange={() => setScopeMode("issue")}
                     className="text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-gray-700">This issue only</span>
+                  <span className="text-sm text-gray-700">{t("delegate.scopeIssue")}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -142,7 +144,7 @@ export function QuickDelegateForm({
                     className="text-brand focus:ring-brand"
                   />
                   <span className="text-sm text-gray-700">
-                    This topic: <span className="font-medium">{topicNames}</span>
+                    {t("delegate.scopeTopic")}: <span className="font-medium">{topicNames}</span>
                   </span>
                 </label>
                 {hasParent && (
@@ -155,7 +157,7 @@ export function QuickDelegateForm({
                       className="text-brand focus:ring-brand"
                     />
                     <span className="text-sm text-gray-700">
-                      Broader: <span className="font-medium">{parentNames}</span>
+                      {t("delegate.scopeBroader")}: <span className="font-medium">{parentNames}</span>
                     </span>
                   </label>
                 )}
@@ -167,7 +169,7 @@ export function QuickDelegateForm({
                     onChange={() => setScopeMode("global")}
                     className="text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-gray-700">All topics</span>
+                  <span className="text-sm text-gray-700">{t("delegate.scopeGlobal")}</span>
                 </label>
               </div>
             </div>
@@ -179,11 +181,11 @@ export function QuickDelegateForm({
               <Avatar name={others.find((p) => p.id === targetId)?.name ?? "?"} size="xs" />
               <span className="text-sm text-gray-700">
                 <span className="font-medium">{others.find((p) => p.id === targetId)?.name}</span>
-                {" will vote for you"}
-                {isTopicScoped && scopeMode === "issue" ? " on this issue only" : ""}
-                {isTopicScoped && scopeMode === "topic" && topicNames ? ` on ${topicNames}` : ""}
-                {isTopicScoped && scopeMode === "parent" && parentNames ? ` on ${parentNames}` : ""}
-                {(!isTopicScoped || scopeMode === "global") ? " on all topics" : ""}
+                {" "}{t("delegate.previewWillVote")}
+                {isTopicScoped && scopeMode === "issue" ? ` ${t("delegate.previewIssueOnly")}` : ""}
+                {isTopicScoped && scopeMode === "topic" && topicNames ? ` ${t("delegate.previewOnTopic", { topic: topicNames })}` : ""}
+                {isTopicScoped && scopeMode === "parent" && parentNames ? ` ${t("delegate.previewOnTopic", { topic: parentNames })}` : ""}
+                {(!isTopicScoped || scopeMode === "global") ? ` ${t("delegate.previewAllTopics")}` : ""}
               </span>
             </div>
           )}
@@ -191,14 +193,14 @@ export function QuickDelegateForm({
           {/* Actions */}
           <div className="flex items-center gap-2">
             <Button type="submit" disabled={submitting || !targetId}>
-              {submitting ? "Delegating..." : "Delegate"}
+              {submitting ? t("delegate.delegating") : t("delegate.submit")}
             </Button>
             <button
               type="button"
               onClick={onClose}
               className="text-sm text-gray-500 hover:text-gray-700 min-h-[36px] px-2"
             >
-              Cancel
+              {t("common:cancel")}
             </button>
           </div>
         </form>

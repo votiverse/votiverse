@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useEditor, EditorContent } from "@tiptap/react";
 import "./markdown-editor.css";
 import StarterKit from "@tiptap/starter-kit";
@@ -39,10 +40,11 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({
   value,
   onChange,
-  placeholder = "Write your content...",
+  placeholder,
   assemblyId,
   minHeight = 200,
 }: MarkdownEditorProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [linkInputOpen, setLinkInputOpen] = useState(false);
@@ -54,7 +56,7 @@ export function MarkdownEditor({
       Markdown,
       Image.configure({ inline: false, allowBase64: true }),
       Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: placeholder ?? t("editor.placeholder") }),
     ],
     content: value,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -156,14 +158,14 @@ export function MarkdownEditor({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           active={editor.isActive("heading", { level: 2 })}
-          title="Heading"
+          title={t("editor.heading")}
         >
           H2
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           active={editor.isActive("heading", { level: 3 })}
-          title="Subheading"
+          title={t("editor.subheading")}
         >
           H3
         </ToolbarButton>
@@ -171,14 +173,14 @@ export function MarkdownEditor({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")}
-          title="Bold"
+          title={t("editor.bold")}
         >
           <strong>B</strong>
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           active={editor.isActive("italic")}
-          title="Italic"
+          title={t("editor.italic")}
         >
           <em>I</em>
         </ToolbarButton>
@@ -186,28 +188,28 @@ export function MarkdownEditor({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive("bulletList")}
-          title="Bullet list"
+          title={t("editor.bulletList")}
         >
-          &bull; List
+          &bull; {t("editor.list")}
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           active={editor.isActive("orderedList")}
-          title="Numbered list"
+          title={t("editor.numberedList")}
         >
-          1. List
+          1. {t("editor.list")}
         </ToolbarButton>
         <ToolbarDivider />
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           active={editor.isActive("blockquote")}
-          title="Quote"
+          title={t("editor.quote")}
         >
-          &ldquo; Quote
+          &ldquo; {t("editor.quote")}
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          title="Divider"
+          title={t("editor.divider")}
         >
           &mdash;
         </ToolbarButton>
@@ -222,16 +224,16 @@ export function MarkdownEditor({
             }
           }}
           active={editor.isActive("link")}
-          title="Link"
+          title={t("editor.link")}
         >
-          Link
+          {t("editor.link")}
         </ToolbarButton>
         <ToolbarDivider />
-        <ToolbarButton onClick={handleImageButton} title="Insert image">
-          Image
+        <ToolbarButton onClick={handleImageButton} title={t("editor.insertImage")}>
+          {t("editor.image")}
         </ToolbarButton>
-        <ToolbarButton onClick={handleImportButton} title="Import Word or Markdown file">
-          Import
+        <ToolbarButton onClick={handleImportButton} title={t("editor.importFile")}>
+          {t("editor.import")}
         </ToolbarButton>
       </div>
 
@@ -271,14 +273,14 @@ export function MarkdownEditor({
             }}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1"
           >
-            Apply
+            {t("apply")}
           </button>
           <button
             type="button"
             onClick={() => { setLinkInputOpen(false); setLinkUrl(""); editor.chain().focus().run(); }}
             className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
           >
-            Cancel
+            {t("cancel")}
           </button>
         </div>
       )}

@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
 import type { BulkInvitePreview } from "../api/client.js";
 import { Card, CardBody, Button, Badge, ErrorBox } from "./ui.js";
@@ -17,6 +18,7 @@ interface BulkInviteProps {
 type Phase = "upload" | "preview" | "sending" | "done";
 
 export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
+  const { t } = useTranslation("onboarding");
   const [phase, setPhase] = useState<Phase>("upload");
   const [preview, setPreview] = useState<BulkInvitePreview | null>(null);
   const [result, setResult] = useState<api.BulkInviteResult | null>(null);
@@ -30,14 +32,14 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
     try {
       const csv = await file.text();
       if (!csv.trim()) {
-        setError("File is empty");
+        setError(t("bulk.fileEmpty"));
         return;
       }
       const data = await api.previewBulkInvites(assemblyId, csv);
       setPreview(data);
       setPhase("preview");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to process file");
+      setError(err instanceof Error ? err.message : t("bulk.processError"));
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
       setResult(data);
       setPhase("done");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to send invitations");
+      setError(err instanceof Error ? err.message : t("bulk.sendError"));
       setPhase("preview");
     }
   }, [assemblyId, preview]);
@@ -73,8 +75,8 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
     <Card className="mb-4">
       <CardBody>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-gray-900 text-sm">Bulk Invite</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
+          <h3 className="font-medium text-gray-900 text-sm">{t("bulk.title")}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-sm">{t("common:cancel")}</button>
         </div>
 
         {error && <ErrorBox message={error} />}
@@ -89,11 +91,11 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
               className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center cursor-pointer hover:border-brand-200 transition-colors"
             >
               {loading ? (
-                <p className="text-sm text-gray-500">Processing...</p>
+                <p className="text-sm text-gray-500">{t("bulk.processing")}</p>
               ) : (
                 <>
-                  <p className="text-sm text-gray-600 mb-1">Drop a CSV file here or click to select</p>
-                  <p className="text-xs text-gray-400">One handle per line, or CSV with a "handle" column</p>
+                  <p className="text-sm text-gray-600 mb-1">{t("bulk.dropzone")}</p>
+                  <p className="text-xs text-gray-400">{t("bulk.dropzoneHint")}</p>
                 </>
               )}
             </div>
@@ -116,19 +118,19 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
             {/* Summary bar */}
             <div className="flex flex-wrap gap-3 mb-4 text-sm">
               <span className="text-gray-500">
-                Total: <span className="font-medium text-gray-900">{preview.summary.total}</span>
+                {t("bulk.total")}: <span className="font-medium text-gray-900">{preview.summary.total}</span>
               </span>
               {preview.summary.canInvite > 0 && (
-                <Badge color="green">{preview.summary.canInvite} can be invited</Badge>
+                <Badge color="green">{t("bulk.canInvite", { count: preview.summary.canInvite })}</Badge>
               )}
               {preview.summary.alreadyMembers > 0 && (
-                <Badge color="yellow">{preview.summary.alreadyMembers} already members</Badge>
+                <Badge color="yellow">{t("bulk.alreadyMembers", { count: preview.summary.alreadyMembers })}</Badge>
               )}
               {preview.summary.unknownHandles > 0 && (
-                <Badge color="gray">{preview.summary.unknownHandles} not found</Badge>
+                <Badge color="gray">{t("bulk.notFound", { count: preview.summary.unknownHandles })}</Badge>
               )}
               {preview.summary.invalidRows > 0 && (
-                <Badge color="red">{preview.summary.invalidRows} invalid</Badge>
+                <Badge color="red">{t("bulk.invalid", { count: preview.summary.invalidRows })}</Badge>
               )}
             </div>
 
@@ -138,11 +140,11 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
                 <div key={v.handle} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span className="text-gray-700 font-mono">@{v.handle}</span>
                   {v.alreadyMember ? (
-                    <Badge color="yellow">Already member</Badge>
+                    <Badge color="yellow">{t("bulk.statusAlreadyMember")}</Badge>
                   ) : v.status === "not_found" ? (
-                    <Badge color="gray">Not found</Badge>
+                    <Badge color="gray">{t("bulk.statusNotFound")}</Badge>
                   ) : (
-                    <Badge color="green">Will be invited</Badge>
+                    <Badge color="green">{t("bulk.statusWillInvite")}</Badge>
                   )}
                 </div>
               ))}
@@ -157,13 +159,13 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
             {/* Actions */}
             <div className="flex gap-2 justify-end mt-4">
               <Button variant="secondary" onClick={() => { setPhase("upload"); setPreview(null); }}>
-                Upload different file
+                {t("bulk.uploadDifferent")}
               </Button>
               <Button
                 onClick={handleConfirm}
                 disabled={preview.summary.canInvite === 0}
               >
-                Send {preview.summary.canInvite} invitation{preview.summary.canInvite !== 1 ? "s" : ""}
+                {t("bulk.sendInvitations", { count: preview.summary.canInvite })}
               </Button>
             </div>
           </>
@@ -172,7 +174,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
         {/* Sending phase */}
         {phase === "sending" && (
           <div className="text-center py-4">
-            <p className="text-sm text-gray-500">Sending invitations...</p>
+            <p className="text-sm text-gray-500">{t("bulk.sending")}</p>
           </div>
         )}
 
@@ -181,12 +183,12 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
           <>
             <div className="text-center py-4">
               <p className="text-sm text-gray-700">
-                {result.created} invitation{result.created !== 1 ? "s" : ""} sent
-                {result.skipped > 0 && `, ${result.skipped} skipped`}
+                {t("bulk.resultSent", { count: result.created })}
+                {result.skipped > 0 && `, ${t("bulk.resultSkipped", { count: result.skipped })}`}
               </p>
             </div>
             <div className="flex justify-end">
-              <Button onClick={onClose}>Done</Button>
+              <Button onClick={onClose}>{t("bulk.done")}</Button>
             </div>
           </>
         )}

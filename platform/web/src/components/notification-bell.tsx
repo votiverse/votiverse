@@ -7,13 +7,16 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
 import type { Notification } from "../api/types.js";
+import { formatRelativeTime } from "../lib/format.js";
 import { Bell, Vote, BarChart3, UserPlus, CheckCircle, XCircle, Clock } from "lucide-react";
 
 const POLL_INTERVAL_MS = 30_000;
 
 export function NotificationBell() {
+  const { t } = useTranslation("notifications");
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -92,7 +95,7 @@ export function NotificationBell() {
       <button
         onClick={() => setOpen(!open)}
         className="relative p-2 text-gray-500 hover:text-gray-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+        aria-label={unreadCount > 0 ? t("ariaLabelUnread", { count: unreadCount }) : t("title")}
       >
         <Bell size={18} strokeWidth={1.5} />
         {unreadCount > 0 && (
@@ -106,13 +109,13 @@ export function NotificationBell() {
         <div className="absolute right-0 mt-1 w-80 sm:w-96 bg-white border border-gray-200 rounded-lg shadow-xl z-30 max-h-[70vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("title")}</h3>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
                 className="text-xs text-brand hover:text-brand-light transition-colors"
               >
-                Mark all read
+                {t("markAllRead")}
               </button>
             )}
           </div>
@@ -120,9 +123,9 @@ export function NotificationBell() {
           {/* Notification list */}
           <div className="overflow-y-auto flex-1">
             {loading ? (
-              <div className="py-8 text-center text-sm text-gray-400">Loading...</div>
+              <div className="py-8 text-center text-sm text-gray-400">{t("common:loading")}</div>
             ) : notifications.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-400">No notifications yet</div>
+              <div className="py-8 text-center text-sm text-gray-400">{t("empty")}</div>
             ) : (
               notifications.map((notif) => (
                 <NotificationItem
@@ -140,7 +143,7 @@ export function NotificationBell() {
               onClick={() => { navigate("/notifications"); setOpen(false); }}
               className="text-xs text-brand hover:text-brand-light transition-colors w-full text-center"
             >
-              View all notifications
+              {t("viewAll")}
             </button>
           </div>
         </div>
@@ -188,7 +191,7 @@ function NotificationItem({ notification, onClick }: { notification: Notificatio
             <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{notification.body}</p>
           )}
           <p className="text-[10px] text-gray-300 mt-1">
-            {formatTimeAgo(notification.createdAt)}
+            {formatRelativeTime(notification.createdAt)}
           </p>
         </div>
         {!notification.read && (
@@ -215,16 +218,3 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   join_request_rejected: <XCircle size={14} />,
 };
 
-// ── Time formatting ──────────────────────────────────────────────────
-
-function formatTimeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}

@@ -44,7 +44,7 @@ describe("MemberSearch", () => {
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByPlaceholderText("Search by name...")).toBeDefined();
+    expect(screen.getByPlaceholderText("Search by name\u2026")).toBeDefined();
   });
 
   it("shows candidates on focus in candidacy mode", () => {

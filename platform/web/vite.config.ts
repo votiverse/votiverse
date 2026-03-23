@@ -30,6 +30,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     css: false,
+    setupFiles: ["./test/setup.ts"],
   },
   server: {
     host: process.env.TAURI_DEV_HOST || "localhost",

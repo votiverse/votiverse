@@ -9,6 +9,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import type { Participant, Candidacy } from "../api/types.js";
 import { Avatar } from "./avatar.js";
 import { Badge } from "./ui.js";
@@ -34,8 +35,9 @@ export function MemberSearch({
   onSelect,
   candidates,
   topicNameMap,
-  placeholder = "Search by name...",
+  placeholder,
 }: MemberSearchProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -92,7 +94,7 @@ export function MemberSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("search.byName")}
           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
         />
         <svg
@@ -113,7 +115,7 @@ export function MemberSearch({
           {activeCandidates.length > 0 && query.length < 2 && (
             <div>
               <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
-                Declared Candidates
+                {t("governance:candidates.declared")}
               </div>
               {activeCandidates.map((c) => (
                 <CandidateRow
@@ -125,7 +127,7 @@ export function MemberSearch({
                 />
               ))}
               <div className="px-3 py-2 text-xs text-gray-400 border-t bg-gray-50">
-                Or search for any member by name
+                {t("search.orSearchAny")}
               </div>
             </div>
           )}
@@ -135,13 +137,13 @@ export function MemberSearch({
             <>
               {filteredResults.length === 0 ? (
                 <div className="px-4 py-3 text-sm text-gray-400">
-                  No members found for "{query}"
+                  {t("search.noResults", { query })}
                 </div>
               ) : (
                 <>
                   {activeCandidates.length > 0 && (
                     <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
-                      Search Results
+                      {t("search.results")}
                     </div>
                   )}
                   {filteredResults.map((p) => (
@@ -177,8 +179,9 @@ function CandidateRow({
   topicNameMap?: Map<string, string>;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const topics = candidacy.topicScope
-    .map((t) => topicNameMap?.get(t) ?? t.slice(0, 8))
+    .map((tid) => topicNameMap?.get(tid) ?? tid.slice(0, 8))
     .slice(0, 3); // Show max 3 topics
 
   return (
@@ -191,9 +194,9 @@ function CandidateRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-900 truncate">{name}</span>
-          <Badge color="blue">Candidate</Badge>
+          <Badge color="blue">{t("governance:candidate")}</Badge>
           {candidacy.voteTransparencyOptIn && (
-            <Badge color="green">Public votes</Badge>
+            <Badge color="green">{t("governance:publicVotes")}</Badge>
           )}
         </div>
         {topics.length > 0 && (
@@ -215,6 +218,7 @@ function MemberRow({
   isCandidate: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -223,7 +227,7 @@ function MemberRow({
     >
       <Avatar name={name} size="sm" />
       <span className="text-sm text-gray-900 truncate">{name}</span>
-      {isCandidate && <Badge color="blue">Candidate</Badge>}
+      {isCandidate && <Badge color="blue">{t("governance:candidate")}</Badge>}
     </button>
   );
 }

@@ -1,2 +1,23 @@
 {
+  "bulk.title": "Bulk Invite",
+  "bulk.fileEmpty": "File is empty",
+  "bulk.processError": "Failed to process file",
+  "bulk.sendError": "Failed to send invitations",
+  "bulk.processing": "Processing\u2026",
+  "bulk.dropzone": "Drop a CSV file here or click to select",
+  "bulk.dropzoneHint": "One handle per line, or CSV with a \u201chandle\u201d column",
+  "bulk.total": "Total",
+  "bulk.canInvite": "{{count}} can be invited",
+  "bulk.alreadyMembers": "{{count}} already members",
+  "bulk.notFound": "{{count}} not found",
+  "bulk.invalid": "{{count}} invalid",
+  "bulk.statusAlreadyMember": "Already member",
+  "bulk.statusNotFound": "Not found",
+  "bulk.statusWillInvite": "Will be invited",
+  "bulk.uploadDifferent": "Upload different file",
+  "bulk.sendInvitations": "Send {{count}} invitations",
+  "bulk.sending": "Sending invitations\u2026",
+  "bulk.resultSent": "{{count}} invitations sent",
+  "bulk.resultSkipped": "{{count}} skipped",
+  "bulk.done": "Done"
 }

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
@@ -81,6 +82,7 @@ export function NotesList({ assemblyId, targetType, targetId }: {
   targetType: string;
   targetId: string;
 }) {
+  const { t } = useTranslation("governance");
   const { data, loading, refetch } = useApi(
     () => api.listNotes(assemblyId, targetType, targetId),
     [assemblyId, targetType, targetId],
@@ -94,13 +96,13 @@ export function NotesList({ assemblyId, targetType, targetId }: {
     <div>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-medium text-gray-700">
-          Community Notes {notes.length > 0 && `(${notes.length})`}
+          {t("notes.title")} {notes.length > 0 && `(${notes.length})`}
         </h4>
         <button
           className="text-sm text-blue-600 hover:text-blue-800"
           onClick={() => setShowForm(!showForm)}
         >
-          {showForm ? "Cancel" : "Add Note"}
+          {showForm ? t("common:cancel") : t("notes.add")}
         </button>
       </div>
 
@@ -113,10 +115,10 @@ export function NotesList({ assemblyId, targetType, targetId }: {
         />
       )}
 
-      {loading && <p className="text-sm text-gray-400">Loading notes...</p>}
+      {loading && <p className="text-sm text-gray-400">{t("notes.loading")}</p>}
 
       {notes.length === 0 && !loading && (
-        <p className="text-sm text-gray-400">No community notes yet.</p>
+        <p className="text-sm text-gray-400">{t("notes.empty")}</p>
       )}
 
       <div className="space-y-2">
@@ -133,6 +135,7 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
   assemblyId: string;
   onEvaluated: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [evaluating, setEvaluating] = useState(false);
 
   const handleEvaluate = async (evaluation: "endorse" | "dispute") => {
@@ -140,7 +143,7 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
     try {
       await api.evaluateNote(assemblyId, note.id, evaluation);
       onEvaluated();
-    } catch (err) {
+    } catch {
       // Self-evaluation or other errors
     } finally {
       setEvaluating(false);
@@ -162,15 +165,15 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
         <p className="text-gray-700"><NoteContent text={note.content.markdown} /></p>
       )}
       {!note.content?.markdown && (
-        <p className="text-gray-400 italic">Note content not available</p>
+        <p className="text-gray-400 italic">{t("notes.unavailable")}</p>
       )}
 
       <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-        <span>{note.endorsementCount} helpful</span>
-        <span>{note.disputeCount} disputed</span>
-        {total > 0 && <span>({Math.round(ratio * 100)}% helpful)</span>}
-        {note.status === "withdrawn" && <Badge color="gray">withdrawn</Badge>}
-        {isVisible && <Badge color="green">visible</Badge>}
+        <span>{note.endorsementCount} {t("notes.helpful")}</span>
+        <span>{note.disputeCount} {t("notes.disputed")}</span>
+        {total > 0 && <span>{t("notes.helpfulPercent", { percent: Math.round(ratio * 100) })}</span>}
+        {note.status === "withdrawn" && <Badge color="gray">{t("notes.withdrawn")}</Badge>}
+        {isVisible && <Badge color="green">{t("notes.visible")}</Badge>}
       </div>
 
       {note.status !== "withdrawn" && (
@@ -180,14 +183,14 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
             onClick={() => handleEvaluate("endorse")}
             disabled={evaluating}
           >
-            <ThumbsUp size={12} /> Helpful
+            <ThumbsUp size={12} /> {t("notes.endorseBtn")}
           </button>
           <button
             className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50 inline-flex items-center gap-1"
             onClick={() => handleEvaluate("dispute")}
             disabled={evaluating}
           >
-            <ThumbsDown size={12} /> Not helpful
+            <ThumbsDown size={12} /> {t("notes.disputeBtn")}
           </button>
         </div>
       )}
@@ -201,6 +204,7 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
   targetId: string;
   onCreated: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [markdown, setMarkdown] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -212,7 +216,7 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
       setMarkdown("");
       onCreated();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create note");
+      console.error("Failed to create note:", err instanceof Error ? err.message : err);
     } finally {
       setSubmitting(false);
     }
@@ -225,11 +229,11 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
         onChange={(e) => setMarkdown(e.target.value)}
         rows={3}
         className="w-full border rounded px-3 py-2 text-sm"
-        placeholder="Add context, evidence, or a correction..."
+        placeholder={t("notes.placeholder")}
       />
       <div className="mt-2">
         <Button onClick={handleSubmit} disabled={submitting || !markdown.trim()}>
-          {submitting ? "Posting..." : "Post Note"}
+          {submitting ? t("notes.posting") : t("notes.postBtn")}
         </Button>
       </div>
     </div>
