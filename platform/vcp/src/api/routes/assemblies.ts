@@ -152,7 +152,7 @@ export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
     const isOwner = await manager.hasRole(assemblyId, callerId, "owner");
     if (!isOwner) {
       return c.json(
-        { error: { code: "FORBIDDEN", message: "Only owners can manage roles" } },
+        { error: { code: "FORBIDDEN", message: "Only owners can manage roles", details: { requiredRole: "owner" } } },
         403,
       );
     }
@@ -214,7 +214,7 @@ export function assemblyRoutes(manager: AssemblyManager, auth?: AuthAdapter) {
     const isOwner = await manager.hasRole(assemblyId, callerId, "owner");
     if (!isOwner) {
       return c.json(
-        { error: { code: "FORBIDDEN", message: "Only owners can manage roles" } },
+        { error: { code: "FORBIDDEN", message: "Only owners can manage roles", details: { requiredRole: "owner" } } },
         403,
       );
     }

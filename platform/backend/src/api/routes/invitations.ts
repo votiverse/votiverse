@@ -38,6 +38,7 @@ import type { NotificationHubService } from "../../services/notification-hub.js"
 import { getUser } from "../middleware/auth.js";
 import { parseCsvInvites } from "../../lib/csv-parser.js";
 import { AdmissionModeBody, BulkInviteBody, parseBody } from "../../lib/validation.js";
+import { NotFoundError, ForbiddenError, GoneError, ValidationError } from "../middleware/error-handler.js";
 
 export function invitationRoutes(
   invitationService: InvitationService,
@@ -71,27 +72,18 @@ export function invitationRoutes(
     const invitation = await invitationService.getByToken(token);
 
     if (!invitation || invitation.status !== "active") {
-      return c.json(
-        { error: { code: "NOT_FOUND", message: "Invitation not found or no longer active" } },
-        404,
-      );
+      throw new NotFoundError("Invitation not found or no longer active");
     }
 
     // Check expiration
     if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
-      return c.json(
-        { error: { code: "EXPIRED", message: "This invitation has expired" } },
-        410,
-      );
+      throw new GoneError("This invitation has expired");
     }
 
     // Get assembly info for the preview
     const assembly = await assemblyCacheService.get(invitation.assemblyId);
     if (!assembly) {
-      return c.json(
-        { error: { code: "NOT_FOUND", message: "Group not found" } },
-        404,
-      );
+      throw new NotFoundError("Group not found");
     }
 
     // Get roles for leadership display
@@ -139,10 +131,7 @@ export function invitationRoutes(
     const invitation = await invitationService.getByToken(token);
 
     if (!invitation) {
-      return c.json(
-        { error: { code: "NOT_FOUND", message: "Invitation not found" } },
-        404,
-      );
+      throw new NotFoundError("Invitation not found");
     }
 
     // Check admission mode
@@ -186,7 +175,7 @@ export function invitationRoutes(
     const assemblyId = c.req.param("id");
     const assembly = await assemblyCacheService.get(assemblyId);
     if (!assembly) {
-      return c.json({ error: { code: "NOT_FOUND", message: "Assembly not found" } }, 404);
+      throw new NotFoundError("Assembly not found");
     }
     return c.json({ admissionMode: assembly.admissionMode });
   });
@@ -197,7 +186,7 @@ export function invitationRoutes(
     const assemblyId = c.req.param("id");
 
     if (!(await isAdminOf(userId, assemblyId))) {
-      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can change settings" } }, 403);
+      throw new ForbiddenError("Only admins can change settings");
     }
 
     const body = parseBody(AdmissionModeBody, await c.req.json());
@@ -213,10 +202,7 @@ export function invitationRoutes(
     const assemblyId = c.req.param("id");
 
     if (!(await isAdminOf(userId, assemblyId))) {
-      return c.json(
-        { error: { code: "FORBIDDEN", message: "Only admins can create invitations" } },
-        403,
-      );
+      throw new ForbiddenError("Only admins can create invitations");
     }
 
     const body = await c.req.json<{
@@ -232,19 +218,13 @@ export function invitationRoutes(
     if (type === "link") {
       const assembly = await assemblyCacheService.get(assemblyId);
       if (assembly?.admissionMode === "invite-only") {
-        return c.json(
-          { error: { code: "FORBIDDEN", message: "Link invitations are not available in invite-only mode. Use direct invitations." } },
-          403,
-        );
+        throw new ForbiddenError("Link invitations are not available in invite-only mode. Use direct invitations.");
       }
     }
 
     if (type === "direct") {
       if (!body.inviteeHandle) {
-        return c.json(
-          { error: { code: "VALIDATION_ERROR", message: "inviteeHandle is required for direct invitations" } },
-          400,
-        );
+        throw new ValidationError("inviteeHandle is required for direct invitations");
       }
       const invitation = await invitationService.createDirectInvite(assemblyId, userId, body.inviteeHandle);
 
@@ -284,12 +264,12 @@ export function invitationRoutes(
     const assemblyId = c.req.param("id");
 
     if (!(await isAdminOf(userId, assemblyId))) {
-      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can preview bulk invitations" } }, 403);
+      throw new ForbiddenError("Only admins can preview bulk invitations");
     }
 
     const body = await c.req.json<{ csv: string }>();
     if (!body.csv || typeof body.csv !== "string") {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "csv field is required" } }, 400);
+      throw new ValidationError("csv field is required");
     }
 
     const { rows, errors } = parseCsvInvites(body.csv);
@@ -329,7 +309,7 @@ export function invitationRoutes(
     const assemblyId = c.req.param("id");
 
     if (!(await isAdminOf(userId, assemblyId))) {
-      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can create bulk invitations" } }, 403);
+      throw new ForbiddenError("Only admins can create bulk invitations");
     }
 
     const body = parseBody(BulkInviteBody, await c.req.json());
@@ -371,7 +351,7 @@ export function invitationRoutes(
     const assemblyId = c.req.param("id");
 
     if (!(await isAdminOf(userId, assemblyId))) {
-      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can view join requests" } }, 403);
+      throw new ForbiddenError("Only admins can view join requests");
     }
 
     const requests = await joinRequestService.listByAssembly(assemblyId, "pending");
@@ -385,7 +365,7 @@ export function invitationRoutes(
     const reqId = c.req.param("reqId");
 
     if (!(await isAdminOf(userId, assemblyId))) {
-      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can approve join requests" } }, 403);
+      throw new ForbiddenError("Only admins can approve join requests");
     }
 
     const request = await joinRequestService.approve(reqId, userId);
@@ -416,7 +396,7 @@ export function invitationRoutes(
     const reqId = c.req.param("reqId");
 
     if (!(await isAdminOf(userId, assemblyId))) {
-      return c.json({ error: { code: "FORBIDDEN", message: "Only admins can reject join requests" } }, 403);
+      throw new ForbiddenError("Only admins can reject join requests");
     }
 
     const request = await joinRequestService.getById(reqId);
@@ -482,7 +462,7 @@ export function invitationRoutes(
     const invitation = await invitationService.getById(invId);
 
     if (!invitation) {
-      return c.json({ error: { code: "NOT_FOUND", message: "Invitation not found" } }, 404);
+      throw new NotFoundError("Invitation not found");
     }
 
     // Direct invitations always bypass approval (admin explicitly invited this person)

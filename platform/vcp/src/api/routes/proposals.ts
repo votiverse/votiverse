@@ -43,7 +43,7 @@ export function proposalRoutes(manager: AssemblyManager) {
           }, info.config.timeline);
           if (phase === "curation") {
             return c.json(
-              { error: { code: "CURATION_PHASE", message: "New proposals are not accepted during the curation phase" } },
+              { error: { code: "CURATION_PHASE", message: "New proposals are not accepted during the curation phase", details: { phase: "curation" } } },
               409,
             );
           }
@@ -335,7 +335,7 @@ export function proposalRoutes(manager: AssemblyManager) {
             }, info.config.timeline);
             if (phase !== "deliberation") {
               return c.json(
-                { error: { code: "ENDORSEMENTS_FROZEN", message: "Endorsements are only accepted during the deliberation phase" } },
+                { error: { code: "ENDORSEMENTS_FROZEN", message: "Endorsements are only accepted during the deliberation phase", details: { phase, requiredPhase: "deliberation" } } },
                 409,
               );
             }
@@ -396,7 +396,7 @@ export function proposalRoutes(manager: AssemblyManager) {
       // Verify caller is an admin
       const isAdmin = await manager.isAdmin(assemblyId, participantId);
       if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can feature proposals" } }, 403);
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can feature proposals", details: { requiredRole: "admin" } } }, 403);
       }
 
       const db = manager.getDatabase();
@@ -440,7 +440,7 @@ export function proposalRoutes(manager: AssemblyManager) {
       // Verify caller is an admin
       const isAdmin = await manager.isAdmin(assemblyId, participantId);
       if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can unfeature proposals" } }, 403);
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can unfeature proposals", details: { requiredRole: "admin" } } }, 403);
       }
 
       const db = manager.getDatabase();
@@ -475,7 +475,7 @@ export function proposalRoutes(manager: AssemblyManager) {
       // Verify caller is an admin
       const isAdmin = await manager.isAdmin(assemblyId, participantId);
       if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can set recommendations" } }, 403);
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can set recommendations", details: { requiredRole: "admin" } } }, 403);
       }
 
       const db = manager.getDatabase();
@@ -531,7 +531,7 @@ export function proposalRoutes(manager: AssemblyManager) {
       // Verify caller is an admin
       const isAdmin = await manager.isAdmin(assemblyId, participantId);
       if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can remove recommendations" } }, 403);
+        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can remove recommendations", details: { requiredRole: "admin" } } }, 403);
       }
 
       const db = manager.getDatabase();

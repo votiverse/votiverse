@@ -10,7 +10,7 @@ import type { TopicCacheService } from "../../services/topic-cache.js";
 import type { SurveyCacheService } from "../../services/survey-cache.js";
 import type { NotificationService } from "../../services/notification-service.js";
 import { getUser } from "../middleware/auth.js";
-import { ValidationError } from "../middleware/error-handler.js";
+import { ValidationError, NotFoundError, BadGatewayError } from "../middleware/error-handler.js";
 import { v7 as uuidv7 } from "uuid";
 import { UpdateProfileBody, NotificationPrefBody, DeviceTokenBody, parseBody } from "../../lib/validation.js";
 
@@ -67,7 +67,7 @@ export function meRoutes(
     const { id: userId } = getUser(c);
     const memberships = await membershipService.getUserMemberships(userId);
     if (memberships.length === 0) {
-      return c.json({ error: { code: "NO_MEMBERSHIPS", message: "User has no assembly memberships" } }, 400);
+      throw new ValidationError("User has no assembly memberships");
     }
 
     const asmId = memberships[0].assemblyId;
@@ -113,7 +113,7 @@ export function meRoutes(
   app.post("/dev/clock/advance", async (c) => {
     const body = await c.req.json<{ ms: number }>();
     if (!body.ms || typeof body.ms !== "number") {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "ms is required" } }, 400);
+      throw new ValidationError("ms is required");
     }
     devClock.advance(body.ms);
     return c.json({ time: devClock.now(), iso: devClock.nowIso(), advanced: body.ms });
@@ -134,7 +134,7 @@ export function meRoutes(
       devClock.setOffset(offset);
       return c.json({ time: devClock.now(), iso: devClock.nowIso(), offset, synced: true });
     } catch {
-      return c.json({ error: { code: "SYNC_FAILED", message: "Could not reach VCP dev clock" } }, 502);
+      throw new BadGatewayError("Could not reach VCP dev clock");
     }
   });
 
@@ -313,7 +313,7 @@ export function meRoutes(
     const handle = c.req.param("handle").toLowerCase();
     const profile = await userService.getByHandle(handle);
     if (!profile) {
-      return c.json({ error: { code: "NOT_FOUND", message: "User not found" } }, 404);
+      throw new NotFoundError("User not found");
     }
     return c.json(profile);
   });

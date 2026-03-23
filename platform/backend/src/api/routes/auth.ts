@@ -12,6 +12,7 @@ import type { BackendConfig } from "../../config/schema.js";
 import type { NotificationAdapter } from "../../services/notification-adapter.js";
 import { setAuthCookies, clearAuthCookies, getRefreshTokenFromCookie } from "../../lib/cookies.js";
 import { RegisterBody, LoginBody, RefreshBody, parseBody } from "../../lib/validation.js";
+import { ValidationError, NotFoundError } from "../middleware/error-handler.js";
 import { renderTemplate } from "../../services/notification-templates.js";
 import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
@@ -74,10 +75,7 @@ export function authRoutes(
     }
 
     if (!refreshToken) {
-      return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "refreshToken is required" } },
-        400,
-      );
+      throw new ValidationError("refreshToken is required");
     }
 
     const tokens = await sessionService.refreshSession(
@@ -122,10 +120,7 @@ export function authRoutes(
     const body = await c.req.json() as Record<string, unknown>;
     const token = typeof body.token === "string" ? body.token : null;
     if (!token) {
-      return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "token is required" } },
-        400,
-      );
+      throw new ValidationError("token is required");
     }
     const user = await userService.verifyEmail(token);
     return c.json({
@@ -138,7 +133,7 @@ export function authRoutes(
     const authUser = getUser(c);
     const user = await userService.getById(authUser.id);
     if (!user) {
-      return c.json({ error: { code: "NOT_FOUND", message: "User not found" } }, 404);
+      throw new NotFoundError("User not found");
     }
     if (user.emailVerified) {
       return c.json({ status: "already_verified" });
@@ -159,10 +154,7 @@ export function authRoutes(
     const body = await c.req.json() as Record<string, unknown>;
     const email = typeof body.email === "string" ? body.email : null;
     if (!email) {
-      return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "email is required" } },
-        400,
-      );
+      throw new ValidationError("email is required");
     }
 
     const result = await userService.createResetToken(email);
@@ -183,10 +175,7 @@ export function authRoutes(
     const token = typeof body.token === "string" ? body.token : null;
     const newPassword = typeof body.password === "string" ? body.password : null;
     if (!token || !newPassword) {
-      return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "token and password are required" } },
-        400,
-      );
+      throw new ValidationError("token and password are required");
     }
 
     const user = await userService.resetPassword(token, newPassword);

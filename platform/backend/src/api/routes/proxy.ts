@@ -21,6 +21,7 @@ import type { VCPClient } from "../../services/vcp-client.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
+import { ValidationError, NotFoundError } from "../middleware/error-handler.js";
 
 export function proxyRoutes(
   membershipService: MembershipService,
@@ -61,7 +62,7 @@ export function proxyRoutes(
     }>();
 
     if (!body.name?.trim()) {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "Assembly name is required" } }, 400);
+      throw new ValidationError("Assembly name is required");
     }
 
     // Create assembly on VCP
@@ -104,10 +105,7 @@ export function proxyRoutes(
     const id = c.req.param("id");
     const assembly = await assemblyCacheService.get(id);
     if (!assembly) {
-      return c.json(
-        { error: { code: "NOT_FOUND", message: `Assembly "${id}" not found` } },
-        404,
-      );
+      throw new NotFoundError(`Assembly "${id}" not found`);
     }
     return c.json(assembly);
   });
@@ -120,10 +118,7 @@ export function proxyRoutes(
     const id = c.req.param("id");
     const assembly = await assemblyCacheService.get(id);
     if (!assembly) {
-      return c.json(
-        { error: { code: "NOT_FOUND", message: `Assembly "${id}" not found` } },
-        404,
-      );
+      throw new NotFoundError(`Assembly "${id}" not found`);
     }
 
     // Fetch roles from VCP
@@ -334,10 +329,28 @@ async function proxyToVcp(
     }
   });
 
+  // Normalize VCP 5xx to 502 Bad Gateway
+  let finalStatus = vcpRes.status;
+  let finalBody = responseBody;
+  if (vcpRes.status >= 500) {
+    finalStatus = 502;
+    try {
+      const parsed = JSON.parse(responseBody) as { error?: { message?: string } };
+      finalBody = JSON.stringify({
+        error: { code: "VCP_ERROR", message: parsed?.error?.message ?? "VCP internal error" },
+      });
+    } catch {
+      finalBody = JSON.stringify({
+        error: { code: "VCP_ERROR", message: "VCP internal error" },
+      });
+    }
+    logger.error("VCP returned 5xx", { vcpStatus: vcpRes.status, path });
+  }
+
   // 204 No Content must not have a body
   const response = new Response(
-    vcpRes.status === 204 ? null : responseBody,
-    { status: vcpRes.status, headers: responseHeaders },
+    finalStatus === 204 ? null : finalBody,
+    { status: finalStatus, headers: responseHeaders },
   );
   // Stash the buffered body for interceptors to read without consuming the stream
   (response as ResponseWithBody).__bufferedBody = responseBody;

@@ -13,6 +13,19 @@ import type { ContentService } from "../../services/content-service.js";
 import { computeContentHash } from "../../services/content-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
+import { NotFoundError, ValidationError, AppError } from "../middleware/error-handler.js";
+
+/** Convert a failed VCP response into an AppError that preserves the VCP status code. */
+async function throwVcpError(res: Response, fallbackMessage: string): Promise<never> {
+  const body = await res.json().catch(() => ({ error: { message: fallbackMessage } })) as { error?: { code?: string; message?: string; details?: Record<string, unknown> } };
+  const err = body?.error;
+  throw new AppError(
+    err?.code ?? "VCP_ERROR",
+    err?.message ?? fallbackMessage,
+    res.status >= 500 ? 502 : res.status,
+    err?.details,
+  );
+}
 
 export function contentRoutes(
   membershipService: MembershipService,
@@ -59,7 +72,7 @@ export function contentRoutes(
     const draftId = c.req.param("draftId");
     const draft = await contentService.getDraft(assemblyId, draftId);
     if (!draft) {
-      return c.json({ error: { code: "NOT_FOUND", message: "Draft not found" } }, 404);
+      throw new NotFoundError("Draft not found");
     }
     return c.json(draft);
   });
@@ -94,7 +107,7 @@ export function contentRoutes(
 
     const draft = await contentService.getDraft(assemblyId, draftId);
     if (!draft) {
-      return c.json({ error: { code: "NOT_FOUND", message: "Draft not found" } }, 404);
+      throw new NotFoundError("Draft not found");
     }
 
     // Compute content hash
@@ -112,11 +125,7 @@ export function contentRoutes(
     }, participantId);
 
     if (!vcpRes.ok) {
-      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
-      return c.json(
-        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to register proposal with VCP" } },
-        vcpRes.status as 400 | 409 | 500,
-      );
+      await throwVcpError(vcpRes, "Failed to register proposal with VCP");
     }
 
     const vcpData = await vcpRes.json() as { id: string; submittedAt: number };
@@ -178,7 +187,7 @@ export function contentRoutes(
 
     const content = await contentService.getProposalContent(assemblyId, proposalId, version);
     if (!content) {
-      return c.json({ error: { code: "NOT_FOUND", message: "Version not found" } }, 404);
+      throw new NotFoundError("Version not found");
     }
     return c.json(mapContentRow(content));
   });
@@ -203,11 +212,7 @@ export function contentRoutes(
     }, participantId);
 
     if (!vcpRes.ok) {
-      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
-      return c.json(
-        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to register version with VCP" } },
-        vcpRes.status as 400 | 409 | 500,
-      );
+      await throwVcpError(vcpRes, "Failed to register version with VCP");
     }
 
     const vcpData = await vcpRes.json() as { currentVersion: number };
@@ -252,11 +257,7 @@ export function contentRoutes(
     }, participantId);
 
     if (!vcpRes.ok) {
-      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
-      return c.json(
-        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to register candidacy" } },
-        vcpRes.status as 400 | 409 | 500,
-      );
+      await throwVcpError(vcpRes, "Failed to register candidacy");
     }
 
     const vcpData = await vcpRes.json() as { id: string; declaredAt: number; currentVersion: number };
@@ -320,11 +321,7 @@ export function contentRoutes(
     }, participantId);
 
     if (!vcpRes.ok) {
-      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
-      return c.json(
-        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to register note" } },
-        vcpRes.status as 400 | 409 | 500,
-      );
+      await throwVcpError(vcpRes, "Failed to register note");
     }
 
     const vcpData = await vcpRes.json() as { id: string; createdAt: number };
@@ -408,11 +405,7 @@ export function contentRoutes(
     );
 
     if (!vcpRes.ok) {
-      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
-      return c.json(
-        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to register recommendation" } },
-        vcpRes.status as 400 | 403 | 500,
-      );
+      await throwVcpError(vcpRes, "Failed to register recommendation");
     }
 
     // Store content locally
@@ -463,11 +456,7 @@ export function contentRoutes(
     );
 
     if (!vcpRes.ok) {
-      const err = await vcpRes.json().catch(() => ({ error: { message: "VCP error" } })) as { error: { message: string } };
-      return c.json(
-        { error: { code: "VCP_ERROR", message: err.error?.message ?? "Failed to delete recommendation" } },
-        vcpRes.status as 400 | 403 | 500,
-      );
+      await throwVcpError(vcpRes, "Failed to delete recommendation");
     }
 
     // Delete local content
@@ -487,7 +476,7 @@ export function contentRoutes(
     const formData = await c.req.parseBody();
     const file = formData["file"];
     if (!file || typeof file === "string") {
-      return c.json({ error: { code: "VALIDATION_ERROR", message: "File upload required" } }, 400);
+      throw new ValidationError("File upload required");
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -512,7 +501,7 @@ export function contentRoutes(
     const assetId = c.req.param("assetId");
     const asset = await contentService.getAsset(assetId);
     if (!asset) {
-      return c.json({ error: { code: "NOT_FOUND", message: "Asset not found" } }, 404);
+      throw new NotFoundError("Asset not found");
     }
 
     return new Response(asset.data, {

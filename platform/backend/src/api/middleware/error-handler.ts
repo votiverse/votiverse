@@ -10,6 +10,7 @@ export class AppError extends Error {
     public readonly code: string,
     message: string,
     public readonly statusCode: number = 400,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "AppError";
@@ -46,15 +47,29 @@ export class ConflictError extends AppError {
   }
 }
 
+export class GoneError extends AppError {
+  constructor(message: string) {
+    super("EXPIRED", message, 410);
+  }
+}
+
+export class BadGatewayError extends AppError {
+  constructor(message: string) {
+    super("VCP_ERROR", message, 502);
+  }
+}
+
 export async function errorHandler(c: Context, next: Next) {
   try {
     await next();
   } catch (error: unknown) {
     if (error instanceof AppError) {
-      return c.json(
-        { error: { code: error.code, message: error.message } },
-        error.statusCode as 400,
-      );
+      const body: { code: string; message: string; details?: Record<string, unknown> } = {
+        code: error.code,
+        message: error.message,
+      };
+      if (error.details) body.details = error.details;
+      return c.json({ error: body }, error.statusCode as 400);
     }
 
     if (error instanceof Error) {
