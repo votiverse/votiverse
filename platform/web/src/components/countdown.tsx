@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export function Countdown({ target, className = "" }: { target: string; className?: string }) {
+  const { t } = useTranslation();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -12,7 +14,7 @@ export function Countdown({ target, className = "" }: { target: string; classNam
   const diff = deadline - now;
 
   if (diff <= 0) {
-    return <span className={`text-gray-400 ${className}`}>Ended</span>;
+    return <span className={`text-gray-400 ${className}`}>{t("countdown.ended")}</span>;
   }
 
   const minutes = Math.floor(diff / 60_000);
@@ -23,16 +25,16 @@ export function Countdown({ target, className = "" }: { target: string; classNam
   let colorClass: string;
 
   if (days > 3) {
-    text = `in ${days}d`;
+    text = t("countdown.days", { days });
     colorClass = "text-gray-500";
   } else if (days >= 1) {
-    text = `in ${days}d ${hours % 24}h`;
+    text = t("countdown.daysHours", { days, hours: hours % 24 });
     colorClass = "text-yellow-600";
   } else if (hours >= 1) {
-    text = `in ${hours}h ${minutes % 60}m`;
+    text = t("countdown.hoursMinutes", { hours, minutes: minutes % 60 });
     colorClass = "text-red-600";
   } else {
-    text = `in ${minutes}m`;
+    text = t("countdown.minutes", { minutes });
     colorClass = "text-red-600 font-semibold";
   }
 

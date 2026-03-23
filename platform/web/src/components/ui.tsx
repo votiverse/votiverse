@@ -1,6 +1,7 @@
 /** Shared UI primitives. */
 
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes } from "react";
+import { useTranslation } from "react-i18next";
 
 export function Card({ children, className = "", onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
   return (
@@ -96,12 +97,13 @@ export function Spinner() {
 }
 
 export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md bg-red-50 border border-red-200 p-4">
       <p className="text-sm text-red-700">{message}</p>
       {onRetry && (
         <button onClick={onRetry} className="mt-2 text-sm text-red-600 underline hover:text-red-800 min-h-[44px] sm:min-h-0">
-          Retry
+          {t("retry")}
         </button>
       )}
     </div>
@@ -145,16 +147,17 @@ export function Tooltip({ text, children }: { text: string; children: ReactNode 
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { color: "green" | "blue" | "yellow" | "gray" | "red"; label: string }> = {
-    active: { color: "green", label: "Active" },
-    voting: { color: "green", label: "Voting Open" },
-    curation: { color: "yellow", label: "Curation" },
-    deliberation: { color: "blue", label: "Discussion" },
-    upcoming: { color: "yellow", label: "Upcoming" },
-    closed: { color: "gray", label: "Ended" },
-    open: { color: "green", label: "Open" },
-    scheduled: { color: "yellow", label: "Scheduled" },
+  const { t } = useTranslation();
+  const map: Record<string, { color: "green" | "blue" | "yellow" | "gray" | "red"; key: string }> = {
+    active: { color: "green", key: "status.active" },
+    voting: { color: "green", key: "status.voting" },
+    curation: { color: "yellow", key: "status.curation" },
+    deliberation: { color: "blue", key: "status.deliberation" },
+    upcoming: { color: "yellow", key: "status.upcoming" },
+    closed: { color: "gray", key: "status.closed" },
+    open: { color: "green", key: "status.open" },
+    scheduled: { color: "yellow", key: "status.scheduled" },
   };
-  const entry = map[status] ?? { color: "gray" as const, label: status };
-  return <Badge color={entry.color}>{entry.label}</Badge>;
+  const entry = map[status] ?? { color: "gray" as const, key: status };
+  return <Badge color={entry.color}>{t(entry.key)}</Badge>;
 }

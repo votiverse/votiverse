@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useParams, useLocation, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useAssemblyTabs } from "../hooks/use-assembly-tabs.js";
@@ -25,6 +26,7 @@ export function Header() {
   const { participantName, storeUserId } = useIdentity();
   const { assembly } = useAssembly(assemblyId);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const inAssembly = Boolean(assemblyId);
 
@@ -47,14 +49,14 @@ export function Header() {
                 <button
                   onClick={handleBack}
                   className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
-                  aria-label="Go back"
+                  aria-label={t("nav.goBack")}
                 >
                   <ChevronLeft size={18} strokeWidth={2} />
                 </button>
                 <Link
                   to="/"
                   className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
-                  aria-label="Go home"
+                  aria-label={t("nav.goHome")}
                 >
                   <Home size={16} strokeWidth={2} />
                 </Link>
@@ -62,7 +64,7 @@ export function Header() {
                   to={`/assembly/${assemblyId}`}
                   className="text-sm font-medium text-gray-900 hover:text-brand truncate max-w-[55vw] sm:max-w-[280px] lg:max-w-[320px] ml-1"
                 >
-                  {assembly?.name ?? "Loading..."}
+                  {assembly?.name ?? t("loading")}
                 </Link>
               </div>
             ) : (
@@ -122,6 +124,7 @@ function IdentityIndicator({ name }: { name: string | null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { clearIdentity, email } = useIdentity();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -154,27 +157,27 @@ function IdentityIndicator({ name }: { name: string | null }) {
             onClick={() => setOpen(false)}
             className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
           >
-            Me
+            {t("nav.me")}
           </Link>
           <Link
             to="/profile/delegators"
             onClick={() => setOpen(false)}
             className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
           >
-            Delegators
+            {t("nav.delegators")}
           </Link>
           <Link
             to="/settings/notifications"
             onClick={() => setOpen(false)}
             className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
           >
-            Notifications
+            {t("nav.notifications")}
           </Link>
           <button
             onClick={() => { clearIdentity(); setOpen(false); }}
             className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
           >
-            Log out
+            {t("nav.logout")}
           </button>
         </div>
       )}
@@ -188,12 +191,13 @@ export function BottomTabs() {
   const location = useLocation();
   const { storeUserId } = useIdentity();
   const { assembly } = useAssembly(assemblyId);
+  const { t } = useTranslation();
   const inAssembly = Boolean(assemblyId);
 
   const globalTabs = [
-    { to: "/", label: "Home", icon: TabHome, exact: true },
-    { to: "/assemblies", label: "My Groups", icon: TabGrid, exact: true },
-    { to: "/profile", label: "Me", icon: TabUser, exact: true },
+    { to: "/", key: "Home", label: t("nav.home"), icon: TabHome, exact: true },
+    { to: "/assemblies", key: "MyGroups", label: t("nav.myGroups"), icon: TabGrid, exact: true },
+    { to: "/profile", key: "Me", label: t("nav.me"), icon: TabUser, exact: true },
   ];
 
   const assemblyTabDefs = useAssemblyTabs(assemblyId, assembly?.config);
@@ -202,7 +206,7 @@ export function BottomTabs() {
   if (!storeUserId) return null;
   const assemblyTabs = assemblyTabDefs.map((tab) => ({
     ...tab,
-    icon: TAB_ICONS[tab.label] ?? TabHome,
+    icon: TAB_ICONS[tab.key] ?? TabHome,
     exact: false,
   }));
 
@@ -235,16 +239,16 @@ export function BottomTabs() {
 
 // ---------- Desktop nav links with icons ----------
 
-const GLOBAL_NAV: Array<{ to: string; label: string; Icon: typeof Home }> = [
-  { to: "/", label: "Home", Icon: Home },
-  { to: "/assemblies", label: "My Groups", Icon: LayoutGrid },
-  { to: "/profile", label: "Me", Icon: User },
-];
-
 function GlobalNavLinks() {
+  const { t } = useTranslation();
+  const items: Array<{ to: string; label: string; Icon: typeof Home }> = [
+    { to: "/", label: t("nav.home"), Icon: Home },
+    { to: "/assemblies", label: t("nav.myGroups"), Icon: LayoutGrid },
+    { to: "/profile", label: t("nav.me"), Icon: User },
+  ];
   return (
     <>
-      {GLOBAL_NAV.map(({ to, label, Icon }) => (
+      {items.map(({ to, label, Icon }) => (
         <Link key={to} to={to} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
           <Icon size={15} strokeWidth={1.5} />
           {label}
@@ -261,7 +265,7 @@ function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
   return (
     <>
       {tabs.map((tab) => {
-        const Icon = NAV_ICONS[tab.label];
+        const Icon = NAV_ICONS[tab.key];
         return (
           <Link
             key={tab.to}
