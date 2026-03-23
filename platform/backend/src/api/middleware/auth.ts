@@ -12,11 +12,18 @@ import { getAccessTokenFromCookie } from "../../lib/cookies.js";
 
 const PUBLIC_PATHS = new Set(["/health", "/metrics"]);
 const PUBLIC_PREFIXES = ["/auth/"];
+// Dev/internal endpoints bypass auth in non-production (they are blocked
+// entirely in production by a separate middleware guard in server.ts).
+const DEV_PREFIXES = ["/dev/", "/internal/"];
+const isProduction = process.env["NODE_ENV"] === "production";
 
 export function createAuthMiddleware(jwtSecret: string) {
   return async (c: Context, next: Next) => {
     // Skip auth for public paths
     if (PUBLIC_PATHS.has(c.req.path) || PUBLIC_PREFIXES.some((p) => c.req.path.startsWith(p))) {
+      return next();
+    }
+    if (!isProduction && DEV_PREFIXES.some((p) => c.req.path.startsWith(p))) {
       return next();
     }
 
