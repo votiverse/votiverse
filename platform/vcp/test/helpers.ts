@@ -3,8 +3,11 @@
  */
 
 import { Hono } from "hono";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { TestClock } from "@votiverse/core";
 import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
+import { runMigrations } from "../src/adapters/database/migrator.js";
 import { MemoryQueueAdapter } from "../src/adapters/queue/memory.js";
 import { LocalSchedulerAdapter } from "../src/adapters/scheduler/local.js";
 import { ConsoleWebhookAdapter } from "../src/adapters/webhook/console.js";
@@ -12,6 +15,10 @@ import { SimpleAuthAdapter } from "../src/adapters/auth/simple.js";
 import type { VCPAdapters } from "../src/adapters/index.js";
 import { AssemblyManager } from "../src/engine/assembly-manager.js";
 import { createApp } from "../src/api/server.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const MIGRATIONS_DIR = join(__dirname, "..", "migrations");
 
 export const TEST_API_KEY = "test_key_12345";
 
@@ -35,6 +42,7 @@ export async function createTestVCP(): Promise<TestVCP> {
   // Use in-memory SQLite for tests
   const db = new SQLiteAdapter(":memory:");
   await db.initialize();
+  await runMigrations(db, MIGRATIONS_DIR);
 
   const queue = new MemoryQueueAdapter();
   const scheduler = new LocalSchedulerAdapter();

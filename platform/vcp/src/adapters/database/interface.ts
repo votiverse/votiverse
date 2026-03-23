@@ -10,7 +10,10 @@
  */
 
 export interface DatabaseAdapter {
-  /** Initialize the database schema (create tables if needed). */
+  /** The SQL dialect of the underlying database. */
+  readonly dialect: "sqlite" | "postgres";
+
+  /** Initialize the database connection (pragmas, pool setup). Schema is managed by migrations. */
   initialize(): Promise<void>;
 
   /** Execute a write statement. Returns number of rows affected. */

@@ -2,9 +2,16 @@
  * Test helpers — creates an in-process backend for integration testing.
  */
 
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { Hono } from "hono";
 import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
+import { runMigrations } from "../src/adapters/database/migrator.js";
 import { UserService } from "../src/services/user-service.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const MIGRATIONS_DIR = join(__dirname, "..", "migrations");
 import { SessionService } from "../src/services/session-service.js";
 import { MembershipService } from "../src/services/membership-service.js";
 import { AssemblyCacheService } from "../src/services/assembly-cache.js";
@@ -73,6 +80,7 @@ export interface TestBackend {
 export async function createTestBackend(): Promise<TestBackend> {
   const db = new SQLiteAdapter(":memory:");
   await db.initialize();
+  await runMigrations(db, MIGRATIONS_DIR);
 
   const userService = new UserService(db);
   const sessionService = new SessionService(db, TEST_JWT_SECRET, "1h", "30d");

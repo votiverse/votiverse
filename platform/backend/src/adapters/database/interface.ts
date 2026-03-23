@@ -6,6 +6,9 @@
  */
 
 export interface DatabaseAdapter {
+  /** The SQL dialect of the underlying database. */
+  readonly dialect: "sqlite" | "postgres";
+
   initialize(): Promise<void>;
   run(sql: string, params?: unknown[]): Promise<RunResult>;
   query<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;

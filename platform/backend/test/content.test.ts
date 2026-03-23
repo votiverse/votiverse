@@ -3,9 +3,16 @@
  * These test the backend's local storage layer (no VCP required).
  */
 
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
+import { runMigrations } from "../src/adapters/database/migrator.js";
 import { ContentService, computeContentHash } from "../src/services/content-service.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const MIGRATIONS_DIR = join(__dirname, "..", "migrations");
 
 describe("ContentService", () => {
   let db: SQLiteAdapter;
@@ -14,6 +21,7 @@ describe("ContentService", () => {
   beforeEach(async () => {
     db = new SQLiteAdapter(":memory:");
     await db.initialize();
+    await runMigrations(db, MIGRATIONS_DIR);
     service = new ContentService(db);
   });
 

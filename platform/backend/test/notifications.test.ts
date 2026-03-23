@@ -2,12 +2,19 @@
  * Notification system tests — service, preferences, scheduler, proxy interception.
  */
 
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
+import { runMigrations } from "../src/adapters/database/migrator.js";
 import { NotificationService } from "../src/services/notification-service.js";
 import { VCPClient } from "../src/services/vcp-client.js";
 import type { NotificationAdapter, NotificationParams } from "../src/services/notification-adapter.js";
 import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const MIGRATIONS_DIR = join(__dirname, "..", "migrations");
 
 // ─── Spy adapter for capturing sent notifications ─────────────────
 
@@ -34,6 +41,7 @@ describe("NotificationService", () => {
   beforeEach(async () => {
     db = new SQLiteAdapter(":memory:");
     await db.initialize();
+    await runMigrations(db, MIGRATIONS_DIR);
     spy = new SpyNotificationAdapter();
     vcpClient = new VCPClient("http://localhost:3000", "test_key");
     service = new NotificationService(db, spy, vcpClient, "http://localhost:5173");
