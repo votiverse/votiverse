@@ -46,6 +46,10 @@ const TEST_CONFIG: BackendConfig = {
   smtpUser: "",
   smtpPass: "",
   smtpFrom: "",
+  assetStorage: "database" as const,
+  s3Bucket: "",
+  s3Region: "us-east-1",
+  s3CdnDomain: "",
 };
 
 export interface TestBackend {

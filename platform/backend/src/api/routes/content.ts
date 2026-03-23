@@ -14,6 +14,8 @@ import { computeContentHash } from "../../services/content-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
 import { NotFoundError, ValidationError, AppError } from "../middleware/error-handler.js";
+import type { AssetStore } from "../../services/asset-store.js";
+import { DatabaseAssetStore } from "../../services/asset-store.js";
 
 /** Convert a failed VCP response into an AppError that preserves the VCP status code. */
 async function throwVcpError(res: Response, fallbackMessage: string): Promise<never> {
@@ -31,6 +33,7 @@ export function contentRoutes(
   membershipService: MembershipService,
   contentService: ContentService,
   config: BackendConfig,
+  assetStore?: AssetStore,
 ) {
   const app = new Hono();
 
@@ -469,6 +472,49 @@ export function contentRoutes(
   // Assets
   // -----------------------------------------------------------------------
 
+  /** POST /assemblies/:assemblyId/assets/upload-url — request a presigned upload URL. */
+  app.post("/assemblies/:assemblyId/assets/upload-url", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const body = await c.req.json() as { filename: string; mimeType: string };
+
+    if (!body.filename || !body.mimeType) {
+      throw new ValidationError("filename and mimeType are required");
+    }
+
+    if (!assetStore) throw new ValidationError("Asset storage not configured");
+    const upload = await assetStore.requestUpload({
+      assemblyId,
+      filename: body.filename,
+      mimeType: body.mimeType,
+      uploadedBy: user.id,
+    });
+
+    return c.json({
+      assetId: upload.assetId,
+      uploadUrl: upload.uploadUrl,
+    }, 201);
+  });
+
+  /** POST /assemblies/:assemblyId/assets/:assetId/confirm — confirm upload completed. */
+  app.post("/assemblies/:assemblyId/assets/:assetId/confirm", async (c) => {
+    const assetId = c.req.param("assetId");
+    const body = await c.req.json() as { sizeBytes: number; hash: string };
+
+    if (!assetStore) throw new ValidationError("Asset storage not configured");
+    const metadata = await assetStore.confirmUpload(assetId, body.sizeBytes ?? 0, body.hash ?? "");
+
+    return c.json({
+      id: metadata.id,
+      filename: metadata.filename,
+      mimeType: metadata.mimeType,
+      sizeBytes: metadata.sizeBytes,
+      hash: metadata.hash,
+      url: metadata.url,
+    });
+  });
+
+  /** POST /assemblies/:assemblyId/assets — direct upload (dev/compat, multipart form). */
   app.post("/assemblies/:assemblyId/assets", async (c) => {
     const user = getUser(c);
     const assemblyId = c.req.param("assemblyId");
@@ -480,7 +526,8 @@ export function contentRoutes(
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const asset = await contentService.storeAsset({
+    if (!assetStore) throw new ValidationError("Asset storage not configured");
+    const metadata = await assetStore.storeDirect({
       assemblyId,
       filename: file.name || "unnamed",
       mimeType: file.type || "application/octet-stream",
@@ -489,28 +536,38 @@ export function contentRoutes(
     });
 
     return c.json({
-      id: asset.id,
-      filename: file.name,
-      mimeType: file.type,
-      sizeBytes: asset.sizeBytes,
-      hash: asset.hash,
+      id: metadata.id,
+      filename: metadata.filename,
+      mimeType: metadata.mimeType,
+      sizeBytes: metadata.sizeBytes,
+      hash: metadata.hash,
+      url: metadata.url,
     }, 201);
   });
 
+  /** GET /assemblies/:assemblyId/assets/:assetId — serve asset (DB mode) or redirect (S3 mode). */
   app.get("/assemblies/:assemblyId/assets/:assetId", async (c) => {
     const assetId = c.req.param("assetId");
-    const asset = await contentService.getAsset(assetId);
-    if (!asset) {
-      throw new NotFoundError("Asset not found");
+
+    if (!assetStore) throw new NotFoundError("Asset not found");
+
+    // If using DatabaseAssetStore, serve binary directly
+    if (assetStore instanceof DatabaseAssetStore) {
+      const asset = await (assetStore as DatabaseAssetStore).getData(assetId);
+      if (!asset) throw new NotFoundError("Asset not found");
+      return new Response(asset.data, {
+        headers: {
+          "Content-Type": asset.mimeType,
+          "Content-Disposition": `inline; filename="${asset.filename}"`,
+          "Content-Length": String(asset.sizeBytes),
+        },
+      });
     }
 
-    return new Response(asset.data, {
-      headers: {
-        "Content-Type": asset.mimeType,
-        "Content-Disposition": `inline; filename="${asset.filename}"`,
-        "Content-Length": String(asset.sizeBytes),
-      },
-    });
+    // S3 mode: redirect to CDN URL
+    const url = await assetStore.getUrl(assetId);
+    if (!url) throw new NotFoundError("Asset not found");
+    return c.redirect(url);
   });
 
   // -----------------------------------------------------------------------

@@ -31,6 +31,10 @@ export interface BackendConfig {
   apnsBundleId: string;
   apnsSandbox: boolean;
   fcmServiceAccountPath: string | null;
+  assetStorage: "database" | "s3";
+  s3Bucket: string;
+  s3Region: string;
+  s3CdnDomain: string;
 }
 
 const DEFAULT_JWT_SECRET = "backend-dev-secret-do-not-use-in-production";
@@ -67,6 +71,10 @@ export function loadConfig(): BackendConfig {
     apnsBundleId: process.env["APNS_BUNDLE_ID"] ?? "app.votiverse.mobile",
     apnsSandbox: process.env["APNS_SANDBOX"] !== "false",
     fcmServiceAccountPath: process.env["FCM_SERVICE_ACCOUNT_PATH"] ?? null,
+    assetStorage: (process.env["BACKEND_ASSET_STORAGE"] as "database" | "s3") ?? "database",
+    s3Bucket: process.env["BACKEND_S3_BUCKET"] ?? "",
+    s3Region: process.env["BACKEND_S3_REGION"] ?? "us-east-1",
+    s3CdnDomain: process.env["BACKEND_S3_CDN_DOMAIN"] ?? "",
   };
 }
 
@@ -96,6 +104,14 @@ export function validateProductionConfig(config: BackendConfig): void {
 
   if (config.vcpBaseUrl === "http://localhost:3000") {
     errors.push("BACKEND_VCP_URL should point to the production VCP endpoint");
+  }
+
+  if (config.assetStorage === "database") {
+    errors.push("BACKEND_ASSET_STORAGE should be 's3' in production — database storage does not scale");
+  }
+
+  if (config.assetStorage === "s3" && !config.s3Bucket) {
+    errors.push("BACKEND_S3_BUCKET is required when asset storage is 's3'");
   }
 
   if (config.notificationAdapter === "smtp") {

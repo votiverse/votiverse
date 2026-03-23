@@ -36,6 +36,8 @@ import type { ContentService } from "../services/content-service.js";
 import type { VCPClient } from "../services/vcp-client.js";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { PushDeliveryService } from "../services/push-delivery.js";
+import type { AssetStore } from "../services/asset-store.js";
+import { DatabaseAssetStore } from "../services/asset-store.js";
 
 export interface AppDependencies {
   database: DatabaseAdapter;
@@ -50,6 +52,7 @@ export interface AppDependencies {
   pushService?: PushDeliveryService;
   contentService: ContentService;
   vcpClient: VCPClient;
+  assetStore?: AssetStore;
   config: BackendConfig;
 }
 
@@ -128,7 +131,8 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub, database));
   app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier, notificationHub));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
-  app.route("/", contentRoutes(membershipService, contentService, config));
+  const assetStore = deps.assetStore ?? new DatabaseAssetStore(database, frontendUrl);
+  app.route("/", contentRoutes(membershipService, contentService, config, assetStore));
   app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, vcpClient, config));
 
   return app;
