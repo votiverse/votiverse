@@ -368,6 +368,18 @@ export class PostgresAdapter implements DatabaseAdapter {
     }
   }
 
+  async withConnection<T>(fn: () => Promise<T>): Promise<T> {
+    // If already inside a pinned scope, just run — avoid double checkout
+    if (this.als.getStore()) return fn();
+
+    const client = await this.pool.connect();
+    try {
+      return await this.als.run(client, fn);
+    } finally {
+      client.release();
+    }
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }

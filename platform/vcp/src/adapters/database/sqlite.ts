@@ -328,6 +328,10 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
+  async withConnection<T>(fn: () => Promise<T>): Promise<T> {
+    return fn(); // SQLite uses a single connection — no pinning needed
+  }
+
   async close(): Promise<void> {
     this.db.close();
   }

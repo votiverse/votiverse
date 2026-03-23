@@ -94,10 +94,12 @@ Both backend and VCP include a migration framework that runs on startup.
 
 ### How it works
 
-1. On startup, the migrator checks the `migrations/` directory for `.sql` files
-2. It compares them against the `schema_migrations` table to find unapplied migrations
-3. Each new migration is executed in a transaction
-4. Applied migrations are recorded in `schema_migrations`
+1. On startup, the migrator acquires a PostgreSQL advisory lock (if running on PostgreSQL) to prevent concurrent migration runs across auto-scaled instances
+2. It checks the `migrations/` directory for `.sql` files
+3. It compares them against the `schema_migrations` table to find unapplied migrations
+4. Each new migration is executed in a transaction
+5. Applied migrations are recorded in `schema_migrations`
+6. The advisory lock is released (other instances that were blocked will find everything already applied and skip)
 
 ### Creating a migration
 
@@ -125,6 +127,17 @@ NNN_description.sql
 - **Each migration runs in a transaction.** If any statement fails, the entire migration rolls back.
 - **Test migrations locally first.** Run against a dev database before deploying.
 - **The initial schema uses `CREATE TABLE IF NOT EXISTS`** in the adapter's `initialize()` method. Migrations are for subsequent changes after the initial deployment.
+
+### Multi-instance safety
+
+When deploying with auto-scaling (multiple instances starting simultaneously), the migrator uses PostgreSQL advisory locks to coordinate:
+
+- The `advisoryLockId` option is passed to `runMigrations()` when running on PostgreSQL
+- `withConnection()` pins the lock/unlock to a single pooled connection (advisory locks are session-scoped)
+- The backend and VCP use different lock IDs so they don't block each other
+- If the process crashes mid-migration, the connection drops and the lock is automatically released
+
+This is configured in each platform's `main.ts` — deployers don't need to run separate migration scripts.
 
 ### Checking migration status
 

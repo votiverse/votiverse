@@ -330,6 +330,10 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
+  async withConnection<T>(fn: () => Promise<T>): Promise<T> {
+    return fn();
+  }
+
   async close(): Promise<void> {
     this.db.close();
   }

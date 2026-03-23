@@ -25,6 +25,19 @@ export interface DatabaseAdapter {
   /** Begin a transaction, execute fn, commit on success, rollback on failure. */
   transaction<T>(fn: () => Promise<T>): Promise<T>;
 
+  /**
+   * Pin all operations within `fn` to a single underlying connection.
+   *
+   * On PostgreSQL (pooled), this checks out a client for the duration of `fn`
+   * so that session-scoped state (advisory locks, temp tables, SET commands)
+   * is preserved across multiple queries. On SQLite (single-connection), this
+   * is a pass-through.
+   *
+   * Note: `transaction()` calls inside `fn` may still use separate connections
+   * from the pool — `withConnection` only pins non-transactional operations.
+   */
+  withConnection<T>(fn: () => Promise<T>): Promise<T>;
+
   /** Close the database connection. */
   close(): Promise<void>;
 }

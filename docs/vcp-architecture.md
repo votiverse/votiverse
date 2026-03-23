@@ -164,10 +164,9 @@ vcp/
 │   │
 │   └── main.ts                 # Entry point — reads config, wires adapters, starts services
 │
-├── migrations/                 # Database migrations (PostgreSQL)
+├── migrations/                 # Numbered .sql migration files (run on startup)
 ├── scripts/
 │   ├── dev.ts                  # `vcp dev` — local development mode
-│   ├── migrate.ts              # Run database migrations
 │   └── seed.ts                 # Seed test data
 ├── test/
 ├── Dockerfile
@@ -869,7 +868,7 @@ CMD ["node", "dist/main.js", "--role", "all"]       # Everything (Stage 1)
 
 **CI/CD.** GitHub Actions builds the Docker image, pushes to ECR, and triggers deployment. In Stage 1, this is a simple restart. In Stage 3, it's a rolling deployment via ASG.
 
-**Database migrations.** Run as a separate step before deployment: `vcp migrate` executes pending migrations against RDS. Migrations are forward-only, tested in staging first.
+**Database migrations.** Run automatically on app startup. The migrator applies pending `.sql` files from the `migrations/` directory, tracking state in a `schema_migrations` table. A PostgreSQL advisory lock prevents concurrent migration runs across auto-scaled instances. Migrations are forward-only, tested in staging first. See `docs/design/deployment-operations.md` for details.
 
 ---
 

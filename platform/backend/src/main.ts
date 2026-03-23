@@ -45,9 +45,12 @@ async function main() {
     logger.info(`Using SQLite database: ${config.dbPath}`);
   }
 
-  // Run pending migrations (if any)
+  // Run pending migrations (if any).
+  // Advisory lock prevents concurrent migration runs across auto-scaled instances.
   const migrationsDir = new URL("../../migrations", import.meta.url).pathname;
-  const migrationResult = await runMigrations(database, migrationsDir);
+  const migrationResult = await runMigrations(database, migrationsDir, {
+    advisoryLockId: config.databaseUrl ? 739184_62 : undefined,
+  });
   if (migrationResult.applied.length > 0) {
     logger.info(`Applied ${migrationResult.applied.length} migration(s): ${migrationResult.applied.join(", ")}`);
   }
