@@ -92,7 +92,7 @@ cd platform/backend && pnpm reset
 
 ### Test credentials
 
-All users: password is `password`.
+All users: password is `password1234`.
 
 **Cross-assembly accounts** (best for dashboard testing):
 
@@ -814,7 +814,7 @@ The engine enforces timeline windows. If you're getting unexpected rejections:
 
 - Verify the backend is running (`curl http://localhost:4000/health`)
 - Verify the backend was seeded AFTER the VCP (`pnpm reset` in backend directory while VCP is running)
-- Verify you're using the correct password (`password` for all seeded users)
+- Verify you're using the correct password (`password1234` for all seeded users)
 - Check email format: `{first-last}@example.com` with hyphens, lowercase
 
 ### "No groups found" on dashboard but groups exist in My Groups

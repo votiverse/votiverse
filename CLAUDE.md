@@ -113,6 +113,54 @@ Always use the latest stable versions of all dependencies. Check npm before inst
 
 ---
 
+## Database Migrations
+
+Schema is managed by **versioned migration files**, not inline code. The `initialize()` methods in the database adapters are empty — all table creation and schema changes live in numbered `.sql` files under `platform/vcp/migrations/` and `platform/backend/migrations/`.
+
+### How it works
+
+1. On startup, `main.ts` calls `database.initialize()` (pragmas only), then `runMigrations(database, migrationsDir)`.
+2. The migrator creates `schema_migrations` if needed, reads applied versions, then applies any pending `.sql` files in order.
+3. Each migration runs in a transaction. The version (e.g., `001_initial`) is recorded in `schema_migrations`.
+4. **Multi-instance safety:** PostgreSQL deployments use advisory locks so only one instance runs migrations.
+
+### Dialect-specific files
+
+SQLite and PostgreSQL use different types (TEXT vs UUID, INTEGER vs BOOLEAN, different trigger syntax). Each migration has dialect-specific files:
+
+```
+migrations/
+├── 001_initial.sqlite.sql     ← used when dialect is "sqlite"
+├── 001_initial.postgres.sql   ← used when dialect is "postgres"
+├── 002_add_feature.sql        ← common SQL (used for both, if no dialect-specific file)
+└── 003_add_index.postgres.sql ← only applies to PostgreSQL
+```
+
+The migrator picks `{version}.{dialect}.sql` over `{version}.sql` when both exist. The `DatabaseAdapter` interface exposes `dialect: "sqlite" | "postgres"` for this purpose.
+
+### Adding a new migration
+
+1. Create `NNN_description.sqlite.sql` and `NNN_description.postgres.sql` in the service's `migrations/` directory.
+2. Use `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE` as needed.
+3. Restart the server — migrations apply automatically on startup.
+4. If the migration is compatible with both dialects, a single `NNN_description.sql` file suffices.
+
+### Statement splitting
+
+The migrator handles:
+- `$$...$$` blocks (PostgreSQL function bodies containing semicolons)
+- `BEGIN...END` blocks (SQLite trigger bodies containing semicolons)
+- `--` single-line comments (stripped)
+
+### Rules
+
+- **Never modify an applied migration.** Write a new one instead.
+- **Never delete a migration file.** Old deployments may still need it.
+- Migration versions are the filename without the dialect/extension suffix. `001_initial.sqlite.sql` records version `001_initial`.
+- The `initialize()` method must stay empty — do not add `CREATE TABLE` statements back.
+
+---
+
 ## Package Dependency Rules
 
 ```
@@ -397,7 +445,9 @@ kill %1                           # stop background VCP
 
 **Important:** The backend reset fetches participant data from the VCP via HTTP. If the VCP is not running, the backend reset fails with `ECONNREFUSED`. The VCP reset is self-contained (starts/stops its own server), but the backend reset requires an already-running VCP.
 
-The VCP reset runs `scripts/reset.ts`: deletes `vcp-dev.db*`, starts the VCP server, executes `scripts/seed.ts` (which creates 7 assemblies with participants, topics, events, delegations, surveys, proposals, and community notes), then stops the server. The VCP seed also writes `platform/vcp/seed-manifest.json` — a JSON file mapping all semantic keys to generated UUIDs (see **Seed Manifest** below). The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
+The VCP reset runs `scripts/reset.ts`: drops and recreates the database (PostgreSQL) or deletes SQLite files, starts the VCP server (which runs migrations automatically on startup to create the schema), executes `scripts/seed.ts` (which creates 7 assemblies with participants, topics, events, delegations, surveys, proposals, and community notes), then stops the server. The VCP seed also writes `platform/vcp/seed-manifest.json` — a JSON file mapping all semantic keys to generated UUIDs (see **Seed Manifest** below). The backend reset creates user accounts and assembly memberships by reading participant data from the VCP.
+
+**Environment configuration:** Both VCP and backend load `.env` files automatically via `--env-file-if-exists=.env` in their dev/seed/reset scripts. The `.env` files are gitignored. For PostgreSQL, set `VCP_DATABASE_URL` and `BACKEND_DATABASE_URL`. See the `.env` files in each platform directory for available variables.
 
 ### Running Dev Servers
 
