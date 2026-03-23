@@ -596,12 +596,19 @@ async function callVcp(
     headers["X-Participant-Id"] = participantId;
   }
 
-  const init: RequestInit = { method, headers };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+  const init: RequestInit = { method, headers, signal: controller.signal };
   if (body !== undefined) {
     init.body = JSON.stringify(body);
   }
 
-  return fetch(`${config.vcpBaseUrl}${path}`, init);
+  try {
+    return await fetch(`${config.vcpBaseUrl}${path}`, init);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function mapContentRow(row: Record<string, unknown>) {

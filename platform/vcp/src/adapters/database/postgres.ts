@@ -22,8 +22,13 @@ export class PostgresAdapter implements DatabaseAdapter {
   private readonly pool: pg.Pool;
   private readonly als = new AsyncLocalStorage<pg.PoolClient>();
 
-  constructor(connectionString: string) {
-    this.pool = new pg.Pool({ connectionString });
+  constructor(connectionString: string, poolConfig?: { max?: number; idleTimeoutMillis?: number; connectionTimeoutMillis?: number }) {
+    this.pool = new pg.Pool({
+      connectionString,
+      max: poolConfig?.max ?? 20,
+      idleTimeoutMillis: poolConfig?.idleTimeoutMillis ?? 30_000,
+      connectionTimeoutMillis: poolConfig?.connectionTimeoutMillis ?? 5_000,
+    });
   }
 
   async initialize(): Promise<void> {

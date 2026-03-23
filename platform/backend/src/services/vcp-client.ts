@@ -39,13 +39,21 @@ export class VCPClient {
       headers["X-Participant-Id"] = options.participantId;
     }
 
-    const init: RequestInit = { method, headers };
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+    const init: RequestInit = { method, headers, signal: controller.signal };
     if (options?.body !== undefined) {
       init.body = JSON.stringify(options.body);
     }
 
     const url = `${this.baseUrl}${path}`;
-    const res = await fetch(url, init);
+    let res: Response;
+    try {
+      res = await fetch(url, init);
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!res.ok) {
       let errorBody: unknown;

@@ -302,7 +302,11 @@ async function proxyToVcp(
     headers["X-Participant-Id"] = participantId;
   }
 
-  const init: RequestInit = { method, headers };
+  const controller = new AbortController();
+  const timeoutMs = 30_000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const init: RequestInit = { method, headers, signal: controller.signal };
 
   // Forward request body for non-GET methods
   if (method !== "GET" && method !== "HEAD") {
@@ -317,7 +321,26 @@ async function proxyToVcp(
   const vcpUrl = `${config.vcpBaseUrl}${path}`;
   logger.debug(`Proxying ${method} ${path}`, { vcpUrl, participantId });
 
-  const vcpRes = await fetch(vcpUrl, init);
+  let vcpRes: Response;
+  try {
+    vcpRes = await fetch(vcpUrl, init);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      logger.error(`VCP request timed out after ${timeoutMs}ms`, { method, path });
+      return new Response(
+        JSON.stringify({ error: { code: "VCP_TIMEOUT", message: "VCP request timed out" } }),
+        { status: 504, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    logger.error("VCP request failed", { method, path, error: String(err) });
+    return new Response(
+      JSON.stringify({ error: { code: "VCP_ERROR", message: "Failed to reach VCP" } }),
+      { status: 502, headers: { "Content-Type": "application/json" } },
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   // Buffer response body so it can be read by interceptors and returned to client
   const responseBody = await vcpRes.text();
