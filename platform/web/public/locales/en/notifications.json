@@ -2,6 +2,13 @@
   "title": "Notifications",
   "markAllRead": "Mark all read",
   "empty": "No notifications yet",
+  "emptyDescription": "Notifications will appear here when there's activity in your groups.",
+  "emptyUnread": "No unread notifications",
+  "emptyUnreadDescription": "Try showing all notifications.",
   "viewAll": "View all notifications",
+  "unreadOnly": "Unread only",
+  "unreadCount": "{{count}} unread",
+  "urgency.action": "Action needed",
+  "urgency.timely": "New",
   "ariaLabelUnread": "Notifications ({{count}} unread)"
 }

@@ -7,13 +7,16 @@
 
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import type { Notification } from "../api/types.js";
 import { Card, CardBody, Button, Badge, Spinner, EmptyState } from "../components/ui.js";
+import { formatRelativeTime } from "../lib/format.js";
 import { Vote, BarChart3, UserPlus, CheckCircle, XCircle, Clock } from "lucide-react";
 
 export function Notifications() {
+  const { t } = useTranslation("notifications");
   const [unreadOnly, setUnreadOnly] = useState(false);
   const { data, loading, refetch } = useApi(
     () => api.listNotifications({ limit: 50, unreadOnly }),
@@ -42,8 +45,8 @@ export function Notifications() {
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Notifications</h1>
-          {unreadCount > 0 && <Badge color="blue">{unreadCount} unread</Badge>}
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("title")}</h1>
+          {unreadCount > 0 && <Badge color="blue">{t("unreadCount", { count: unreadCount })}</Badge>}
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
@@ -53,11 +56,11 @@ export function Notifications() {
               onChange={(e) => setUnreadOnly(e.target.checked)}
               className="rounded border-gray-300"
             />
-            Unread only
+            {t("unreadOnly")}
           </label>
           {unreadCount > 0 && (
             <Button variant="secondary" size="sm" onClick={handleMarkAllRead}>
-              Mark all read
+              {t("markAllRead")}
             </Button>
           )}
         </div>
@@ -67,8 +70,8 @@ export function Notifications() {
         <Spinner />
       ) : notifications.length === 0 ? (
         <EmptyState
-          title={unreadOnly ? "No unread notifications" : "No notifications yet"}
-          description={unreadOnly ? "Try showing all notifications." : "Notifications will appear here when there's activity in your groups."}
+          title={unreadOnly ? t("emptyUnread") : t("empty")}
+          description={unreadOnly ? t("emptyUnreadDescription") : t("emptyDescription")}
         />
       ) : (
         <div className="space-y-1">
@@ -86,11 +89,12 @@ export function Notifications() {
 }
 
 function NotificationCard({ notification, onClick }: { notification: Notification; onClick: () => void }) {
+  const { t } = useTranslation("notifications");
   const icon = TYPE_ICONS[notification.type] ?? <Clock size={16} />;
   const urgencyBadge = notification.urgency === "action"
-    ? <Badge color="red">Action needed</Badge>
+    ? <Badge color="red">{t("urgency.action")}</Badge>
     : notification.urgency === "timely"
-      ? <Badge color="blue">New</Badge>
+      ? <Badge color="blue">{t("urgency.timely")}</Badge>
       : null;
 
   const cardBg = !notification.read && notification.urgency === "action"
@@ -123,7 +127,7 @@ function NotificationCard({ notification, onClick }: { notification: Notificatio
                 <p className="text-xs text-gray-400 mt-0.5">{notification.body}</p>
               )}
               <p className="text-xs text-gray-300 mt-1">
-                {formatTimeAgo(notification.createdAt)}
+                {formatRelativeTime(notification.createdAt)}
               </p>
             </div>
             {!notification.read && (
@@ -150,14 +154,3 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   join_request_rejected: <XCircle size={16} />,
 };
 
-function formatTimeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}

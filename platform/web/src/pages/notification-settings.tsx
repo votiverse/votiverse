@@ -3,12 +3,14 @@
  */
 
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import type { NotificationPreferences } from "../api/types.js";
 import { Card, CardHeader, CardBody, Label, Select, Spinner, ErrorBox } from "../components/ui.js";
 
 export function NotificationSettings() {
+  const { t } = useTranslation("settings");
   const { data, loading, error, refetch } = useApi(
     () => api.getNotificationPreferences(),
     [],
@@ -26,12 +28,12 @@ export function NotificationSettings() {
         await api.setNotificationPreference(key, value);
         refetch();
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : "Failed to save");
+        setSaveError(err instanceof Error ? err.message : t("saveFailed"));
       } finally {
         setSaving(null);
       }
     },
-    [refetch],
+    [refetch, t],
   );
 
   if (loading) return <Spinner />;
@@ -41,7 +43,7 @@ export function NotificationSettings() {
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">
-        Notification Settings
+        {t("notificationSettings")}
       </h1>
 
       {saveError && (
@@ -52,43 +54,43 @@ export function NotificationSettings() {
 
       <Card className="mb-6">
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">Voting Notifications</h2>
-          <p className="text-sm text-gray-500 mt-1">Control when you hear about voting events</p>
+          <h2 className="text-base font-medium text-gray-900">{t("voting.title")}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t("voting.description")}</p>
         </CardHeader>
         <CardBody className="space-y-5">
           <PreferenceSelect
-            label="New voting events"
-            description="When a new vote is created in your assembly"
+            label={t("voting.newEvents")}
+            description={t("voting.newEventsDescription")}
             value={prefs.notify_new_votes}
             saving={saving === "notify_new_votes"}
             options={[
-              { value: "always", label: "Always notify me" },
-              { value: "undelegated_only", label: "Only if I haven't delegated" },
-              { value: "never", label: "Never" },
+              { value: "always", label: t("voting.newEventsAlways") },
+              { value: "undelegated_only", label: t("voting.newEventsUndelegated") },
+              { value: "never", label: t("voting.newEventsNever") },
             ]}
             onChange={(v) => handleChange("notify_new_votes", v)}
           />
 
           <PreferenceSelect
-            label="Deadline reminders"
-            description="24-hour warning before voting or surveys close"
+            label={t("voting.deadlines")}
+            description={t("voting.deadlinesDescription")}
             value={prefs.notify_deadlines}
             saving={saving === "notify_deadlines"}
             options={[
-              { value: "true", label: "Enabled" },
-              { value: "false", label: "Disabled" },
+              { value: "true", label: t("enabled") },
+              { value: "false", label: t("disabled") },
             ]}
             onChange={(v) => handleChange("notify_deadlines", v)}
           />
 
           <PreferenceSelect
-            label="Results available"
-            description="When voting results become available"
+            label={t("voting.results")}
+            description={t("voting.resultsDescription")}
             value={prefs.notify_results}
             saving={saving === "notify_results"}
             options={[
-              { value: "true", label: "Enabled" },
-              { value: "false", label: "Disabled" },
+              { value: "true", label: t("enabled") },
+              { value: "false", label: t("disabled") },
             ]}
             onChange={(v) => handleChange("notify_results", v)}
           />
@@ -97,20 +99,18 @@ export function NotificationSettings() {
 
       <Card className="mb-6">
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">Survey Notifications</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Surveys are how your community collects observations from the ground
-          </p>
+          <h2 className="text-base font-medium text-gray-900">{t("surveys.title")}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t("surveys.description")}</p>
         </CardHeader>
         <CardBody>
           <PreferenceSelect
-            label="New surveys"
-            description="When a new survey is created in your assembly"
+            label={t("surveys.newSurveys")}
+            description={t("surveys.newSurveysDescription")}
             value={prefs.notify_new_surveys}
             saving={saving === "notify_new_surveys"}
             options={[
-              { value: "true", label: "Enabled" },
-              { value: "false", label: "Disabled" },
+              { value: "true", label: t("enabled") },
+              { value: "false", label: t("disabled") },
             ]}
             onChange={(v) => handleChange("notify_new_surveys", v)}
           />
@@ -119,32 +119,30 @@ export function NotificationSettings() {
 
       <Card className="mb-6">
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">Admin Notifications</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Email alerts for group administration events. These only apply to groups where you are an admin or owner.
-          </p>
+          <h2 className="text-base font-medium text-gray-900">{t("admin.title")}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t("admin.description")}</p>
         </CardHeader>
         <CardBody className="space-y-5">
           <PreferenceSelect
-            label="Join requests"
-            description="When someone requests to join a group you administer"
+            label={t("admin.joinRequests")}
+            description={t("admin.joinRequestsDescription")}
             value={prefs.notify_admin_join_requests}
             saving={saving === "notify_admin_join_requests"}
             options={[
-              { value: "true", label: "Enabled" },
-              { value: "false", label: "Disabled" },
+              { value: "true", label: t("enabled") },
+              { value: "false", label: t("disabled") },
             ]}
             onChange={(v) => handleChange("notify_admin_join_requests", v)}
           />
 
           <PreferenceSelect
-            label="New members"
-            description="When someone joins a group you administer"
+            label={t("admin.newMembers")}
+            description={t("admin.newMembersDescription")}
             value={prefs.notify_admin_new_members}
             saving={saving === "notify_admin_new_members"}
             options={[
-              { value: "true", label: "Enabled" },
-              { value: "false", label: "Disabled" },
+              { value: "true", label: t("enabled") },
+              { value: "false", label: t("disabled") },
             ]}
             onChange={(v) => handleChange("notify_admin_new_members", v)}
           />
@@ -153,26 +151,26 @@ export function NotificationSettings() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">Delivery Channel</h2>
-          <p className="text-sm text-gray-500 mt-1">How you want to receive email notifications</p>
+          <h2 className="text-base font-medium text-gray-900">{t("channel.title")}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t("channel.description")}</p>
         </CardHeader>
         <CardBody>
           <PreferenceSelect
-            label="Channel"
-            description="Controls email delivery only — in-app notifications always appear in the notification bell"
+            label={t("channel.label")}
+            description={t("channel.labelDescription")}
             value={prefs.notify_channel}
             saving={saving === "notify_channel"}
             options={[
-              { value: "email", label: "Email" },
-              { value: "sms", label: "SMS" },
-              { value: "both", label: "Email + SMS" },
-              { value: "none", label: "None (in-app only)" },
+              { value: "email", label: t("channel.email") },
+              { value: "sms", label: t("channel.sms") },
+              { value: "both", label: t("channel.both") },
+              { value: "none", label: t("channel.none") },
             ]}
             onChange={(v) => handleChange("notify_channel", v)}
           />
           {prefs.notify_channel === "none" && (
             <p className="mt-3 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              Email notifications are disabled. You'll still see all notifications in the notification bell and at <a href="/notifications" className="underline">/notifications</a>.
+              {t("channel.disabledWarning")}
             </p>
           )}
         </CardBody>
