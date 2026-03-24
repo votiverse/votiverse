@@ -177,24 +177,24 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
   }, [handleSkip]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay-backdrop)] p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={t("dialog.ariaLabel")}
         tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl max-w-md w-full outline-none"
+        className="bg-surface-raised rounded-xl shadow-xl max-w-md w-full outline-none"
       >
         {/* Header with skip */}
         <div className="flex items-center justify-between px-6 pt-5 pb-1">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-text-tertiary">
             {t("dialog.stepOf", { current: currentStep + 1, total: steps.length })}
           </span>
           {!isLast && (
             <button
               onClick={handleSkip}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors"
             >
               {t("dialog.skip")}
             </button>
@@ -204,10 +204,10 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
         {/* Step content */}
         <div className="px-6 py-4 min-h-[220px]">
           <div className="text-3xl mb-3">{step.icon}</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">{step.title}</h2>
+          <h2 className="text-lg font-semibold text-text-primary mb-3">{step.title}</h2>
           <div className="space-y-2">
             {step.lines.map((line, i) => (
-              <p key={i} className="text-sm text-gray-600 leading-relaxed">{line}</p>
+              <p key={i} className="text-sm text-text-secondary leading-relaxed">{line}</p>
             ))}
           </div>
         </div>
@@ -218,7 +218,7 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
             <div
               key={i}
               className={`w-2 h-2 rounded-full transition-colors ${
-                i === currentStep ? "bg-brand" : i < currentStep ? "bg-brand/40" : "bg-gray-200"
+                i === currentStep ? "bg-accent" : i < currentStep ? "bg-accent-muted" : "bg-border-default"
               }`}
             />
           ))}
@@ -230,7 +230,7 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
             {!isFirst && (
               <button
                 onClick={handleBack}
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-sm text-text-muted hover:text-text-secondary transition-colors"
               >
                 {t("common:back")}
               </button>
