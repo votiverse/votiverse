@@ -1,49 +1,53 @@
-/** Maps engine preset config names to i18n keys for user-facing labels. */
+/**
+ * Maps engine preset config names to i18n keys for user-facing labels.
+ * Keys are prefixed with "common:" so they resolve correctly regardless
+ * of which namespace's `t` function is passed by the caller.
+ */
 const PRESET_LABEL_KEYS: Record<string, string> = {
-  "Liquid Delegation": "presets.liquidDelegation",
-  "Direct Democracy": "presets.directDemocracy",
-  "Swiss Votation": "presets.swissVotation",
-  "Liquid Open": "presets.liquidOpen",
-  "Representative": "presets.representative",
-  "Civic Participatory": "presets.civicParticipatory",
+  "Liquid Delegation": "common:presets.liquidDelegation",
+  "Direct Democracy": "common:presets.directDemocracy",
+  "Swiss Votation": "common:presets.swissVotation",
+  "Liquid Open": "common:presets.liquidOpen",
+  "Representative": "common:presets.representative",
+  "Civic Participatory": "common:presets.civicParticipatory",
   // Legacy names (backward compat with pre-rename assemblies)
-  "Modern Democracy": "presets.liquidDelegation",
-  "Full Accountability": "presets.fullAccountability",
-  "Board Proxy": "presets.boardProxy",
-  "Town Hall": "presets.directDemocracy",
-  "Swiss Model": "presets.swissVotation",
-  "Liquid Standard": "presets.liquidOpen",
-  "Liquid Accountable": "presets.fullAccountability",
+  "Modern Democracy": "common:presets.liquidDelegation",
+  "Full Accountability": "common:presets.fullAccountability",
+  "Board Proxy": "common:presets.boardProxy",
+  "Town Hall": "common:presets.directDemocracy",
+  "Swiss Model": "common:presets.swissVotation",
+  "Liquid Standard": "common:presets.liquidOpen",
+  "Liquid Accountable": "common:presets.fullAccountability",
 };
 
 /** English fallback strings for all i18n keys used by preset helpers. */
 const EN_FALLBACK: Record<string, string> = {
-  "presets.liquidDelegation": "The recommended default",
-  "presets.directDemocracy": "Everyone votes directly",
-  "presets.swissVotation": "Structured deliberation, then direct vote",
-  "presets.liquidOpen": "Flexible delegation for close-knit groups",
-  "presets.representative": "Appointed representatives",
-  "presets.civicParticipatory": "Municipal-scale governance",
-  "presets.fullAccountability": "Maximum transparency and accountability",
-  "presets.boardProxy": "Elected representatives",
-  "presets.enabled": "Enabled",
-  "presets.disabled": "Disabled",
-  "presets.yes": "Yes",
-  "presets.no": "No",
-  "presets.admissionOpen": "Anyone with an invite link can join immediately",
-  "presets.admissionApproval": "New members need admin approval to join",
-  "presets.admissionInviteOnly": "Members can only join through direct invitation",
-  "presets.ruleDirect": "Every member votes directly on every question",
-  "presets.ruleCandidacyTransferable": "Members can delegate their vote to trusted candidates or any member, by topic or issue",
-  "presets.ruleCandidacy": "Members appoint a declared candidate as their representative",
-  "presets.ruleTransferable": "Members can delegate their vote to any other member",
-  "presets.ballotSecret": "Ballots are secret; results are revealed after voting ends",
-  "presets.ballotPublicLive": "Ballots are public with live results",
-  "presets.ballotPublic": "Ballots are public",
-  "presets.ballotVoteChange": "You can change your vote any time before voting closes",
-  "presets.featureNotes": "Community notes help verify claims in proposals and candidate profiles",
-  "presets.featureSurveys": "Surveys capture member observations as evidence for accountability",
-  "presets.timelineThen": "then",
+  "common:presets.liquidDelegation": "The recommended default",
+  "common:presets.directDemocracy": "Everyone votes directly",
+  "common:presets.swissVotation": "Structured deliberation, then direct vote",
+  "common:presets.liquidOpen": "Flexible delegation for close-knit groups",
+  "common:presets.representative": "Appointed representatives",
+  "common:presets.civicParticipatory": "Municipal-scale governance",
+  "common:presets.fullAccountability": "Maximum transparency and accountability",
+  "common:presets.boardProxy": "Elected representatives",
+  "common:presets.enabled": "Enabled",
+  "common:presets.disabled": "Disabled",
+  "common:presets.yes": "Yes",
+  "common:presets.no": "No",
+  "common:presets.admissionOpen": "Anyone with an invite link can join immediately",
+  "common:presets.admissionApproval": "New members need admin approval to join",
+  "common:presets.admissionInviteOnly": "Members can only join through direct invitation",
+  "common:presets.ruleDirect": "Every member votes directly on every question",
+  "common:presets.ruleCandidacyTransferable": "Members can delegate their vote to trusted candidates or any member, by topic or issue",
+  "common:presets.ruleCandidacy": "Members appoint a declared candidate as their representative",
+  "common:presets.ruleTransferable": "Members can delegate their vote to any other member",
+  "common:presets.ballotSecret": "Ballots are secret; results are revealed after voting ends",
+  "common:presets.ballotPublicLive": "Ballots are public with live results",
+  "common:presets.ballotPublic": "Ballots are public",
+  "common:presets.ballotVoteChange": "You can change your vote any time before voting closes",
+  "common:presets.featureNotes": "Community notes help verify claims in proposals and candidate profiles",
+  "common:presets.featureSurveys": "Surveys capture member observations as evidence for accountability",
+  "common:presets.timelineThen": "then",
 };
 
 /** Translation function signature accepted by preset helpers. */
@@ -74,8 +78,8 @@ export function presetLabel(configName: string, t?: TranslateFn): string {
 
 export function humanizeBoolean(value: boolean, style: "yes-no" | "enabled-disabled" = "yes-no", t?: TranslateFn): string {
   const translate = t ?? fallbackT;
-  if (style === "enabled-disabled") return value ? translate("presets.enabled") : translate("presets.disabled");
-  return value ? translate("presets.yes") : translate("presets.no");
+  if (style === "enabled-disabled") return value ? translate("common:presets.enabled") : translate("common:presets.disabled");
+  return value ? translate("common:presets.yes") : translate("common:presets.no");
 }
 
 // ── Admission mode descriptions ────────────────────────────────────────
@@ -83,10 +87,10 @@ export function humanizeBoolean(value: boolean, style: "yes-no" | "enabled-disab
 export function describeAdmissionMode(mode: string, t?: TranslateFn): string {
   const translate = t ?? fallbackT;
   switch (mode) {
-    case "open": return translate("presets.admissionOpen");
-    case "approval": return translate("presets.admissionApproval");
-    case "invite-only": return translate("presets.admissionInviteOnly");
-    default: return translate("presets.admissionApproval");
+    case "open": return translate("common:presets.admissionOpen");
+    case "approval": return translate("common:presets.admissionApproval");
+    case "invite-only": return translate("common:presets.admissionInviteOnly");
+    default: return translate("common:presets.admissionApproval");
   }
 }
 
@@ -107,41 +111,41 @@ export function summarizeRules(config: GovernanceConfig, t?: TranslateFn): strin
   // Delegation
   const delegationEnabled = isDelegationEnabled(config);
   if (!delegationEnabled) {
-    rules.push(translate("presets.ruleDirect"));
+    rules.push(translate("common:presets.ruleDirect"));
   } else if (config.delegation.candidacy && config.delegation.transferable) {
-    rules.push(translate("presets.ruleCandidacyTransferable"));
+    rules.push(translate("common:presets.ruleCandidacyTransferable"));
   } else if (config.delegation.candidacy) {
-    rules.push(translate("presets.ruleCandidacy"));
+    rules.push(translate("common:presets.ruleCandidacy"));
   } else {
-    rules.push(translate("presets.ruleTransferable"));
+    rules.push(translate("common:presets.ruleTransferable"));
   }
 
   // Timeline
   const tl = config.timeline;
   if (tl) {
-    const parts = [translate("presets.timelineDeliberation", { days: tl.deliberationDays })];
-    if (tl.curationDays > 0) parts.push(translate("presets.timelineCuration", { days: tl.curationDays }));
-    parts.push(translate("presets.timelineVoting", { days: tl.votingDays }));
-    rules.push(parts.join(`, ${translate("presets.timelineThen")} `));
+    const parts = [translate("common:presets.timelineDeliberation", { days: tl.deliberationDays })];
+    if (tl.curationDays > 0) parts.push(translate("common:presets.timelineCuration", { days: tl.curationDays }));
+    parts.push(translate("common:presets.timelineVoting", { days: tl.votingDays }));
+    rules.push(parts.join(`, ${translate("common:presets.timelineThen")} `));
   }
 
   // Ballot
   if (config.ballot.secret) {
-    rules.push(translate("presets.ballotSecret"));
+    rules.push(translate("common:presets.ballotSecret"));
   } else {
-    rules.push(config.ballot.liveResults ? translate("presets.ballotPublicLive") : translate("presets.ballotPublic"));
+    rules.push(config.ballot.liveResults ? translate("common:presets.ballotPublicLive") : translate("common:presets.ballotPublic"));
   }
 
   if (config.ballot.allowVoteChange) {
-    rules.push(translate("presets.ballotVoteChange"));
+    rules.push(translate("common:presets.ballotVoteChange"));
   }
 
   // Features
   if (config.features.communityNotes) {
-    rules.push(translate("presets.featureNotes"));
+    rules.push(translate("common:presets.featureNotes"));
   }
   if (config.features.surveys) {
-    rules.push(translate("presets.featureSurveys"));
+    rules.push(translate("common:presets.featureSurveys"));
   }
 
   return rules;
