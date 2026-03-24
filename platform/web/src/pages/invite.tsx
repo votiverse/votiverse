@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
+import { useTranslation, Trans } from "react-i18next";
 import { useIdentity } from "../hooks/use-identity.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
@@ -31,6 +32,7 @@ interface GroupPreview {
 export function InvitePage() {
   const { token } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("onboarding");
   const { storeUserId } = useIdentity();
   const [preview, setPreview] = useState<GroupPreview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,17 +48,17 @@ export function InvitePage() {
         const res = await fetch(`${BASE_URL}/invite/${token}`);
         if (!res.ok) {
           const data = await res.json().catch(() => ({})) as { error?: { message?: string } };
-          setError(data?.error?.message ?? "Invitation not found");
+          setError(data?.error?.message ?? t("invite.notFound"));
           return;
         }
         setPreview(await res.json() as GroupPreview);
       } catch {
-        setError("Failed to load invitation");
+        setError(t("invite.loadFailed"));
       } finally {
         setLoading(false);
       }
     })();
-  }, [token]);
+  }, [token, t]);
 
   const handleJoin = async () => {
     if (!storeUserId || !token) return;
@@ -73,7 +75,7 @@ export function InvitePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({})) as { error?: { message?: string } };
-        setJoinError(data?.error?.message ?? "Failed to join");
+        setJoinError(data?.error?.message ?? t("invite.joinFailed"));
         return;
       }
       const data = await res.json() as { status: string; assemblyId: string };
@@ -86,7 +88,7 @@ export function InvitePage() {
         navigate(`/assembly/${data.assemblyId}`);
       }
     } catch {
-      setJoinError("Failed to join group");
+      setJoinError(t("invite.joinFailed"));
     } finally {
       setJoining(false);
     }
@@ -103,7 +105,7 @@ export function InvitePage() {
   if (error || !preview) {
     return (
       <div className="max-w-lg mx-auto py-16">
-        <ErrorBox message={error ?? "Invitation not found"} />
+        <ErrorBox message={error ?? t("invite.notFound")} />
       </div>
     );
   }
@@ -123,13 +125,17 @@ export function InvitePage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">Request submitted</h1>
+        <h1 className="text-xl font-semibold text-gray-900 mb-2">{t("invite.requestSubmitted")}</h1>
         <p className="text-sm text-gray-500 mb-6">
-          Your request to join <span className="font-medium">{group.name}</span> has been sent.
-          An admin will review it shortly.
+          <Trans
+            i18nKey="invite.requestSentMessage"
+            ns="onboarding"
+            values={{ name: group.name }}
+            components={{ bold: <span className="font-medium" /> }}
+          />
         </p>
         <Link to="/dashboard" className="text-sm text-brand hover:text-brand-light">
-          Back to dashboard
+          {t("invite.backToDashboard")}
         </Link>
       </div>
     );
@@ -146,7 +152,7 @@ export function InvitePage() {
           {group.name}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          You've been invited to join this group
+          {t("invite.youveBeenInvited")}
         </p>
       </div>
 
@@ -154,7 +160,7 @@ export function InvitePage() {
       <Card className="mb-4">
         <CardBody>
           <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">Governance Rules</h2>
+            <h2 className="text-sm font-semibold text-gray-700">{t("invite.governanceRules")}</h2>
             <Badge color="gray">{presetLabel(group.config.name)}</Badge>
           </div>
           <ul className="space-y-1.5">
@@ -170,7 +176,7 @@ export function InvitePage() {
             </li>
           </ul>
           <p className="text-xs text-gray-400 mt-3">
-            Governance rules are permanent and apply to all votes in this group.
+            {t("invite.governancePermanent")}
           </p>
         </CardBody>
       </Card>
@@ -179,19 +185,19 @@ export function InvitePage() {
       {(group.owners.length > 0 || group.admins.length > 0) && (
         <Card className="mb-4">
           <CardBody>
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Leadership</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">{t("invite.leadership")}</h2>
             <div className="flex flex-wrap gap-3">
               {group.owners.map((o) => (
                 <div key={o.participantId} className="flex items-center gap-1.5">
                   <Avatar name={o.name ?? "?"} size="xs" />
-                  <span className="text-sm text-gray-700">{o.name ?? "Owner"}</span>
-                  <Badge color="blue">Owner</Badge>
+                  <span className="text-sm text-gray-700">{o.name ?? t("invite.owner")}</span>
+                  <Badge color="blue">{t("invite.owner")}</Badge>
                 </div>
               ))}
               {group.admins.map((a) => (
                 <div key={a.participantId} className="flex items-center gap-1.5">
                   <Avatar name={a.name ?? "?"} size="xs" />
-                  <span className="text-sm text-gray-700">{a.name ?? "Admin"}</span>
+                  <span className="text-sm text-gray-700">{a.name ?? t("invite.admin")}</span>
                 </div>
               ))}
             </div>
@@ -201,7 +207,7 @@ export function InvitePage() {
 
       {/* Member count */}
       <p className="text-sm text-gray-500 text-center mb-6">
-        {group.memberCount} member{group.memberCount !== 1 ? "s" : ""}
+        {t("invite.memberCount", { count: group.memberCount })}
       </p>
 
       {/* Action */}
@@ -211,22 +217,22 @@ export function InvitePage() {
         <div className="space-y-2">
           <Button onClick={handleJoin} disabled={joining} className="w-full">
             {joining
-              ? (isApprovalMode ? "Requesting..." : "Joining...")
-              : (isApprovalMode ? "Request to join" : "Join this group")}
+              ? (isApprovalMode ? t("invite.requesting") : t("invite.joining"))
+              : (isApprovalMode ? t("invite.requestToJoin") : t("invite.joinGroup"))}
           </Button>
           {isApprovalMode && (
             <p className="text-xs text-gray-400 text-center">
-              An admin will review your request before you can participate.
+              {t("invite.approvalHint")}
             </p>
           )}
         </div>
       ) : (
         <div className="space-y-3">
           <Button onClick={() => navigate(`/?redirect=/invite/${token}`)} className="w-full">
-            Log in to {isApprovalMode ? "request to join" : "join"}
+            {isApprovalMode ? t("invite.loginToRequest") : t("invite.loginToJoin")}
           </Button>
           <p className="text-xs text-gray-400 text-center">
-            Don't have an account? You'll be able to create one.
+            {t("invite.noAccount")}
           </p>
         </div>
       )}

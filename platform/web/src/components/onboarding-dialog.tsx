@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import type { GovernanceConfig } from "../api/types.js";
 import { presetLabel } from "../lib/presets.js";
 import { Button } from "./ui.js";
@@ -35,38 +36,38 @@ interface Step {
   lines: string[];
 }
 
-function buildSteps(config: GovernanceConfig, assemblyName: string): Step[] {
+function buildSteps(config: GovernanceConfig, assemblyName: string, t: (key: string, opts?: Record<string, unknown>) => string): Step[] {
   const steps: Step[] = [];
 
   // 1. Welcome (always)
   steps.push({
     icon: "👋",
-    title: `Welcome to ${assemblyName}`,
+    title: t("step.welcome.title", { name: assemblyName }),
     lines: [
-      `This group uses ${presetLabel(config.name)} governance.`,
-      "Here's a quick overview of how decisions are made.",
+      t("step.welcome.governanceModel", { preset: presetLabel(config.name) }),
+      t("step.welcome.overview"),
     ],
   });
 
   // 2. Voting timeline (always)
   const tl = config.timeline;
   const timelineLines = [
-    "Every vote follows a structured timeline:",
-    `Deliberation: ${tl.deliberationDays} day${tl.deliberationDays !== 1 ? "s" : ""} to discuss and propose amendments.`,
+    t("step.voting.timeline"),
+    t("step.voting.deliberation", { count: tl.deliberationDays }),
   ];
   if (tl.curationDays > 0) {
-    timelineLines.push(`Curation: ${tl.curationDays} day${tl.curationDays !== 1 ? "s" : ""} for the panel to review and finalize proposals.`);
+    timelineLines.push(t("step.voting.curation", { count: tl.curationDays }));
   }
-  timelineLines.push(`Voting: ${tl.votingDays} day${tl.votingDays !== 1 ? "s" : ""} to cast your vote.`);
+  timelineLines.push(t("step.voting.votingDays", { count: tl.votingDays }));
   if (config.ballot.secret) {
-    timelineLines.push("Ballots are secret — results are revealed only after voting closes.");
+    timelineLines.push(t("step.voting.secretBallot"));
   }
   if (config.ballot.allowVoteChange) {
-    timelineLines.push("You can change your vote at any time before voting closes.");
+    timelineLines.push(t("step.voting.allowVoteChange"));
   }
   steps.push({
     icon: "🗳️",
-    title: "How Voting Works",
+    title: t("step.voting.title"),
     lines: timelineLines,
   });
 
@@ -74,18 +75,16 @@ function buildSteps(config: GovernanceConfig, assemblyName: string): Step[] {
   const delegationEnabled = config.delegation.candidacy || config.delegation.transferable;
   if (delegationEnabled) {
     const delegationLines = [
-      "You don't have to vote on everything.",
+      t("step.delegation.intro"),
       config.delegation.candidacy
-        ? "You can delegate your vote to declared candidates who have published their positions."
-        : "You can delegate your vote to any member you trust.",
+        ? t("step.delegation.candidacy")
+        : t("step.delegation.open"),
     ];
-    delegationLines.push("Delegations can be scoped by topic — different delegates for different subjects.");
-    delegationLines.push(
-      "You always keep the final say: voting directly on any question automatically overrides your delegation for that question.",
-    );
+    delegationLines.push(t("step.delegation.topicScoped"));
+    delegationLines.push(t("step.delegation.override"));
     steps.push({
       icon: "🤝",
-      title: "Delegation",
+      title: t("step.delegation.title"),
       lines: delegationLines,
     });
   }
@@ -93,33 +92,33 @@ function buildSteps(config: GovernanceConfig, assemblyName: string): Step[] {
   // 4. Community features (conditional)
   const featureLines: string[] = [];
   if (config.features.communityNotes) {
-    featureLines.push("Community notes let members add context and fact-checks to proposals and candidate profiles. Notes become visible after enough members evaluate them.");
+    featureLines.push(t("step.features.communityNotes"));
   }
   if (config.features.surveys) {
-    featureLines.push("Surveys capture member observations — what's working, what isn't. This evidence feeds into accountability and helps inform future decisions.");
+    featureLines.push(t("step.features.surveys"));
   }
   if (config.features.predictions) {
-    featureLines.push("Predictions let members forecast outcomes before votes close, building a track record of judgment over time.");
+    featureLines.push(t("step.features.predictions"));
   }
   if (featureLines.length > 0) {
-    featureLines.unshift("Your voice matters beyond just voting:");
+    featureLines.unshift(t("step.features.intro"));
     steps.push({
       icon: "💬",
-      title: "Beyond Voting",
+      title: t("step.features.title"),
       lines: featureLines,
     });
   }
 
   // 5. Getting started (always)
-  const startLines = ["You're all set. Here's what you can do now:"];
-  startLines.push("Browse active votes and upcoming proposals on the dashboard.");
+  const startLines = [t("step.start.ready")];
+  startLines.push(t("step.start.browseDashboard"));
   if (delegationEnabled) {
-    startLines.push("Set up your delegations — choose people you trust to vote on your behalf.");
+    startLines.push(t("step.start.setupDelegations"));
   }
-  startLines.push("Explore the member list to see who's in this group.");
+  startLines.push(t("step.start.exploreMembers"));
   steps.push({
     icon: "🚀",
-    title: "Getting Started",
+    title: t("step.start.title"),
     lines: startLines,
   });
 
@@ -136,7 +135,8 @@ interface OnboardingDialogProps {
 }
 
 export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }: OnboardingDialogProps) {
-  const steps = buildSteps(config, assemblyName);
+  const { t } = useTranslation("onboarding");
+  const steps = buildSteps(config, assemblyName, t);
   const [currentStep, setCurrentStep] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -182,21 +182,21 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Group onboarding"
+        aria-label={t("dialog.ariaLabel")}
         tabIndex={-1}
         className="bg-white rounded-xl shadow-xl max-w-md w-full outline-none"
       >
         {/* Header with skip */}
         <div className="flex items-center justify-between px-6 pt-5 pb-1">
           <span className="text-xs text-gray-400">
-            {currentStep + 1} of {steps.length}
+            {t("dialog.stepOf", { current: currentStep + 1, total: steps.length })}
           </span>
           {!isLast && (
             <button
               onClick={handleSkip}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Skip
+              {t("dialog.skip")}
             </button>
           )}
         </div>
@@ -232,12 +232,12 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
                 onClick={handleBack}
                 className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
-                Back
+                {t("common:back")}
               </button>
             )}
           </div>
           <Button onClick={handleNext}>
-            {isLast ? "Got it!" : "Next"}
+            {isLast ? t("dialog.gotIt") : t("common:next")}
           </Button>
         </div>
       </div>
