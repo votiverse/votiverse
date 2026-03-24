@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
@@ -28,6 +29,7 @@ const RESULT_COLORS = [
 // ---------------------------------------------------------------------------
 
 export function Surveys() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { assembly } = useAssembly(assemblyId);
   const { getParticipantId } = useParticipant();
@@ -69,10 +71,10 @@ export function Surveys() {
   if (!surveysEnabled && !loading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Surveys</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">{t("surveys.title")}</h1>
         <EmptyState
-          title="Surveys not enabled"
-          description="This group's settings do not include surveys. Surveys are available in groups using the accountability or mixed approach models."
+          title={t("surveys.notEnabled")}
+          description={t("surveys.notEnabledDesc")}
         />
       </div>
     );
@@ -81,13 +83,13 @@ export function Surveys() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Surveys</h1>
-        {surveysEnabled && <Button onClick={() => setCreating(true)}>New Survey</Button>}
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("surveys.title")}</h1>
+        {surveysEnabled && <Button onClick={() => setCreating(true)}>{t("surveys.newSurvey")}</Button>}
       </div>
 
       {/* Open / Closed tabs */}
       <div className="flex gap-1 mb-4 border-b border-gray-200">
-        {([["open", "Open"], ["closed", "Closed"]] as const).map(([key, label]) => {
+        {([["open", t("surveys.tabOpen")], ["closed", t("surveys.tabClosed")]] as [SurveyTab, string][]).map(([key, label]) => {
           const count = key === "open" ? openSurveys.length : closedSurveys.length;
           return (
             <button
@@ -125,10 +127,10 @@ export function Surveys() {
         </div>
       ) : visibleSurveys.length === 0 && !creating ? (
         <EmptyState
-          title={tab === "open" ? "No open surveys" : "No closed surveys"}
+          title={tab === "open" ? t("surveys.noOpenSurveys") : t("surveys.noClosedSurveys")}
           description={tab === "open"
-            ? "Create a survey to gather member feedback on a topic."
-            : "Closed surveys and their results will appear here."}
+            ? t("surveys.noOpenSurveysDesc")
+            : t("surveys.noClosedSurveysDesc")}
         />
       ) : (
         <div className="space-y-4">
@@ -168,6 +170,7 @@ function CreateSurveyForm({
   onClose: () => void;
   onCreated: (survey: Survey) => void;
 }) {
+  const { t } = useTranslation("governance");
   const { getParticipantId } = useParticipant();
   const participantId = getParticipantId(assemblyId);
   const [title, setTitle] = useState("");
@@ -246,7 +249,7 @@ function CreateSurveyForm({
       });
       onCreated(survey);
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create survey");
+      setFormError(err instanceof Error ? err.message : t("surveys.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -256,21 +259,21 @@ function CreateSurveyForm({
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">New Survey</h3>
+          <h3 className="font-medium text-gray-900">{t("surveys.newSurveyTitle")}</h3>
           {formError && <ErrorBox message={formError} />}
 
           <div>
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Survey title" autoFocus />
+            <Label>{t("surveys.surveyTitleLabel")}</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("surveys.surveyTitlePlaceholder")} autoFocus />
           </div>
 
           {questions.map((q, qIdx) => (
             <div key={qIdx} className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">Question {qIdx + 1}</span>
+                <span className="text-sm font-medium text-gray-600">{t("surveys.questionN", { n: qIdx + 1 })}</span>
                 {questions.length > 1 && (
                   <button type="button" onClick={() => removeQuestion(qIdx)} className="text-xs text-red-500 hover:text-red-700">
-                    Remove
+                    {t("surveys.removeQuestion")}
                   </button>
                 )}
               </div>
@@ -279,32 +282,32 @@ function CreateSurveyForm({
                 <Input
                   value={q.text}
                   onChange={(e) => updateQuestion(qIdx, { text: e.target.value })}
-                  placeholder="What would you like to ask?"
+                  placeholder={t("surveys.questionPlaceholder")}
                 />
               </div>
 
               <div>
-                <Label>Type</Label>
+                <Label>{t("surveys.typeLabel")}</Label>
                 <Select
                   value={q.type}
                   onChange={(e) => updateQuestion(qIdx, { type: e.target.value, options: ["", ""] })}
                 >
-                  <option value="yes-no">Yes / No</option>
-                  <option value="likert">Likert Scale (1-5)</option>
-                  <option value="direction">Direction (Improved / Same / Worsened)</option>
-                  <option value="multiple-choice">Multiple Choice</option>
+                  <option value="yes-no">{t("surveys.typeYesNo")}</option>
+                  <option value="likert">{t("surveys.typeLikert")}</option>
+                  <option value="direction">{t("surveys.typeDirection")}</option>
+                  <option value="multiple-choice">{t("surveys.typeMultipleChoice")}</option>
                 </Select>
               </div>
 
               {q.type === "multiple-choice" && (
                 <div className="space-y-2">
-                  <Label>Options</Label>
+                  <Label>{t("surveys.optionsLabel")}</Label>
                   {q.options.map((opt, oIdx) => (
                     <div key={oIdx} className="flex gap-2 items-center">
                       <Input
                         value={opt}
                         onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
-                        placeholder={`Option ${oIdx + 1}`}
+                        placeholder={t("surveys.optionPlaceholder", { n: oIdx + 1 })}
                         className="flex-1"
                       />
                       {q.options.length > 2 && (
@@ -324,7 +327,7 @@ function CreateSurveyForm({
                     onClick={() => addOption(qIdx)}
                     className="text-sm text-blue-600 hover:text-blue-800"
                   >
-                    + Add option
+                    {t("surveys.addOption")}
                   </button>
                 </div>
               )}
@@ -336,13 +339,13 @@ function CreateSurveyForm({
             onClick={addQuestion}
             className="text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
-            + Add another question
+            {t("surveys.addQuestion")}
           </button>
 
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
             <Button type="submit" disabled={submitting || !isValid()}>
-              {submitting ? "Creating..." : "Create Survey"}
+              {submitting ? t("surveys.creating") : t("surveys.createSurvey")}
             </Button>
           </div>
         </form>
@@ -354,7 +357,7 @@ function CreateSurveyForm({
 function buildQuestionType(type: string, options: string[]): { type: string; [key: string]: unknown } {
   switch (type) {
     case "likert":
-      return { type: "likert", scale: 5, labels: ["Strongly Disagree", "Strongly Agree"] };
+      return { type: "likert", scale: 5, labels: ["Strongly Disagree", "Strongly Agree"] }; 
     case "direction":
       return { type: "direction" };
     case "multiple-choice":
@@ -370,6 +373,7 @@ function buildQuestionType(type: string, options: string[]): { type: string; [ke
 // ---------------------------------------------------------------------------
 
 function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey }) {
+  const { t } = useTranslation("governance");
   const { getParticipantId } = useParticipant();
   const participantId = getParticipantId(assemblyId);
   const [results, setResults] = useState<SurveyResults | null>(null);
@@ -438,7 +442,7 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
 
   const closesIn = survey.closesAt - Date.now();
   const closesLabel = closesIn > 0
-    ? `Closes in ${Math.ceil(closesIn / 86400000)}d`
+    ? t("surveys.closesIn", { days: Math.ceil(closesIn / 86400000) })
     : undefined;
 
   const answeredCount = Object.keys(selected).length;
@@ -449,7 +453,7 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-gray-900">{survey.title}</h3>
-            <span className="text-xs text-gray-400">{survey.questions.length} question{survey.questions.length !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-gray-400">{t("surveys.question", { count: survey.questions.length })}</span>
           </div>
           <div className="flex items-center gap-2">
             {closesLabel && !isClosed && (
@@ -477,7 +481,7 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
             )}
 
             {responded && !results && (
-              <p className="text-sm text-green-600">Response recorded</p>
+              <p className="text-sm text-green-600">{t("surveys.responseRecorded")}</p>
             )}
           </div>
         ))}
@@ -488,7 +492,7 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
             {showButtons && answeredCount > 0 ? (
               <>
                 <Button onClick={submitAll} disabled={responding || !allAnswered}>
-                  {responding ? "Submitting..." : `Submit Response${survey.questions.length > 1 ? `s (${answeredCount}/${survey.questions.length})` : ""}`}
+                  {responding ? t("surveys.submitting") : (survey.questions.length > 1 ? t("surveys.submitResponse", { count: survey.questions.length, answered: answeredCount, total: survey.questions.length }) : t("surveys.submitResponse", { count: 1 }))}
                 </Button>
                 <button
                   type="button"
@@ -496,12 +500,12 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
                   disabled={responding}
                   className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
                 >
-                  Clear
+                  {t("surveys.clear")}
                 </button>
               </>
             ) : (
               <Button variant="ghost" onClick={loadResults}>
-                View Results
+                {t("surveys.viewResults")}
               </Button>
             )}
           </div>
@@ -530,6 +534,7 @@ function QuestionButtons({
   selectedValue: unknown;
   onSelect: (value: unknown) => void;
 }) {
+  const { t } = useTranslation("governance");
   const { type } = question.questionType;
 
   /** Return variant based on whether the value is currently selected. */
@@ -540,10 +545,10 @@ function QuestionButtons({
     return (
       <div className="flex flex-wrap gap-2">
         <Button size="lg" variant={variant(true)} onClick={() => onSelect(true)} disabled={responding} className="flex-1 sm:flex-none">
-          Yes
+          {t("surveys.yes")}
         </Button>
         <Button size="lg" variant={variant(false)} onClick={() => onSelect(false)} disabled={responding} className="flex-1 sm:flex-none">
-          No
+          {t("surveys.no")}
         </Button>
       </div>
     );
@@ -575,13 +580,13 @@ function QuestionButtons({
     return (
       <div className="flex flex-wrap gap-2">
         <Button size="lg" variant={variant("improved")} onClick={() => onSelect("improved")} disabled={responding} className="flex-1 sm:flex-none">
-          Improved
+          {t("surveys.improved")}
         </Button>
         <Button size="lg" variant={variant("same")} onClick={() => onSelect("same")} disabled={responding} className="flex-1 sm:flex-none">
-          Same
+          {t("surveys.same")}
         </Button>
         <Button size="lg" variant={variant("worsened")} onClick={() => onSelect("worsened")} disabled={responding} className="flex-1 sm:flex-none">
-          Worsened
+          {t("surveys.worsened")}
         </Button>
       </div>
     );
@@ -607,7 +612,7 @@ function QuestionButtons({
     );
   }
 
-  return <p className="text-sm text-gray-400 italic">Unsupported question type</p>;
+  return <p className="text-sm text-gray-400 italic">{t("surveys.unsupported")}</p>;
 }
 
 // ---------------------------------------------------------------------------
@@ -615,15 +620,15 @@ function QuestionButtons({
 // ---------------------------------------------------------------------------
 
 /** Humanize distribution keys for display. */
-function humanizeKey(key: string, questionType: string): string {
+function humanizeKey(key: string, questionType: string, t: (k: string) => string): string {
   if (questionType === "yes-no") {
-    if (key === "true") return "Yes";
-    if (key === "false") return "No";
+    if (key === "true") return t("surveys.yes");
+    if (key === "false") return t("surveys.no");
   }
   if (questionType === "direction") {
-    if (key === "improved") return "Improved";
-    if (key === "same") return "Same";
-    if (key === "worsened") return "Worsened";
+    if (key === "improved") return t("surveys.improved");
+    if (key === "same") return t("surveys.same");
+    if (key === "worsened") return t("surveys.worsened");
   }
   return key;
 }
@@ -635,13 +640,14 @@ function ResultsDisplay({
   results: SurveyResults;
   questions: SurveyQuestion[];
 }) {
+  const { t } = useTranslation("governance");
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-700">Results</h4>
+        <h4 className="text-sm font-medium text-gray-700">{t("surveys.results")}</h4>
         <span className="text-xs text-gray-500">
-          {results.responseCount} response{results.responseCount !== 1 ? "s" : ""}
-          {results.responseRate > 0 && ` (${(results.responseRate * 100).toFixed(0)}% rate)`}
+          {t("surveys.response", { count: results.responseCount })}
+          {results.responseRate > 0 && ` ${t("surveys.responseRate", { rate: (results.responseRate * 100).toFixed(0) })}`}
         </span>
       </div>
 
@@ -665,7 +671,7 @@ function ResultsDisplay({
                   return (
                     <div key={key}>
                       <div className="flex justify-between text-sm mb-0.5">
-                        <span className="text-gray-700">{humanizeKey(key, qType)}</span>
+                        <span className="text-gray-700">{humanizeKey(key, qType, t)}</span>
                         <span className="text-gray-500">
                           {count} ({pct.toFixed(0)}%)
                         </span>
@@ -681,13 +687,13 @@ function ResultsDisplay({
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 italic">No responses yet</p>
+              <p className="text-sm text-gray-400 italic">{t("surveys.noResponses")}</p>
             )}
 
             {qr.mean !== undefined && qr.mean !== null && (
               <p className="text-xs text-gray-500 mt-2">
-                Mean: {qr.mean.toFixed(2)}
-                {qr.median !== undefined && ` · Median: ${qr.median.toFixed(1)}`}
+                {t("surveys.mean", { mean: qr.mean.toFixed(2) })}
+                {qr.median !== undefined && ` · ${t("surveys.median", { median: qr.median.toFixed(1) })}`}
               </p>
             )}
           </div>

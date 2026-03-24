@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
@@ -8,14 +9,17 @@ import { presetLabel } from "../lib/presets.js";
 
 // ── Preset definitions ───────────────────────────────────────────────
 
-const PRESETS = [
-  { value: "LIQUID_DELEGATION", label: "Liquid Delegation", desc: "The recommended default. Delegation, deliberation, and full accountability." },
-  { value: "DIRECT_DEMOCRACY", label: "Direct Democracy", desc: "Everyone votes on everything. No delegation, no curation." },
-  { value: "SWISS_VOTATION", label: "Swiss Votation", desc: "Direct vote with structured deliberation and community verification." },
-  { value: "LIQUID_OPEN", label: "Liquid Open", desc: "Open delegation with public ballots and live results. For close-knit groups." },
-  { value: "REPRESENTATIVE", label: "Representative", desc: "Appointed representatives through declared candidates." },
-  { value: "CIVIC", label: "Civic", desc: "Longer timelines, full features. For municipalities and large organizations." },
-];
+function usePresets() {
+  const { t } = useTranslation("governance");
+  return [
+    { value: "LIQUID_DELEGATION", label: t("assemblyList.presetLiquidDelegation"), desc: t("assemblyList.presetLiquidDelegationDesc") },
+    { value: "DIRECT_DEMOCRACY", label: t("assemblyList.presetDirectDemocracy"), desc: t("assemblyList.presetDirectDemocracyDesc") },
+    { value: "SWISS_VOTATION", label: t("assemblyList.presetSwissVotation"), desc: t("assemblyList.presetSwissVotationDesc") },
+    { value: "LIQUID_OPEN", label: t("assemblyList.presetLiquidOpen"), desc: t("assemblyList.presetLiquidOpenDesc") },
+    { value: "REPRESENTATIVE", label: t("assemblyList.presetRepresentative"), desc: t("assemblyList.presetRepresentativeDesc") },
+    { value: "CIVIC", label: t("assemblyList.presetCivic"), desc: t("assemblyList.presetCivicDesc") },
+  ];
+}
 
 /** Full config shape for the customization modal. Matches GovernanceConfig sections. */
 interface ConfigDraft {
@@ -95,6 +99,7 @@ function getDefaultConfig(): ConfigDraft {
 // ── Assembly list page ───────────────────────────────────────────────
 
 export function AssemblyList() {
+  const { t } = useTranslation("governance");
   const { data: assemblies, loading, error, refetch } = useApi(() => api.listAssemblies());
   const { pendingByAssembly, assemblySummaries } = useAttention();
   const activeByAssembly = Object.fromEntries(assemblySummaries.map((s) => [s.assembly.id, s.activeEventCount]));
@@ -107,19 +112,19 @@ export function AssemblyList() {
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">My Groups</h1>
-          <p className="mt-1 text-sm text-gray-500">Your communities and organizations</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("assemblyList.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("assemblyList.subtitle")}</p>
         </div>
-        <Button onClick={() => setCreating(true)}>New Group</Button>
+        <Button onClick={() => setCreating(true)}>{t("assemblyList.newGroup")}</Button>
       </div>
 
       {creating && <CreateAssemblyForm onClose={() => setCreating(false)} onCreated={refetch} />}
 
       {!assemblies || assemblies.length === 0 ? (
         <EmptyState
-          title="No groups yet"
-          description="Create your first group to start making decisions together."
-          action={!creating ? <Button onClick={() => setCreating(true)}>New Group</Button> : undefined}
+          title={t("assemblyList.noGroups")}
+          description={t("assemblyList.noGroupsDesc")}
+          action={!creating ? <Button onClick={() => setCreating(true)}>{t("assemblyList.newGroup")}</Button> : undefined}
         />
       ) : (
         <div className="space-y-3">
@@ -132,15 +137,15 @@ export function AssemblyList() {
                       <AssemblyInitial name={asm.name} />
                       <div>
                         <h3 className="font-medium text-gray-900">{asm.name}</h3>
-                        <p className="text-sm text-gray-500 mt-0.5">{presetLabel(asm.config.name)}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">{presetLabel(asm.config.name, t)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                       {(activeByAssembly[asm.id] ?? 0) > 0 && (
-                        <Badge color="gray">{activeByAssembly[asm.id]} open vote{activeByAssembly[asm.id] !== 1 ? "s" : ""}</Badge>
+                        <Badge color="gray">{t("assemblyList.openVote", { count: activeByAssembly[asm.id] })}</Badge>
                       )}
                       {(pendingByAssembly[asm.id] ?? 0) > 0 && (
-                        <Badge color="red">{pendingByAssembly[asm.id]} need{pendingByAssembly[asm.id] === 1 ? "s" : ""} you</Badge>
+                        <Badge color="red">{t("assemblyList.needsYou", { count: pendingByAssembly[asm.id] })}</Badge>
                       )}
                     </div>
                   </div>
@@ -157,6 +162,7 @@ export function AssemblyList() {
 // ── Create group form ────────────────────────────────────────────────
 
 function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const { t } = useTranslation("governance");
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [config, setConfig] = useState<ConfigDraft>(getDefaultConfig);
@@ -166,6 +172,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
   const [showCustomize, setShowCustomize] = useState(false);
 
   const isCustomized = config.preset !== "LIQUID_DELEGATION";
+  const PRESETS = usePresets();
   const presetInfo = PRESETS.find((p) => p.value === config.preset);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,7 +194,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
       // Navigate directly to the new group's dashboard
       navigate(`/assembly/${assembly.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create group");
+      setError(err instanceof Error ? err.message : t("assemblyList.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -198,35 +205,35 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
       <Card className="mb-6">
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h3 className="font-medium text-gray-900">New Group</h3>
+            <h3 className="font-medium text-gray-900">{t("assemblyList.newGroupTitle")}</h3>
             {error && <ErrorBox message={error} />}
 
             <div>
-              <Label>Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" autoFocus />
+              <Label>{t("assemblyList.nameLabel")}</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("assemblyList.namePlaceholder")} autoFocus />
             </div>
 
             {/* Governance summary — subtle, with customize link */}
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">
-                Governance: <span className="font-medium text-gray-700">{presetInfo?.label ?? "Liquid Delegation"}</span>
-                {isCustomized && <span className="text-amber-600 ml-1">(customized)</span>}
+                {t("assemblyList.governance")} <span className="font-medium text-gray-700">{presetInfo?.label ?? t("assemblyList.presetLiquidDelegation")}</span>
+                {isCustomized && <span className="text-amber-600 ml-1">{t("assemblyList.customized")}</span>}
               </span>
               <button
                 type="button"
                 onClick={() => setShowCustomize(true)}
                 className="text-brand hover:text-brand-light text-sm font-medium"
               >
-                Customize rules
+                {t("assemblyList.customizeRules")}
               </button>
             </div>
             <p className="text-xs text-gray-400 -mt-2">
-              Governance rules are permanent and apply to all votes in this group.
+              {t("assemblyList.rulesPermanent")}
             </p>
 
             {/* Timeline inputs */}
             <div>
-              <Label>Timeline per vote</Label>
+              <Label>{t("assemblyList.timelinePerVote")}</Label>
               <div className="flex items-center gap-4 mt-1">
                 <div className="flex items-center gap-1.5">
                   <Input
@@ -235,7 +242,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                     onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, deliberationDays: Number(e.target.value) } }))}
                     className="w-16"
                   />
-                  <span className="text-xs text-gray-500">deliberation</span>
+                  <span className="text-xs text-gray-500">{t("assemblyList.deliberation")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Input
@@ -244,7 +251,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                     onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, curationDays: Number(e.target.value) } }))}
                     className="w-16"
                   />
-                  <span className="text-xs text-gray-500">curation</span>
+                  <span className="text-xs text-gray-500">{t("assemblyList.curation")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Input
@@ -253,37 +260,37 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                     onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, votingDays: Number(e.target.value) } }))}
                     className="w-16"
                   />
-                  <span className="text-xs text-gray-500">voting</span>
+                  <span className="text-xs text-gray-500">{t("assemblyList.voting")}</span>
                 </div>
-                <span className="text-xs text-gray-400">days</span>
+                <span className="text-xs text-gray-400">{t("assemblyList.days")}</span>
               </div>
             </div>
 
             {/* Admission mode */}
             <div>
-              <Label>Who can join</Label>
+              <Label>{t("assemblyList.whoCanJoin")}</Label>
               <Select value={admissionMode} onChange={(e) => setAdmissionMode(e.target.value as "open" | "approval" | "invite-only")}>
-                <option value="approval">Approval required (recommended)</option>
-                <option value="open">Open — anyone with a link joins immediately</option>
-                <option value="invite-only">Invite only — admin sends directly</option>
+                <option value="approval">{t("assemblyList.admissionApproval")}</option>
+                <option value="open">{t("assemblyList.admissionOpen")}</option>
+                <option value="invite-only">{t("assemblyList.admissionInviteOnly")}</option>
               </Select>
               <p className="text-xs text-gray-400 mt-1">
-                {admissionMode === "approval" && "New members must be approved by an admin before they can vote."}
-                {admissionMode === "open" && "Anyone with an invite link joins immediately. Higher risk of fake accounts."}
-                {admissionMode === "invite-only" && "Members join only through direct invitation from an admin."}
+                {admissionMode === "approval" && t("assemblyList.admissionApprovalDesc")}
+                {admissionMode === "open" && t("assemblyList.admissionOpenDesc")}
+                {admissionMode === "invite-only" && t("assemblyList.admissionInviteOnlyDesc")}
               </p>
               {admissionMode === "open" && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-1.5">
-                  Open groups are more susceptible to Sybil attacks — a bad actor could create multiple accounts to multiply their voting power.
+                  {t("assemblyList.sybilWarning")}
                 </p>
               )}
-              <p className="text-xs text-gray-400 mt-1">You can change this later in group settings.</p>
+              <p className="text-xs text-gray-400 mt-1">{t("assemblyList.changeableNote")}</p>
             </div>
 
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+              <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
               <Button type="submit" disabled={submitting || !name.trim()}>
-                {submitting ? "Creating..." : "Create Group"}
+                {submitting ? t("assemblyList.creating") : t("assemblyList.createGroup")}
               </Button>
             </div>
           </form>
@@ -312,6 +319,7 @@ function ConfigModal({
   onChange: (c: ConfigDraft) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [draft, setDraft] = useState<ConfigDraft>(() => structuredClone(config));
 
   const update = (section: "delegation" | "ballot" | "features", values: Record<string, unknown>) => {
@@ -337,10 +345,9 @@ function ConfigModal({
         <div className="px-6 py-4 border-b bg-gray-50 shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Governance Rules</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t("assemblyList.governanceRules")}</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                These settings are permanent once the group is created.
-                Every member will see these rules and can trust they won't change.
+                {t("assemblyList.governanceRulesDesc")}
               </p>
             </div>
             <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
@@ -356,28 +363,28 @@ function ConfigModal({
 
           {/* Preset selector */}
           <div>
-            <Label>Start from a preset</Label>
+            <Label>{t("assemblyList.startFromPreset")}</Label>
             <PresetPicker
               value={draft.preset}
               onChange={(presetKey) => applyPreset(presetKey)}
             />
-            <p className="text-xs text-gray-400 mt-1">Selecting a preset resets all settings below.</p>
+            <p className="text-xs text-gray-400 mt-1">{t("assemblyList.presetResetsAll")}</p>
           </div>
 
           <hr className="border-gray-200" />
 
           {/* Delegation */}
-          <Section title="Delegation">
-            <Toggle label="Declared candidates" checked={draft.delegation.candidacy} onChange={(v) => update("delegation", { candidacy: v })} />
-            <Toggle label="Transferable (any member)" checked={draft.delegation.transferable} onChange={(v) => update("delegation", { transferable: v })} />
+          <Section title={t("assemblyList.sectionDelegation")}>
+            <Toggle label={t("assemblyList.declaredCandidates")} checked={draft.delegation.candidacy} onChange={(v) => update("delegation", { candidacy: v })} />
+            <Toggle label={t("assemblyList.transferableAnyMember")} checked={draft.delegation.transferable} onChange={(v) => update("delegation", { transferable: v })} />
           </Section>
 
           {/* Ballot */}
-          <Section title="Ballot & Voting">
-            <Toggle label="Secret ballot" checked={draft.ballot.secret} onChange={(v) => update("ballot", { secret: v })} />
-            <Toggle label="Live results" checked={draft.ballot.liveResults} onChange={(v) => update("ballot", { liveResults: v })} />
-            <Toggle label="Allow vote changes during voting" checked={draft.ballot.allowVoteChange} onChange={(v) => update("ballot", { allowVoteChange: v })} />
-            <Row label="Quorum">
+          <Section title={t("assemblyList.sectionBallot")}>
+            <Toggle label={t("assemblyList.secretBallot")} checked={draft.ballot.secret} onChange={(v) => update("ballot", { secret: v })} />
+            <Toggle label={t("assemblyList.liveResultsToggle")} checked={draft.ballot.liveResults} onChange={(v) => update("ballot", { liveResults: v })} />
+            <Toggle label={t("assemblyList.allowVoteChanges")} checked={draft.ballot.allowVoteChange} onChange={(v) => update("ballot", { allowVoteChange: v })} />
+            <Row label={t("assemblyList.quorum")}>
               <div className="flex items-center gap-2">
                 <Input
                   type="number" min={0} max={100} step={5}
@@ -388,26 +395,26 @@ function ConfigModal({
                 <span className="text-sm text-gray-500">%</span>
               </div>
             </Row>
-            <Row label="Voting method">
+            <Row label={t("assemblyList.votingMethodLabel")}>
               <Select value={draft.ballot.method} onChange={(e) => update("ballot", { method: e.target.value })}>
-                <option value="majority">Majority</option>
-                <option value="supermajority">Supermajority</option>
+                <option value="majority">{t("assemblyList.majority")}</option>
+                <option value="supermajority">{t("assemblyList.supermajority")}</option>
               </Select>
             </Row>
           </Section>
 
           {/* Features */}
-          <Section title="Features">
-            <Toggle label="Community notes" checked={draft.features.communityNotes} onChange={(v) => update("features", { communityNotes: v })} />
-            <Toggle label="Predictions" checked={draft.features.predictions} onChange={(v) => update("features", { predictions: v })} />
-            <Toggle label="Surveys" checked={draft.features.surveys} onChange={(v) => update("features", { surveys: v })} />
+          <Section title={t("assemblyList.sectionFeatures")}>
+            <Toggle label={t("assemblyList.featureCommunityNotes")} checked={draft.features.communityNotes} onChange={(v) => update("features", { communityNotes: v })} />
+            <Toggle label={t("assemblyList.featurePredictions")} checked={draft.features.predictions} onChange={(v) => update("features", { predictions: v })} />
+            <Toggle label={t("assemblyList.featureSurveys")} checked={draft.features.surveys} onChange={(v) => update("features", { surveys: v })} />
           </Section>
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t bg-gray-50 shrink-0 flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Apply</Button>
+          <Button variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
+          <Button onClick={handleSave}>{t("common:apply")}</Button>
         </div>
       </div>
     </div>
@@ -417,6 +424,7 @@ function ConfigModal({
 // ── Preset picker ────────────────────────────────────────────────────
 
 function PresetPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const PRESETS = usePresets();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = PRESETS.find((p) => p.value === value) ?? PRESETS[0]!;

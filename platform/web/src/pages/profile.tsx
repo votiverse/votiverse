@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
@@ -13,6 +15,7 @@ interface AssemblyProfileData {
 }
 
 export function Profile() {
+  const { t } = useTranslation("governance");
   const { storeUserId, participantName, handle, email, memberships } = useIdentity();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +67,7 @@ export function Profile() {
   if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">No identity selected. Go to Home to pick who you are.</p>
+        <p className="text-gray-500">{t("profile.noIdentity")}</p>
       </div>
     );
   }
@@ -78,7 +81,7 @@ export function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Me</h1>
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">{t("profile.title")}</h1>
 
       {/* Identity card */}
       <Card className="mb-6">
@@ -93,7 +96,7 @@ export function Profile() {
               </div>
             </div>
             <Button variant="secondary" size="sm" onClick={() => setEditing(!editing)}>
-              {editing ? "Done" : "Edit"}
+              {editing ? t("proposals.doneEditing") : t("proposals.edit")}
             </Button>
           </div>
         </CardBody>
@@ -117,7 +120,7 @@ export function Profile() {
           <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
             <CardBody className="text-center py-4">
               <div className="text-2xl font-semibold text-gray-900">{totalVotes}</div>
-              <div className="text-xs text-gray-500 mt-0.5">Votes Cast</div>
+              <div className="text-xs text-gray-500 mt-0.5">{t("profile.votesCast")}</div>
             </CardBody>
           </Card>
         </Link>
@@ -125,7 +128,7 @@ export function Profile() {
           <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
             <CardBody className="text-center py-4">
               <div className="text-2xl font-semibold text-gray-900">{totalDelegators}</div>
-              <div className="text-xs text-gray-500 mt-0.5">Delegators</div>
+              <div className="text-xs text-gray-500 mt-0.5">{t("profile.delegators")}</div>
             </CardBody>
           </Card>
         </Link>
@@ -133,7 +136,7 @@ export function Profile() {
           <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
             <CardBody className="text-center py-4">
               <div className="text-2xl font-semibold text-gray-900">{totalOutbound}</div>
-              <div className="text-xs text-gray-500 mt-0.5">My Delegates</div>
+              <div className="text-xs text-gray-500 mt-0.5">{t("profile.myDelegates")}</div>
             </CardBody>
           </Card>
         </Link>
@@ -141,7 +144,7 @@ export function Profile() {
 
       {/* Per-assembly breakdown */}
       {data.length > 0 && (
-        <h2 className="text-sm font-medium text-gray-500 mb-3">Your activity by group</h2>
+        <h2 className="text-sm font-medium text-gray-500 mb-3">{t("profile.activityByGroup")}</h2>
       )}
       {data.map(({ assembly, profile, history }) => (
         <Card key={assembly.id} className="mb-4">
@@ -156,7 +159,7 @@ export function Profile() {
                 {profile.delegatorsCount > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">
-                      {profile.delegatorsCount} member{profile.delegatorsCount !== 1 ? "s" : ""} delegate{profile.delegatorsCount === 1 ? "s" : ""} to you
+                      {t("profile.delegatorsToYou", { count: profile.delegatorsCount })}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {profile.delegators.map((d) => (
@@ -170,20 +173,20 @@ export function Profile() {
                 )}
                 {profile.myDelegations.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Your delegates</p>
+                    <p className="text-xs text-gray-500 mb-1">{t("profile.yourDelegates")}</p>
                     {profile.myDelegations.map((d, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
                         <Avatar name={d.targetName ?? "?"} size="xs" className="!w-4 !h-4" />
                         <span>
                           {d.targetName ?? d.targetId.slice(0, 8)}
-                          {d.topicScope.length === 0 ? " (global)" : ` (${d.topicScope.length} topic${d.topicScope.length !== 1 ? "s" : ""})`}
+                          {d.topicScope.length === 0 ? ` ${t("profile.globalScope")}` : ` ${t("profile.topicScope", { count: d.topicScope.length })}`}
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
                 {profile.delegatorsCount === 0 && profile.myDelegations.length === 0 && (
-                  <p className="text-sm text-gray-400">No delegates in this group.</p>
+                  <p className="text-sm text-gray-400">{t("profile.noDelegatesInGroup")}</p>
                 )}
               </div>
             )}
@@ -191,7 +194,7 @@ export function Profile() {
             {history && history.history.length > 0 && (
               <div>
                 <p className="text-xs text-gray-500 mb-2">
-                  Recent votes ({history.history.length} total)
+                  {t("profile.recentVotes", { count: history.history.length })}
                 </p>
                 <div className="space-y-1">
                   {history.history.slice(0, 5).map((entry, idx) => (
@@ -201,20 +204,20 @@ export function Profile() {
                         <span className="text-xs text-gray-500 truncate">{entry.issueTitle ?? entry.issueId.slice(0, 12)}</span>
                       </div>
                       <span className="text-xs text-gray-400">
-                        {new Date(entry.votedAt).toLocaleDateString()}
+                        {formatDate(entry.votedAt)}
                       </span>
                     </div>
                   ))}
                   {history.history.length > 5 && (
                     <p className="text-xs text-gray-400 text-center mt-1">
-                      +{history.history.length - 5} more votes
+                      {t("profile.moreVotes", { count: history.history.length - 5 })}
                     </p>
                   )}
                 </div>
               </div>
             )}
             {history && history.history.length === 0 && (
-              <p className="text-sm text-gray-400">No votes recorded in this group.</p>
+              <p className="text-sm text-gray-400">{t("profile.noVotesInGroup")}</p>
             )}
           </CardBody>
         </Card>
@@ -237,6 +240,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
   currentHandle: string;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [name, setName] = useState(currentName);
   const [handleValue, setHandleValue] = useState(currentHandle);
   const [bio, setBio] = useState("");
@@ -261,7 +265,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
       setSuccess(true);
       setTimeout(() => onSaved(), 500);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t("profile.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -270,16 +274,16 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
   return (
     <Card className="mb-6">
       <CardBody className="space-y-4">
-        <h3 className="font-medium text-gray-900">Edit Profile</h3>
+        <h3 className="font-medium text-gray-900">{t("profile.editProfile")}</h3>
         {error && <ErrorBox message={error} />}
 
         <div>
-          <Label>Name</Label>
+          <Label>{t("profile.nameLabel")}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
         <div>
-          <Label>Handle</Label>
+          <Label>{t("profile.handleLabel")}</Label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
             <Input
@@ -292,29 +296,29 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
         </div>
 
         <div>
-          <Label>Bio</Label>
+          <Label>{t("profile.bioLabel")}</Label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             rows={2}
             maxLength={280}
-            placeholder="A short description about yourself"
+            placeholder={t("profile.bioPlaceholder")}
           />
           <p className="text-xs text-gray-400 mt-1">{bio.length}/280</p>
         </div>
 
         {/* Avatar — current + change button */}
         <div>
-          <Label>Avatar</Label>
+          <Label>{t("profile.avatarLabel")}</Label>
           <div className="flex items-center gap-3 mt-1">
             <img
               src={avatarUrl(avatarSeed, selectedStyle)}
-              alt="Current avatar"
+              alt={t("profile.currentAvatar")}
               className="w-14 h-14 rounded-full bg-gray-100"
             />
             <Button variant="secondary" size="sm" onClick={() => setShowAvatarPicker(!showAvatarPicker)}>
-              {showAvatarPicker ? "Close picker" : "Choose avatar"}
+              {showAvatarPicker ? t("profile.closePicker") : t("profile.chooseAvatar")}
             </Button>
           </div>
         </div>
@@ -335,19 +339,19 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
           <img
             src={avatarUrl(avatarSeed, selectedStyle)}
-            alt="Preview"
+            alt={t("profile.preview")}
             className="w-12 h-12 rounded-full bg-gray-100"
           />
           <div>
-            <p className="font-medium text-gray-900">{name || "Your name"}</p>
-            <p className="text-sm text-gray-500">@{handleValue || "handle"}</p>
+            <p className="font-medium text-gray-900">{name || t("profile.yourName")}</p>
+            <p className="text-sm text-gray-500">@{handleValue || t("profile.handle")}</p>
             {bio && <p className="text-xs text-gray-400 mt-0.5">{bio}</p>}
           </div>
         </div>
 
         <div className="flex gap-2 justify-end">
           <Button onClick={handleSave} disabled={saving}>
-            {success ? "Saved!" : saving ? "Saving..." : "Save changes"}
+            {success ? t("profile.saved") : saving ? t("profile.saving") : t("profile.saveChanges")}
           </Button>
         </div>
       </CardBody>
@@ -362,6 +366,7 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
   currentSeed: string;
   onSelect: (style: AvatarStyle, seed: string) => void;
 }) {
+  const { t } = useTranslation("governance");
   const [browsingStyle, setBrowsingStyle] = useState<AvatarStyle>(currentStyle);
   const [customSeed, setCustomSeed] = useState("");
 
@@ -377,7 +382,7 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
     <div className="border border-gray-200 rounded-lg p-3 space-y-3">
       {/* Style tabs — scrollable row */}
       <div>
-        <p className="text-xs font-medium text-gray-500 mb-2">Style</p>
+        <p className="text-xs font-medium text-gray-500 mb-2">{t("profile.style")}</p>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {AVATAR_STYLES.map((style) => (
             <button
@@ -401,7 +406,7 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
         <Input
           value={customSeed}
           onChange={(e) => setCustomSeed(e.target.value)}
-          placeholder="Type a word to generate more options..."
+          placeholder={t("profile.customSeedPlaceholder")}
           className="text-sm"
         />
       </div>
@@ -433,7 +438,7 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
       </div>
 
       <p className="text-xs text-gray-400">
-        Click any avatar to select it. Type a word above to see new faces.
+        {t("profile.avatarPickerHint")}
       </p>
     </div>
   );

@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "../lib/format.js";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
@@ -8,12 +10,19 @@ import { Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { NoteContent, sortNotesByRelevance } from "../components/community-notes.js";
 import { Avatar } from "../components/avatar.js";
 
-const TARGET_TYPE_LABELS: Record<string, string> = {
-  proposal: "Proposal",
-  candidacy: "Candidate",
-  survey: "Survey",
-  "community-note": "Note",
-};
+
+
+type TFn = (key: string) => string;
+
+function targetTypeLabel(type: string, t: TFn): string {
+  const map: Record<string, string> = {
+    proposal: t("notesPage.targetProposal"),
+    candidacy: t("notesPage.targetCandidate"),
+    survey: t("notesPage.targetSurvey"),
+    "community-note": t("notesPage.targetNote"),
+  };
+  return map[type] ?? type;
+}
 
 /** Build a link to the page where this note's target lives. */
 function targetLink(assemblyId: string, target: CommunityNote["target"]): string {
@@ -30,6 +39,7 @@ function targetLink(assemblyId: string, target: CommunityNote["target"]): string
 }
 
 export function Notes() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
@@ -83,22 +93,22 @@ export function Notes() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Notes</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("notesPage.title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Community notes add context, evidence, or corrections to proposals and candidates.
+          {t("notesPage.subtitle")}
         </p>
       </div>
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <FilterChip label="All" count={allNotes.length} active={filter === "all"} onClick={() => setFilter("all")} />
+        <FilterChip label={t("notesPage.filterAll")} count={allNotes.length} active={filter === "all"} onClick={() => setFilter("all")} />
         {participantId && myNoteCount > 0 && (
-          <FilterChip label="Mine" count={myNoteCount} active={filter === "mine"} onClick={() => setFilter("mine")} />
+          <FilterChip label={t("notesPage.filterMine")} count={myNoteCount} active={filter === "mine"} onClick={() => setFilter("mine")} />
         )}
         {targetTypes.map((type) => (
           <FilterChip
             key={type}
-            label={TARGET_TYPE_LABELS[type] ?? type}
+            label={targetTypeLabel(type, t)}
             count={countByType[type] ?? 0}
             active={filter === type}
             onClick={() => setFilter(type)}
@@ -108,8 +118,8 @@ export function Notes() {
 
       {sortedNotes.length === 0 ? (
         <EmptyState
-          title={filter === "mine" ? "You haven't written any notes" : "No notes yet"}
-          description="Notes can be added to proposals and candidates to provide context, evidence, or corrections."
+          title={filter === "mine" ? t("notesPage.noMineNotes") : t("notesPage.noNotes")}
+          description={t("notesPage.noNotesDesc")}
         />
       ) : (
         <div className="space-y-3">
@@ -156,6 +166,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
   participantId: string | null;
   onChanged: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [expanded, setExpanded] = useState(false);
   const [fullNote, setFullNote] = useState<CommunityNote | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
@@ -190,7 +201,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
   };
 
   const authorName = nameMap.get(note.authorId) ?? "Unknown";
-  const targetLabel = TARGET_TYPE_LABELS[note.target.type] ?? note.target.type;
+  const targetLabel = targetTypeLabel(note.target.type, t);
   const total = note.endorsementCount + note.disputeCount;
   const ratio = total > 0 ? note.endorsementCount / total : 0;
   const isVisible = note.visibility?.visible;
@@ -210,19 +221,19 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
           <div className="flex items-center gap-2 min-w-0">
             <Avatar name={authorName} size="xs" />
             <span className="text-sm font-medium text-gray-900">{authorName}</span>
-            <span className="text-xs text-gray-400">on</span>
+            <span className="text-xs text-gray-400">{t("notesPage.on")}</span>
             <Link to={targetLink(assemblyId, note.target)} className="hover:opacity-80 transition-opacity">
               <Badge color="gray">{targetLabel}</Badge>
             </Link>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isVisible && <Badge color="green">Visible</Badge>}
-            {isWithdrawn && <Badge color="gray">Withdrawn</Badge>}
+            {isVisible && <Badge color="green">{t("notes.visible")}</Badge>}
+            {isWithdrawn && <Badge color="gray">{t("notes.withdrawn")}</Badge>}
             {note.visibility?.belowMinEvaluations && !isWithdrawn && (
-              <Badge color="yellow">Needs reviews</Badge>
+              <Badge color="yellow">{t("notesPage.needsReviews")}</Badge>
             )}
             <span className="text-[10px] text-gray-400">
-              {new Date(note.createdAt).toLocaleDateString()}
+              {formatDate(note.createdAt)}
             </span>
           </div>
         </div>
@@ -230,11 +241,11 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
         {/* Expandable content */}
         {expanded && (
           <div className="mt-2">
-            {loadingContent && <p className="text-sm text-gray-400">Loading...</p>}
+            {loadingContent && <p className="text-sm text-gray-400">{t("notesPage.loading")}</p>}
             {markdown ? (
               <p className="text-sm text-gray-700"><NoteContent text={markdown} /></p>
             ) : !loadingContent ? (
-              <p className="text-sm text-gray-400 italic">Content not available</p>
+              <p className="text-sm text-gray-400 italic">{t("notesPage.contentNotAvailable")}</p>
             ) : null}
           </div>
         )}
@@ -243,14 +254,14 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <button onClick={handleExpand} className="text-xs text-gray-500 hover:text-gray-700">
-              {expanded ? "Collapse" : "Read"}
+              {expanded ? t("notesPage.collapse") : t("notesPage.read")}
             </button>
             <span className="text-gray-200">|</span>
-            <span>{note.endorsementCount} helpful</span>
-            <span>{note.disputeCount} not helpful</span>
+            <span>{t("notesPage.nHelpful", { count: note.endorsementCount })}</span>
+            <span>{t("notesPage.nNotHelpful", { count: note.disputeCount })}</span>
             {total > 0 && (
               <span className={ratio >= 0.7 ? "text-green-600" : ratio <= 0.3 ? "text-red-500" : ""}>
-                {Math.round(ratio * 100)}% helpful
+                {t("notesPage.helpfulPercent", { percent: Math.round(ratio * 100) })}
               </span>
             )}
           </div>
@@ -261,7 +272,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
               to={targetLink(assemblyId, note.target)}
               className="text-xs text-gray-400 hover:text-gray-600"
             >
-              View in context
+              {t("notesPage.viewInContext")}
             </Link>
             {/* Author can withdraw their own note */}
             {isOwnNote && !isWithdrawn && (
@@ -270,7 +281,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
                 disabled={withdrawing}
                 className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
               >
-                {withdrawing ? "Withdrawing..." : "Withdraw"}
+                {withdrawing ? t("notesPage.withdrawing") : t("notesPage.withdraw")}
               </button>
             )}
           </div>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, VotingHistory } from "../api/types.js";
@@ -17,6 +19,7 @@ type SortField = "date" | "choice" | "group";
 type SortDir = "asc" | "desc";
 
 export function ProfileVotes() {
+  const { t } = useTranslation("governance");
   const { storeUserId, memberships } = useIdentity();
   const [entries, setEntries] = useState<VoteEntry[]>([]);
   const [assemblies, setAssemblies] = useState<Assembly[]>([]);
@@ -94,7 +97,7 @@ export function ProfileVotes() {
   if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">No identity selected.</p>
+        <p className="text-gray-500">{t("profileVotes.noIdentity")}</p>
       </div>
     );
   }
@@ -113,8 +116,8 @@ export function ProfileVotes() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">Votes Cast</h1>
-      <p className="text-sm text-gray-500 mb-6">{entries.length} vote{entries.length !== 1 ? "s" : ""} across {new Set(entries.map((e) => e.assemblyId)).size} group{new Set(entries.map((e) => e.assemblyId)).size !== 1 ? "s" : ""}</p>
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">{t("profileVotes.title")}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t("profileVotes.vote", { count: entries.length })} {t("profileVotes.group", { count: new Set(entries.map((e) => e.assemblyId)).size })}</p>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -123,7 +126,7 @@ export function ProfileVotes() {
           onChange={(e) => setSelectedAssembly(e.target.value)}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
         >
-          <option value="all">All groups</option>
+          <option value="all">{t("profileVotes.allGroups")}</option>
           {assemblies.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
@@ -134,7 +137,7 @@ export function ProfileVotes() {
             onChange={(e) => setSelectedChoice(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           >
-            <option value="all">All choices</option>
+            <option value="all">{t("profileVotes.allChoices")}</option>
             {choices.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -144,14 +147,14 @@ export function ProfileVotes() {
 
       {/* Sort controls */}
       <div className="flex items-center gap-1 mb-4 text-xs text-gray-500">
-        <span>Sort by:</span>
+        <span>{t("profileVotes.sortBy")}</span>
         {(["date", "group", "choice"] as SortField[]).map((field) => (
           <button
             key={field}
             onClick={() => toggleSort(field)}
             className={`px-2 py-1 rounded transition-colors ${sortField === field ? "bg-brand/10 text-brand font-medium" : "hover:bg-gray-100"}`}
           >
-            {field === "date" ? "Date" : field === "group" ? "Group" : "Choice"}
+            {field === "date" ? t("profileVotes.date") : field === "group" ? t("profileVotes.group", { count: 1 }) : t("profileVotes.choice")}
             {sortField === field && (sortDir === "desc" ? " ↓" : " ↑")}
           </button>
         ))}
@@ -159,8 +162,8 @@ export function ProfileVotes() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No votes found"
-          description={entries.length > 0 ? "Try adjusting your filters." : "You haven't cast any votes yet."}
+          title={t("profileVotes.noVotes")}
+          description={entries.length > 0 ? t("profileVotes.adjustFilters") : t("profileVotes.noVotesDesc")}
         />
       ) : (
         <Card>
@@ -175,7 +178,7 @@ export function ProfileVotes() {
                   <div className="text-xs text-gray-400 mt-0.5">{entry.assemblyName}</div>
                 </div>
                 <span className="text-xs text-gray-400 shrink-0">
-                  {new Date(entry.votedAt).toLocaleDateString()}
+                  {formatDate(entry.votedAt)}
                 </span>
               </div>
             ))}

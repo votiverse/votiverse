@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useMyDelegations, resolveTopicDelegation, type TopicDelegationStatus } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
@@ -9,6 +10,7 @@ import { Avatar } from "../components/avatar.js";
 
 
 export function TopicPage() {
+  const { t } = useTranslation("governance");
   const { assemblyId, topicId } = useParams();
 
   const { data: topicsData, loading: topicsLoading } = useApi(
@@ -74,7 +76,7 @@ export function TopicPage() {
           to={`/assembly/${assemblyId}/topics`}
           className="hover:text-gray-600 transition-colors"
         >
-          Topics
+          {t("topicPage.breadcrumbTopics")}
         </Link>
         {parent && (
           <>
@@ -96,8 +98,8 @@ export function TopicPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{topic.name}</h1>
           <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-            <span>{issues.length} issue{issues.length !== 1 ? "s" : ""}</span>
-            <span>{delegations.length} delegate{delegations.length !== 1 ? "s" : ""}</span>
+            <span>{t("topicPage.issue", { count: issues.length })}</span>
+            <span>{t("topicPage.delegate", { count: delegations.length })}</span>
           </div>
         </div>
         {delegationStatus && (
@@ -111,7 +113,7 @@ export function TopicPage() {
       {/* Child topics (root topics only) */}
       {children.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-sm font-medium text-gray-700 mb-2">Subtopics</h2>
+          <h2 className="text-sm font-medium text-gray-700 mb-2">{t("topicPage.subtopics")}</h2>
           <div className="flex flex-wrap gap-2">
             {children.map((child) => (
               <Link
@@ -129,25 +131,25 @@ export function TopicPage() {
       {/* Issues sections */}
       <IssuesSection
         assemblyId={assemblyId!}
-        label="Voting Now"
+        label={t("topicPage.votingNow")}
         issues={activeIssues}
         showBadge
       />
       <IssuesSection
         assemblyId={assemblyId!}
-        label="Upcoming"
+        label={t("topicPage.upcoming")}
         issues={upcomingIssues}
       />
       <IssuesSection
         assemblyId={assemblyId!}
-        label="Closed"
+        label={t("topicPage.closed")}
         issues={closedIssues}
       />
 
       {issues.length === 0 && delegations.length === 0 && (
         <EmptyState
-          title="No activity yet"
-          description="No issues or delegations have been created for this topic."
+          title={t("topicPage.noActivity")}
+          description={t("topicPage.noActivityDesc")}
         />
       )}
 
@@ -155,10 +157,10 @@ export function TopicPage() {
       {delegations.length > 0 && (
         <div className="mt-8">
           <h2 className="text-sm font-medium text-gray-700 mb-3">
-            Weight Distribution
+            {t("topicPage.weightDistribution")}
           </h2>
           <p className="text-xs text-gray-400 mb-3">
-            Potential voting weight if a vote opened on this topic.
+            {t("topicPage.weightDistributionDesc")}
           </p>
           <Card>
             <CardBody className="divide-y divide-gray-100">
@@ -208,6 +210,7 @@ function IssuesSection({
 }
 
 function IssueRow({ item, assemblyId }: { item: TopicIssueItem; assemblyId: string }) {
+  const { t } = useTranslation("governance");
   const { issue, event } = item;
 
   return (
@@ -223,7 +226,7 @@ function IssueRow({ item, assemblyId }: { item: TopicIssueItem; assemblyId: stri
           <p className="text-xs text-gray-400 mt-0.5">
             {event.title}
             {issue.cancelled && (
-              <span className="ml-2 text-red-400">Cancelled</span>
+              <span className="ml-2 text-red-400">{t("topicPage.cancelled")}</span>
             )}
           </p>
         </CardBody>
@@ -233,6 +236,7 @@ function IssueRow({ item, assemblyId }: { item: TopicIssueItem; assemblyId: stri
 }
 
 function DelegateRow({ item, isMyDelegate }: { item: TopicDelegationItem; isMyDelegate?: boolean }) {
+  const { t } = useTranslation("governance");
   const { delegate, weight } = item;
 
   return (
@@ -243,13 +247,13 @@ function DelegateRow({ item, isMyDelegate }: { item: TopicDelegationItem; isMyDe
           <p className="text-sm font-medium text-gray-900 truncate">
             {delegate.name}
             {isMyDelegate && (
-              <span className="ml-1.5 text-[10px] text-blue-500 font-normal">your delegate</span>
+              <span className="ml-1.5 text-[10px] text-blue-500 font-normal">{t("topicPage.yourDelegate")}</span>
             )}
           </p>
         </div>
       </div>
       <span className="text-xs text-gray-500 tabular-nums shrink-0">
-        {weight}× weight
+        {t("topicPage.weightLabel", { weight })}
       </span>
     </div>
   );
@@ -263,6 +267,7 @@ function DelegationBadge({
   status: TopicDelegationStatus;
   assemblyId: string;
 }) {
+  const { t } = useTranslation("governance");
   return (
     <Link
       to={`/assembly/${assemblyId}/delegations`}
@@ -271,7 +276,7 @@ function DelegationBadge({
     >
       <Avatar name={status.delegateName} size="sm" />
       <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors leading-tight">
-        Delegated
+        {t("topicPage.delegated")}
       </span>
     </Link>
   );

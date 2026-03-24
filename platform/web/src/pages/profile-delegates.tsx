@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import type { Assembly, DelegateProfile } from "../api/types.js";
@@ -11,6 +12,7 @@ interface AssemblyDelegateData {
 }
 
 export function ProfileDelegates() {
+  const { t } = useTranslation("governance");
   const { storeUserId, memberships } = useIdentity();
   const [data, setData] = useState<AssemblyDelegateData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ export function ProfileDelegates() {
   if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">No identity selected.</p>
+        <p className="text-gray-500">{t("profileDelegates.noIdentity")}</p>
       </div>
     );
   }
@@ -70,8 +72,8 @@ export function ProfileDelegates() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">Your delegates</h1>
-      <p className="text-sm text-gray-500 mb-6">{totalDelegates} delegate{totalDelegates !== 1 ? "s" : ""} across {data.filter((d) => (d.profile?.myDelegations.length ?? 0) > 0).length} group{data.filter((d) => (d.profile?.myDelegations.length ?? 0) > 0).length !== 1 ? "s" : ""}</p>
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">{t("profileDelegates.title")}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t("profileDelegates.summary", { count: totalDelegates, delegates: totalDelegates, groups: data.filter((d) => (d.profile?.myDelegations.length ?? 0) > 0).length })}</p>
 
       {data.length > 1 && (
         <div className="mb-6">
@@ -80,7 +82,7 @@ export function ProfileDelegates() {
             onChange={(e) => setSelectedAssembly(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           >
-            <option value="all">All groups</option>
+            <option value="all">{t("profileDelegates.allGroups")}</option>
             {data.map((d) => (
               <option key={d.assembly.id} value={d.assembly.id}>{d.assembly.name}</option>
             ))}
@@ -90,8 +92,8 @@ export function ProfileDelegates() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No delegates found"
-          description="You haven't delegated to anyone yet."
+          title={t("profileDelegates.noDelegates")}
+          description={t("profileDelegates.noDelegatesDesc")}
         />
       ) : (
         <div className="space-y-4">
@@ -108,7 +110,7 @@ export function ProfileDelegates() {
                       <div className="min-w-0">
                         <span className="text-sm text-gray-900 font-medium">{d.targetName ?? d.targetId.slice(0, 12)}</span>
                         <span className="text-xs text-gray-400 ml-2">
-                          {d.topicScope.length === 0 ? "Global" : `${d.topicScope.length} topic${d.topicScope.length !== 1 ? "s" : ""}`}
+                          {d.topicScope.length === 0 ? t("profileDelegates.global") : t("profileDelegates.topic", { count: d.topicScope.length })}
                         </span>
                       </div>
                     </div>

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
@@ -15,6 +16,7 @@ import {
 import { OnboardingDialog, shouldShowOnboarding } from "../components/onboarding-dialog.js";
 
 export function AssemblyDashboard() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
@@ -41,7 +43,7 @@ export function AssemblyDashboard() {
   }, [assemblyId]);
 
   if (loading) return <Spinner />;
-  if (error || !assembly) return <ErrorBox message={error ?? "Assembly not found"} onRetry={refetch} />;
+  if (error || !assembly) return <ErrorBox message={error ?? t("assemblyDashboard.assemblyNotFound")} onRetry={refetch} />;
 
   const members = participantsData?.participants ?? [];
   const events = eventsData?.events ?? [];
@@ -73,17 +75,17 @@ export function AssemblyDashboard() {
 
       {/* Stats row — participant-centric */}
       <div className={`grid grid-cols-2 ${isDelegationEnabled(config) ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
-        <StatCard label="Members" value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
-        <StatCard label="Votes" value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
+        <StatCard label={t("assemblyDashboard.statMembers")} value={members.length} linkTo={`/assembly/${assemblyId}/members`} />
+        <StatCard label={t("assemblyDashboard.statVotes")} value={events.length} linkTo={`/assembly/${assemblyId}/events`} />
         {isDelegationEnabled(config) && (
           <StatCard
-            label="Your Delegates"
+            label={t("assemblyDashboard.statYourDelegates")}
             value={delegations.length}
             linkTo={`/assembly/${assemblyId}/delegations`}
           />
         )}
         <StatCard
-          label="Your Votes"
+          label={t("assemblyDashboard.statYourVotes")}
           value={historyData?.history.length ?? 0}
         />
       </div>
@@ -99,47 +101,47 @@ export function AssemblyDashboard() {
           <svg className={`w-4 h-4 transition-transform ${showConfig ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
-          Governance Settings
-          <span className="text-gray-400 font-normal">({presetLabel(config.name)})</span>
+          {t("assemblyDashboard.governanceSettings")}
+          <span className="text-gray-400 font-normal">({presetLabel(config.name, t)})</span>
         </button>
         {showConfig && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-3">
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">Configuration</h2>
+                <h2 className="font-medium text-gray-900">{t("assemblyDashboard.configuration")}</h2>
               </CardHeader>
               <CardBody className="space-y-3">
-                <ConfigRow label="Decision Model" value={presetLabel(config.name)} />
-                <ConfigRow label="Voting Method" value={config.ballot.method === "supermajority" ? "Supermajority" : "Majority"} />
-                <ConfigRow label="Ballot" value={config.ballot.secret ? "Secret" : "Public"} />
-                <ConfigRow label="Live Results" value={humanizeBoolean(config.ballot.liveResults)} />
-                <ConfigRow label="Quorum" value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
-                <ConfigRow label="Vote Changes" value={config.ballot.allowVoteChange ? "Allowed" : "Final — no changes"} />
-                <ConfigRow label="Candidates" value={humanizeBoolean(config.delegation.candidacy, "enabled-disabled")} />
-                <ConfigRow label="Transferable" value={humanizeBoolean(config.delegation.transferable, "enabled-disabled")} />
+                <ConfigRow label={t("assemblyDashboard.decisionModel")} value={presetLabel(config.name, t)} />
+                <ConfigRow label={t("assemblyDashboard.votingMethod")} value={config.ballot.method === "supermajority" ? t("assemblyDashboard.supermajority") : t("assemblyDashboard.majority")} />
+                <ConfigRow label={t("assemblyDashboard.ballot")} value={config.ballot.secret ? t("assemblyDashboard.secret") : t("assemblyDashboard.public")} />
+                <ConfigRow label={t("assemblyDashboard.liveResults")} value={humanizeBoolean(config.ballot.liveResults, "yes-no", t)} />
+                <ConfigRow label={t("assemblyDashboard.quorum")} value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
+                <ConfigRow label={t("assemblyDashboard.voteChanges")} value={config.ballot.allowVoteChange ? t("assemblyDashboard.voteChangeAllowed") : t("assemblyDashboard.voteChangeFinal")} />
+                <ConfigRow label={t("assemblyDashboard.candidatesLabel")} value={humanizeBoolean(config.delegation.candidacy, "enabled-disabled", t)} />
+                <ConfigRow label={t("assemblyDashboard.transferableLabel")} value={humanizeBoolean(config.delegation.transferable, "enabled-disabled", t)} />
               </CardBody>
             </Card>
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">Timeline</h2>
+                <h2 className="font-medium text-gray-900">{t("assemblyDashboard.timeline")}</h2>
               </CardHeader>
               <CardBody className="space-y-3">
-                <ConfigRow label="Deliberation" value={`${config.timeline.deliberationDays} day${config.timeline.deliberationDays !== 1 ? "s" : ""}`} />
-                <ConfigRow label="Curation" value={config.timeline.curationDays > 0 ? `${config.timeline.curationDays} day${config.timeline.curationDays !== 1 ? "s" : ""}` : "None"} />
-                <ConfigRow label="Voting" value={`${config.timeline.votingDays} day${config.timeline.votingDays !== 1 ? "s" : ""}`} />
+                <ConfigRow label={t("assemblyDashboard.deliberation")} value={t("assemblyDashboard.day", { count: config.timeline.deliberationDays })} />
+                <ConfigRow label={t("assemblyDashboard.curation")} value={config.timeline.curationDays > 0 ? t("assemblyDashboard.day", { count: config.timeline.curationDays }) : t("assemblyDashboard.curationNone")} />
+                <ConfigRow label={t("assemblyDashboard.voting")} value={t("assemblyDashboard.day", { count: config.timeline.votingDays })} />
                 <div className="text-xs text-gray-400 pt-1">
-                  Total: {config.timeline.deliberationDays + config.timeline.curationDays + config.timeline.votingDays} days per vote
+                  {t("assemblyDashboard.totalDaysPerVote", { count: config.timeline.deliberationDays + config.timeline.curationDays + config.timeline.votingDays })}
                 </div>
               </CardBody>
             </Card>
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">Features</h2>
+                <h2 className="font-medium text-gray-900">{t("assemblyDashboard.features")}</h2>
               </CardHeader>
               <CardBody className="space-y-3">
-                <ConfigRow label="Community Notes" value={humanizeBoolean(config.features.communityNotes, "enabled-disabled")} />
-                <ConfigRow label="Predictions" value={humanizeBoolean(config.features.predictions, "enabled-disabled")} />
-                <ConfigRow label="Surveys" value={humanizeBoolean(config.features.surveys, "enabled-disabled")} />
+                <ConfigRow label={t("assemblyDashboard.communityNotes")} value={humanizeBoolean(config.features.communityNotes, "enabled-disabled", t)} />
+                <ConfigRow label={t("assemblyDashboard.predictionsLabel")} value={humanizeBoolean(config.features.predictions, "enabled-disabled", t)} />
+                <ConfigRow label={t("assemblyDashboard.surveysLabel")} value={humanizeBoolean(config.features.surveys, "enabled-disabled", t)} />
               </CardBody>
             </Card>
           </div>
@@ -150,19 +152,19 @@ export function AssemblyDashboard() {
       {profile && (profile.owners.length > 0 || profile.admins.length > 0) && (
         <Card className="mt-4 sm:mt-6">
           <CardHeader>
-            <h2 className="font-medium text-gray-900">Leadership</h2>
+            <h2 className="font-medium text-gray-900">{t("assemblyDashboard.leadership")}</h2>
           </CardHeader>
           <CardBody>
             <div className="space-y-3">
               {profile.owners.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Owners</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{t("assemblyDashboard.owners")}</p>
                   <div className="flex flex-wrap gap-3">
                     {profile.owners.map((r) => (
                       <div key={r.participantId} className="flex items-center gap-2">
                         <Avatar name={r.name ?? "?"} size="xs" />
                         <span className="text-sm text-gray-700">{r.name ?? r.participantId.slice(0, 8)}</span>
-                        <Badge color="blue">Owner</Badge>
+                        <Badge color="blue">{t("assemblyDashboard.ownerBadge")}</Badge>
                       </div>
                     ))}
                   </div>
@@ -170,7 +172,7 @@ export function AssemblyDashboard() {
               )}
               {profile.admins.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Admins</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{t("assemblyDashboard.admins")}</p>
                   <div className="flex flex-wrap gap-3">
                     {profile.admins.map((r) => (
                       <div key={r.participantId} className="flex items-center gap-2">
@@ -191,9 +193,9 @@ export function AssemblyDashboard() {
         <Card className="mt-4 sm:mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="font-medium text-gray-900">Recent Votes</h2>
+              <h2 className="font-medium text-gray-900">{t("assemblyDashboard.recentVotes")}</h2>
               <Link to={`/assembly/${assemblyId}/events`} className="text-sm text-brand hover:text-brand-light">
-                View all
+                {t("assemblyDashboard.viewAll")}
               </Link>
             </div>
           </CardHeader>
@@ -206,7 +208,7 @@ export function AssemblyDashboard() {
                   className="flex items-center justify-between py-2.5 sm:py-2 px-3 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors min-h-[44px] sm:min-h-0"
                 >
                   <span className="text-sm text-gray-900">{evt.title}</span>
-                  <Badge color="gray">{evt.issueIds?.length ?? 0} questions</Badge>
+                  <Badge color="gray">{t("assemblyDashboard.nQuestions", { count: evt.issueIds?.length ?? 0 })}</Badge>
                 </Link>
               ))}
             </div>
@@ -219,9 +221,9 @@ export function AssemblyDashboard() {
         <Card className="mt-4 sm:mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="font-medium text-gray-900">Members</h2>
+              <h2 className="font-medium text-gray-900">{t("assemblyDashboard.members")}</h2>
               <Link to={`/assembly/${assemblyId}/members`} className="text-sm text-brand hover:text-brand-light">
-                View all {members.length}
+                {t("assemblyDashboard.viewAllN", { count: members.length })}
               </Link>
             </div>
           </CardHeader>
@@ -234,7 +236,7 @@ export function AssemblyDashboard() {
                 </div>
               ))}
               {members.length > 12 && (
-                <span className="text-sm text-gray-400 self-center">+{members.length - 12} more</span>
+                <span className="text-sm text-gray-400 self-center">{t("assemblyDashboard.moreMembers", { count: members.length - 12 })}</span>
               )}
             </div>
           </CardBody>
@@ -266,6 +268,7 @@ function ConfigRow({ label, value }: { label: string; value: string }) {
 }
 
 function WelcomeCard({ assemblyId, assemblyName, config }: { assemblyId: string; assemblyName: string; config: GovernanceConfig }) {
+  const { t } = useTranslation("governance");
   const storageKey = `votiverse:welcome-dismissed:${assemblyId}`;
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(storageKey) === "1");
 
@@ -276,16 +279,16 @@ function WelcomeCard({ assemblyId, assemblyName, config }: { assemblyId: string;
 
   if (dismissed) return null;
 
-  const rules = summarizeRules(config);
+  const rules = summarizeRules(config, t);
 
   return (
     <Card className="mb-6 border-brand-200 bg-brand-50/30">
       <CardBody>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900">Welcome to {assemblyName}</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("assemblyDashboard.welcomeTo", { name: assemblyName })}</h3>
             <p className="text-xs text-gray-500 mt-0.5 mb-2">
-              This group uses <span className="font-medium">{presetLabel(config.name)}</span> governance:
+              {t("assemblyDashboard.usesGovernance", { preset: presetLabel(config.name, t) })}
             </p>
             <ul className="space-y-1">
               {rules.map((rule, i) => (
@@ -295,7 +298,7 @@ function WelcomeCard({ assemblyId, assemblyName, config }: { assemblyId: string;
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-gray-400 mt-2">These rules are permanent and apply to all votes in this group.</p>
+            <p className="text-xs text-gray-400 mt-2">{t("assemblyDashboard.rulesPermanent")}</p>
           </div>
           <button
             onClick={dismiss}

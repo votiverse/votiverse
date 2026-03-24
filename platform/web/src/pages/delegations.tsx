@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
@@ -9,9 +10,11 @@ import { Card, CardBody, Button, Label, Spinner, ErrorBox, EmptyState } from "..
 import { Avatar } from "../components/avatar.js";
 import { TopicPicker } from "../components/topic-picker.js";
 import { MemberSearch } from "../components/member-search.js";
+import { formatDate } from "../lib/format.js";
 import type { Candidacy } from "../api/types.js";
 
 export function Delegations() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
@@ -34,10 +37,10 @@ export function Delegations() {
   if (!participantId) {
     return (
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Your Topic Delegates</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">{t("delegations.title")}</h1>
         <EmptyState
-          title="No identity"
-          description="Go to Home and pick who you are to view your delegations."
+          title={t("delegations.noIdentity")}
+          description={t("delegations.noIdentityDesc")}
         />
       </div>
     );
@@ -73,10 +76,9 @@ export function Delegations() {
     <div className="max-w-3xl mx-auto">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Your Topic Delegates</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("delegations.title")}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          When you can't follow every topic, let someone you choose vote for you.
-          You can always override with a direct vote.
+          {t("delegations.subtitle")}
         </p>
       </div>
 
@@ -129,6 +131,7 @@ function DelegatesList({
   delegationCandidacy: boolean;
   refetch: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [creating, setCreating] = useState(false);
 
   if (myOutgoing.length === 0 && !creating) {
@@ -139,12 +142,11 @@ function DelegatesList({
             <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
-            <h3 className="font-medium text-gray-900 mb-1">No delegates yet</h3>
+            <h3 className="font-medium text-gray-900 mb-1">{t("delegations.noDelegates")}</h3>
             <p className="text-sm text-gray-500 max-w-sm mx-auto mb-5">
-              When you can't follow every topic, you can let someone you choose vote for you.
-              Your direct vote always overrides any delegation.
+              {t("delegations.noDelegatesDesc")}
             </p>
-            <Button onClick={() => setCreating(true)}>Delegate your vote</Button>
+            <Button onClick={() => setCreating(true)}>{t("delegations.delegateYourVote")}</Button>
           </CardBody>
         </Card>
 
@@ -170,7 +172,7 @@ function DelegatesList({
       {/* CTA + list */}
       <div className="flex justify-end">
         <Button onClick={() => setCreating(true)} variant="secondary">
-          + Delegate your vote
+          {t("delegations.addDelegate")}
         </Button>
       </div>
 
@@ -241,10 +243,11 @@ function DelegationRow({
   revokeSlot?: React.ReactNode;
 }) {
   const targetName = nameMap.get(d.targetId) ?? d.targetId.slice(0, 8);
-  const since = new Date(d.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const { t } = useTranslation("governance");
+  const since = formatDate(d.createdAt);
 
   const scopeLabel = d.topicScope.length === 0
-    ? "All topics"
+    ? t("delegations.allTopics")
     : d.topicScope.map((id) => topicDisplayName(id, topics)).join(", ");
 
   const scopeLink = d.topicScope.length === 1 && assemblyId
@@ -300,6 +303,7 @@ function CreateDelegationForm({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [targetId, setTargetId] = useState("");
   const [scopeMode, setScopeMode] = useState<"global" | "topics">("global");
   const [topicScope, setTopicScope] = useState<string[]>([]);
@@ -319,9 +323,9 @@ function CreateDelegationForm({
       onCreated();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {
-        setFormError(err.message || "You don't have permission to create this delegation.");
+        setFormError(err.message || t("delegate.permissionDenied"));
       } else {
-        setFormError(err instanceof Error ? err.message : "Failed to create delegation");
+        setFormError(err instanceof Error ? err.message : t("delegations.failedCreate"));
       }
     } finally {
       setSubmitting(false);
@@ -332,12 +336,12 @@ function CreateDelegationForm({
     <Card>
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">Delegate your vote</h3>
+          <h3 className="font-medium text-gray-900">{t("delegations.formTitle")}</h3>
           {formError && <ErrorBox message={formError} />}
 
           {/* Delegate picker */}
           <div>
-            <Label>Who should vote for you?</Label>
+            <Label>{t("delegate.whoLabel")}</Label>
             {targetId ? (
               <div className="flex items-center gap-2 border rounded-lg px-3 py-2">
                 <Avatar name={selectedName ?? "?"} size="sm" />
@@ -347,7 +351,7 @@ function CreateDelegationForm({
                   onClick={() => setTargetId("")}
                   className="text-xs text-gray-400 hover:text-gray-600"
                 >
-                  Change
+                  {t("delegations.change")}
                 </button>
               </div>
             ) : (
@@ -358,8 +362,8 @@ function CreateDelegationForm({
                 candidates={delegationCandidacy ? candidates : undefined}
                 topicNameMap={topicNameMap}
                 placeholder={delegationCandidacy
-                  ? "Browse candidates or search any member..."
-                  : "Search for a member by name..."}
+                  ? t("delegations.browseCandidates")
+                  : t("delegations.searchMember")}
               />
             )}
           </div>
@@ -367,7 +371,7 @@ function CreateDelegationForm({
           {/* Scope selector */}
           {isTopicScoped && (
             <div>
-              <Label>Scope</Label>
+              <Label>{t("delegations.delegateScope")}</Label>
               <div className="space-y-2 mt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -377,7 +381,7 @@ function CreateDelegationForm({
                     onChange={() => setScopeMode("global")}
                     className="text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-gray-700">All topics</span>
+                  <span className="text-sm text-gray-700">{t("delegations.allTopics")}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -387,7 +391,7 @@ function CreateDelegationForm({
                     onChange={() => setScopeMode("topics")}
                     className="text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-gray-700">Specific topics</span>
+                  <span className="text-sm text-gray-700">{t("delegations.specificTopics")}</span>
                 </label>
                 {scopeMode === "topics" && (
                   <div className="ml-6 mt-1 bg-gray-50 rounded-md p-2">
@@ -405,14 +409,14 @@ function CreateDelegationForm({
           {/* Actions */}
           <div className="flex items-center gap-2">
             <Button type="submit" disabled={submitting || !targetId || (scopeMode === "topics" && topicScope.length === 0)}>
-              {submitting ? "Delegating..." : "Delegate"}
+              {submitting ? t("delegations.delegating") : t("delegations.delegateBtn")}
             </Button>
             <button
               type="button"
               onClick={onClose}
               className="text-sm text-gray-500 hover:text-gray-700 min-h-[36px] px-2"
             >
-              Cancel
+              {t("common:cancel")}
             </button>
           </div>
         </form>
@@ -426,6 +430,7 @@ function CreateDelegationForm({
 // ---------------------------------------------------------------------------
 
 function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: string; delegationId: string; onRevoked: () => void }) {
+  const { t } = useTranslation("governance");
   const [confirming, setConfirming] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
 
@@ -436,9 +441,9 @@ function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: str
       onRevoked();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {
-        setRevokeError("Only the delegator can remove their own delegation.");
+        setRevokeError(t("delegations.revokeOwnOnly"));
       } else {
-        setRevokeError("Failed to remove delegation.");
+        setRevokeError(t("delegations.revokeFailed"));
       }
       setConfirming(false);
     }
@@ -451,15 +456,15 @@ function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: str
   if (confirming) {
     return (
       <div className="flex items-center gap-1 shrink-0">
-        <Button size="sm" variant="danger" onClick={handleRevoke}>Yes</Button>
-        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>No</Button>
+        <Button size="sm" variant="danger" onClick={handleRevoke}>{t("delegations.confirmYes")}</Button>
+        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>{t("delegations.confirmNo")}</Button>
       </div>
     );
   }
 
   return (
     <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700 shrink-0">
-      Remove
+      {t("delegations.remove")}
     </Button>
   );
 }

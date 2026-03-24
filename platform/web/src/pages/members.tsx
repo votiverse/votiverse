@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "../lib/format.js";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
@@ -8,6 +10,7 @@ import { BulkInvite } from "../components/bulk-invite.js";
 import type { AdmissionMode } from "../api/types.js";
 
 export function Members() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: settingsData, refetch: refetchSettings } = useApi(() => api.getAssemblySettings(assemblyId!), [assemblyId]);
@@ -45,37 +48,37 @@ export function Members() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Members</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("members.title")}</h1>
         <div className="flex gap-2">
           {admissionMode !== "invite-only" && (
             <Button variant="secondary" onClick={handleGenerateInvite}>
-              {inviteCopied ? "Link copied!" : "Invite link"}
+              {inviteCopied ? t("members.inviteLinkCopied") : t("members.inviteLink")}
             </Button>
           )}
           <Button variant="secondary" onClick={() => setShowDirectInvite(!showDirectInvite)}>
-            Invite by handle
+            {t("members.inviteByHandle")}
           </Button>
           {admissionMode !== "invite-only" && (
             <Button variant="secondary" onClick={() => setShowBulkInvite(!showBulkInvite)}>
-              Bulk invite
+              {t("members.bulkInvite")}
             </Button>
           )}
-          <Button onClick={() => setAdding(true)}>Add Member</Button>
+          <Button onClick={() => setAdding(true)}>{t("members.addMember")}</Button>
         </div>
       </div>
 
       {/* Admission mode indicator + settings */}
       <div className="flex items-center gap-3 mb-4 text-sm">
         <span className="text-gray-500">
-          Admission: <span className="font-medium text-gray-700">
-            {admissionMode === "approval" ? "Approval required" : admissionMode === "open" ? "Open" : "Invite only"}
+          {t("members.admissionLabel")} <span className="font-medium text-gray-700">
+            {admissionMode === "approval" ? t("members.admissionApproval") : admissionMode === "open" ? t("members.admissionOpen") : t("members.admissionInviteOnly")}
           </span>
         </span>
         <button
           onClick={() => setShowSettings(!showSettings)}
           className="text-brand hover:text-brand-light text-xs font-medium"
         >
-          {showSettings ? "Hide settings" : "Change"}
+          {showSettings ? t("members.hideSettings") : t("members.changeSettings")}
         </button>
       </div>
 
@@ -90,7 +93,7 @@ export function Members() {
       {inviteLink && (
         <Card className="mb-4 border-brand-200 bg-brand-50/30">
           <CardBody>
-            <p className="text-sm text-gray-700 mb-2">Share this link to invite people:</p>
+            <p className="text-sm text-gray-700 mb-2">{t("members.shareLink")}</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-gray-200 text-gray-600 truncate">{inviteLink}</code>
               <Button
@@ -101,7 +104,7 @@ export function Members() {
                   setTimeout(() => setInviteCopied(false), 3000);
                 }}
               >
-                {inviteCopied ? "Copied!" : "Copy"}
+                {inviteCopied ? t("members.copied") : t("members.copy")}
               </Button>
             </div>
             {admissionMode === "open" ? (
@@ -112,12 +115,12 @@ export function Members() {
               </div>
             ) : (
               <p className="text-xs text-gray-400 mt-2">
-                Recipients will need admin approval before they can join and vote.
+                {t("members.approvalNeeded")}
               </p>
             )}
             {inviteExpiresAt && (
               <p className="text-xs text-gray-400 mt-1">
-                Expires {new Date(inviteExpiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                {t("members.linkExpires", { date: formatDate(inviteExpiresAt) })}
               </p>
             )}
           </CardBody>
@@ -143,7 +146,7 @@ export function Members() {
         <Card className="mb-4 border-blue-200">
           <CardBody>
             <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">Pending Join Requests</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{t("members.pendingJoinRequests")}</h3>
               <Badge color="blue">{pendingRequests.length}</Badge>
             </div>
             <div className="space-y-2">
@@ -169,7 +172,7 @@ export function Members() {
       )}
 
       {participants.length === 0 ? (
-        <EmptyState title="No members yet" description="Add members to start making decisions together." />
+        <EmptyState title={t("members.noMembers")} description={t("members.noMembersDesc")} />
       ) : (
         <Card>
           <div className="divide-y divide-gray-100">
@@ -181,7 +184,7 @@ export function Members() {
                     <div className="font-medium text-gray-900">{p.name}</div>
                     {p.registeredAt && (
                       <div className="text-xs text-gray-400 mt-0.5">
-                        Joined {new Date(p.registeredAt).toLocaleDateString()}
+                        {t("members.joined", { date: formatDate(p.registeredAt) })}
                       </div>
                     )}
                   </div>
@@ -204,6 +207,7 @@ export function Members() {
 }
 
 function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; onClose: () => void; onAdded: () => void }) {
+  const { t } = useTranslation("governance");
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -219,7 +223,7 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
       onAdded();
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add member");
+      setError(err instanceof Error ? err.message : t("members.addError"));
     } finally {
       setSubmitting(false);
     }
@@ -229,16 +233,16 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">Add Member</h3>
+          <h3 className="font-medium text-gray-900">{t("members.addMemberTitle")}</h3>
           {error && <ErrorBox message={error} />}
           <div>
-            <Label>Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Member name" autoFocus />
+            <Label>{t("members.nameLabel")}</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("members.namePlaceholder")} autoFocus />
           </div>
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
             <Button type="submit" disabled={submitting || !name.trim()}>
-              {submitting ? "Adding..." : "Add"}
+              {submitting ? t("members.adding") : t("members.add")}
             </Button>
           </div>
         </form>
@@ -248,6 +252,7 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
 }
 
 function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose: () => void }) {
+  const { t } = useTranslation("governance");
   const [handle, setHandle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -264,7 +269,7 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
       setSent(true);
       setTimeout(() => { setSent(false); setHandle(""); }, 2000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to send invitation");
+      setError(err instanceof Error ? err.message : t("members.sendError"));
     } finally {
       setSubmitting(false);
     }
@@ -274,7 +279,7 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
     <Card className="mb-4">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <h3 className="font-medium text-gray-900 text-sm">Invite by handle</h3>
+          <h3 className="font-medium text-gray-900 text-sm">{t("members.directInviteTitle")}</h3>
           {error && <ErrorBox message={error} />}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -288,11 +293,11 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
               />
             </div>
             <Button type="submit" disabled={submitting || !handle.trim()}>
-              {sent ? "Sent!" : submitting ? "Sending..." : "Send invite"}
+              {sent ? t("members.sent") : submitting ? t("members.sending") : t("members.sendInvite")}
             </Button>
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
           </div>
-          <p className="text-xs text-gray-400">The user will see the invitation on their dashboard.</p>
+          <p className="text-xs text-gray-400">{t("members.directInviteNote")}</p>
         </form>
       </CardBody>
     </Card>
@@ -300,6 +305,7 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
 }
 
 function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: string; userName: string; userHandle: string | null; createdAt: string }; assemblyId: string; onAction: () => void }) {
+  const { t } = useTranslation("governance");
   const [acting, setActing] = useState(false);
 
   const handleApprove = async () => {
@@ -330,19 +336,20 @@ function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: s
             <span className="text-xs text-gray-400 ml-1">@{request.userHandle}</span>
           )}
           <div className="text-xs text-gray-400">
-            Requested {new Date(request.createdAt).toLocaleDateString()}
+            {t("members.requested", { date: formatDate(request.createdAt) })}
           </div>
         </div>
       </div>
       <div className="flex gap-1 shrink-0">
-        <Button size="sm" onClick={handleApprove} disabled={acting}>Approve</Button>
-        <Button size="sm" variant="ghost" onClick={handleReject} disabled={acting}>Reject</Button>
+        <Button size="sm" onClick={handleApprove} disabled={acting}>{t("members.approve")}</Button>
+        <Button size="sm" variant="ghost" onClick={handleReject} disabled={acting}>{t("members.reject")}</Button>
       </div>
     </div>
   );
 }
 
 function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assemblyId: string; currentMode: AdmissionMode; onChanged: () => void }) {
+  const { t } = useTranslation("governance");
   const [mode, setMode] = useState(currentMode);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -355,7 +362,7 @@ function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assembl
       await api.updateAssemblySettings(assemblyId, { admissionMode: mode });
       onChanged();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update");
+      setError(err instanceof Error ? err.message : t("members.updateError"));
     } finally {
       setSaving(false);
     }
@@ -364,31 +371,31 @@ function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assembl
   return (
     <Card className="mb-4">
       <CardBody>
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Admission Settings</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("members.admissionSettings")}</h3>
         {error && <ErrorBox message={error} />}
         <div className="space-y-3">
           <div>
-            <Label>Who can join</Label>
+            <Label>{t("members.whoCanJoinLabel")}</Label>
             <Select value={mode} onChange={(e) => setMode(e.target.value as AdmissionMode)}>
-              <option value="approval">Approval required</option>
-              <option value="open">Open — anyone with a link joins immediately</option>
-              <option value="invite-only">Invite only — admin sends directly</option>
+              <option value="approval">{t("members.admissionApprovalOption")}</option>
+              <option value="open">{t("members.admissionOpenOption")}</option>
+              <option value="invite-only">{t("members.admissionInviteOnlyOption")}</option>
             </Select>
           </div>
           {mode === "open" && mode !== currentMode && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-              Open admission increases the risk of Sybil attacks — a bad actor could create multiple accounts to multiply their voting power.
+              {t("members.sybilWarning")}
             </p>
           )}
           {mode === "invite-only" && mode !== currentMode && (
             <p className="text-xs text-gray-500">
-              Existing invite links will no longer work. Only direct invitations by handle will be accepted.
+              {t("members.inviteOnlyWarning")}
             </p>
           )}
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={onChanged}>Cancel</Button>
+            <Button variant="secondary" onClick={onChanged}>{t("common:cancel")}</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : "Save"}
+              {saving ? t("members.saving") : t("common:save")}
             </Button>
           </div>
         </div>
@@ -398,6 +405,7 @@ function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assembl
 }
 
 function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: string; participantId: string; onRemoved: () => void }) {
+  const { t } = useTranslation("governance");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -407,7 +415,7 @@ function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: st
       await api.removeParticipant(assemblyId, participantId);
       onRemoved();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to remove member");
+      setError(err instanceof Error ? err.message : t("members.removeError"));
       setConfirming(false);
     }
   };
@@ -415,8 +423,8 @@ function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: st
   if (confirming) {
     return (
       <div className="flex items-center gap-1">
-        <Button size="sm" variant="danger" onClick={handleRemove}>Confirm</Button>
-        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
+        <Button size="sm" variant="danger" onClick={handleRemove}>{t("common:confirm")}</Button>
+        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>{t("common:cancel")}</Button>
       </div>
     );
   }
@@ -425,7 +433,7 @@ function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: st
     <div className="flex items-center gap-1">
       {error && <span className="text-xs text-red-500">{error}</span>}
       <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700">
-        Remove
+        {t("members.remove")}
       </Button>
     </div>
   );

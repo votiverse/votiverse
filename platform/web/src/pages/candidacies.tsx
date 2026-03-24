@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "../lib/format.js";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
@@ -14,6 +16,7 @@ const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").the
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
 
 export function Candidacies() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
@@ -41,16 +44,16 @@ export function Candidacies() {
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Delegate Candidates</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("candidacies.title")}</h1>
           <p className="text-sm text-gray-500 mt-1">
             {delegationCandidacy
-              ? "Declared candidates seeking your delegation. You can also delegate to anyone via search."
-              : "Participants who have declared their availability as delegates."}
+              ? t("candidacies.subtitleCandidacy")
+              : t("candidacies.subtitleGeneral")}
           </p>
         </div>
         {participantId && (
           <Button onClick={() => setShowDeclareForm(!showDeclareForm)}>
-            {showDeclareForm ? "Cancel" : "Declare Candidacy"}
+            {showDeclareForm ? t("common:cancel") : t("candidacies.declareCandidacy")}
           </Button>
         )}
       </div>
@@ -60,7 +63,7 @@ export function Candidacies() {
       )}
 
       {candidacies.length === 0 ? (
-        <EmptyState title="No candidates" description="No one has declared a delegate candidacy yet." />
+        <EmptyState title={t("candidacies.noCandidates")} description={t("candidacies.noCandidatesDesc")} />
       ) : (
         <div className="space-y-4">
           {candidacies.map((c) => (
@@ -84,6 +87,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
   topicNameMap: Map<string, string>;
   assemblyId: string;
 }) {
+  const { t } = useTranslation("governance");
   const [expanded, setExpanded] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [fullContent, setFullContent] = useState<Candidacy | null>(null);
@@ -114,14 +118,14 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
               {topics.length > 0 ? (
                 topics.map((t) => <Badge key={t} color="blue">{t}</Badge>)
               ) : (
-                <Badge color="gray">Global</Badge>
+                <Badge color="gray">{t("candidacies.global")}</Badge>
               )}
               {candidacy.voteTransparencyOptIn && (
                 <Badge color="green">Public votes</Badge>
               )}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Declared {new Date(candidacy.declaredAt).toLocaleDateString()}
+              {t("candidacies.declared", { date: formatDate(candidacy.declaredAt) })}
             </p>
           </div>
         </div>
@@ -129,9 +133,9 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
         {expanded && (
           <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <Suspense fallback={<p className="text-sm text-gray-400">Loading...</p>}><MarkdownViewer content={markdown} /></Suspense>
+              <Suspense fallback={<p className="text-sm text-gray-400">{t("candidacies.loading")}</p>}><MarkdownViewer content={markdown} /></Suspense>
             ) : (
-              <p className="text-sm text-gray-400 italic">Profile content not yet available.</p>
+              <p className="text-sm text-gray-400 italic">{t("candidacies.profileNotAvailable")}</p>
             )}
           </div>
         )}
@@ -142,14 +146,14 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
             onClick={handleExpand}
           >
             <FileText size={14} />
-            {expanded ? "Hide statement" : "Candidate statement"}
+            {expanded ? t("candidacies.hideStatement") : t("candidacies.candidateStatement")}
           </button>
           <button
             className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
             onClick={() => setShowNotes(!showNotes)}
           >
             <MessageSquareText size={14} />
-            Notes
+            {t("candidacies.notesLabel")}
           </button>
         </div>
 
@@ -164,6 +168,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
 }
 
 function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclared: () => void }) {
+  const { t } = useTranslation("governance");
   const [markdown, setMarkdown] = useState("");
   const [voteTransparency, setVoteTransparency] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -179,7 +184,7 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
       });
       onDeclared();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Declaration failed");
+      alert(err instanceof Error ? err.message : t("candidacies.declareFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -188,15 +193,15 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
   return (
     <Card className="mb-6">
       <CardBody>
-        <h3 className="font-medium text-gray-900 mb-3">Declare Candidacy</h3>
+        <h3 className="font-medium text-gray-900 mb-3">{t("candidacies.declareTitle")}</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Introduce yourself, your qualifications, and how you plan to represent delegators.
+          {t("candidacies.declareIntro")}
         </p>
-        <Suspense fallback={<p className="text-sm text-gray-400">Loading editor...</p>}>
+        <Suspense fallback={<p className="text-sm text-gray-400">{t("candidacies.loadingEditor")}</p>}>
           <MarkdownEditor
             value={markdown}
             onChange={setMarkdown}
-            placeholder="Introduce yourself — qualifications, positions, and why delegates should trust you..."
+            placeholder={t("candidacies.editorPlaceholder")}
             assemblyId={assemblyId}
             minHeight={250}
           />
@@ -208,10 +213,10 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
             onChange={(e) => setVoteTransparency(e.target.checked)}
             className="rounded"
           />
-          Make my votes public (delegators can see how I vote)
+          {t("candidacies.publicVotesLabel")}
         </label>
         <Button onClick={handleDeclare} disabled={submitting || !markdown.trim()}>
-          {submitting ? "Declaring..." : "Declare Candidacy"}
+          {submitting ? t("candidacies.declaring") : t("candidacies.declareBtn")}
         </Button>
       </CardBody>
     </Card>

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useMyDelegations, resolveRootTopicDelegation } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
@@ -47,6 +48,7 @@ function buildTree(
 }
 
 export function TopicsList() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { data: topicsData, loading, error, refetch } = useApi(
     () => api.listTopics(assemblyId!),
@@ -79,8 +81,8 @@ export function TopicsList() {
   if (tree.length === 0) {
     return (
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">Topics</h1>
-        <EmptyState title="No topics" description="This assembly has no topics defined yet." />
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">{t("topicsList.title")}</h1>
+        <EmptyState title={t("topicsList.noTopics")} description={t("topicsList.noTopicsDesc")} />
       </div>
     );
   }
@@ -88,9 +90,9 @@ export function TopicsList() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Topics</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("topicsList.title")}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Browse issues and delegations organized by topic.
+          {t("topicsList.subtitle")}
         </p>
       </div>
 
@@ -121,6 +123,7 @@ function TopicCard({
   assemblyId: string;
   delegationStatus: TopicDelegationStatus | null;
 }) {
+  const { t } = useTranslation("governance");
   const { topic, children, issueCount, delegationCount } = node;
   const navigate = useNavigate();
 
@@ -157,8 +160,8 @@ function TopicCard({
         )}
 
         <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
-          <span>{issueCount} issue{issueCount !== 1 ? "s" : ""}</span>
-          <span>{delegationCount} delegation{delegationCount !== 1 ? "s" : ""}</span>
+          <span>{t("topicsList.issue", { count: issueCount })}</span>
+          <span>{t("topicsList.delegation", { count: delegationCount })}</span>
         </div>
       </CardBody>
     </Card>

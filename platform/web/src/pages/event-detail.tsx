@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
@@ -10,6 +11,7 @@ import type { Tally, WeightDist, ParticipationRecord, Proposal } from "../api/ty
 import { FileText } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
+import { formatDateTime } from "../lib/format.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { QuickDelegateForm } from "../components/quick-delegate-form.js";
@@ -32,6 +34,7 @@ interface DelegationConfig {
 }
 
 export function EventDetail() {
+  const { t } = useTranslation("governance");
   const { assemblyId, eventId } = useParams();
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
@@ -123,7 +126,7 @@ export function EventDetail() {
   );
 
   if (loading) return <Spinner />;
-  if (error || !event) return <ErrorBox message={error ?? "Vote not found"} onRetry={refetch} />;
+  if (error || !event) return <ErrorBox message={error ?? t("eventDetail.voteNotFound")} onRetry={refetch} />;
 
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
@@ -207,36 +210,26 @@ export function EventDetail() {
 }
 
 function EventStatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation("governance");
   const map: Record<string, { color: "green" | "blue" | "yellow" | "gray"; label: string }> = {
-    voting: { color: "green", label: "Voting Open" },
-    deliberation: { color: "blue", label: "Discussion" },
-    upcoming: { color: "yellow", label: "Upcoming" },
-    closed: { color: "gray", label: "Ended" },
+    voting: { color: "green", label: t("eventDetail.statusVoting") },
+    deliberation: { color: "blue", label: t("eventDetail.statusDiscussion") },
+    upcoming: { color: "yellow", label: t("eventDetail.statusUpcoming") },
+    closed: { color: "gray", label: t("eventDetail.statusEnded") },
   };
   const entry = map[status] ?? { color: "gray" as const, label: status };
   return <Badge color={entry.color}>{entry.label}</Badge>;
-}
-
-/** Format a date, including time when it's not midnight. */
-function formatDateTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  const date = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  // Show time when hours/minutes are set (not midnight)
-  if (d.getHours() !== 0 || d.getMinutes() !== 0) {
-    const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-    return `${date}, ${time}`;
-  }
-  return date;
 }
 
 function EventTimeline({ timeline, status }: {
   timeline: { deliberationStart: string; votingStart: string; votingEnd: string };
   status: string;
 }) {
+  const { t } = useTranslation("governance");
   const phases = [
-    { key: "deliberation", label: "Discussion", date: timeline.deliberationStart },
-    { key: "voting", label: "Voting", date: timeline.votingStart },
-    { key: "closed", label: "Ended", date: timeline.votingEnd },
+    { key: "deliberation", label: t("eventDetail.phaseDiscussion"), date: timeline.deliberationStart },
+    { key: "voting", label: t("eventDetail.phaseVoting"), date: timeline.votingStart },
+    { key: "closed", label: t("eventDetail.phaseEnded"), date: timeline.votingEnd },
   ];
 
   const activeIdx = status === "deliberation" ? 0 : status === "voting" ? 1 : status === "closed" ? 2 : -1;
@@ -276,13 +269,14 @@ function IssueSummary({ votedCount, totalCount }: {
   votedCount: number;
   totalCount: number;
 }) {
+  const { t } = useTranslation("governance");
   if (votedCount === totalCount) {
     return (
       <div className="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
         <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span className="text-sm text-green-700 font-medium">You've voted on all {totalCount} questions</span>
+        <span className="text-sm text-green-700 font-medium">{t("eventDetail.votedAllQuestions", { count: totalCount })}</span>
       </div>
     );
   }
@@ -293,7 +287,7 @@ function IssueSummary({ votedCount, totalCount }: {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
       <span className="text-sm text-amber-700 font-medium">
-        Voted on {votedCount} of {totalCount} question{totalCount !== 1 ? "s" : ""}
+        {t("eventDetail.votedSummary", { voted: votedCount, total: totalCount })}
       </span>
     </div>
   );
@@ -391,6 +385,7 @@ function IssueVotingCard({
   isCreator: boolean;
   onVoted: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const { getParticipantId } = useIdentity();
   const participantId = getParticipantId(assemblyId);
   const issueStatus = useIssueStatus(assemblyId, participantId, issueId);
@@ -440,7 +435,7 @@ function IssueVotingCard({
             {topicId && (
               <TopicEyebrow topicId={topicId} topicMap={topicMap} assemblyId={assemblyId} className="line-through" />
             )}
-            <Badge color="red">Cancelled</Badge>
+            <Badge color="red">{t("eventDetail.cancelled")}</Badge>
           </div>
           <h2 className="font-medium text-gray-900 mt-1 line-through opacity-50">{title}</h2>
           <p className="text-sm text-gray-400 mt-0.5">{description}</p>
@@ -464,12 +459,12 @@ function IssueVotingCard({
               {needsVote && (
                 <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                  Needs your vote
+                  {t("eventDetail.needsYourVote")}
                 </span>
               )}
               {tally?.winner && eventStatus === "closed" && (
                 <Badge color="green">
-                  Result: {tally.winner === "for" ? "Approved" : tally.winner === "against" ? "Not approved" : tally.winner}
+                  {t("eventDetail.resultLabel", { result: tally.winner === "for" ? t("eventDetail.resultApproved") : tally.winner === "against" ? t("eventDetail.resultNotApproved") : tally.winner })}
                 </Badge>
               )}
             </div>
@@ -479,7 +474,7 @@ function IssueVotingCard({
         <div className="flex items-center gap-2">
           <h2 className="font-medium text-gray-900 truncate">{title}</h2>
           {choices && choices.length > 0 && (
-            <Badge color="blue">{choices.length} candidates</Badge>
+            <Badge color="blue">{t("eventDetail.nCandidates", { count: choices.length })}</Badge>
           )}
         </div>
         {/* Description */}
@@ -492,9 +487,9 @@ function IssueVotingCard({
               className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition-colors"
             >
               <FileText size={14} />
-              Voting booklet
+              {t("eventDetail.votingBooklet")}
               <span className="text-xs text-gray-400 font-normal">
-                ({proposals.length} argument{proposals.length !== 1 ? "s" : ""})
+                ({t("eventDetail.argument", { count: proposals.length })})
               </span>
             </button>
           </div>
@@ -507,7 +502,7 @@ function IssueVotingCard({
               className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand-light transition-colors"
             >
               <FileText size={14} />
-              {proposals.length > 0 ? "View all proposals" : "Write a proposal"}
+              {proposals.length > 0 ? t("eventDetail.viewAllProposals") : t("eventDetail.writeProposal")}
             </Link>
           </div>
         )}
@@ -546,13 +541,13 @@ function IssueVotingCard({
         {eventStatus === "deliberation" && participantId && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
             <div className="w-2 h-2 rounded-full bg-gray-400" />
-            <span className="text-sm text-gray-500">Voting has not started yet — review during the discussion period</span>
+            <span className="text-sm text-gray-500">{t("eventDetail.votingNotStarted")}</span>
           </div>
         )}
 
         {/* No identity selected */}
         {!participantId && votingOpen && (
-          <p className="text-sm text-gray-400">Select an identity to vote.</p>
+          <p className="text-sm text-gray-400">{t("eventDetail.selectIdentityToVote")}</p>
         )}
 
         {/* Results section (sealed, live toggle, or final results) */}
@@ -628,23 +623,24 @@ function VotingSection({
   onVote: (choice: string) => void;
   onDelegationCreated: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const isMultiOption = choices && choices.length > 0;
 
   // Collapsed state: user has already voted, show compact summary
   if (issueStatus.hasVoted && !expanded) {
     return (
       <div>
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">Your vote</span>
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">{t("eventDetail.yourVote")}</span>
         <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-green-50 border border-green-200">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm text-green-700">
-              You voted <span className="font-semibold capitalize">{issueStatus.myVoteChoice}</span>
+              {t("eventDetail.youVoted", { choice: issueStatus.myVoteChoice })}
               {issueStatus.myVoteDate && (
                 <span className="text-green-500 ml-1">
-                  on {new Date(issueStatus.myVoteDate).toLocaleDateString()}
+                  {t("eventDetail.youVotedOn", { date: formatDateTime(issueStatus.myVoteDate) })}
                 </span>
               )}
             </span>
@@ -654,10 +650,10 @@ function VotingSection({
               onClick={() => onSetExpanded(true)}
               className="text-xs text-green-600 hover:text-green-800 underline min-h-[32px] flex items-center"
             >
-              Change vote
+              {t("eventDetail.changeVote")}
             </button>
           ) : (
-            <span className="text-xs text-gray-400 min-h-[32px] flex items-center">Final</span>
+            <span className="text-xs text-gray-400 min-h-[32px] flex items-center">{t("eventDetail.voteFinal")}</span>
           )}
         </div>
       </div>
@@ -667,7 +663,7 @@ function VotingSection({
   // Expanded state: show delegation card + vote buttons
   return (
     <div>
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">Your vote</span>
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">{t("eventDetail.yourVote")}</span>
 
       {/* Delegation card */}
       <DelegationCard
@@ -688,9 +684,9 @@ function VotingSection({
       {/* Direct vote buttons */}
       <div className="mt-3">
         {issueStatus.isDelegated && !issueStatus.hasVoted ? (
-          <span className="text-xs text-gray-500 mb-2 block">Or vote directly:</span>
+          <span className="text-xs text-gray-500 mb-2 block">{t("eventDetail.orVoteDirectly")}</span>
         ) : issueStatus.hasVoted ? (
-          <span className="text-xs text-gray-500 mb-2 block">Change your vote:</span>
+          <span className="text-xs text-gray-500 mb-2 block">{t("eventDetail.changeYourVote")}</span>
         ) : null}
 
         {isMultiOption ? (
@@ -715,9 +711,9 @@ function VotingSection({
                 disabled={voting}
                 className="text-sm text-gray-500 hover:text-gray-700 underline disabled:opacity-50 min-h-[36px] flex items-center"
               >
-                Abstain
+                {t("eventDetail.voteAbstain")}
                 {delegationConfig.enabled && (
-                  <span className="text-xs text-gray-400 ml-1 no-underline">— won't count and won't be delegated</span>
+                  <span className="text-xs text-gray-400 ml-1 no-underline">{t("eventDetail.abstainWontDelegate")}</span>
                 )}
               </button>
             </div>
@@ -726,17 +722,17 @@ function VotingSection({
           <div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button size="lg" variant="secondary" onClick={() => onVote("for")} disabled={voting} className="flex-1 sm:flex-none">
-                For
+                {t("eventDetail.voteFor")}
               </Button>
               <Button size="lg" variant="secondary" onClick={() => onVote("against")} disabled={voting} className="flex-1 sm:flex-none">
-                Against
+                {t("eventDetail.voteAgainst")}
               </Button>
               <Button size="lg" variant="secondary" onClick={() => onVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
-                Abstain
+                {t("eventDetail.voteAbstain")}
               </Button>
             </div>
             {delegationConfig.enabled && (
-              <p className="text-xs text-gray-400 mt-1.5">Abstain means your vote won't count and won't be delegated</p>
+              <p className="text-xs text-gray-400 mt-1.5">{t("eventDetail.abstainNote")}</p>
             )}
           </div>
         )}
@@ -788,12 +784,13 @@ function DelegationCard({
   participantId: string;
   onDelegationCreated: () => void;
 }) {
+  const { t } = useTranslation("governance");
   const [showForm, setShowForm] = useState(false);
 
   // State 1: Active delegation (and no direct vote override)
   if (isDelegated && !hasVoted) {
     const delegateName = terminalVoterName ?? chainNames[chainNames.length - 1];
-    const chainDisplay = chainNames.join(" → ");
+    const chainDisplay = chainNames.join(" \u2192 ");
     return (
       <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200">
         <div className="flex items-center gap-2 min-w-0">
@@ -802,9 +799,9 @@ function DelegationCard({
           </svg>
           {delegateName && <Avatar name={delegateName} size="xs" />}
           <span className="text-sm text-blue-700 truncate">
-            Delegated to <span className="font-semibold">{delegateName}</span>
+            {t("eventDetail.delegatedTo", { name: delegateName })}
             {chainNames.length > 1 && (
-              <span className="text-blue-400 ml-1">via {chainDisplay}</span>
+              <span className="text-blue-400 ml-1">{t("eventDetail.delegatedVia", { chain: chainDisplay })}</span>
             )}
           </span>
         </div>
@@ -812,7 +809,7 @@ function DelegationCard({
           to={`/assembly/${assemblyId}/delegations`}
           className="text-xs text-blue-600 hover:text-blue-800 underline min-h-[32px] flex items-center shrink-0"
         >
-          Manage
+          {t("eventDetail.manageDelegation")}
         </Link>
       </div>
     );
@@ -827,7 +824,7 @@ function DelegationCard({
             <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
-            <span className="text-sm text-gray-500">No delegate for this topic</span>
+            <span className="text-sm text-gray-500">{t("eventDetail.noDelegateForTopic")}</span>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -860,7 +857,7 @@ function DelegationCard({
         <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
         </svg>
-        <span className="text-xs text-gray-400">Delegation is not available in this group</span>
+        <span className="text-xs text-gray-400">{t("eventDetail.delegationNotAvailable")}</span>
       </div>
     </Tooltip>
   );
@@ -885,6 +882,7 @@ function ResultsSection({
   eventStatus: string;
   resultsVisibility: string;
 }) {
+  const { t } = useTranslation("governance");
   const [showLiveResults, setShowLiveResults] = useState(false);
   const [showLiveWeights, setShowLiveWeights] = useState(false);
   const [showWeights, setShowWeights] = useState(false);
@@ -902,10 +900,10 @@ function ResultsSection({
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
         </svg>
         <span className="text-sm text-gray-500">
-          Results are sealed until voting ends
+          {t("eventDetail.resultsSealedUntilEnd")}
           {tally && tally.participatingCount > 0 && (
             <span className="ml-1">
-              · {tally.participatingCount} of {tally.eligibleCount} members have voted
+              {" \u00b7 "}{t("eventDetail.membersVoted", { participating: tally.participatingCount, eligible: tally.eligibleCount })}
             </span>
           )}
         </span>
@@ -926,7 +924,7 @@ function ResultsSection({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
-            View live results
+            {t("eventDetail.viewLiveResults")}
           </button>
         )}
 
@@ -938,7 +936,7 @@ function ResultsSection({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
-            View live breakdown
+            {t("eventDetail.viewLiveBreakdown")}
           </button>
         )}
 
@@ -950,8 +948,8 @@ function ResultsSection({
                 <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                 </svg>
-                <span className="text-sm font-medium text-amber-700">Live Results</span>
-                <Badge color="yellow">Voting open</Badge>
+                <span className="text-sm font-medium text-amber-700">{t("eventDetail.liveResults")}</span>
+                <Badge color="yellow">{t("eventDetail.votingOpen")}</Badge>
               </div>
               <button
                 onClick={() => { setShowLiveResults(false); setShowLiveWeights(false); }}
@@ -975,7 +973,7 @@ function ResultsSection({
                 <svg className={`w-4 h-4`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
-                View live breakdown
+                {t("eventDetail.viewLiveBreakdown")}
               </button>
             ) : (
               <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
@@ -984,7 +982,7 @@ function ResultsSection({
                     <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                     </svg>
-                    <span className="text-sm font-medium text-amber-700">Live Breakdown</span>
+                    <span className="text-sm font-medium text-amber-700">{t("eventDetail.liveBreakdown")}</span>
                   </div>
                   <button
                     onClick={() => setShowLiveWeights(false)}
@@ -1000,7 +998,7 @@ function ResultsSection({
         )}
 
         {totalVotes === 0 && (
-          <p className="text-sm text-gray-400">No votes cast yet.</p>
+          <p className="text-sm text-gray-400">{t("eventDetail.noVotesCast")}</p>
         )}
       </div>
     );
@@ -1011,7 +1009,7 @@ function ResultsSection({
     <div className="space-y-3">
       {tally && totalVotes > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Results</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">{t("eventDetail.results")}</h3>
           <TallyBars tally={tally} choices={choices} totalVotes={totalVotes} />
         </div>
       )}
@@ -1026,7 +1024,7 @@ function ResultsSection({
             <svg className={`w-4 h-4 transition-transform ${showWeights ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
-            Vote breakdown
+            {t("eventDetail.voteBreakdown")}
           </button>
           {showWeights && <WeightBreakdown weightDist={weightDist} nameMap={nameMap} />}
         </div>
@@ -1052,6 +1050,7 @@ function TallyBars({
   choices?: string[];
   totalVotes: number;
 }) {
+  const { t } = useTranslation("governance");
   return (
     <div>
       <div className="space-y-3">
@@ -1069,7 +1068,7 @@ function TallyBars({
                 <div className="flex items-center justify-between text-sm mb-1">
                   <span className="font-medium text-gray-900 capitalize">{choice}</span>
                   <span className="text-gray-500">
-                    {count} vote{count !== 1 ? "s" : ""} ({pct.toFixed(0)}%)
+                    {t("eventDetail.vote", { count })} ({pct.toFixed(0)}%)
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-4 sm:h-3">
@@ -1083,12 +1082,12 @@ function TallyBars({
           })}
       </div>
       <div className="flex flex-col sm:flex-row sm:gap-4 mt-3 text-xs text-gray-400 gap-0.5">
-        <span>{tally.totalVotes} votes total (including delegated votes)</span>
-        <span>{tally.participatingCount} of {tally.eligibleCount} members voted</span>
+        <span>{t("eventDetail.votesTotal", { count: tally.totalVotes })}</span>
+        <span>{t("eventDetail.membersVotedOf", { participating: tally.participatingCount, eligible: tally.eligibleCount })}</span>
         <span>
           {tally.quorumMet
-            ? "Enough members voted to count ✓"
-            : `Not enough members voted yet (need ${(tally.quorumThreshold * 100).toFixed(0)}%)`}
+            ? t("eventDetail.quorumMet")
+            : t("eventDetail.quorumNotMet", { threshold: (tally.quorumThreshold * 100).toFixed(0) })}
         </span>
       </div>
     </div>
@@ -1142,12 +1141,13 @@ function ClosedEventParticipation({
   participation: ParticipationRecord | null;
   nameMap: Map<string, string>;
 }) {
+  const { t } = useTranslation("governance");
   // No participation data yet (still loading, or no identity)
   if (!participation) {
     return (
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200">
         <div className="w-2 h-2 rounded-full bg-gray-400" />
-        <span className="text-sm text-gray-500">Voting has closed</span>
+        <span className="text-sm text-gray-500">{t("eventDetail.votingClosed")}</span>
       </div>
     );
   }
@@ -1160,9 +1160,7 @@ function ClosedEventParticipation({
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span className="text-sm text-green-700">
-          You voted{" "}
-          <span className="font-semibold capitalize">{participation.effectiveChoice ?? "—"}</span>
-          {" "}directly
+          {t("eventDetail.youVotedDirectly", { choice: participation.effectiveChoice ?? "\u2014" })}
         </span>
       </div>
     );
@@ -1187,28 +1185,15 @@ function ClosedEventParticipation({
         <span className="text-sm text-blue-700">
           {choiceHidden ? (
             <>
-              Your vote was cast
-              {terminalName && (
-                <>
-                  {" "}via{" "}
-                  <span className="font-semibold">{terminalName}</span>
-                </>
-              )}
+              {t("eventDetail.yourVoteCastVia", { name: terminalName ?? "" })}
               {chainDisplay && (
                 <span className="text-blue-400 ml-1">({chainDisplay})</span>
               )}
-              <span className="text-blue-400 ml-1">(secret ballot)</span>
+              <span className="text-blue-400 ml-1">{t("eventDetail.secretBallot")}</span>
             </>
           ) : (
             <>
-              Your vote counted as{" "}
-              <span className="font-semibold capitalize">{participation.effectiveChoice}</span>
-              {terminalName && (
-                <>
-                  {" "}via{" "}
-                  <span className="font-semibold">{terminalName}</span>
-                </>
-              )}
+              {t("eventDetail.yourVoteCountedAs", { choice: participation.effectiveChoice, name: terminalName ?? "" })}
               {chainDisplay && (
                 <span className="text-blue-400 ml-1">({chainDisplay})</span>
               )}
@@ -1225,7 +1210,7 @@ function ClosedEventParticipation({
       <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
       </svg>
-      <span className="text-sm text-gray-500">You did not participate in this vote</span>
+      <span className="text-sm text-gray-500">{t("eventDetail.didNotParticipate")}</span>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAttention, type PendingVote } from "../hooks/use-attention.js";
 import { useApi } from "../hooks/use-api.js";
@@ -55,6 +57,7 @@ export function Dashboard() {
 }
 
 function DashboardContent({ participantName }: { participantName: string | null }) {
+  const { t } = useTranslation("governance");
   const {
     pendingVotes,
     pendingSurveys,
@@ -87,9 +90,9 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Greeting */}
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
-          Hi, {participantName}
+          {t("dashboard.greeting", { name: participantName })}
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">Here's what needs your attention.</p>
+        <p className="text-sm text-gray-500 mt-0.5">{t("dashboard.attentionSubtitle")}</p>
       </div>
 
       {/* Action banner */}
@@ -98,14 +101,14 @@ function DashboardContent({ participantName }: { participantName: string | null 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-lg sm:text-xl font-semibold">
-                {totalPending > 0 && <>{totalPending} vote{totalPending !== 1 ? "s" : ""}</>}
-                {totalPending > 0 && totalPendingSurveys > 0 && " and "}
-                {totalPendingSurveys > 0 && <>{totalPendingSurveys} survey{totalPendingSurveys !== 1 ? "s" : ""}</>}
-                {" "}need{(totalPending + totalPendingSurveys) === 1 ? "s" : ""} you
+                {totalPending > 0 && <>{t("dashboard.pendingVotes", { count: totalPending })}</>}
+                {totalPending > 0 && totalPendingSurveys > 0 && ` ${t("dashboard.and")} `}
+                {totalPendingSurveys > 0 && <>{t("dashboard.pendingSurveys", { count: totalPendingSurveys })}</>}
+                {" "}{t("dashboard.needsYou", { count: totalPending + totalPendingSurveys })}
               </p>
               {nearestDeadline && (
                 <p className="text-brand-100 text-sm mt-0.5">
-                  Nearest deadline: {nearestDeadline.eventTitle} — closes{" "}
+                  {t("dashboard.nearestDeadline", { title: nearestDeadline.eventTitle })}{" "}
                   <Countdown target={nearestDeadline.votingEnd} className="text-white font-medium" />
                 </p>
               )}
@@ -115,7 +118,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
                 to={`/assembly/${nearestDeadline.assemblyId}/events/${nearestDeadline.eventId}`}
                 className="inline-flex items-center justify-center px-4 py-2.5 bg-white text-brand font-medium rounded-md hover:bg-gray-50 transition-colors min-h-[44px] shrink-0"
               >
-                Vote Now
+                {t("dashboard.voteNow")}
               </Link>
             )}
           </div>
@@ -127,8 +130,8 @@ function DashboardContent({ participantName }: { participantName: string | null 
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p className="font-medium text-green-800">You're all caught up!</p>
-              <p className="text-sm text-green-600 mt-0.5">No pending votes or surveys across your groups.</p>
+              <p className="font-medium text-green-800">{t("dashboard.allCaughtUp")}</p>
+              <p className="text-sm text-green-600 mt-0.5">{t("dashboard.noPendingDesc")}</p>
             </div>
           </div>
         </div>
@@ -147,7 +150,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
         groups.sort((a, b) => (a.pendingCount > 0 ? 0 : 1) - (b.pendingCount > 0 ? 0 : 1));
         return (
           <div className="mb-8">
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Active Votes</h2>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.activeVotes")}</h2>
             <div className="space-y-3">
               {groups.map((group) => (
                 <Link
@@ -198,7 +201,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Pending surveys */}
       {pendingSurveys.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Pending Surveys</h2>
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.pendingSurveysSection")}</h2>
           <div className="space-y-3">
             {pendingSurveys.map((survey) => (
               <Link
@@ -216,11 +219,11 @@ function DashboardContent({ participantName }: { participantName: string | null 
                           </span>
                         </div>
                         <p className="text-sm font-medium text-gray-900">{survey.surveyTitle}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{survey.questionCount} question{survey.questionCount !== 1 ? "s" : ""}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{t("surveys.question", { count: survey.questionCount })}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <span className="text-[10px] font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
-                          Survey open
+                          {t("dashboard.surveyOpen")}
                         </span>
                         {survey.closesAt > 0 && (
                           <span className="text-[10px] text-gray-400">
@@ -240,26 +243,26 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Assembly cards */}
       {assemblySummaries.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Your Groups</h2>
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.yourGroups")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {assemblySummaries.map(({ assembly, activeEventCount, pendingVoteCount, pendingSurveyCount }) => (
               <Link key={assembly.id} to={`/assembly/${assembly.id}/events`} className="block">
                 <Card className="hover:border-brand-200 hover:shadow transition-all h-full">
                   <CardBody>
                     <h3 className="font-medium text-gray-900">{assembly.name}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{presetLabel(assembly.config.name)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{presetLabel(assembly.config.name, t)}</p>
                     <div className="flex items-center gap-3 mt-3">
                       <Badge color={activeEventCount > 0 ? "blue" : "gray"}>
-                        {activeEventCount} active vote{activeEventCount !== 1 ? "s" : ""}
+                        {t("dashboard.activeVote", { count: activeEventCount })}
                       </Badge>
                       {pendingVoteCount > 0 && (
                         <Badge color="red">
-                          {pendingVoteCount} pending vote{pendingVoteCount !== 1 ? "s" : ""}
+                          {t("dashboard.pendingVote", { count: pendingVoteCount })}
                         </Badge>
                       )}
                       {pendingSurveyCount > 0 && (
                         <Badge color="yellow">
-                          {pendingSurveyCount} survey{pendingSurveyCount !== 1 ? "s" : ""}
+                          {t("dashboard.survey", { count: pendingSurveyCount })}
                         </Badge>
                       )}
                     </div>
@@ -273,9 +276,9 @@ function DashboardContent({ participantName }: { participantName: string | null 
 
       {assemblySummaries.length === 0 && pendingVotes.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">No groups found.</p>
+          <p className="text-gray-500">{t("dashboard.noGroups")}</p>
           <Link to="/assemblies" className="text-sm text-brand hover:text-brand-light mt-2 inline-block">
-            Browse groups
+            {t("dashboard.browseGroups")}
           </Link>
         </div>
       )}
@@ -285,10 +288,11 @@ function DashboardContent({ participantName }: { participantName: string | null 
 
 /** Badge for an event group: pending, all voted, all delegated, or mix. */
 function EventGroupBadge({ group }: { group: VoteGroup }) {
+  const { t } = useTranslation("governance");
   if (group.pendingCount > 0) {
     return (
       <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-        {group.pendingCount} vote{group.pendingCount !== 1 ? "s" : ""} needed
+        {t("dashboard.votesNeeded", { count: group.pendingCount })}
       </span>
     );
   }
@@ -303,32 +307,33 @@ function EventGroupBadge({ group }: { group: VoteGroup }) {
   if (delegatedCount === group.questions.length) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
-        {checkIcon} All delegated
+        {checkIcon} {t("dashboard.allDelegated")}
       </span>
     );
   }
   if (votedCount === group.questions.length) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
-        {checkIcon} All voted
+        {checkIcon} {t("dashboard.allVoted")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
-      {checkIcon} All handled
+      {checkIcon} {t("dashboard.allHandled")}
     </span>
   );
 }
 
 function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: boolean; delegateTargetName: string | null } }) {
+  const { t } = useTranslation("governance");
   if (vote.hasVoted) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
         </svg>
-        Voted
+        {t("dashboard.voted")}
       </span>
     );
   }
@@ -336,38 +341,39 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
         {vote.delegateTargetName && <Avatar name={vote.delegateTargetName} size="xs" className="!w-3.5 !h-3.5" />}
-        Delegated{vote.delegateTargetName ? ` to ${vote.delegateTargetName}` : ""}
+        {vote.delegateTargetName ? t("dashboard.delegatedTo", { name: vote.delegateTargetName }) : t("dashboard.delegated")}
       </span>
     );
   }
   return (
     <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-      Needs your vote
+      {t("dashboard.needsYourVote")}
     </span>
   );
 }
 
 function PendingJoinRequests() {
+  const { t } = useTranslation("governance");
   const { data } = useApi(() => api.listMyJoinRequests(), []);
   const requests = data?.joinRequests ?? [];
   if (requests.length === 0) return null;
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Pending Requests</h2>
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.pendingRequests")}</h2>
       <div className="space-y-2">
         {requests.map((req) => (
           <Card key={req.id} className="border-gray-200">
             <CardBody className="flex items-center justify-between">
               <div className="min-w-0">
                 <p className="text-sm text-gray-700">
-                  Request to join <span className="font-medium">{req.assemblyName ?? "a group"}</span>
+                  {t("dashboard.requestToJoin", { name: req.assemblyName ?? "a group" })}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Submitted {new Date(req.createdAt).toLocaleDateString()}
+                  {t("dashboard.submitted", { date: formatDate(req.createdAt) })}
                 </p>
               </div>
-              <Badge color="yellow">Awaiting review</Badge>
+              <Badge color="yellow">{t("dashboard.awaitingReview")}</Badge>
             </CardBody>
           </Card>
         ))}
@@ -377,6 +383,7 @@ function PendingJoinRequests() {
 }
 
 function PendingInvitations() {
+  const { t } = useTranslation("governance");
   const navigate = useNavigate();
   const { data, refetch } = useApi(() => api.listMyInvitations(), []);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -408,17 +415,17 @@ function PendingInvitations() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Invitations</h2>
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.invitations")}</h2>
       <div className="space-y-2">
         {invitations.map((inv) => (
           <Card key={inv.id} className="border-brand-200">
             <CardBody className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-900">
-                  You've been invited to join <span className="text-brand">{inv.assemblyName ?? "a group"}</span>
+                  {t("dashboard.invitedToJoin", { name: inv.assemblyName ?? "a group" })}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {new Date(inv.createdAt).toLocaleDateString()}
+                  {formatDate(inv.createdAt)}
                 </p>
               </div>
               <div className="flex gap-2 shrink-0">
@@ -435,7 +442,7 @@ function PendingInvitations() {
                   onClick={() => handleAccept(inv)}
                   disabled={processing === inv.id}
                 >
-                  {processing === inv.id ? "Joining..." : "Accept"}
+                  {processing === inv.id ? t("dashboard.joining") : t("dashboard.accept")}
                 </Button>
               </div>
             </CardBody>

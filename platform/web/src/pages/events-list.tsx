@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
@@ -35,6 +36,7 @@ function useFullEvents(assemblyId: string | undefined, eventIds: string[]) {
 }
 
 export function EventsList() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
   const { assembly: assemblyData } = useAssembly(assemblyId);
@@ -85,8 +87,8 @@ export function EventsList() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Votes</h1>
-        <Button onClick={() => setCreating(true)}>Create a Vote</Button>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("eventsList.title")}</h1>
+        <Button onClick={() => setCreating(true)}>{t("eventsList.createVote")}</Button>
       </div>
 
       {creating && (
@@ -98,7 +100,7 @@ export function EventsList() {
       )}
 
       {sortedEvents.length === 0 ? (
-        <EmptyState title="No votes yet" description="Create a vote to start making decisions." />
+        <EmptyState title={t("eventsList.noVotes")} description={t("eventsList.noVotesDesc")} />
       ) : (
         <div className="space-y-3">
           {sortedEvents.map((evt) => (
@@ -111,6 +113,7 @@ export function EventsList() {
 }
 
 function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemblyId: string; event: VotingEvent; history: { history: Array<{ issueId: string }> } | null; timelineConfig?: { deliberationDays: number; curationDays: number; votingDays: number } }) {
+  const { t } = useTranslation("governance");
   const status = evt.timeline ? deriveEventStatus(evt.timeline, timelineConfig) : undefined;
   const issueIds = evt.issueIds ?? evt.issues?.map((i) => i.id) ?? [];
   const issueCount = issueIds.length;
@@ -135,11 +138,11 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <div className="flex items-center gap-2">
-                <Badge color="gray">{issueCount} question{issueCount !== 1 ? "s" : ""}</Badge>
+                <Badge color="gray">{t("eventsList.question", { count: issueCount })}</Badge>
               </div>
               {votedCount !== null && issueCount > 0 && (status === "voting" || status === "closed") && (
                 <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-green-600" : votedCount > 0 ? "text-amber-600" : "text-gray-400"}`}>
-                  Voted {votedCount}/{issueCount}
+                  {t("eventsList.votedCount", { voted: votedCount, total: issueCount })}
                 </span>
               )}
               {status === "voting" && votingEnd && (
@@ -154,6 +157,7 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
 }
 
 function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: string; onClose: () => void; onCreated: () => void }) {
+  const { t } = useTranslation("governance");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [issues, setIssues] = useState([{ title: "", description: "" }]);
@@ -193,7 +197,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
       onCreated();
       onClose();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create vote");
+      setFormError(err instanceof Error ? err.message : t("eventsList.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -205,52 +209,52 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">New Vote</h3>
+          <h3 className="font-medium text-gray-900">{t("eventsList.newVote")}</h3>
           {formError && <ErrorBox message={formError} />}
           <div>
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Vote title" autoFocus />
+            <Label>{t("eventsList.titleLabel")}</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("eventsList.titlePlaceholder")} autoFocus />
           </div>
           <div>
-            <Label>Description</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description" />
+            <Label>{t("eventsList.descLabel")}</Label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("eventsList.descPlaceholder")} />
           </div>
           <div>
-            <Label>Questions</Label>
+            <Label>{t("eventsList.questionsLabel")}</Label>
             <div className="space-y-3">
               {issues.map((issue, idx) => (
                 <div key={idx} className="flex flex-col sm:flex-row gap-2">
                   <Input
                     value={issue.title}
                     onChange={(e) => updateIssue(idx, "title", e.target.value)}
-                    placeholder={`Question ${idx + 1}`}
+                    placeholder={t("eventsList.questionPlaceholder", { n: idx + 1 })}
                     className="flex-1"
                   />
                   <Input
                     value={issue.description}
                     onChange={(e) => updateIssue(idx, "description", e.target.value)}
-                    placeholder="Description (optional)"
+                    placeholder={t("eventsList.descOptionalPlaceholder")}
                     className="flex-1"
                   />
                 </div>
               ))}
               <button type="button" onClick={addIssue} className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center">
-                + Add another question
+                {t("eventsList.addQuestion")}
               </button>
             </div>
           </div>
 
           {/* Start time */}
           <div>
-            <Label>When to start</Label>
+            <Label>{t("eventsList.whenToStart")}</Label>
             <div className="flex items-center gap-3 mt-1">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="radio" checked={startNow} onChange={() => setStartNow(true)} />
-                Now
+                {t("eventsList.now")}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="radio" checked={!startNow} onChange={() => setStartNow(false)} />
-                Schedule
+                {t("eventsList.schedule")}
               </label>
             </div>
             {!startNow && (
@@ -267,19 +271,19 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
           {tl && (
             <div className="text-xs text-gray-400 space-y-0.5">
               <p>
-                {tl.deliberationDays}d deliberation
-                {tl.curationDays > 0 && <> + {tl.curationDays}d curation</>}
-                {" "}+ {tl.votingDays}d voting
-                {totalDays && <> = {totalDays} days total</>}
+                {tl.deliberationDays}d {t("assemblyList.deliberation")}
+                {tl.curationDays > 0 && <> + {tl.curationDays}d {t("assemblyList.curation")}</>}
+                {" "}+ {tl.votingDays}d {t("assemblyList.voting")}
+                {totalDays && <> {t("eventsList.timelineTotal", { total: totalDays })}</>}
               </p>
-              <p>All current members ({participantsData?.participants.length ?? 0}) will be eligible.</p>
+              <p>{t("eventsList.allMembersEligible", { count: participantsData?.participants.length ?? 0 })}</p>
             </div>
           )}
 
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
             <Button type="submit" disabled={submitting || !title.trim()}>
-              {submitting ? "Creating..." : "Create Vote"}
+              {submitting ? t("eventsList.creating") : t("eventsList.createVoteBtn")}
             </Button>
           </div>
         </form>

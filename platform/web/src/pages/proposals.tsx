@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
@@ -13,6 +14,7 @@ const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").the
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
 
 export function Proposals() {
+  const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
   const [searchParams] = useSearchParams();
   const issueId = searchParams.get("issueId") ?? undefined;
@@ -58,14 +60,14 @@ export function Proposals() {
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Proposals</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("proposals.title")}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Documents arguing for or against each choice.
+            {t("proposals.subtitle")}
           </p>
         </div>
         {participantId && (
           <Button onClick={() => setShowDraftForm(!showDraftForm)}>
-            {showDraftForm ? "Cancel" : "New Draft"}
+            {showDraftForm ? t("common:cancel") : t("proposals.newDraft")}
           </Button>
         )}
       </div>
@@ -73,7 +75,7 @@ export function Proposals() {
       {showDraftForm && !effectiveIssueId && deliberationIssues.length > 0 && (
         <Card className="mb-6">
           <CardBody>
-            <h3 className="font-medium text-gray-900 mb-3">Select a question to write about</h3>
+            <h3 className="font-medium text-gray-900 mb-3">{t("proposals.selectQuestion")}</h3>
             <div className="space-y-2">
               {deliberationIssues.map((issue) => (
                 <button
@@ -99,7 +101,7 @@ export function Proposals() {
 
       {drafts.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-lg font-medium text-gray-800 mb-3">Your Drafts</h2>
+          <h2 className="text-lg font-medium text-gray-800 mb-3">{t("proposals.yourDrafts")}</h2>
           {drafts.map((d) => (
             <DraftCard key={d.id} draft={d} assemblyId={assemblyId!} onAction={() => { refetchDrafts(); refetch(); }} />
           ))}
@@ -107,7 +109,7 @@ export function Proposals() {
       )}
 
       {proposals.length === 0 ? (
-        <EmptyState title="No proposals yet" description="Be the first to submit a proposal for this issue." />
+        <EmptyState title={t("proposals.noProposals")} description={t("proposals.noProposalsDesc")} />
       ) : (
         <div className="space-y-4">
           {proposals.map((p) => (
@@ -120,6 +122,7 @@ export function Proposals() {
 }
 
 function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; nameMap: Map<string, string>; assemblyId: string }) {
+  const { t } = useTranslation("governance");
   const [expanded, setExpanded] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [fullContent, setFullContent] = useState<Proposal | null>(null);
@@ -186,9 +189,9 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
         {expanded && (
           <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <Suspense fallback={<p className="text-sm text-gray-400">Loading...</p>}><MarkdownViewer content={markdown} /></Suspense>
+              <Suspense fallback={<p className="text-sm text-gray-400">{t("proposals.loading")}</p>}><MarkdownViewer content={markdown} /></Suspense>
             ) : (
-              <p className="text-sm text-gray-400 italic">Proposal content not yet available.</p>
+              <p className="text-sm text-gray-400 italic">{t("proposals.contentNotAvailable")}</p>
             )}
           </div>
         )}
@@ -199,14 +202,14 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
             onClick={handleExpand}
           >
             <FileText size={14} />
-            {expanded ? "Hide proposal" : "Read proposal"}
+            {expanded ? t("proposals.hideProposal") : t("proposals.readProposal")}
           </button>
           <button
             className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
             onClick={() => setShowNotes(!showNotes)}
           >
             <MessageSquareText size={14} />
-            Notes
+            {t("proposals.notesLabel")}
           </button>
           {canEndorse && (
             <div className="flex items-center gap-1 ml-auto">
@@ -247,6 +250,7 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
 }
 
 function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; assemblyId: string; onAction: () => void }) {
+  const { t } = useTranslation("governance");
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(draft.title);
   const [markdown, setMarkdown] = useState(draft.markdown);
@@ -261,7 +265,7 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
       await api.submitProposalDraft(assemblyId, draft.id);
       onAction();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Submit failed");
+      alert(err instanceof Error ? err.message : t("proposals.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -276,12 +280,12 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
     <Card className="mb-3 border-dashed border-amber-300 bg-amber-50">
       <CardBody>
         <div className="flex items-center justify-between mb-2">
-          <Badge color="yellow">Draft</Badge>
+          <Badge color="yellow">{t("proposals.draft")}</Badge>
           <div className="flex gap-2">
             <button className="text-sm text-gray-500 hover:text-gray-700" onClick={() => setEditing(!editing)}>
-              {editing ? "Done editing" : "Edit"}
+              {editing ? t("proposals.doneEditing") : t("proposals.edit")}
             </button>
-            <button className="text-sm text-red-500 hover:text-red-700" onClick={handleDelete}>Delete</button>
+            <button className="text-sm text-red-500 hover:text-red-700" onClick={handleDelete}>{t("common:delete")}</button>
           </div>
         </div>
 
@@ -292,13 +296,13 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="Proposal title"
+              placeholder={t("proposals.titlePlaceholder")}
             />
-            <Suspense fallback={<p className="text-sm text-gray-400">Loading editor...</p>}>
+            <Suspense fallback={<p className="text-sm text-gray-400">{t("proposals.loadingEditor")}</p>}>
               <MarkdownEditor
                 value={markdown}
                 onChange={setMarkdown}
-                placeholder="Write your proposal — use headings, lists, and bold text to structure your argument..."
+                placeholder={t("proposals.editorPlaceholder")}
                 assemblyId={assemblyId}
                 minHeight={250}
               />
@@ -315,7 +319,7 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
 
         <div className="mt-3">
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit Proposal"}
+            {submitting ? t("proposals.submitting") : t("proposals.submitProposal")}
           </Button>
         </div>
       </CardBody>
@@ -324,6 +328,7 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
 }
 
 function DraftForm({ assemblyId, issueId, onCreated }: { assemblyId: string; issueId: string; onCreated: () => void }) {
+  const { t } = useTranslation("governance");
   const [title, setTitle] = useState("");
   const [choiceKey, setChoiceKey] = useState("for");
 
@@ -336,16 +341,16 @@ function DraftForm({ assemblyId, issueId, onCreated }: { assemblyId: string; iss
   return (
     <Card className="mb-6">
       <CardBody>
-        <h3 className="font-medium text-gray-900 mb-3">New Proposal Draft</h3>
+        <h3 className="font-medium text-gray-900 mb-3">{t("proposals.newDraftTitle")}</h3>
         <div className="flex gap-3 mb-3">
           <select
             value={choiceKey}
             onChange={(e) => setChoiceKey(e.target.value)}
             className="border rounded px-3 py-2 text-sm bg-white"
           >
-            <option value="for">For</option>
-            <option value="against">Against</option>
-            <option value="general">General</option>
+            <option value="for">{t("proposals.choiceFor")}</option>
+            <option value="against">{t("proposals.choiceAgainst")}</option>
+            <option value="general">{t("proposals.choiceGeneral")}</option>
           </select>
           <input
             type="text"
@@ -355,7 +360,7 @@ function DraftForm({ assemblyId, issueId, onCreated }: { assemblyId: string; iss
             placeholder="Proposal title"
           />
         </div>
-        <Button onClick={handleCreate} disabled={!title.trim()}>Create Draft</Button>
+        <Button onClick={handleCreate} disabled={!title.trim()}>{t("proposals.createDraft")}</Button>
       </CardBody>
     </Card>
   );
