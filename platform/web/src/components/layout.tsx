@@ -173,6 +173,13 @@ function IdentityIndicator({ name }: { name: string | null }) {
           >
             {t("nav.notifications")}
           </Link>
+          <Link
+            to="/settings/language"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+          >
+            {t("nav.language")}
+          </Link>
           <button
             onClick={() => { clearIdentity(); setOpen(false); }}
             className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"

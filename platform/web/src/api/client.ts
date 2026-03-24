@@ -189,7 +189,7 @@ export function listMyJoinRequests(): Promise<{ joinRequests: JoinRequest[] }> {
   return request("GET", "/me/join-requests");
 }
 
-export function updateProfile(updates: { handle?: string; name?: string; bio?: string; avatarUrl?: string | null }): Promise<{ handle: string; name: string; bio: string; avatarUrl: string | null }> {
+export function updateProfile(updates: { handle?: string; name?: string; bio?: string; avatarUrl?: string | null; locale?: string }): Promise<{ handle: string; name: string; bio: string; avatarUrl: string | null; locale: string }> {
   return request("PUT", "/me/profile", updates);
 }
 

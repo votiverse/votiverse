@@ -32,5 +32,8 @@
   "channel.sms": "SMS",
   "channel.both": "Email + SMS",
   "channel.none": "None (in-app only)",
-  "channel.disabledWarning": "Email notifications are disabled. You'll still see all notifications in the notification bell and on the notifications page."
+  "channel.disabledWarning": "Email notifications are disabled. You'll still see all notifications in the notification bell and on the notifications page.",
+  "language.title": "Language",
+  "language.preferred": "Preferred Language",
+  "language.description": "Choose the language for the Votiverse interface. The page will reload to apply your selection."
 }

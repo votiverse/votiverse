@@ -22,6 +22,7 @@ import { ProfileDelegators } from "./pages/profile-delegators.js";
 import { ProfileDelegates } from "./pages/profile-delegates.js";
 import { ProfileVotes } from "./pages/profile-votes.js";
 import { NotificationSettings } from "./pages/notification-settings.js";
+import { LanguageSettings } from "./pages/language-settings.js";
 import { Notifications } from "./pages/notifications.js";
 import { InvitePage } from "./pages/invite.js";
 import { DevClock } from "./components/dev-clock.js";
@@ -61,6 +62,7 @@ export function App() {
               <Route path="profile/votes" element={<ProfileVotes />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="settings/notifications" element={<NotificationSettings />} />
+              <Route path="settings/language" element={<LanguageSettings />} />
               <Route path="assembly/:assemblyId" element={<AssemblyDashboard />} />
               <Route path="assembly/:assemblyId/members" element={<Members />} />
               <Route path="assembly/:assemblyId/events" element={<EventsList />} />
