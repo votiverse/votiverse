@@ -40,7 +40,7 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
+    <header className="bg-surface-raised border-b border-border-default sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Left: logo / back + desktop nav */}
@@ -49,21 +49,21 @@ export function Header() {
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={handleBack}
-                  className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
+                  className="p-1 text-text-tertiary hover:text-text-secondary transition-colors"
                   aria-label={t("nav.goBack")}
                 >
                   <ChevronLeft size={18} strokeWidth={2} />
                 </button>
                 <Link
                   to="/"
-                  className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
+                  className="p-1 text-text-tertiary hover:text-text-secondary transition-colors"
                   aria-label={t("nav.goHome")}
                 >
                   <Home size={16} strokeWidth={2} />
                 </Link>
                 <Link
                   to={`/assembly/${assemblyId}`}
-                  className="text-sm font-medium text-gray-900 hover:text-brand truncate max-w-[55vw] sm:max-w-[280px] lg:max-w-[320px] ml-1"
+                  className="text-sm font-medium text-text-primary hover:text-accent-text truncate max-w-[55vw] sm:max-w-[280px] lg:max-w-[320px] ml-1"
                 >
                   {assembly?.name ?? t("loading")}
                 </Link>
@@ -71,7 +71,7 @@ export function Header() {
             ) : (
               <Link to="/" className="flex items-center gap-2 shrink-0">
                 <img src="/logo.svg" alt="Votiverse" className="w-16 h-16" />
-                <span className="font-semibold text-gray-900 hidden sm:inline">Votiverse</span>
+                <span className="font-semibold text-text-primary hidden sm:inline">Votiverse</span>
               </Link>
             )}
             {/* Desktop nav — hidden on mobile (bottom tabs handle it), hidden when not logged in */}
@@ -94,7 +94,7 @@ export function Header() {
             {storeUserId && inAssembly && (
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="lg:hidden p-2 -mr-2 text-gray-500 hover:text-gray-900 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="lg:hidden p-2 -mr-2 text-text-muted hover:text-text-primary min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Menu"
               >
                 {menuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -108,11 +108,11 @@ export function Header() {
       {menuOpen && inAssembly && (
         <>
           <div
-            className="lg:hidden fixed inset-0 top-14 bg-black/20 z-10"
+            className="lg:hidden fixed inset-0 top-14 bg-[var(--overlay-backdrop)] z-10"
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="lg:hidden absolute left-0 right-0 border-t border-gray-100 bg-white px-4 py-3 space-y-1 z-20 shadow-lg">
+          <div className="lg:hidden absolute left-0 right-0 border-t border-border-subtle bg-surface-overlay px-4 py-3 space-y-1 z-20 shadow-lg">
             <MobileMenuLinks assemblyId={assemblyId!} onNavigate={() => setMenuOpen(false)} />
           </div>
         </>
@@ -147,52 +147,52 @@ function IdentityIndicator({ name }: { name: string | null }) {
         <Avatar name={name ?? "?"} size="sm" />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
-          <div className="px-3 py-2 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">{name}</p>
-            {handle && <p className="text-xs text-gray-400 truncate">@{handle}</p>}
+        <div className="absolute right-0 mt-1 w-48 bg-surface-overlay border border-border-default rounded-lg shadow-lg z-30 py-1">
+          <div className="px-3 py-2 border-b border-border-subtle">
+            <p className="text-sm font-medium text-text-primary">{name}</p>
+            {handle && <p className="text-xs text-text-tertiary truncate">@{handle}</p>}
           </div>
           <Link
             to="/profile"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+            className="block px-3 py-2.5 text-sm text-text-secondary hover:bg-interactive-hover min-h-[44px] flex items-center"
           >
             {t("nav.me")}
           </Link>
           <Link
             to="/profile/delegators"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+            className="block px-3 py-2.5 text-sm text-text-secondary hover:bg-interactive-hover min-h-[44px] flex items-center"
           >
             {t("nav.delegators")}
           </Link>
           <Link
             to="/settings/notifications"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+            className="block px-3 py-2.5 text-sm text-text-secondary hover:bg-interactive-hover min-h-[44px] flex items-center"
           >
             {t("nav.notifications")}
           </Link>
           <Link
             to="/settings/language"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+            className="block px-3 py-2.5 text-sm text-text-secondary hover:bg-interactive-hover min-h-[44px] flex items-center"
           >
             {t("nav.language")}
           </Link>
           <Link
             to="/settings/appearance"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+            className="block px-3 py-2.5 text-sm text-text-secondary hover:bg-interactive-hover min-h-[44px] flex items-center"
           >
             {t("nav.appearance")}
           </Link>
-          <div className="px-3 py-2 border-t border-gray-100">
+          <div className="px-3 py-2 border-t border-border-subtle">
             <ThemeToggle />
           </div>
           <button
             onClick={() => { clearIdentity(); setOpen(false); }}
-            className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+            className="w-full text-left px-3 py-2.5 text-sm text-text-secondary hover:bg-interactive-hover min-h-[44px] flex items-center"
           >
             {t("nav.logout")}
           </button>
@@ -230,7 +230,7 @@ export function BottomTabs() {
   const tabs = inAssembly ? assemblyTabs : globalTabs;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 safe-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-raised border-t border-border-default z-20 safe-bottom">
       <div className="flex items-stretch">
         {tabs.map((tab) => {
           const active = tab.exact
@@ -241,7 +241,7 @@ export function BottomTabs() {
               key={tab.to}
               to={tab.to}
               className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[52px] text-xs transition-colors ${
-                active ? "text-brand font-medium" : "text-gray-500"
+                active ? "text-accent-text font-medium" : "text-text-muted"
               }`}
             >
               <tab.icon active={active} />
@@ -266,7 +266,7 @@ function GlobalNavLinks() {
   return (
     <>
       {items.map(({ to, label, Icon }) => (
-        <Link key={to} to={to} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
+        <Link key={to} to={to} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-interactive-active rounded-md transition-colors">
           <Icon size={15} strokeWidth={1.5} />
           {label}
         </Link>
@@ -287,7 +287,7 @@ function AssemblyNavLinks({ assemblyId }: { assemblyId: string }) {
           <Link
             key={tab.to}
             to={tab.to}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-interactive-active rounded-md transition-colors"
           >
             {Icon && <Icon size={15} strokeWidth={1.5} />}
             {tab.label}
@@ -309,7 +309,7 @@ function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNav
           key={tab.to}
           to={tab.to}
           onClick={onNavigate}
-          className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-md min-h-[44px] flex items-center"
+          className="block px-3 py-2.5 text-sm text-text-secondary hover:bg-interactive-hover rounded-md min-h-[44px] flex items-center"
         >
           {tab.label}
         </Link>
