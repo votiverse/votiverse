@@ -57,6 +57,12 @@ const TEST_CONFIG: BackendConfig = {
   s3Bucket: "",
   s3Region: "us-east-1",
   s3CdnDomain: "",
+  oauthGoogleClientId: "",
+  oauthGoogleClientSecret: "",
+  oauthMicrosoftClientId: "",
+  oauthMicrosoftClientSecret: "",
+  oauthRedirectBaseUrl: "http://localhost:4000",
+  oauthFrontendUrl: "http://localhost:5173",
 };
 
 export interface TestBackend {

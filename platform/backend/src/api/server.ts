@@ -22,6 +22,8 @@ import { createAuthMiddleware } from "./middleware/auth.js";
 import { healthRoutes } from "./routes/health.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { authRoutes } from "./routes/auth.js";
+import { oauthRoutes } from "./routes/oauth.js";
+import { OAuthService } from "../services/oauth-service.js";
 import { meRoutes } from "./routes/me.js";
 import { proxyRoutes } from "./routes/proxy.js";
 import { contentRoutes } from "./routes/content.js";
@@ -135,10 +137,14 @@ export function createApp(deps: AppDependencies): Hono {
     ? new InvitationNotifier(deps.notificationAdapter, userService, assemblyCacheService, frontendUrl)
     : null;
 
+  // OAuth service
+  const oauthService = new OAuthService(database, userService, sessionService, config);
+
   // Routes
   app.route("/", healthRoutes(database));
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService, config, deps.notificationAdapter));
+  app.route("/", oauthRoutes(oauthService, config));
   app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub, database));
   app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier, notificationHub));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
