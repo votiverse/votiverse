@@ -48,7 +48,7 @@ export function Members() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("members.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("members.title")}</h1>
         <div className="flex gap-2">
           {admissionMode !== "invite-only" && (
             <Button variant="secondary" onClick={handleGenerateInvite}>
@@ -69,14 +69,14 @@ export function Members() {
 
       {/* Admission mode indicator + settings */}
       <div className="flex items-center gap-3 mb-4 text-sm">
-        <span className="text-gray-500">
-          {t("members.admissionLabel")} <span className="font-medium text-gray-700">
+        <span className="text-text-muted">
+          {t("members.admissionLabel")} <span className="font-medium text-text-secondary">
             {admissionMode === "approval" ? t("members.admissionApproval") : admissionMode === "open" ? t("members.admissionOpen") : t("members.admissionInviteOnly")}
           </span>
         </span>
         <button
           onClick={() => setShowSettings(!showSettings)}
-          className="text-brand hover:text-brand-light text-xs font-medium"
+          className="text-accent-text hover:text-accent-text text-xs font-medium"
         >
           {showSettings ? t("members.hideSettings") : t("members.changeSettings")}
         </button>
@@ -91,11 +91,11 @@ export function Members() {
       )}
 
       {inviteLink && (
-        <Card className="mb-4 border-brand-200 bg-brand-50/30">
+        <Card className="mb-4 border-accent-muted bg-accent-subtle">
           <CardBody>
-            <p className="text-sm text-gray-700 mb-2">{t("members.shareLink")}</p>
+            <p className="text-sm text-text-secondary mb-2">{t("members.shareLink")}</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-gray-200 text-gray-600 truncate">{inviteLink}</code>
+              <code className="flex-1 text-xs bg-surface-raised px-3 py-2 rounded border border-border-default text-text-secondary truncate">{inviteLink}</code>
               <Button
                 variant="secondary"
                 onClick={async () => {
@@ -108,18 +108,18 @@ export function Members() {
               </Button>
             </div>
             {admissionMode === "open" ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-2 mt-2">
-                <p className="text-xs text-amber-800">
+              <div className="bg-warning-subtle border border-warning-border rounded-md p-2 mt-2">
+                <p className="text-xs text-warning-text">
                   <span className="font-medium">Sybil risk:</span> This link lets anyone join and vote immediately. A bad actor could create multiple accounts to multiply their voting power. Share only with people you trust.
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-text-tertiary mt-2">
                 {t("members.approvalNeeded")}
               </p>
             )}
             {inviteExpiresAt && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-text-tertiary mt-1">
                 {t("members.linkExpires", { date: formatDate(inviteExpiresAt) })}
               </p>
             )}
@@ -143,10 +143,10 @@ export function Members() {
 
       {/* Pending join requests (approval mode) */}
       {pendingRequests.length > 0 && (
-        <Card className="mb-4 border-blue-200">
+        <Card className="mb-4 border-info-border">
           <CardBody>
             <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">{t("members.pendingJoinRequests")}</h3>
+              <h3 className="text-sm font-semibold text-text-primary">{t("members.pendingJoinRequests")}</h3>
               <Badge color="blue">{pendingRequests.length}</Badge>
             </div>
             <div className="space-y-2">
@@ -175,15 +175,15 @@ export function Members() {
         <EmptyState title={t("members.noMembers")} description={t("members.noMembersDesc")} />
       ) : (
         <Card>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border-subtle">
             {participants.map((p) => (
               <div key={p.id} className="px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-h-[56px]">
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar name={p.name} size="md" />
                   <div className="min-w-0">
-                    <div className="font-medium text-gray-900">{p.name}</div>
+                    <div className="font-medium text-text-primary">{p.name}</div>
                     {p.registeredAt && (
-                      <div className="text-xs text-gray-400 mt-0.5">
+                      <div className="text-xs text-text-tertiary mt-0.5">
                         {t("members.joined", { date: formatDate(p.registeredAt) })}
                       </div>
                     )}
@@ -233,7 +233,7 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">{t("members.addMemberTitle")}</h3>
+          <h3 className="font-medium text-text-primary">{t("members.addMemberTitle")}</h3>
           {error && <ErrorBox message={error} />}
           <div>
             <Label>{t("members.nameLabel")}</Label>
@@ -279,11 +279,11 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
     <Card className="mb-4">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <h3 className="font-medium text-gray-900 text-sm">{t("members.directInviteTitle")}</h3>
+          <h3 className="font-medium text-text-primary text-sm">{t("members.directInviteTitle")}</h3>
           {error && <ErrorBox message={error} />}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">@</span>
               <Input
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
@@ -297,7 +297,7 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
             </Button>
             <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
           </div>
-          <p className="text-xs text-gray-400">{t("members.directInviteNote")}</p>
+          <p className="text-xs text-text-tertiary">{t("members.directInviteNote")}</p>
         </form>
       </CardBody>
     </Card>
@@ -327,15 +327,15 @@ function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: s
   };
 
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-md bg-gray-50">
+    <div className="flex items-center justify-between py-2 px-3 rounded-md bg-surface">
       <div className="flex items-center gap-2 min-w-0">
         <Avatar name={request.userName} size="sm" />
         <div className="min-w-0">
-          <span className="text-sm font-medium text-gray-900">{request.userName}</span>
+          <span className="text-sm font-medium text-text-primary">{request.userName}</span>
           {request.userHandle && (
-            <span className="text-xs text-gray-400 ml-1">@{request.userHandle}</span>
+            <span className="text-xs text-text-tertiary ml-1">@{request.userHandle}</span>
           )}
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-text-tertiary">
             {t("members.requested", { date: formatDate(request.createdAt) })}
           </div>
         </div>
@@ -371,7 +371,7 @@ function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assembl
   return (
     <Card className="mb-4">
       <CardBody>
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("members.admissionSettings")}</h3>
+        <h3 className="text-sm font-semibold text-text-primary mb-3">{t("members.admissionSettings")}</h3>
         {error && <ErrorBox message={error} />}
         <div className="space-y-3">
           <div>
@@ -383,12 +383,12 @@ function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assembl
             </Select>
           </div>
           {mode === "open" && mode !== currentMode && (
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+            <p className="text-xs text-warning-text bg-warning-subtle border border-warning-border rounded px-2 py-1.5">
               {t("members.sybilWarning")}
             </p>
           )}
           {mode === "invite-only" && mode !== currentMode && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-text-muted">
               {t("members.inviteOnlyWarning")}
             </p>
           )}
@@ -431,8 +431,8 @@ function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: st
 
   return (
     <div className="flex items-center gap-1">
-      {error && <span className="text-xs text-red-500">{error}</span>}
-      <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-red-500 hover:text-red-700">
+      {error && <span className="text-xs text-error">{error}</span>}
+      <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} className="text-error hover:text-error-text">
         {t("members.remove")}
       </Button>
     </div>

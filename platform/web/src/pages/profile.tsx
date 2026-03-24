@@ -68,7 +68,7 @@ export function Profile() {
   if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">{t("profile.noIdentity")}</p>
+        <p className="text-text-muted">{t("profile.noIdentity")}</p>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">{t("profile.title")}</h1>
+      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">{t("profile.title")}</h1>
 
       {/* Identity card */}
       <Card className="mb-6">
@@ -91,9 +91,9 @@ export function Profile() {
             <div className="flex items-center gap-3">
               <Avatar name={participantName ?? "?"} size="lg" />
               <div>
-                <p className="font-semibold text-gray-900 text-lg">{participantName}</p>
-                {handle && <p className="text-sm text-gray-500">@{handle}</p>}
-                {email && <p className="text-xs text-gray-400">{email}</p>}
+                <p className="font-semibold text-text-primary text-lg">{participantName}</p>
+                {handle && <p className="text-sm text-text-muted">@{handle}</p>}
+                {email && <p className="text-xs text-text-tertiary">{email}</p>}
               </div>
             </div>
             <Button variant="secondary" size="sm" onClick={() => setEditing(!editing)}>
@@ -121,26 +121,26 @@ export function Profile() {
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-8">
         <Link to="/profile/votes">
-          <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+          <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
             <CardBody className="text-center py-4">
-              <div className="text-2xl font-semibold text-gray-900">{totalVotes}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{t("profile.votesCast")}</div>
+              <div className="text-2xl font-semibold text-text-primary">{totalVotes}</div>
+              <div className="text-xs text-text-muted mt-0.5">{t("profile.votesCast")}</div>
             </CardBody>
           </Card>
         </Link>
         <Link to="/profile/delegators">
-          <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+          <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
             <CardBody className="text-center py-4">
-              <div className="text-2xl font-semibold text-gray-900">{totalDelegators}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{t("profile.delegators")}</div>
+              <div className="text-2xl font-semibold text-text-primary">{totalDelegators}</div>
+              <div className="text-xs text-text-muted mt-0.5">{t("profile.delegators")}</div>
             </CardBody>
           </Card>
         </Link>
         <Link to="/profile/delegates">
-          <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+          <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
             <CardBody className="text-center py-4">
-              <div className="text-2xl font-semibold text-gray-900">{totalOutbound}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{t("profile.myDelegates")}</div>
+              <div className="text-2xl font-semibold text-text-primary">{totalOutbound}</div>
+              <div className="text-xs text-text-muted mt-0.5">{t("profile.myDelegates")}</div>
             </CardBody>
           </Card>
         </Link>
@@ -148,12 +148,12 @@ export function Profile() {
 
       {/* Per-assembly breakdown */}
       {data.length > 0 && (
-        <h2 className="text-sm font-medium text-gray-500 mb-3">{t("profile.activityByGroup")}</h2>
+        <h2 className="text-sm font-medium text-text-muted mb-3">{t("profile.activityByGroup")}</h2>
       )}
       {data.map(({ assembly, profile, history }) => (
         <Card key={assembly.id} className="mb-4">
           <CardHeader>
-            <Link to={`/assembly/${assembly.id}`} className="font-medium text-gray-900 hover:text-brand transition-colors">
+            <Link to={`/assembly/${assembly.id}`} className="font-medium text-text-primary hover:text-accent-text transition-colors">
               {assembly.name}
             </Link>
           </CardHeader>
@@ -162,12 +162,12 @@ export function Profile() {
               <div className="space-y-2">
                 {profile.delegatorsCount > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">
+                    <p className="text-xs text-text-muted mb-1">
                       {t("profile.delegatorsToYou", { count: profile.delegatorsCount })}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {profile.delegators.map((d) => (
-                        <span key={d.id} className="inline-flex items-center gap-1.5 text-xs bg-brand/10 text-brand px-2 py-1 rounded">
+                        <span key={d.id} className="inline-flex items-center gap-1.5 text-xs bg-accent/10 text-accent-text px-2 py-1 rounded">
                           <Avatar name={d.name ?? "?"} size="xs" className="!w-4 !h-4" />
                           {d.name ?? d.id.slice(0, 8)}
                         </span>
@@ -177,9 +177,9 @@ export function Profile() {
                 )}
                 {profile.myDelegations.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">{t("profile.yourDelegates")}</p>
+                    <p className="text-xs text-text-muted mb-1">{t("profile.yourDelegates")}</p>
                     {profile.myDelegations.map((d, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                      <div key={i} className="flex items-center gap-2 text-sm text-text-secondary">
                         <Avatar name={d.targetName ?? "?"} size="xs" className="!w-4 !h-4" />
                         <span>
                           {d.targetName ?? d.targetId.slice(0, 8)}
@@ -190,30 +190,30 @@ export function Profile() {
                   </div>
                 )}
                 {profile.delegatorsCount === 0 && profile.myDelegations.length === 0 && (
-                  <p className="text-sm text-gray-400">{t("profile.noDelegatesInGroup")}</p>
+                  <p className="text-sm text-text-tertiary">{t("profile.noDelegatesInGroup")}</p>
                 )}
               </div>
             )}
 
             {history && history.history.length > 0 && (
               <div>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-text-muted mb-2">
                   {t("profile.recentVotes", { count: history.history.length })}
                 </p>
                 <div className="space-y-1">
                   {history.history.slice(0, 5).map((entry, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2">
+                    <div key={idx} className="flex items-center justify-between text-sm bg-surface rounded px-3 py-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="capitalize font-medium text-gray-900 shrink-0">{entry.choice}</span>
-                        <span className="text-xs text-gray-500 truncate">{entry.issueTitle ?? entry.issueId.slice(0, 12)}</span>
+                        <span className="capitalize font-medium text-text-primary shrink-0">{entry.choice}</span>
+                        <span className="text-xs text-text-muted truncate">{entry.issueTitle ?? entry.issueId.slice(0, 12)}</span>
                       </div>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-text-tertiary">
                         {formatDate(entry.votedAt)}
                       </span>
                     </div>
                   ))}
                   {history.history.length > 5 && (
-                    <p className="text-xs text-gray-400 text-center mt-1">
+                    <p className="text-xs text-text-tertiary text-center mt-1">
                       {t("profile.moreVotes", { count: history.history.length - 5 })}
                     </p>
                   )}
@@ -221,7 +221,7 @@ export function Profile() {
               </div>
             )}
             {history && history.history.length === 0 && (
-              <p className="text-sm text-gray-400">{t("profile.noVotesInGroup")}</p>
+              <p className="text-sm text-text-tertiary">{t("profile.noVotesInGroup")}</p>
             )}
           </CardBody>
         </Card>
@@ -289,15 +289,15 @@ function ConnectedAccounts() {
   return (
     <Card className="mb-6">
       <CardBody>
-        <h3 className="font-medium text-gray-900 mb-3">{t("connectedAccounts.title")}</h3>
+        <h3 className="font-medium text-text-primary mb-3">{t("connectedAccounts.title")}</h3>
         <div className="space-y-2">
           {linked.map((l) => (
             <div key={l.provider} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2.5">
                 <ProviderIcon provider={l.provider} />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{PROVIDER_LABELS[l.provider] ?? l.provider}</p>
-                  {l.providerEmail && <p className="text-xs text-gray-400">{l.providerEmail}</p>}
+                  <p className="text-sm font-medium text-text-primary">{PROVIDER_LABELS[l.provider] ?? l.provider}</p>
+                  {l.providerEmail && <p className="text-xs text-text-tertiary">{l.providerEmail}</p>}
                 </div>
               </div>
               <Button
@@ -314,7 +314,7 @@ function ConnectedAccounts() {
             <div key={provider} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2.5">
                 <ProviderIcon provider={provider} />
-                <p className="text-sm text-gray-500">{PROVIDER_LABELS[provider] ?? provider}</p>
+                <p className="text-sm text-text-muted">{PROVIDER_LABELS[provider] ?? provider}</p>
               </div>
               <Button variant="secondary" size="sm" onClick={() => handleConnect(provider)}>
                 {t("connectedAccounts.connect")}
@@ -348,7 +348,7 @@ function ProviderIcon({ provider }: { provider: string }) {
       </svg>
     );
   }
-  return <div className="w-5 h-5 rounded-full bg-gray-300" />;
+  return <div className="w-5 h-5 rounded-full bg-text-tertiary" />;
 }
 
 // ── Profile editor ────────────────────────────────────────────────────
@@ -399,7 +399,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
   return (
     <Card className="mb-6">
       <CardBody className="space-y-4">
-        <h3 className="font-medium text-gray-900">{t("profile.editProfile")}</h3>
+        <h3 className="font-medium text-text-primary">{t("profile.editProfile")}</h3>
         {error && <ErrorBox message={error} />}
 
         <div>
@@ -410,7 +410,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
         <div>
           <Label>{t("profile.handleLabel")}</Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">@</span>
             <Input
               value={handleValue}
               onChange={(e) => setHandleValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
@@ -425,12 +425,12 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="block w-full rounded-md border border-border-strong px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring"
             rows={2}
             maxLength={280}
             placeholder={t("profile.bioPlaceholder")}
           />
-          <p className="text-xs text-gray-400 mt-1">{bio.length}/280</p>
+          <p className="text-xs text-text-tertiary mt-1">{bio.length}/280</p>
         </div>
 
         {/* Avatar — current + change button */}
@@ -440,7 +440,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
             <img
               src={avatarUrl(avatarSeed, selectedStyle)}
               alt={t("profile.currentAvatar")}
-              className="w-14 h-14 rounded-full bg-gray-100"
+              className="w-14 h-14 rounded-full bg-surface-sunken"
             />
             <Button variant="secondary" size="sm" onClick={() => setShowAvatarPicker(!showAvatarPicker)}>
               {showAvatarPicker ? t("profile.closePicker") : t("profile.chooseAvatar")}
@@ -461,16 +461,16 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
         )}
 
         {/* Preview */}
-        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-3 p-3 bg-surface rounded-lg">
           <img
             src={avatarUrl(avatarSeed, selectedStyle)}
             alt={t("profile.preview")}
-            className="w-12 h-12 rounded-full bg-gray-100"
+            className="w-12 h-12 rounded-full bg-surface-sunken"
           />
           <div>
-            <p className="font-medium text-gray-900">{name || t("profile.yourName")}</p>
-            <p className="text-sm text-gray-500">@{handleValue || t("profile.handle")}</p>
-            {bio && <p className="text-xs text-gray-400 mt-0.5">{bio}</p>}
+            <p className="font-medium text-text-primary">{name || t("profile.yourName")}</p>
+            <p className="text-sm text-text-muted">@{handleValue || t("profile.handle")}</p>
+            {bio && <p className="text-xs text-text-tertiary mt-0.5">{bio}</p>}
           </div>
         </div>
 
@@ -504,10 +504,10 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
     : seeds;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-3 space-y-3">
+    <div className="border border-border-default rounded-lg p-3 space-y-3">
       {/* Style tabs — scrollable row */}
       <div>
-        <p className="text-xs font-medium text-gray-500 mb-2">{t("profile.style")}</p>
+        <p className="text-xs font-medium text-text-muted mb-2">{t("profile.style")}</p>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {AVATAR_STYLES.map((style) => (
             <button
@@ -516,8 +516,8 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
               onClick={() => setBrowsingStyle(style)}
               className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                 browsingStyle === style
-                  ? "bg-brand text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-accent text-text-on-accent"
+                  : "bg-surface-sunken text-text-secondary hover:bg-interactive-active"
               }`}
             >
               {AVATAR_STYLE_LABELS[style] ?? style}
@@ -547,14 +547,14 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
               onClick={() => onSelect(browsingStyle, seed)}
               className={`p-1 rounded-lg border-2 transition-colors ${
                 isSelected
-                  ? "border-brand bg-brand-50"
-                  : "border-transparent hover:border-gray-300"
+                  ? "border-accent bg-accent-subtle"
+                  : "border-transparent hover:border-border-strong"
               }`}
             >
               <img
                 src={avatarUrl(seed, browsingStyle)}
                 alt={seed}
-                className="w-full aspect-square rounded-full bg-gray-100"
+                className="w-full aspect-square rounded-full bg-surface-sunken"
                 loading="lazy"
               />
             </button>
@@ -562,7 +562,7 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
         })}
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-text-tertiary">
         {t("profile.avatarPickerHint")}
       </p>
     </div>

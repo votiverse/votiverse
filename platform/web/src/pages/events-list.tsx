@@ -87,7 +87,7 @@ export function EventsList() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("eventsList.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("eventsList.title")}</h1>
         <Button onClick={() => setCreating(true)}>{t("eventsList.createVote")}</Button>
       </div>
 
@@ -124,16 +124,16 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
 
   return (
     <Link to={`/assembly/${assemblyId}/events/${evt.id}`} className="block">
-      <Card className="hover:border-brand-200 hover:shadow active:border-brand transition-all">
+      <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
         <CardBody>
           <div className="flex items-start sm:items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-medium text-gray-900">{evt.title}</h3>
+                <h3 className="font-medium text-text-primary">{evt.title}</h3>
                 {status && <StatusBadge status={status} />}
               </div>
               {evt.description && (
-                <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{evt.description}</p>
+                <p className="text-sm text-text-muted mt-0.5 line-clamp-1">{evt.description}</p>
               )}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -141,7 +141,7 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
                 <Badge color="gray">{t("eventsList.question", { count: issueCount })}</Badge>
               </div>
               {votedCount !== null && issueCount > 0 && (status === "voting" || status === "closed") && (
-                <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-green-600" : votedCount > 0 ? "text-amber-600" : "text-gray-400"}`}>
+                <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-success-text" : votedCount > 0 ? "text-warning-text" : "text-text-tertiary"}`}>
                   {t("eventsList.votedCount", { voted: votedCount, total: issueCount })}
                 </span>
               )}
@@ -209,7 +209,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">{t("eventsList.newVote")}</h3>
+          <h3 className="font-medium text-text-primary">{t("eventsList.newVote")}</h3>
           {formError && <ErrorBox message={formError} />}
           <div>
             <Label>{t("eventsList.titleLabel")}</Label>
@@ -238,7 +238,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
                   />
                 </div>
               ))}
-              <button type="button" onClick={addIssue} className="text-sm text-brand hover:text-brand-light min-h-[44px] sm:min-h-0 flex items-center">
+              <button type="button" onClick={addIssue} className="text-sm text-accent-text hover:text-accent-text min-h-[44px] sm:min-h-0 flex items-center">
                 {t("eventsList.addQuestion")}
               </button>
             </div>
@@ -269,7 +269,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
 
           {/* Timeline summary from assembly config */}
           {tl && (
-            <div className="text-xs text-gray-400 space-y-0.5">
+            <div className="text-xs text-text-tertiary space-y-0.5">
               <p>
                 {tl.deliberationDays}d {t("assemblyList.deliberation")}
                 {tl.curationDays > 0 && <> + {tl.curationDays}d {t("assemblyList.curation")}</>}

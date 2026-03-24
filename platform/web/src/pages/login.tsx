@@ -129,10 +129,10 @@ export function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="text-center">
           <Spinner />
-          <p className="mt-4 text-sm text-gray-500">{t("checkingSession")}</p>
+          <p className="mt-4 text-sm text-text-muted">{t("checkingSession")}</p>
         </div>
       </div>
     );
@@ -141,7 +141,7 @@ export function LoginPage() {
   // Handle picker modal (post-social-signup)
   if (showHandlePicker) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-surface">
         <HandlePicker
           defaultHandle={handle}
           onComplete={() => {
@@ -158,7 +158,7 @@ export function LoginPage() {
   const hasMicrosoft = providers.includes("microsoft");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col">
       {/* Top bar with locale picker */}
       <div className="flex justify-end p-4">
         <LocalePicker />
@@ -170,10 +170,10 @@ export function LoginPage() {
           {/* Logo and title */}
           <div className="text-center mb-8">
             <img src="/logo.svg" alt="Votiverse" className="w-14 h-14 mx-auto mb-4" />
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
               {mode === "login" ? t("welcomeBack") : t("createAccount")}
             </h1>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-text-muted">
               {mode === "login" ? t("signInToContinue") : t("joinToContinue")}
             </p>
           </div>
@@ -192,10 +192,10 @@ export function LoginPage() {
           {hasProviders && (
             <div className="relative mb-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+                <div className="w-full border-t border-border-default" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-gray-50 px-3 text-gray-400">{t("orDivider")}</span>
+                <span className="bg-surface px-3 text-text-tertiary">{t("orDivider")}</span>
               </div>
             </div>
           )}
@@ -205,7 +205,7 @@ export function LoginPage() {
             {mode === "register" && (
               <>
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">{t("label.name")}</label>
+                  <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-1">{t("label.name")}</label>
                   <Input
                     id="name"
                     type="text"
@@ -216,17 +216,17 @@ export function LoginPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="handle" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="handle" className="block text-sm font-medium text-text-secondary mb-1">
                     {t("label.handle")}
                     {handleAvailable === true && handleInput.length >= 3 && (
-                      <span className="ml-2 text-green-600 text-xs font-normal">{t("handle.available")}</span>
+                      <span className="ml-2 text-success-text text-xs font-normal">{t("handle.available")}</span>
                     )}
                     {handleAvailable === false && (
-                      <span className="ml-2 text-red-600 text-xs font-normal">{t("handle.taken")}</span>
+                      <span className="ml-2 text-error-text text-xs font-normal">{t("handle.taken")}</span>
                     )}
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">@</span>
                     <Input
                       id="handle"
                       type="text"
@@ -242,12 +242,12 @@ export function LoginPage() {
                       maxLength={30}
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">{t("handle.hint")}</p>
+                  <p className="text-xs text-text-tertiary mt-1">{t("handle.hint")}</p>
                 </div>
               </>
             )}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">{t("label.email")}</label>
+              <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-1">{t("label.email")}</label>
               <Input
                 id="email"
                 type="email"
@@ -257,11 +257,11 @@ export function LoginPage() {
                 required
               />
               {mode === "register" && (
-                <p className="text-xs text-gray-400 mt-1">{t("email.hint")}</p>
+                <p className="text-xs text-text-tertiary mt-1">{t("email.hint")}</p>
               )}
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">{t("label.password")}</label>
+              <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1">{t("label.password")}</label>
               <Input
                 id="password"
                 type="password"
@@ -279,18 +279,18 @@ export function LoginPage() {
 
           {/* Mode toggle + forgot password */}
           <div className="mt-6 text-center space-y-2">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-text-muted">
               {mode === "login" ? (
                 <>
                   {t("noAccount")}{" "}
-                  <button onClick={() => { setMode("register"); setError(null); }} className="text-brand font-medium hover:underline cursor-pointer">
+                  <button onClick={() => { setMode("register"); setError(null); }} className="text-accent-text font-medium hover:underline cursor-pointer">
                     {t("signUp")}
                   </button>
                 </>
               ) : (
                 <>
                   {t("hasAccount")}{" "}
-                  <button onClick={() => { setMode("login"); setError(null); }} className="text-brand font-medium hover:underline cursor-pointer">
+                  <button onClick={() => { setMode("login"); setError(null); }} className="text-accent-text font-medium hover:underline cursor-pointer">
                     {t("signIn")}
                   </button>
                 </>
@@ -298,7 +298,7 @@ export function LoginPage() {
             </p>
             {mode === "login" && (
               <p className="text-sm">
-                <button className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <button className="text-text-tertiary hover:text-text-secondary cursor-pointer">
                   {t("forgotPassword")}
                 </button>
               </p>

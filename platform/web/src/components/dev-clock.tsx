@@ -116,8 +116,8 @@ export function DevClock() {
           onClick={() => setExpanded(true)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono shadow-lg border transition-colors ${
             isTestMode
-              ? "bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100"
-              : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+              ? "bg-warning-subtle border-warning-border text-warning-text hover:bg-warning-subtle"
+              : "bg-surface-raised border-border-default text-text-muted hover:bg-interactive-hover"
           }`}
           title="Dev Clock"
         >
@@ -125,7 +125,7 @@ export function DevClock() {
           {clock && (
             <span>
               {new Date(clock.time).toLocaleTimeString()}
-              {offsetLabel && <span className="ml-1 text-amber-600">{offsetLabel}</span>}
+              {offsetLabel && <span className="ml-1 text-warning-text">{offsetLabel}</span>}
             </span>
           )}
         </button>
@@ -133,36 +133,36 @@ export function DevClock() {
 
       {/* Expanded: control panel */}
       {expanded && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-xl w-72 overflow-hidden">
+        <div className="bg-surface-raised border border-border-default rounded-xl shadow-xl w-72 overflow-hidden">
           {/* Header */}
-          <div className={`px-3 py-2 flex items-center justify-between ${isTestMode ? "bg-amber-50" : "bg-gray-50"}`}>
+          <div className={`px-3 py-2 flex items-center justify-between ${isTestMode ? "bg-warning-subtle" : "bg-surface"}`}>
             <div className="flex items-center gap-1.5">
               <span className="text-sm">{isTestMode ? "⏱" : "⏰"}</span>
-              <span className="text-xs font-semibold text-gray-700">Dev Clock</span>
+              <span className="text-xs font-semibold text-text-secondary">Dev Clock</span>
               {isTestMode && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 font-medium">TEST</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning-subtle text-warning-text font-medium">TEST</span>
               )}
             </div>
-            <button onClick={() => setExpanded(false)} className="text-gray-400 hover:text-gray-600 text-sm px-1">
+            <button onClick={() => setExpanded(false)} className="text-text-tertiary hover:text-text-secondary text-sm px-1">
               ×
             </button>
           </div>
 
           {/* Current time */}
-          <div className="px-3 py-2 border-b border-gray-100">
-            <div className="font-mono text-sm text-gray-900">
+          <div className="px-3 py-2 border-b border-border-subtle">
+            <div className="font-mono text-sm text-text-primary">
               {clock ? new Date(clock.time).toLocaleString() : "Loading..."}
             </div>
             {offsetLabel && (
-              <div className="text-xs text-amber-600 mt-0.5">
+              <div className="text-xs text-warning-text mt-0.5">
                 {offsetLabel} from real time
               </div>
             )}
           </div>
 
           {/* Quick advance buttons */}
-          <div className="px-3 py-2 border-b border-gray-100">
-            <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5">Advance</div>
+          <div className="px-3 py-2 border-b border-border-subtle">
+            <div className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1.5">Advance</div>
             <div className="flex gap-1.5 flex-wrap">
               {[
                 { label: "1h", ms: HOUR },
@@ -175,7 +175,7 @@ export function DevClock() {
                 <button
                   key={btn.label}
                   onClick={() => handleAdvance(btn.ms)}
-                  className="px-2.5 py-1 text-xs rounded border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 text-gray-700 transition-colors"
+                  className="px-2.5 py-1 text-xs rounded border border-border-default bg-surface-raised hover:bg-interactive-hover hover:border-border-strong text-text-secondary transition-colors"
                 >
                   +{btn.label}
                 </button>
@@ -187,7 +187,7 @@ export function DevClock() {
           <div className="px-3 py-2">
             <button
               onClick={handleReset}
-              className="w-full text-xs text-center py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+              className="w-full text-xs text-center py-1.5 rounded border border-border-default text-text-secondary hover:bg-interactive-hover hover:border-border-strong transition-colors"
             >
               Reset to real time
             </button>

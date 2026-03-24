@@ -33,7 +33,7 @@ export function Predictions() {
   if (!participantId) {
     return (
       <div className="max-w-4xl mx-auto text-center py-12">
-        <p className="text-gray-500">{t("predictions.selectIdentity")}</p>
+        <p className="text-text-muted">{t("predictions.selectIdentity")}</p>
       </div>
     );
   }
@@ -41,8 +41,8 @@ export function Predictions() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("predictions.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t("predictions.subtitle")}</p>
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("predictions.title")}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t("predictions.subtitle")}</p>
       </div>
 
       {/* Track Record Summary */}
@@ -74,23 +74,23 @@ function TrackRecordCard({ record }: { record: TrackRecord }) {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <h2 className="font-medium text-gray-900">{t("predictions.yourTrackRecord")}</h2>
+        <h2 className="font-medium text-text-primary">{t("predictions.yourTrackRecord")}</h2>
       </CardHeader>
       <CardBody>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <div className="text-2xl font-semibold text-gray-900">{record.totalPredictions}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{t("predictions.total")}</div>
+            <div className="text-2xl font-semibold text-text-primary">{record.totalPredictions}</div>
+            <div className="text-xs text-text-muted mt-0.5">{t("predictions.total")}</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-gray-900">{record.evaluatedPredictions}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{t("predictions.evaluated")}</div>
+            <div className="text-2xl font-semibold text-text-primary">{record.evaluatedPredictions}</div>
+            <div className="text-xs text-text-muted mt-0.5">{t("predictions.evaluated")}</div>
           </div>
           <div>
-            <div className={`text-2xl font-semibold ${accuracyPct >= 70 ? "text-green-600" : accuracyPct >= 40 ? "text-amber-600" : "text-gray-400"}`}>
+            <div className={`text-2xl font-semibold ${accuracyPct >= 70 ? "text-success-text" : accuracyPct >= 40 ? "text-warning-text" : "text-text-tertiary"}`}>
               {record.evaluatedPredictions > 0 ? `${accuracyPct}%` : "—"}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">{t("predictions.accuracy")}</div>
+            <div className="text-xs text-text-muted mt-0.5">{t("predictions.accuracy")}</div>
           </div>
         </div>
       </CardBody>
@@ -108,19 +108,19 @@ function PredictionCard({ prediction }: { prediction: Prediction; assemblyId: st
       <CardBody>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-gray-900">{claim.variable}</p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="font-medium text-text-primary">{claim.variable}</p>
+            <p className="text-xs text-text-muted mt-1">
               <Badge color="gray">{patternType}</Badge>
               {claim.methodology && (
-                <span className="ml-2 text-gray-400">{t("predictions.measuredBy", { methodology: claim.methodology })}</span>
+                <span className="ml-2 text-text-tertiary">{t("predictions.measuredBy", { methodology: claim.methodology })}</span>
               )}
             </p>
           </div>
-          <span className="text-xs text-gray-400 shrink-0">
+          <span className="text-xs text-text-tertiary shrink-0">
             {formatDate(prediction.committedAt)}
           </span>
         </div>
-        <div className="mt-2 text-xs text-gray-400 font-mono truncate">
+        <div className="mt-2 text-xs text-text-tertiary font-mono truncate">
           {t("predictions.hash", { hash: prediction.commitmentHash.slice(0, 16) })}
         </div>
       </CardBody>

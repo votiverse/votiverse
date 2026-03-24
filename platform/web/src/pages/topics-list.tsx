@@ -81,7 +81,7 @@ export function TopicsList() {
   if (tree.length === 0) {
     return (
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">{t("topicsList.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">{t("topicsList.title")}</h1>
         <EmptyState title={t("topicsList.noTopics")} description={t("topicsList.noTopicsDesc")} />
       </div>
     );
@@ -90,8 +90,8 @@ export function TopicsList() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("topicsList.title")}</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("topicsList.title")}</h1>
+        <p className="text-sm text-text-muted mt-1">
           {t("topicsList.subtitle")}
         </p>
       </div>
@@ -129,17 +129,17 @@ function TopicCard({
 
   return (
     <Card
-      className="cursor-pointer hover:border-gray-300 transition-colors"
+      className="cursor-pointer hover:border-border-strong transition-colors"
       onClick={() => navigate(`/assembly/${assemblyId}/topics/${topic.id}`)}
     >
       <CardBody>
         <div className="flex items-start justify-between gap-2">
-          <span className="text-base font-semibold text-gray-900">
+          <span className="text-base font-semibold text-text-primary">
             {topic.name}
           </span>
           {delegationStatus && (
             <span title={delegationStatus.label}>
-              <DelegatedIcon size={18} className="text-blue-400 shrink-0 mt-0.5" />
+              <DelegatedIcon size={18} className="text-info-text shrink-0 mt-0.5" />
             </span>
           )}
         </div>
@@ -151,7 +151,7 @@ function TopicCard({
                 key={child.id}
                 to={`/assembly/${assemblyId}/topics/${child.id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="text-xs text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full px-2.5 py-0.5 transition-colors"
+                className="text-xs text-text-muted hover:text-text-secondary bg-surface-sunken hover:bg-interactive-active rounded-full px-2.5 py-0.5 transition-colors"
               >
                 {child.name}
               </Link>
@@ -159,7 +159,7 @@ function TopicCard({
           </div>
         )}
 
-        <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
+        <div className="mt-3 flex items-center gap-4 text-xs text-text-tertiary">
           <span>{t("topicsList.issue", { count: issueCount })}</span>
           <span>{t("topicsList.delegation", { count: delegationCount })}</span>
         </div>

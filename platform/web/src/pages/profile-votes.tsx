@@ -97,7 +97,7 @@ export function ProfileVotes() {
   if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">{t("profileVotes.noIdentity")}</p>
+        <p className="text-text-muted">{t("profileVotes.noIdentity")}</p>
       </div>
     );
   }
@@ -116,15 +116,15 @@ export function ProfileVotes() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">{t("profileVotes.title")}</h1>
-      <p className="text-sm text-gray-500 mb-6">{t("profileVotes.vote", { count: entries.length })} {t("profileVotes.group", { count: new Set(entries.map((e) => e.assemblyId)).size })}</p>
+      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-1">{t("profileVotes.title")}</h1>
+      <p className="text-sm text-text-muted mb-6">{t("profileVotes.vote", { count: entries.length })} {t("profileVotes.group", { count: new Set(entries.map((e) => e.assemblyId)).size })}</p>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <select
           value={selectedAssembly}
           onChange={(e) => setSelectedAssembly(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          className="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/20 focus:border-accent"
         >
           <option value="all">{t("profileVotes.allGroups")}</option>
           {assemblies.map((a) => (
@@ -135,7 +135,7 @@ export function ProfileVotes() {
           <select
             value={selectedChoice}
             onChange={(e) => setSelectedChoice(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            className="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/20 focus:border-accent"
           >
             <option value="all">{t("profileVotes.allChoices")}</option>
             {choices.map((c) => (
@@ -146,13 +146,13 @@ export function ProfileVotes() {
       </div>
 
       {/* Sort controls */}
-      <div className="flex items-center gap-1 mb-4 text-xs text-gray-500">
+      <div className="flex items-center gap-1 mb-4 text-xs text-text-muted">
         <span>{t("profileVotes.sortBy")}</span>
         {(["date", "group", "choice"] as SortField[]).map((field) => (
           <button
             key={field}
             onClick={() => toggleSort(field)}
-            className={`px-2 py-1 rounded transition-colors ${sortField === field ? "bg-brand/10 text-brand font-medium" : "hover:bg-gray-100"}`}
+            className={`px-2 py-1 rounded transition-colors ${sortField === field ? "bg-accent/10 text-accent-text font-medium" : "hover:bg-interactive-hover"}`}
           >
             {field === "date" ? t("profileVotes.date") : field === "group" ? t("profileVotes.group", { count: 1 }) : t("profileVotes.choice")}
             {sortField === field && (sortDir === "desc" ? " ↓" : " ↑")}
@@ -167,17 +167,17 @@ export function ProfileVotes() {
         />
       ) : (
         <Card>
-          <CardBody className="divide-y divide-gray-100">
+          <CardBody className="divide-y divide-border-subtle">
             {filtered.map((entry, idx) => (
               <div key={`${entry.issueId}-${idx}`} className="flex items-center justify-between py-3 first:pt-0 last:pb-0 gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge color={choiceColor(entry.choice)}>{entry.choice}</Badge>
-                    <span className="text-sm text-gray-900 truncate">{entry.issueTitle ?? entry.issueId.slice(0, 12)}</span>
+                    <span className="text-sm text-text-primary truncate">{entry.issueTitle ?? entry.issueId.slice(0, 12)}</span>
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{entry.assemblyName}</div>
+                  <div className="text-xs text-text-tertiary mt-0.5">{entry.assemblyName}</div>
                 </div>
-                <span className="text-xs text-gray-400 shrink-0">
+                <span className="text-xs text-text-tertiary shrink-0">
                   {formatDate(entry.votedAt)}
                 </span>
               </div>

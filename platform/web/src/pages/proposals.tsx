@@ -60,8 +60,8 @@ export function Proposals() {
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("proposals.title")}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("proposals.title")}</h1>
+          <p className="text-sm text-text-muted mt-1">
             {t("proposals.subtitle")}
           </p>
         </div>
@@ -75,16 +75,16 @@ export function Proposals() {
       {showDraftForm && !effectiveIssueId && deliberationIssues.length > 0 && (
         <Card className="mb-6">
           <CardBody>
-            <h3 className="font-medium text-gray-900 mb-3">{t("proposals.selectQuestion")}</h3>
+            <h3 className="font-medium text-text-primary mb-3">{t("proposals.selectQuestion")}</h3>
             <div className="space-y-2">
               {deliberationIssues.map((issue) => (
                 <button
                   key={issue.id}
                   onClick={() => setSelectedIssueId(issue.id)}
-                  className="w-full text-left px-3 py-2.5 rounded-lg border border-gray-200 hover:border-brand-200 hover:bg-brand-50/30 transition-colors"
+                  className="w-full text-left px-3 py-2.5 rounded-lg border border-border-default hover:border-accent-muted hover:bg-accent-subtle transition-colors"
                 >
-                  <p className="text-sm font-medium text-gray-900">{issue.title}</p>
-                  <p className="text-xs text-gray-400">{issue.eventTitle}</p>
+                  <p className="text-sm font-medium text-text-primary">{issue.title}</p>
+                  <p className="text-xs text-text-tertiary">{issue.eventTitle}</p>
                 </button>
               ))}
             </div>
@@ -101,7 +101,7 @@ export function Proposals() {
 
       {drafts.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-lg font-medium text-gray-800 mb-3">{t("proposals.yourDrafts")}</h2>
+          <h2 className="text-lg font-medium text-text-primary mb-3">{t("proposals.yourDrafts")}</h2>
           {drafts.map((d) => (
             <DraftCard key={d.id} draft={d} assemblyId={assemblyId!} onAction={() => { refetchDrafts(); refetch(); }} />
           ))}
@@ -167,8 +167,8 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
           <div className="flex items-center gap-2 min-w-0">
             <Avatar name={nameMap.get(proposal.authorId) ?? "?"} size="sm" />
             <div className="min-w-0">
-              <h3 className="font-medium text-gray-900 truncate">{proposal.title}</h3>
-              <p className="text-xs text-gray-500">
+              <h3 className="font-medium text-text-primary truncate">{proposal.title}</h3>
+              <p className="text-xs text-text-muted">
                 by {nameMap.get(proposal.authorId) ?? proposal.authorId}
                 {proposal.choiceKey && <> &middot; advocates <strong>{proposal.choiceKey}</strong></>}
                 {" "}&middot; v{proposal.currentVersion}
@@ -177,7 +177,7 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {(endorsements > 0 || disputes > 0) && (
-              <span className={`text-xs font-medium ${score > 0 ? "text-green-600" : score < 0 ? "text-red-600" : "text-gray-500"}`}>
+              <span className={`text-xs font-medium ${score > 0 ? "text-success-text" : score < 0 ? "text-error-text" : "text-text-muted"}`}>
                 {score > 0 ? "+" : ""}{score}
               </span>
             )}
@@ -189,23 +189,23 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
         {expanded && (
           <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <Suspense fallback={<p className="text-sm text-gray-400">{t("proposals.loading")}</p>}><MarkdownViewer content={markdown} /></Suspense>
+              <Suspense fallback={<p className="text-sm text-text-tertiary">{t("proposals.loading")}</p>}><MarkdownViewer content={markdown} /></Suspense>
             ) : (
-              <p className="text-sm text-gray-400 italic">{t("proposals.contentNotAvailable")}</p>
+              <p className="text-sm text-text-tertiary italic">{t("proposals.contentNotAvailable")}</p>
             )}
           </div>
         )}
 
         <div className="mt-3 flex items-center gap-4">
           <button
-            className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1.5"
+            className="text-sm text-info-text hover:text-info-text inline-flex items-center gap-1.5"
             onClick={handleExpand}
           >
             <FileText size={14} />
             {expanded ? t("proposals.hideProposal") : t("proposals.readProposal")}
           </button>
           <button
-            className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
+            className="text-sm text-text-muted hover:text-text-secondary inline-flex items-center gap-1.5"
             onClick={() => setShowNotes(!showNotes)}
           >
             <MessageSquareText size={14} />
@@ -216,23 +216,23 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
               <button
                 onClick={() => handleEvaluate("endorse")}
                 disabled={evaluating}
-                className="p-1.5 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors disabled:opacity-50"
+                className="p-1.5 rounded hover:bg-success-subtle text-text-tertiary hover:text-success-text transition-colors disabled:opacity-50"
                 title="Endorse"
               >
                 <ThumbsUp size={14} />
               </button>
-              <span className="text-xs text-gray-400 tabular-nums min-w-[2ch] text-center">
+              <span className="text-xs text-text-tertiary tabular-nums min-w-[2ch] text-center">
                 {endorsements > 0 ? endorsements : ""}
               </span>
               <button
                 onClick={() => handleEvaluate("dispute")}
                 disabled={evaluating}
-                className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                className="p-1.5 rounded hover:bg-error-subtle text-text-tertiary hover:text-error-text transition-colors disabled:opacity-50"
                 title="Dispute"
               >
                 <ThumbsDown size={14} />
               </button>
-              <span className="text-xs text-gray-400 tabular-nums min-w-[2ch] text-center">
+              <span className="text-xs text-text-tertiary tabular-nums min-w-[2ch] text-center">
                 {disputes > 0 ? disputes : ""}
               </span>
             </div>
@@ -277,15 +277,15 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
   };
 
   return (
-    <Card className="mb-3 border-dashed border-amber-300 bg-amber-50">
+    <Card className="mb-3 border-dashed border-warning-border bg-warning-subtle">
       <CardBody>
         <div className="flex items-center justify-between mb-2">
           <Badge color="yellow">{t("proposals.draft")}</Badge>
           <div className="flex gap-2">
-            <button className="text-sm text-gray-500 hover:text-gray-700" onClick={() => setEditing(!editing)}>
+            <button className="text-sm text-text-muted hover:text-text-secondary" onClick={() => setEditing(!editing)}>
               {editing ? t("proposals.doneEditing") : t("proposals.edit")}
             </button>
-            <button className="text-sm text-red-500 hover:text-red-700" onClick={handleDelete}>{t("common:delete")}</button>
+            <button className="text-sm text-error hover:text-error-text" onClick={handleDelete}>{t("common:delete")}</button>
           </div>
         </div>
 
@@ -298,7 +298,7 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
               className="w-full border rounded px-3 py-2 text-sm"
               placeholder={t("proposals.titlePlaceholder")}
             />
-            <Suspense fallback={<p className="text-sm text-gray-400">{t("proposals.loadingEditor")}</p>}>
+            <Suspense fallback={<p className="text-sm text-text-tertiary">{t("proposals.loadingEditor")}</p>}>
               <MarkdownEditor
                 value={markdown}
                 onChange={setMarkdown}
@@ -310,9 +310,9 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
           </div>
         ) : (
           <div>
-            <h3 className="font-medium text-gray-900">{draft.title}</h3>
+            <h3 className="font-medium text-text-primary">{draft.title}</h3>
             {draft.markdown && (
-              <p className="text-sm text-gray-600 mt-1 line-clamp-3">{draft.markdown}</p>
+              <p className="text-sm text-text-secondary mt-1 line-clamp-3">{draft.markdown}</p>
             )}
           </div>
         )}
@@ -341,12 +341,12 @@ function DraftForm({ assemblyId, issueId, onCreated }: { assemblyId: string; iss
   return (
     <Card className="mb-6">
       <CardBody>
-        <h3 className="font-medium text-gray-900 mb-3">{t("proposals.newDraftTitle")}</h3>
+        <h3 className="font-medium text-text-primary mb-3">{t("proposals.newDraftTitle")}</h3>
         <div className="flex gap-3 mb-3">
           <select
             value={choiceKey}
             onChange={(e) => setChoiceKey(e.target.value)}
-            className="border rounded px-3 py-2 text-sm bg-white"
+            className="border rounded px-3 py-2 text-sm bg-surface-raised"
           >
             <option value="for">{t("proposals.choiceFor")}</option>
             <option value="against">{t("proposals.choiceAgainst")}</option>

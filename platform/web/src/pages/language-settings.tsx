@@ -32,14 +32,14 @@ export function LanguageSettings() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">
+      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">
         {t("language.title")}
       </h1>
 
       <Card>
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">{t("language.preferred")}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t("language.description")}</p>
+          <h2 className="text-base font-medium text-text-primary">{t("language.preferred")}</h2>
+          <p className="text-sm text-text-muted mt-1">{t("language.description")}</p>
         </CardHeader>
         <CardBody>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -49,13 +49,13 @@ export function LanguageSettings() {
                 onClick={() => handleChange(locale)}
                 className={`text-left px-4 py-3 rounded-lg border transition-colors ${
                   locale === currentLocale
-                    ? "border-brand bg-brand-50 text-brand-dark font-medium"
-                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700"
+                    ? "border-accent bg-accent-subtle text-accent-strong-text font-medium"
+                    : "border-border-default hover:border-border-strong hover:bg-interactive-hover text-text-secondary"
                 }`}
               >
                 <span className="text-sm">{LOCALE_NAMES[locale] ?? locale}</span>
                 {locale === currentLocale && (
-                  <span className="ml-2 text-xs text-brand">✓</span>
+                  <span className="ml-2 text-xs text-accent-text">✓</span>
                 )}
               </button>
             ))}

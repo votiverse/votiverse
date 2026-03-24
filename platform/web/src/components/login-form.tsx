@@ -60,7 +60,7 @@ export function LoginForm() {
     return (
       <div className="max-w-md mx-auto py-16 text-center">
         <Spinner />
-        <p className="mt-4 text-sm text-gray-500">{t("checkingSession")}</p>
+        <p className="mt-4 text-sm text-text-muted">{t("checkingSession")}</p>
       </div>
     );
   }
@@ -86,10 +86,10 @@ export function LoginForm() {
     <div className="max-w-sm mx-auto py-8 sm:py-16">
       <div className="text-center mb-8">
         <img src="/logo.svg" alt="Votiverse" className="w-14 h-14 mx-auto mb-4" />
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
           {mode === "login" ? t("welcomeBack") : t("createAccount")}
         </h1>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-text-muted">
           {mode === "login" ? t("signInToContinue") : t("joinToContinue")}
         </p>
       </div>
@@ -100,7 +100,7 @@ export function LoginForm() {
         {mode === "register" && (
           <>
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">{t("label.name")}</label>
+              <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-1">{t("label.name")}</label>
               <Input
                 id="name"
                 type="text"
@@ -111,17 +111,17 @@ export function LoginForm() {
               />
             </div>
             <div>
-              <label htmlFor="handle" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="handle" className="block text-sm font-medium text-text-secondary mb-1">
                 {t("label.handle")}
                 {handleAvailable === true && handle.length >= 3 && (
-                  <span className="ml-2 text-green-600 text-xs font-normal">{t("handle.available")}</span>
+                  <span className="ml-2 text-success-text text-xs font-normal">{t("handle.available")}</span>
                 )}
                 {handleAvailable === false && (
-                  <span className="ml-2 text-red-600 text-xs font-normal">{t("handle.taken")}</span>
+                  <span className="ml-2 text-error-text text-xs font-normal">{t("handle.taken")}</span>
                 )}
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">@</span>
                 <Input
                   id="handle"
                   type="text"
@@ -137,12 +137,12 @@ export function LoginForm() {
                   maxLength={30}
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">{t("handle.hint")}</p>
+              <p className="text-xs text-text-tertiary mt-1">{t("handle.hint")}</p>
             </div>
           </>
         )}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">{t("label.email")}</label>
+          <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-1">{t("label.email")}</label>
           <Input
             id="email"
             type="email"
@@ -152,11 +152,11 @@ export function LoginForm() {
             required
           />
           {mode === "register" && (
-            <p className="text-xs text-gray-400 mt-1">{t("email.hint")}</p>
+            <p className="text-xs text-text-tertiary mt-1">{t("email.hint")}</p>
           )}
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">{t("label.password")}</label>
+          <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1">{t("label.password")}</label>
           <Input
             id="password"
             type="password"
@@ -172,18 +172,18 @@ export function LoginForm() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
+      <p className="text-center text-sm text-text-muted mt-6">
         {mode === "login" ? (
           <>
             {t("noAccount")}{" "}
-            <button onClick={() => { setMode("register"); setError(null); }} className="text-brand font-medium hover:underline">
+            <button onClick={() => { setMode("register"); setError(null); }} className="text-accent-text font-medium hover:underline">
               {t("signUp")}
             </button>
           </>
         ) : (
           <>
             {t("hasAccount")}{" "}
-            <button onClick={() => { setMode("login"); setError(null); }} className="text-brand font-medium hover:underline">
+            <button onClick={() => { setMode("login"); setError(null); }} className="text-accent-text font-medium hover:underline">
               {t("signIn")}
             </button>
           </>

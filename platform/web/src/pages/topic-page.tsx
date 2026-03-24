@@ -71,10 +71,10 @@ export function TopicPage() {
   return (
     <div className="max-w-3xl mx-auto">
       {/* Breadcrumb */}
-      <div className="mb-1 text-xs text-gray-400 flex items-center gap-1">
+      <div className="mb-1 text-xs text-text-tertiary flex items-center gap-1">
         <Link
           to={`/assembly/${assemblyId}/topics`}
-          className="hover:text-gray-600 transition-colors"
+          className="hover:text-text-secondary transition-colors"
         >
           {t("topicPage.breadcrumbTopics")}
         </Link>
@@ -83,21 +83,21 @@ export function TopicPage() {
             <span>›</span>
             <Link
               to={`/assembly/${assemblyId}/topics/${parent.id}`}
-              className="hover:text-gray-600 transition-colors"
+              className="hover:text-text-secondary transition-colors"
             >
               {parent.name}
             </Link>
           </>
         )}
         <span>›</span>
-        <span className="text-gray-500">{topic.name}</span>
+        <span className="text-text-muted">{topic.name}</span>
       </div>
 
       {/* Header with delegation status */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{topic.name}</h1>
-          <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{topic.name}</h1>
+          <div className="flex items-center gap-4 text-sm text-text-muted mt-1">
             <span>{t("topicPage.issue", { count: issues.length })}</span>
             <span>{t("topicPage.delegate", { count: delegations.length })}</span>
           </div>
@@ -113,13 +113,13 @@ export function TopicPage() {
       {/* Child topics (root topics only) */}
       {children.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-sm font-medium text-gray-700 mb-2">{t("topicPage.subtopics")}</h2>
+          <h2 className="text-sm font-medium text-text-secondary mb-2">{t("topicPage.subtopics")}</h2>
           <div className="flex flex-wrap gap-2">
             {children.map((child) => (
               <Link
                 key={child.id}
                 to={`/assembly/${assemblyId}/topics/${child.id}`}
-                className="text-sm text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1 transition-colors"
+                className="text-sm text-text-secondary hover:text-text-primary bg-surface-sunken hover:bg-interactive-active rounded-full px-3 py-1 transition-colors"
               >
                 {child.name}
               </Link>
@@ -156,14 +156,14 @@ export function TopicPage() {
       {/* Weight distribution section */}
       {delegations.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-sm font-medium text-gray-700 mb-3">
+          <h2 className="text-sm font-medium text-text-secondary mb-3">
             {t("topicPage.weightDistribution")}
           </h2>
-          <p className="text-xs text-gray-400 mb-3">
+          <p className="text-xs text-text-tertiary mb-3">
             {t("topicPage.weightDistributionDesc")}
           </p>
           <Card>
-            <CardBody className="divide-y divide-gray-100">
+            <CardBody className="divide-y divide-border-subtle">
               {delegations.map((d) => (
                 <DelegateRow
                   key={d.delegate.id}
@@ -194,7 +194,7 @@ function IssuesSection({
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+      <h2 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
         {label}
         {showBadge && (
           <Badge color="green">{issues.length}</Badge>
@@ -218,15 +218,15 @@ function IssueRow({ item, assemblyId }: { item: TopicIssueItem; assemblyId: stri
       to={`/assembly/${assemblyId}/events/${event.id}`}
       className="block"
     >
-      <Card className="hover:border-gray-300 transition-colors">
+      <Card className="hover:border-border-strong transition-colors">
         <CardBody className="py-3">
-          <p className={`text-sm font-medium text-gray-900 ${issue.cancelled ? "line-through opacity-50" : ""}`}>
+          <p className={`text-sm font-medium text-text-primary ${issue.cancelled ? "line-through opacity-50" : ""}`}>
             {issue.title}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-text-tertiary mt-0.5">
             {event.title}
             {issue.cancelled && (
-              <span className="ml-2 text-red-400">{t("topicPage.cancelled")}</span>
+              <span className="ml-2 text-error-text">{t("topicPage.cancelled")}</span>
             )}
           </p>
         </CardBody>
@@ -244,15 +244,15 @@ function DelegateRow({ item, isMyDelegate }: { item: TopicDelegationItem; isMyDe
       <div className="flex items-center gap-3 min-w-0">
         <Avatar name={delegate.name} size="sm" />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
+          <p className="text-sm font-medium text-text-primary truncate">
             {delegate.name}
             {isMyDelegate && (
-              <span className="ml-1.5 text-[10px] text-blue-500 font-normal">{t("topicPage.yourDelegate")}</span>
+              <span className="ml-1.5 text-[10px] text-info-text font-normal">{t("topicPage.yourDelegate")}</span>
             )}
           </p>
         </div>
       </div>
-      <span className="text-xs text-gray-500 tabular-nums shrink-0">
+      <span className="text-xs text-text-muted tabular-nums shrink-0">
         {t("topicPage.weightLabel", { weight })}
       </span>
     </div>
@@ -275,7 +275,7 @@ function DelegationBadge({
       title={status.label}
     >
       <Avatar name={status.delegateName} size="sm" />
-      <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors leading-tight">
+      <span className="text-[10px] text-text-tertiary group-hover:text-info-text transition-colors leading-tight">
         {t("topicPage.delegated")}
       </span>
     </Link>

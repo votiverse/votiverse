@@ -41,14 +41,14 @@ export function LocalePicker() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors rounded-md hover:bg-gray-100 cursor-pointer"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-text-muted hover:text-text-secondary transition-colors rounded-md hover:bg-interactive-active cursor-pointer"
         aria-label="Change language"
       >
         <Globe size={16} />
         <span className="font-medium">{displayCode}</span>
       </button>
       {open && (
-        <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
+        <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-surface-overlay border border-border-default rounded-lg shadow-lg z-30 py-1">
           {ALL_LOCALES.map((locale) => {
             const isActive = i18n.language === locale || i18n.language?.startsWith(locale);
             return (
@@ -57,8 +57,8 @@ export function LocalePicker() {
                 onClick={() => handleSelect(locale)}
                 className={`w-full text-left rtl:text-right px-3 py-2 text-sm transition-colors cursor-pointer ${
                   isActive
-                    ? "text-brand font-medium bg-brand-50"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "text-accent-text font-medium bg-accent-subtle"
+                    : "text-text-secondary hover:bg-interactive-hover"
                 }`}
               >
                 {LOCALE_NAMES[locale] ?? locale}

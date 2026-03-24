@@ -21,7 +21,7 @@ export function GoogleSignInButton({ redirect }: SocialButtonProps) {
   return (
     <a
       href={href}
-      className="flex items-center justify-center gap-3 w-full min-h-[44px] px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors cursor-pointer"
+      className="flex items-center justify-center gap-3 w-full min-h-[44px] px-4 py-2.5 bg-surface-raised border border-border-strong rounded-lg text-sm font-medium text-text-secondary hover:bg-interactive-hover hover:border-border-strong transition-colors cursor-pointer"
     >
       <GoogleLogo />
       {t("continueWithGoogle")}

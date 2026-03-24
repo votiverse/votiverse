@@ -120,13 +120,13 @@ export function InvitePage() {
   if (requestSent) {
     return (
       <div className="max-w-lg mx-auto py-8 sm:py-16 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="w-16 h-16 bg-success-subtle rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">{t("invite.requestSubmitted")}</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <h1 className="text-xl font-semibold text-text-primary mb-2">{t("invite.requestSubmitted")}</h1>
+        <p className="text-sm text-text-muted mb-6">
           <Trans
             i18nKey="invite.requestSentMessage"
             ns="onboarding"
@@ -134,7 +134,7 @@ export function InvitePage() {
             components={{ bold: <span className="font-medium" /> }}
           />
         </p>
-        <Link to="/dashboard" className="text-sm text-brand hover:text-brand-light">
+        <Link to="/dashboard" className="text-sm text-accent-text hover:text-accent-text">
           {t("invite.backToDashboard")}
         </Link>
       </div>
@@ -145,13 +145,13 @@ export function InvitePage() {
     <div className="max-w-lg mx-auto py-8 sm:py-16">
       {/* Group identity */}
       <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-brand rounded-xl flex items-center justify-center mx-auto mb-4">
-          <span className="text-white font-bold text-3xl">{group.name.charAt(0).toUpperCase()}</span>
+        <div className="w-16 h-16 bg-accent rounded-xl flex items-center justify-center mx-auto mb-4">
+          <span className="text-text-on-accent font-bold text-3xl">{group.name.charAt(0).toUpperCase()}</span>
         </div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
           {group.name}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-text-muted">
           {t("invite.youveBeenInvited")}
         </p>
       </div>
@@ -160,22 +160,22 @@ export function InvitePage() {
       <Card className="mb-4">
         <CardBody>
           <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">{t("invite.governanceRules")}</h2>
+            <h2 className="text-sm font-semibold text-text-secondary">{t("invite.governanceRules")}</h2>
             <Badge color="gray">{presetLabel(group.config.name)}</Badge>
           </div>
           <ul className="space-y-1.5">
             {rules.map((rule, i) => (
-              <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                <span className="text-gray-400 mt-0.5 shrink-0">-</span>
+              <li key={i} className="text-sm text-text-secondary flex items-start gap-2">
+                <span className="text-text-tertiary mt-0.5 shrink-0">-</span>
                 <span>{rule}</span>
               </li>
             ))}
-            <li className="text-sm text-gray-600 flex items-start gap-2">
-              <span className="text-gray-400 mt-0.5 shrink-0">-</span>
+            <li className="text-sm text-text-secondary flex items-start gap-2">
+              <span className="text-text-tertiary mt-0.5 shrink-0">-</span>
               <span>{describeAdmissionMode(admissionMode)}</span>
             </li>
           </ul>
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-text-tertiary mt-3">
             {t("invite.governancePermanent")}
           </p>
         </CardBody>
@@ -185,19 +185,19 @@ export function InvitePage() {
       {(group.owners.length > 0 || group.admins.length > 0) && (
         <Card className="mb-4">
           <CardBody>
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">{t("invite.leadership")}</h2>
+            <h2 className="text-sm font-semibold text-text-secondary mb-2">{t("invite.leadership")}</h2>
             <div className="flex flex-wrap gap-3">
               {group.owners.map((o) => (
                 <div key={o.participantId} className="flex items-center gap-1.5">
                   <Avatar name={o.name ?? "?"} size="xs" />
-                  <span className="text-sm text-gray-700">{o.name ?? t("invite.owner")}</span>
+                  <span className="text-sm text-text-secondary">{o.name ?? t("invite.owner")}</span>
                   <Badge color="blue">{t("invite.owner")}</Badge>
                 </div>
               ))}
               {group.admins.map((a) => (
                 <div key={a.participantId} className="flex items-center gap-1.5">
                   <Avatar name={a.name ?? "?"} size="xs" />
-                  <span className="text-sm text-gray-700">{a.name ?? t("invite.admin")}</span>
+                  <span className="text-sm text-text-secondary">{a.name ?? t("invite.admin")}</span>
                 </div>
               ))}
             </div>
@@ -206,7 +206,7 @@ export function InvitePage() {
       )}
 
       {/* Member count */}
-      <p className="text-sm text-gray-500 text-center mb-6">
+      <p className="text-sm text-text-muted text-center mb-6">
         {t("invite.memberCount", { count: group.memberCount })}
       </p>
 
@@ -221,7 +221,7 @@ export function InvitePage() {
               : (isApprovalMode ? t("invite.requestToJoin") : t("invite.joinGroup"))}
           </Button>
           {isApprovalMode && (
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-text-tertiary text-center">
               {t("invite.approvalHint")}
             </p>
           )}
@@ -231,7 +231,7 @@ export function InvitePage() {
           <Button onClick={() => navigate(`/login?redirect=/invite/${token}`)} className="w-full">
             {isApprovalMode ? t("invite.loginToRequest") : t("invite.loginToJoin")}
           </Button>
-          <p className="text-xs text-gray-400 text-center">
+          <p className="text-xs text-text-tertiary text-center">
             {t("invite.noAccount")}
           </p>
         </div>

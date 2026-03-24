@@ -75,8 +75,8 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
     <Card className="mb-4">
       <CardBody>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-gray-900 text-sm">{t("bulk.title")}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-sm">{t("common:cancel")}</button>
+          <h3 className="font-medium text-text-primary text-sm">{t("bulk.title")}</h3>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-secondary text-sm">{t("common:cancel")}</button>
         </div>
 
         {error && <ErrorBox message={error} />}
@@ -88,14 +88,14 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center cursor-pointer hover:border-brand-200 transition-colors"
+              className="border-2 border-dashed border-border-default rounded-lg p-8 text-center cursor-pointer hover:border-accent transition-colors"
             >
               {loading ? (
-                <p className="text-sm text-gray-500">{t("bulk.processing")}</p>
+                <p className="text-sm text-text-muted">{t("bulk.processing")}</p>
               ) : (
                 <>
-                  <p className="text-sm text-gray-600 mb-1">{t("bulk.dropzone")}</p>
-                  <p className="text-xs text-gray-400">{t("bulk.dropzoneHint")}</p>
+                  <p className="text-sm text-text-secondary mb-1">{t("bulk.dropzone")}</p>
+                  <p className="text-xs text-text-tertiary">{t("bulk.dropzoneHint")}</p>
                 </>
               )}
             </div>
@@ -117,8 +117,8 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
           <>
             {/* Summary bar */}
             <div className="flex flex-wrap gap-3 mb-4 text-sm">
-              <span className="text-gray-500">
-                {t("bulk.total")}: <span className="font-medium text-gray-900">{preview.summary.total}</span>
+              <span className="text-text-muted">
+                {t("bulk.total")}: <span className="font-medium text-text-primary">{preview.summary.total}</span>
               </span>
               {preview.summary.canInvite > 0 && (
                 <Badge color="green">{t("bulk.canInvite", { count: preview.summary.canInvite })}</Badge>
@@ -135,10 +135,10 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
             </div>
 
             {/* Handle list */}
-            <div className="max-h-64 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
+            <div className="max-h-64 overflow-y-auto border border-border-subtle rounded-lg divide-y divide-surface">
               {preview.valid.map((v) => (
                 <div key={v.handle} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span className="text-gray-700 font-mono">@{v.handle}</span>
+                  <span className="text-text-secondary font-mono">@{v.handle}</span>
                   {v.alreadyMember ? (
                     <Badge color="yellow">{t("bulk.statusAlreadyMember")}</Badge>
                   ) : v.status === "not_found" ? (
@@ -150,7 +150,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
               ))}
               {preview.errors.map((e) => (
                 <div key={e.row} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span className="text-gray-400 font-mono">{e.value}</span>
+                  <span className="text-text-tertiary font-mono">{e.value}</span>
                   <Badge color="red">{e.reason}</Badge>
                 </div>
               ))}
@@ -174,7 +174,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
         {/* Sending phase */}
         {phase === "sending" && (
           <div className="text-center py-4">
-            <p className="text-sm text-gray-500">{t("bulk.sending")}</p>
+            <p className="text-sm text-text-muted">{t("bulk.sending")}</p>
           </div>
         )}
 
@@ -182,7 +182,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
         {phase === "done" && result && (
           <>
             <div className="text-center py-4">
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-text-secondary">
                 {t("bulk.resultSent", { count: result.created })}
                 {result.skipped > 0 && `, ${t("bulk.resultSkipped", { count: result.skipped })}`}
               </p>

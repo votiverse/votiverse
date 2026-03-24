@@ -45,16 +45,16 @@ export function Notifications() {
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("title")}</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("title")}</h1>
           {unreadCount > 0 && <Badge color="blue">{t("unreadCount", { count: unreadCount })}</Badge>}
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
             <input
               type="checkbox"
               checked={unreadOnly}
               onChange={(e) => setUnreadOnly(e.target.checked)}
-              className="rounded border-gray-300"
+              className="rounded border-border-strong"
             />
             {t("unreadOnly")}
           </label>
@@ -98,10 +98,10 @@ function NotificationCard({ notification, onClick }: { notification: Notificatio
       : null;
 
   const cardBg = !notification.read && notification.urgency === "action"
-    ? "bg-red-50/40 border-red-200 hover:border-red-300"
+    ? "bg-error-subtle border-error hover:border-error"
     : !notification.read && notification.urgency === "timely"
-      ? "bg-blue-50/30 hover:border-blue-200"
-      : "hover:border-gray-300";
+      ? "bg-info-subtle hover:border-info"
+      : "hover:border-border-strong";
 
   return (
     <Card
@@ -110,28 +110,28 @@ function NotificationCard({ notification, onClick }: { notification: Notificatio
       <CardBody className="py-3">
         <button onClick={onClick} className="w-full text-left">
           <div className="flex items-start gap-3">
-            <div className={`mt-0.5 shrink-0 ${notification.read ? "text-gray-300" : "text-gray-500"}`}>
+            <div className={`mt-0.5 shrink-0 ${notification.read ? "text-text-tertiary" : "text-text-muted"}`}>
               {icon}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-0.5">
                 {notification.assemblyName && (
-                  <span className="text-xs text-gray-400 truncate">{notification.assemblyName}</span>
+                  <span className="text-xs text-text-tertiary truncate">{notification.assemblyName}</span>
                 )}
                 {!notification.read && urgencyBadge}
               </div>
-              <p className={`text-sm ${notification.read ? "text-gray-500" : "text-gray-900 font-medium"}`}>
+              <p className={`text-sm ${notification.read ? "text-text-muted" : "text-text-primary font-medium"}`}>
                 {notification.title}
               </p>
               {notification.body && (
-                <p className="text-xs text-gray-400 mt-0.5">{notification.body}</p>
+                <p className="text-xs text-text-tertiary mt-0.5">{notification.body}</p>
               )}
-              <p className="text-xs text-gray-300 mt-1">
+              <p className="text-xs text-text-tertiary mt-1">
                 {formatRelativeTime(notification.createdAt)}
               </p>
             </div>
             {!notification.read && (
-              <div className="w-2.5 h-2.5 rounded-full bg-brand mt-1.5 shrink-0" />
+              <div className="w-2.5 h-2.5 rounded-full bg-accent mt-1.5 shrink-0" />
             )}
           </div>
         </button>

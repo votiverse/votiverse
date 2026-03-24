@@ -152,9 +152,9 @@ export function MarkdownEditor({
   if (!editor) return null;
 
   return (
-    <div className="tiptap-editor border rounded-lg overflow-hidden bg-white">
+    <div className="tiptap-editor border rounded-lg overflow-hidden bg-surface-raised">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b bg-gray-50">
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b bg-surface">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           active={editor.isActive("heading", { level: 2 })}
@@ -239,13 +239,13 @@ export function MarkdownEditor({
 
       {/* Inline link input */}
       {linkInputOpen && (
-        <div className="flex items-center gap-2 px-2 py-1.5 border-b bg-blue-50">
+        <div className="flex items-center gap-2 px-2 py-1.5 border-b bg-info-subtle">
           <input
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="https://example.com"
-            className="flex-1 text-xs border rounded px-2 py-1 bg-white"
+            className="flex-1 text-xs border rounded px-2 py-1 bg-surface-raised"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -271,14 +271,14 @@ export function MarkdownEditor({
               setLinkInputOpen(false);
               setLinkUrl("");
             }}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1"
+            className="text-xs text-info-text hover:text-info-text font-medium px-2 py-1"
           >
             {t("apply")}
           </button>
           <button
             type="button"
             onClick={() => { setLinkInputOpen(false); setLinkUrl(""); editor.chain().focus().run(); }}
-            className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+            className="text-xs text-text-muted hover:text-text-secondary px-2 py-1"
           >
             {t("cancel")}
           </button>
@@ -287,7 +287,7 @@ export function MarkdownEditor({
 
       {/* Editor area */}
       <div
-        className="px-4 py-3 focus-within:ring-2 focus-within:ring-blue-100 text-sm text-gray-800"
+        className="px-4 py-3 focus-within:ring-2 focus-within:ring-focus-ring text-sm text-text-primary"
         style={{ minHeight }}
       >
         <EditorContent editor={editor} />
@@ -366,8 +366,8 @@ function ToolbarButton({
       title={title}
       className={`px-2 py-1 text-xs rounded transition-colors ${
         active
-          ? "bg-blue-100 text-blue-700 font-medium"
-          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          ? "bg-accent-subtle text-accent-text font-medium"
+          : "text-text-secondary hover:bg-interactive-active hover:text-text-primary"
       }`}
     >
       {children}
@@ -376,5 +376,5 @@ function ToolbarButton({
 }
 
 function ToolbarDivider() {
-  return <div className="w-px h-5 bg-gray-200 mx-0.5" />;
+  return <div className="w-px h-5 bg-skeleton mx-0.5" />;
 }

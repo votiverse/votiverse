@@ -112,8 +112,8 @@ export function AssemblyList() {
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("assemblyList.title")}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t("assemblyList.subtitle")}</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("assemblyList.title")}</h1>
+          <p className="mt-1 text-sm text-text-muted">{t("assemblyList.subtitle")}</p>
         </div>
         <Button onClick={() => setCreating(true)}>{t("assemblyList.newGroup")}</Button>
       </div>
@@ -130,14 +130,14 @@ export function AssemblyList() {
         <div className="space-y-3">
           {assemblies.map((asm) => (
             <Link key={asm.id} to={`/assembly/${asm.id}/events`} className="block">
-              <Card className="hover:border-brand-200 hover:shadow transition-all">
+              <Card className="hover:border-accent-muted hover:shadow transition-all">
                 <CardBody>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <AssemblyInitial name={asm.name} />
                       <div>
-                        <h3 className="font-medium text-gray-900">{asm.name}</h3>
-                        <p className="text-sm text-gray-500 mt-0.5">{presetLabel(asm.config.name, t)}</p>
+                        <h3 className="font-medium text-text-primary">{asm.name}</h3>
+                        <p className="text-sm text-text-muted mt-0.5">{presetLabel(asm.config.name, t)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -205,7 +205,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
       <Card className="mb-6">
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h3 className="font-medium text-gray-900">{t("assemblyList.newGroupTitle")}</h3>
+            <h3 className="font-medium text-text-primary">{t("assemblyList.newGroupTitle")}</h3>
             {error && <ErrorBox message={error} />}
 
             <div>
@@ -215,19 +215,19 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
 
             {/* Governance summary — subtle, with customize link */}
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">
-                {t("assemblyList.governance")} <span className="font-medium text-gray-700">{presetInfo?.label ?? t("assemblyList.presetLiquidDelegation")}</span>
-                {isCustomized && <span className="text-amber-600 ml-1">{t("assemblyList.customized")}</span>}
+              <span className="text-text-muted">
+                {t("assemblyList.governance")} <span className="font-medium text-text-secondary">{presetInfo?.label ?? t("assemblyList.presetLiquidDelegation")}</span>
+                {isCustomized && <span className="text-warning-text ml-1">{t("assemblyList.customized")}</span>}
               </span>
               <button
                 type="button"
                 onClick={() => setShowCustomize(true)}
-                className="text-brand hover:text-brand-light text-sm font-medium"
+                className="text-accent-text hover:text-accent-text text-sm font-medium"
               >
                 {t("assemblyList.customizeRules")}
               </button>
             </div>
-            <p className="text-xs text-gray-400 -mt-2">
+            <p className="text-xs text-text-tertiary -mt-2">
               {t("assemblyList.rulesPermanent")}
             </p>
 
@@ -242,7 +242,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                     onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, deliberationDays: Number(e.target.value) } }))}
                     className="w-16"
                   />
-                  <span className="text-xs text-gray-500">{t("assemblyList.deliberation")}</span>
+                  <span className="text-xs text-text-muted">{t("assemblyList.deliberation")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Input
@@ -251,7 +251,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                     onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, curationDays: Number(e.target.value) } }))}
                     className="w-16"
                   />
-                  <span className="text-xs text-gray-500">{t("assemblyList.curation")}</span>
+                  <span className="text-xs text-text-muted">{t("assemblyList.curation")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Input
@@ -260,9 +260,9 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                     onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, votingDays: Number(e.target.value) } }))}
                     className="w-16"
                   />
-                  <span className="text-xs text-gray-500">{t("assemblyList.voting")}</span>
+                  <span className="text-xs text-text-muted">{t("assemblyList.voting")}</span>
                 </div>
-                <span className="text-xs text-gray-400">{t("assemblyList.days")}</span>
+                <span className="text-xs text-text-tertiary">{t("assemblyList.days")}</span>
               </div>
             </div>
 
@@ -274,17 +274,17 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                 <option value="open">{t("assemblyList.admissionOpen")}</option>
                 <option value="invite-only">{t("assemblyList.admissionInviteOnly")}</option>
               </Select>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-text-tertiary mt-1">
                 {admissionMode === "approval" && t("assemblyList.admissionApprovalDesc")}
                 {admissionMode === "open" && t("assemblyList.admissionOpenDesc")}
                 {admissionMode === "invite-only" && t("assemblyList.admissionInviteOnlyDesc")}
               </p>
               {admissionMode === "open" && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-1.5">
+                <p className="text-xs text-warning-text bg-warning-subtle border border-warning-border rounded px-2 py-1.5 mt-1.5">
                   {t("assemblyList.sybilWarning")}
                 </p>
               )}
-              <p className="text-xs text-gray-400 mt-1">{t("assemblyList.changeableNote")}</p>
+              <p className="text-xs text-text-tertiary mt-1">{t("assemblyList.changeableNote")}</p>
             </div>
 
             <div className="flex gap-2 justify-end">
@@ -339,18 +339,18 @@ function ConfigModal({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[90vh] mt-[5vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden mx-4">
+      <div className="relative w-full max-w-2xl max-h-[90vh] mt-[5vh] bg-surface-raised rounded-xl shadow-2xl flex flex-col overflow-hidden mx-4">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b bg-gray-50 shrink-0">
+        <div className="px-6 py-4 border-b bg-surface shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t("assemblyList.governanceRules")}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <h2 className="text-lg font-semibold text-text-primary">{t("assemblyList.governanceRules")}</h2>
+              <p className="text-xs text-text-muted mt-0.5">
                 {t("assemblyList.governanceRulesDesc")}
               </p>
             </div>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+            <button onClick={onClose} className="p-2 text-text-tertiary hover:text-text-secondary rounded-lg hover:bg-interactive-active">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -368,10 +368,10 @@ function ConfigModal({
               value={draft.preset}
               onChange={(presetKey) => applyPreset(presetKey)}
             />
-            <p className="text-xs text-gray-400 mt-1">{t("assemblyList.presetResetsAll")}</p>
+            <p className="text-xs text-text-tertiary mt-1">{t("assemblyList.presetResetsAll")}</p>
           </div>
 
-          <hr className="border-gray-200" />
+          <hr className="border-border-default" />
 
           {/* Delegation */}
           <Section title={t("assemblyList.sectionDelegation")}>
@@ -392,7 +392,7 @@ function ConfigModal({
                   onChange={(e) => update("ballot", { quorum: Number(e.target.value) / 100 })}
                   className="w-20"
                 />
-                <span className="text-sm text-gray-500">%</span>
+                <span className="text-sm text-text-muted">%</span>
               </div>
             </Row>
             <Row label={t("assemblyList.votingMethodLabel")}>
@@ -412,7 +412,7 @@ function ConfigModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t bg-gray-50 shrink-0 flex justify-end gap-2">
+        <div className="px-6 py-4 border-t bg-surface shrink-0 flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
           <Button onClick={handleSave}>{t("common:apply")}</Button>
         </div>
@@ -444,18 +444,18 @@ function PresetPicker({ value, onChange }: { value: string; onChange: (v: string
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full text-left rounded-lg border border-gray-300 px-3 py-2.5 hover:border-gray-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-colors"
+        className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 hover:border-border-strong focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring transition-colors"
       >
-        <span className="text-sm font-medium text-gray-900">{selected.label}</span>
-        <p className="text-xs text-gray-500 mt-0.5">{selected.desc}</p>
-        <svg className="absolute right-3 top-3 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <span className="text-sm font-medium text-text-primary">{selected.label}</span>
+        <p className="text-xs text-text-muted mt-0.5">{selected.desc}</p>
+        <svg className="absolute right-3 top-3 w-4 h-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
         </svg>
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-10 mt-1 w-full bg-white rounded-lg border border-gray-200 shadow-lg max-h-[320px] overflow-y-auto">
+        <div className="absolute z-10 mt-1 w-full bg-surface-raised rounded-lg border border-border-default shadow-lg max-h-[320px] overflow-y-auto">
           {PRESETS.map((p) => (
             <button
               key={p.value}
@@ -463,12 +463,12 @@ function PresetPicker({ value, onChange }: { value: string; onChange: (v: string
               onClick={() => { onChange(p.value); setOpen(false); }}
               className={`w-full text-left px-3 py-2.5 transition-colors ${
                 p.value === value
-                  ? "bg-brand-50 border-l-2 border-brand"
-                  : "hover:bg-gray-50 border-l-2 border-transparent"
+                  ? "bg-accent-subtle border-l-2 border-accent"
+                  : "hover:bg-interactive-hover border-l-2 border-transparent"
               }`}
             >
-              <span className={`text-sm font-medium ${p.value === value ? "text-brand" : "text-gray-900"}`}>{p.label}</span>
-              <p className="text-xs text-gray-500 mt-0.5">{p.desc}</p>
+              <span className={`text-sm font-medium ${p.value === value ? "text-accent-text" : "text-text-primary"}`}>{p.label}</span>
+              <p className="text-xs text-text-muted mt-0.5">{p.desc}</p>
             </button>
           ))}
         </div>
@@ -482,7 +482,7 @@ function PresetPicker({ value, onChange }: { value: string; onChange: (v: string
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">{title}</h3>
+      <h3 className="text-sm font-semibold text-text-secondary mb-3">{title}</h3>
       <div className="space-y-3">{children}</div>
     </div>
   );
@@ -491,7 +491,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-sm text-gray-600 shrink-0">{label}</span>
+      <span className="text-sm text-text-secondary shrink-0">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -500,17 +500,17 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex items-center justify-between gap-4 cursor-pointer">
-      <span className="text-sm text-gray-600">{label}</span>
+      <span className="text-sm text-text-secondary">{label}</span>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          checked ? "bg-brand" : "bg-gray-300"
+          checked ? "bg-accent" : "bg-border-strong"
         }`}
       >
-        <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform shadow-sm ${
+        <span className={`inline-block h-4 w-4 rounded-full bg-surface-raised transition-transform shadow-sm ${
           checked ? "translate-x-6" : "translate-x-1"
         }`} />
       </button>
@@ -529,7 +529,7 @@ function AssemblyInitial({ name }: { name: string }) {
   const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return (
     <div className={`w-9 h-9 ${INITIAL_COLORS[hash % INITIAL_COLORS.length]} rounded-lg flex items-center justify-center shrink-0`}>
-      <span className="text-white font-semibold text-sm">{name.charAt(0).toUpperCase()}</span>
+      <span className="text-text-on-accent font-semibold text-sm">{name.charAt(0).toUpperCase()}</span>
     </div>
   );
 }

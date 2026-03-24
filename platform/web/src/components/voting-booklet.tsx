@@ -63,23 +63,23 @@ const POSITION_LABEL_KEYS: Record<string, string> = {
 };
 
 const POSITION_COLORS: Record<string, string> = {
-  for: "bg-green-50 border-green-200",
-  against: "bg-red-50 border-red-200",
-  general: "bg-gray-50 border-gray-200",
+  for: "bg-success-subtle border-success-border",
+  against: "bg-error-subtle border-error-border",
+  general: "bg-surface border-border-default",
 };
 
 function positionColor(key: string): string {
-  return POSITION_COLORS[key] ?? "bg-blue-50 border-blue-200";
+  return POSITION_COLORS[key] ?? "bg-info-subtle border-info-text/20";
 }
 
 const POSITION_ACCENT: Record<string, string> = {
-  for: "text-green-700",
-  against: "text-red-700",
-  general: "text-gray-700",
+  for: "text-success-text",
+  against: "text-error-text",
+  general: "text-text-secondary",
 };
 
 function positionAccent(key: string): string {
-  return POSITION_ACCENT[key] ?? "text-blue-700";
+  return POSITION_ACCENT[key] ?? "text-info-text";
 }
 
 export function VotingBooklet({
@@ -160,28 +160,28 @@ export function VotingBooklet({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-[var(--overlay-backdrop)]" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-3xl max-h-[90vh] mt-[5vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden mx-4">
+      <div className="relative w-full max-w-3xl max-h-[90vh] mt-[5vh] bg-surface-raised rounded-xl shadow-2xl flex flex-col overflow-hidden mx-4">
         {/* Header */}
-        <div className="px-6 py-4 border-b bg-gray-50 shrink-0">
+        <div className="px-6 py-4 border-b bg-surface shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-1">
                 {t("booklet.title")}
-                {eventPhase === "deliberation" && <span className="ml-2 text-amber-500">{t("booklet.deliberationPhase")}</span>}
+                {eventPhase === "deliberation" && <span className="ml-2 text-warning-text">{t("booklet.deliberationPhase")}</span>}
               </p>
-              <h2 className="text-lg font-semibold text-gray-900">{issueTitle}</h2>
+              <h2 className="text-lg font-semibold text-text-primary">{issueTitle}</h2>
               {issueDescription && (
-                <p className="text-sm text-gray-500 mt-1">{issueDescription}</p>
+                <p className="text-sm text-text-muted mt-1">{issueDescription}</p>
               )}
             </div>
             <div className="flex items-center gap-1 shrink-0">
               {isCreator && eventPhase === "deliberation" && (
                 <button
                   onClick={() => setShowCuration(!showCuration)}
-                  className={`p-2 transition-colors rounded-lg ${showCuration ? "text-amber-600 bg-amber-50" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
+                  className={`p-2 transition-colors rounded-lg ${showCuration ? "text-warning-text bg-warning-subtle" : "text-text-tertiary hover:text-text-secondary hover:bg-interactive-active"}`}
                   title={t("booklet.curate")}
                 >
                   <Star size={18} />
@@ -189,7 +189,7 @@ export function VotingBooklet({
               )}
               <button
                 onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
+                className="p-2 text-text-tertiary hover:text-text-secondary transition-colors rounded-lg hover:bg-interactive-active"
                 aria-label={t("booklet.close")}
               >
                 <X size={20} />
@@ -207,7 +207,7 @@ export function VotingBooklet({
                   className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
                     idx === activeIdx
                       ? `${positionColor(key)} ${positionAccent(key)} font-medium`
-                      : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                      : "bg-surface-raised text-text-muted border-border-default hover:border-border-strong"
                   }`}
                 >
                   {positionLabel(key)}
@@ -225,7 +225,7 @@ export function VotingBooklet({
               {positionLabel(activeKey!)}
             </h3>
             {choices && activeKey !== "general" && (
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-text-tertiary mt-0.5">
                 {activeKey === "for" || activeKey === "against"
                   ? t("booklet.sectionArguesVoting", { position: activeKey })
                   : t("booklet.sectionArguesChoosing", { position: activeKey })}
@@ -238,7 +238,7 @@ export function VotingBooklet({
             /* DELIBERATION: all proposals ranked by score with endorse buttons */
             <div className="space-y-6">
               {activeProposals.length === 0 ? (
-                <p className="text-sm text-gray-400 italic">{t("booklet.noProposalsYet")}</p>
+                <p className="text-sm text-text-tertiary italic">{t("booklet.noProposalsYet")}</p>
               ) : (
                 activeProposals.map((proposal) => (
                   <ProposalSection
@@ -256,7 +256,7 @@ export function VotingBooklet({
               {(() => {
                 const featured = getFeaturedProposal(activeKey!);
                 if (!featured) {
-                  return <p className="text-sm text-gray-400 italic">{t("booklet.noProposals")}</p>;
+                  return <p className="text-sm text-text-tertiary italic">{t("booklet.noProposals")}</p>;
                 }
                 return (
                   <>
@@ -264,7 +264,7 @@ export function VotingBooklet({
                       {featured.featured && (
                         <div className="flex items-center gap-1.5 mb-2">
                           <Star size={12} className="text-amber-500 fill-amber-500" />
-                          <span className="text-xs text-amber-600 font-medium">{t("booklet.featuredByOrganizer")}</span>
+                          <span className="text-xs text-warning-text font-medium">{t("booklet.featuredByOrganizer")}</span>
                         </div>
                       )}
                       <ProposalSection
@@ -288,10 +288,10 @@ export function VotingBooklet({
             <div className="mt-8 pt-6 border-t">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1 h-5 bg-blue-500 rounded-full" />
-                <h4 className="text-sm font-semibold text-gray-900">{t("booklet.recommendation")}</h4>
+                <h4 className="text-sm font-semibold text-text-primary">{t("booklet.recommendation")}</h4>
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 prose prose-sm max-w-none text-gray-700">
-                <Suspense fallback={<p className="text-gray-400">{t("common:loading")}</p>}>
+              <div className="bg-info-subtle border border-info-text/20 rounded-lg p-4 prose prose-sm max-w-none text-text-secondary">
+                <Suspense fallback={<p className="text-text-tertiary">{t("common:loading")}</p>}>
                   <MarkdownViewer content={recommendation.markdown} />
                 </Suspense>
               </div>
@@ -314,21 +314,21 @@ export function VotingBooklet({
 
         {/* Footer — navigation */}
         {positionKeys.length > 1 && (
-          <div className="px-6 py-3 border-t bg-gray-50 flex items-center justify-between shrink-0">
+          <div className="px-6 py-3 border-t bg-surface flex items-center justify-between shrink-0">
             <button
               onClick={goPrev}
               disabled={activeIdx === 0}
-              className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-default inline-flex items-center gap-1"
+              className="text-sm text-text-muted hover:text-text-secondary disabled:opacity-30 disabled:cursor-default inline-flex items-center gap-1"
             >
               <ChevronLeft size={16} /> {t("booklet.previous")}
             </button>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-text-tertiary">
               {t("booklet.positionCount", { current: activeIdx + 1, total: positionKeys.length })}
             </span>
             <button
               onClick={goNext}
               disabled={activeIdx === positionKeys.length - 1}
-              className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-default inline-flex items-center gap-1"
+              className="text-sm text-text-muted hover:text-text-secondary disabled:opacity-30 disabled:cursor-default inline-flex items-center gap-1"
             >
               {t("booklet.next")} <ChevronRight size={16} />
             </button>
@@ -355,7 +355,7 @@ function SeeAllExpander({ proposals, featuredId, assemblyId }: {
     <div className="border-t pt-4">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
+        className="text-sm text-text-muted hover:text-text-secondary inline-flex items-center gap-1.5"
       >
         <ChevronDown size={14} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
         {expanded ? t("booklet.hide") : t("booklet.seeAll", { count: others.length + 1 })}
@@ -415,13 +415,13 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
       {/* Proposal header */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 min-w-0">
-          <FileText size={16} className="text-gray-400 shrink-0" />
-          <h4 className="text-sm font-semibold text-gray-900">{proposal.title}</h4>
+          <FileText size={16} className="text-text-tertiary shrink-0" />
+          <h4 className="text-sm font-semibold text-text-primary">{proposal.title}</h4>
           <Badge color="gray">v{proposal.currentVersion}</Badge>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {(endorsements > 0 || disputes > 0) && (
-            <span className={`text-xs font-medium ${score > 0 ? "text-green-600" : score < 0 ? "text-red-600" : "text-gray-500"}`}>
+            <span className={`text-xs font-medium ${score > 0 ? "text-success-text" : score < 0 ? "text-error-text" : "text-text-muted"}`}>
               {score > 0 ? "+" : ""}{score}
             </span>
           )}
@@ -430,14 +430,14 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
       </div>
 
       {/* Proposal body */}
-      <div className="prose prose-sm max-w-none text-gray-700">
-        {loading && <p className="text-gray-400">{t("common:loading")}</p>}
+      <div className="prose prose-sm max-w-none text-text-secondary">
+        {loading && <p className="text-text-tertiary">{t("common:loading")}</p>}
         {content ? (
-          <Suspense fallback={<p className="text-gray-400">{t("common:loading")}</p>}>
+          <Suspense fallback={<p className="text-text-tertiary">{t("common:loading")}</p>}>
             <MarkdownViewer content={content} />
           </Suspense>
         ) : !loading ? (
-          <p className="text-gray-400 italic">{t("booklet.contentUnavailable")}</p>
+          <p className="text-text-tertiary italic">{t("booklet.contentUnavailable")}</p>
         ) : null}
       </div>
 
@@ -445,7 +445,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
       <div className="mt-3 flex items-center gap-3">
         <button
           onClick={() => setShowNotes(!showNotes)}
-          className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
+          className="text-xs text-text-muted hover:text-text-secondary inline-flex items-center gap-1.5"
         >
           <MessageSquareText size={12} />
           {showNotes ? t("booklet.hideNotes") : t("booklet.notes")}
@@ -456,21 +456,21 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
             <button
               onClick={() => handleEvaluate("endorse")}
               disabled={evaluating}
-              className="p-1.5 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors disabled:opacity-50"
+              className="p-1.5 rounded hover:bg-success-subtle text-text-tertiary hover:text-success-text transition-colors disabled:opacity-50"
               title={t("booklet.endorse")}
             >
               <ThumbsUp size={13} />
             </button>
-            <span className="text-xs text-gray-400 tabular-nums">{endorsements > 0 ? endorsements : ""}</span>
+            <span className="text-xs text-text-tertiary tabular-nums">{endorsements > 0 ? endorsements : ""}</span>
             <button
               onClick={() => handleEvaluate("dispute")}
               disabled={evaluating}
-              className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+              className="p-1.5 rounded hover:bg-error-subtle text-text-tertiary hover:text-error-text transition-colors disabled:opacity-50"
               title={t("booklet.dispute")}
             >
               <ThumbsDown size={13} />
             </button>
-            <span className="text-xs text-gray-400 tabular-nums">{disputes > 0 ? disputes : ""}</span>
+            <span className="text-xs text-text-tertiary tabular-nums">{disputes > 0 ? disputes : ""}</span>
           </div>
         )}
       </div>
@@ -536,27 +536,27 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
     <div className="mt-8 pt-6 border-t">
       <div className="flex items-center gap-2 mb-4">
         <Star size={16} className="text-amber-500" />
-        <h4 className="text-sm font-semibold text-gray-900">{t("booklet.curationTitle")}</h4>
-        <span className="text-xs text-gray-400">{t("booklet.curationVisibility")}</span>
+        <h4 className="text-sm font-semibold text-text-primary">{t("booklet.curationTitle")}</h4>
+        <span className="text-xs text-text-tertiary">{t("booklet.curationVisibility")}</span>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-700 mb-4">
+      <div className="bg-warning-subtle border border-warning-border rounded-lg p-4 text-xs text-warning-text mb-4">
         {t("booklet.curationHelp")}
       </div>
 
       {/* Proposals in current position */}
       <div className="space-y-2 mb-6">
-        <h5 className="text-xs font-medium text-gray-500 uppercase">
+        <h5 className="text-xs font-medium text-text-muted uppercase">
           {POSITION_LABEL_KEYS[positionKey] ? t(POSITION_LABEL_KEYS[positionKey]) : t("booklet.posCustom", { key: positionKey })} — {t("booklet.proposals")}
         </h5>
         {proposals.length === 0 ? (
-          <p className="text-xs text-gray-400">{t("booklet.noProposals")}</p>
+          <p className="text-xs text-text-tertiary">{t("booklet.noProposals")}</p>
         ) : (
           proposals.map((p) => (
-            <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded border bg-white">
+            <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded border bg-surface-raised">
               <div className="min-w-0">
-                <span className="text-sm font-medium text-gray-900 truncate block">{p.title}</span>
-                <span className="text-xs text-gray-500">
+                <span className="text-sm font-medium text-text-primary truncate block">{p.title}</span>
+                <span className="text-xs text-text-muted">
                   {t("booklet.score")}: {score(p) > 0 ? "+" : ""}{score(p)}
                   {" "}({p.endorsementCount ?? 0} {t("booklet.endorse")}, {p.disputeCount ?? 0} {t("booklet.dispute")})
                 </span>
@@ -565,8 +565,8 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
                 onClick={() => handleFeature(p.id, p.featured)}
                 className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                   p.featured
-                    ? "bg-amber-100 border-amber-300 text-amber-700"
-                    : "bg-white border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600"
+                    ? "bg-warning-subtle border-warning-border text-warning-text"
+                    : "bg-surface-raised border-border-default text-text-muted hover:border-warning-border hover:text-warning-text"
                 }`}
               >
                 {p.featured ? t("booklet.unpin") : t("booklet.pinFeatured")}
@@ -578,19 +578,19 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
 
       {/* Recommendation editor */}
       <div>
-        <h5 className="text-xs font-medium text-gray-500 uppercase mb-2">{t("booklet.recommendation")}</h5>
+        <h5 className="text-xs font-medium text-text-muted uppercase mb-2">{t("booklet.recommendation")}</h5>
         <textarea
           value={recText}
           onChange={(e) => setRecText(e.target.value)}
           rows={5}
-          className="w-full border rounded-lg px-3 py-2 text-sm text-gray-700 resize-y"
+          className="w-full border rounded-lg px-3 py-2 text-sm text-text-secondary resize-y"
           placeholder={t("booklet.recPlaceholder")}
         />
         <div className="flex gap-2 mt-2">
           <button
             onClick={handleSaveRecommendation}
             disabled={saving || !recText.trim()}
-            className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="text-xs px-3 py-1.5 bg-accent text-text-on-accent rounded-lg hover:bg-accent/90 disabled:opacity-50"
           >
             {saving ? t("booklet.saving") : recommendation?.markdown ? t("booklet.updateRec") : t("booklet.saveRec")}
           </button>
@@ -598,7 +598,7 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
             <button
               onClick={handleDeleteRecommendation}
               disabled={saving}
-              className="text-xs px-3 py-1.5 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+              className="text-xs px-3 py-1.5 text-error-text border border-error-border rounded-lg hover:bg-error-subtle disabled:opacity-50"
             >
               {t("common:remove")}
             </button>

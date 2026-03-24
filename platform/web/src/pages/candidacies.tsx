@@ -44,8 +44,8 @@ export function Candidacies() {
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("candidacies.title")}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("candidacies.title")}</h1>
+          <p className="text-sm text-text-muted mt-1">
             {delegationCandidacy
               ? t("candidacies.subtitleCandidacy")
               : t("candidacies.subtitleGeneral")}
@@ -113,7 +113,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
         <div className="flex items-start gap-3">
           <Avatar name={name} size="md" />
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-gray-900">{name}</h3>
+            <h3 className="font-medium text-text-primary">{name}</h3>
             <div className="flex flex-wrap gap-1 mt-1">
               {topics.length > 0 ? (
                 topics.map((t) => <Badge key={t} color="blue">{t}</Badge>)
@@ -124,7 +124,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
                 <Badge color="green">Public votes</Badge>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-text-muted mt-1">
               {t("candidacies.declared", { date: formatDate(candidacy.declaredAt) })}
             </p>
           </div>
@@ -133,23 +133,23 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
         {expanded && (
           <div className="mt-4 border-t pt-4">
             {markdown ? (
-              <Suspense fallback={<p className="text-sm text-gray-400">{t("candidacies.loading")}</p>}><MarkdownViewer content={markdown} /></Suspense>
+              <Suspense fallback={<p className="text-sm text-text-tertiary">{t("candidacies.loading")}</p>}><MarkdownViewer content={markdown} /></Suspense>
             ) : (
-              <p className="text-sm text-gray-400 italic">{t("candidacies.profileNotAvailable")}</p>
+              <p className="text-sm text-text-tertiary italic">{t("candidacies.profileNotAvailable")}</p>
             )}
           </div>
         )}
 
         <div className="mt-3 flex gap-4">
           <button
-            className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1.5"
+            className="text-sm text-info-text hover:text-info-text inline-flex items-center gap-1.5"
             onClick={handleExpand}
           >
             <FileText size={14} />
             {expanded ? t("candidacies.hideStatement") : t("candidacies.candidateStatement")}
           </button>
           <button
-            className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1.5"
+            className="text-sm text-text-muted hover:text-text-secondary inline-flex items-center gap-1.5"
             onClick={() => setShowNotes(!showNotes)}
           >
             <MessageSquareText size={14} />
@@ -193,11 +193,11 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
   return (
     <Card className="mb-6">
       <CardBody>
-        <h3 className="font-medium text-gray-900 mb-3">{t("candidacies.declareTitle")}</h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <h3 className="font-medium text-text-primary mb-3">{t("candidacies.declareTitle")}</h3>
+        <p className="text-sm text-text-muted mb-4">
           {t("candidacies.declareIntro")}
         </p>
-        <Suspense fallback={<p className="text-sm text-gray-400">{t("candidacies.loadingEditor")}</p>}>
+        <Suspense fallback={<p className="text-sm text-text-tertiary">{t("candidacies.loadingEditor")}</p>}>
           <MarkdownEditor
             value={markdown}
             onChange={setMarkdown}
@@ -206,7 +206,7 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
             minHeight={250}
           />
         </Suspense>
-        <label className="flex items-center gap-2 text-sm text-gray-700 mb-4">
+        <label className="flex items-center gap-2 text-sm text-text-secondary mb-4">
           <input
             type="checkbox"
             checked={voteTransparency}

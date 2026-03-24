@@ -68,7 +68,7 @@ export function ProfileDelegators() {
   if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">{t("profileDelegators.noIdentity")}</p>
+        <p className="text-text-muted">{t("profileDelegators.noIdentity")}</p>
       </div>
     );
   }
@@ -80,8 +80,8 @@ export function ProfileDelegators() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">{t("profileDelegators.title")}</h1>
-      <p className="text-sm text-gray-500 mb-6">{t("profileDelegators.summary", { count: totalDelegators, delegators: totalDelegators, groups: data.filter((d) => (d.profile?.delegatorsCount ?? 0) > 0).length })}</p>
+      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-1">{t("profileDelegators.title")}</h1>
+      <p className="text-sm text-text-muted mb-6">{t("profileDelegators.summary", { count: totalDelegators, delegators: totalDelegators, groups: data.filter((d) => (d.profile?.delegatorsCount ?? 0) > 0).length })}</p>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <Input
@@ -93,7 +93,7 @@ export function ProfileDelegators() {
         <select
           value={selectedAssembly}
           onChange={(e) => setSelectedAssembly(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          className="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/20 focus:border-accent"
         >
           <option value="all">{t("profileDelegators.allGroups")}</option>
           {data.map((d) => (
@@ -112,14 +112,14 @@ export function ProfileDelegators() {
           {filtered.map(({ assembly, delegators }) => (
             <Card key={assembly.id}>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">{assembly.name}</h2>
+                <h2 className="font-medium text-text-primary">{assembly.name}</h2>
               </CardHeader>
               <CardBody>
                 <div className="space-y-2">
                   {delegators.map((d) => (
                     <div key={d.id} className="flex items-center gap-3 py-2">
                       <Avatar name={d.name ?? "?"} size="sm" />
-                      <span className="text-sm text-gray-900 font-medium">{d.name ?? d.id.slice(0, 12)}</span>
+                      <span className="text-sm text-text-primary font-medium">{d.name ?? d.id.slice(0, 12)}</span>
                     </div>
                   ))}
                 </div>

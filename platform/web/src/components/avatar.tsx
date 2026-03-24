@@ -127,7 +127,7 @@ export function Avatar({ name, url, size = "md", className = "" }: AvatarProps) 
     <img
       src={src}
       alt={name}
-      className={`${sizeClasses[size]} rounded-full bg-gray-100 shrink-0 ${className}`}
+      className={`${sizeClasses[size]} rounded-full bg-surface-sunken shrink-0 ${className}`}
       loading="lazy"
     />
   );

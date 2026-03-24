@@ -105,7 +105,7 @@ export function QuickDelegateForm({
     <Card className="mt-3">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-900">{t("delegate.title")}</h3>
+          <h3 className="text-sm font-medium text-text-primary">{t("delegate.title")}</h3>
 
           {formError && <ErrorBox message={formError} />}
 
@@ -131,9 +131,9 @@ export function QuickDelegateForm({
                     name="quick-scope"
                     checked={scopeMode === "issue"}
                     onChange={() => setScopeMode("issue")}
-                    className="text-brand focus:ring-brand"
+                    className="text-accent focus:ring-focus-ring"
                   />
-                  <span className="text-sm text-gray-700">{t("delegate.scopeIssue")}</span>
+                  <span className="text-sm text-text-secondary">{t("delegate.scopeIssue")}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -141,9 +141,9 @@ export function QuickDelegateForm({
                     name="quick-scope"
                     checked={scopeMode === "topic"}
                     onChange={() => setScopeMode("topic")}
-                    className="text-brand focus:ring-brand"
+                    className="text-accent focus:ring-focus-ring"
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-text-secondary">
                     {t("delegate.scopeTopic")}: <span className="font-medium">{topicNames}</span>
                   </span>
                 </label>
@@ -154,9 +154,9 @@ export function QuickDelegateForm({
                       name="quick-scope"
                       checked={scopeMode === "parent"}
                       onChange={() => setScopeMode("parent")}
-                      className="text-brand focus:ring-brand"
+                      className="text-accent focus:ring-focus-ring"
                     />
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-text-secondary">
                       {t("delegate.scopeBroader")}: <span className="font-medium">{parentNames}</span>
                     </span>
                   </label>
@@ -167,9 +167,9 @@ export function QuickDelegateForm({
                     name="quick-scope"
                     checked={scopeMode === "global"}
                     onChange={() => setScopeMode("global")}
-                    className="text-brand focus:ring-brand"
+                    className="text-accent focus:ring-focus-ring"
                   />
-                  <span className="text-sm text-gray-700">{t("delegate.scopeGlobal")}</span>
+                  <span className="text-sm text-text-secondary">{t("delegate.scopeGlobal")}</span>
                 </label>
               </div>
             </div>
@@ -177,9 +177,9 @@ export function QuickDelegateForm({
 
           {/* Selected delegate preview */}
           {targetId && (
-            <div className="flex items-center gap-2 bg-gray-50 rounded-md px-3 py-2">
+            <div className="flex items-center gap-2 bg-surface rounded-md px-3 py-2">
               <Avatar name={others.find((p) => p.id === targetId)?.name ?? "?"} size="xs" />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-text-secondary">
                 <span className="font-medium">{others.find((p) => p.id === targetId)?.name}</span>
                 {" "}{t("delegate.previewWillVote")}
                 {isTopicScoped && scopeMode === "issue" ? ` ${t("delegate.previewIssueOnly")}` : ""}
@@ -198,7 +198,7 @@ export function QuickDelegateForm({
             <button
               type="button"
               onClick={onClose}
-              className="text-sm text-gray-500 hover:text-gray-700 min-h-[36px] px-2"
+              className="text-sm text-text-muted hover:text-text-secondary min-h-[36px] px-2"
             >
               {t("common:cancel")}
             </button>

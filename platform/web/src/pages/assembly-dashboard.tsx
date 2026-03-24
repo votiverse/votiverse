@@ -64,10 +64,10 @@ export function AssemblyDashboard() {
 
       <div className="mb-6">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{assembly.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{assembly.name}</h1>
           <StatusBadge status={assembly.status} />
         </div>
-        <p className="mt-1 text-sm text-gray-500">{config.description}</p>
+        <p className="mt-1 text-sm text-text-muted">{config.description}</p>
       </div>
 
       {/* Onboarding rules summary — shown once per assembly (suppressed if onboarding dialog was shown) */}
@@ -94,7 +94,7 @@ export function AssemblyDashboard() {
       <div className="mb-4 sm:mb-6">
         <button
           onClick={() => setShowConfig(!showConfig)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700"
+          className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-secondary"
           aria-label="Toggle governance settings"
           aria-expanded={showConfig}
         >
@@ -102,13 +102,13 @@ export function AssemblyDashboard() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
           {t("assemblyDashboard.governanceSettings")}
-          <span className="text-gray-400 font-normal">({presetLabel(config.name, t)})</span>
+          <span className="text-text-tertiary font-normal">({presetLabel(config.name, t)})</span>
         </button>
         {showConfig && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-3">
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">{t("assemblyDashboard.configuration")}</h2>
+                <h2 className="font-medium text-text-primary">{t("assemblyDashboard.configuration")}</h2>
               </CardHeader>
               <CardBody className="space-y-3">
                 <ConfigRow label={t("assemblyDashboard.decisionModel")} value={presetLabel(config.name, t)} />
@@ -123,20 +123,20 @@ export function AssemblyDashboard() {
             </Card>
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">{t("assemblyDashboard.timeline")}</h2>
+                <h2 className="font-medium text-text-primary">{t("assemblyDashboard.timeline")}</h2>
               </CardHeader>
               <CardBody className="space-y-3">
                 <ConfigRow label={t("assemblyDashboard.deliberation")} value={t("assemblyDashboard.day", { count: config.timeline.deliberationDays })} />
                 <ConfigRow label={t("assemblyDashboard.curation")} value={config.timeline.curationDays > 0 ? t("assemblyDashboard.day", { count: config.timeline.curationDays }) : t("assemblyDashboard.curationNone")} />
                 <ConfigRow label={t("assemblyDashboard.voting")} value={t("assemblyDashboard.day", { count: config.timeline.votingDays })} />
-                <div className="text-xs text-gray-400 pt-1">
+                <div className="text-xs text-text-tertiary pt-1">
                   {t("assemblyDashboard.totalDaysPerVote", { count: config.timeline.deliberationDays + config.timeline.curationDays + config.timeline.votingDays })}
                 </div>
               </CardBody>
             </Card>
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">{t("assemblyDashboard.features")}</h2>
+                <h2 className="font-medium text-text-primary">{t("assemblyDashboard.features")}</h2>
               </CardHeader>
               <CardBody className="space-y-3">
                 <ConfigRow label={t("assemblyDashboard.communityNotes")} value={humanizeBoolean(config.features.communityNotes, "enabled-disabled", t)} />
@@ -152,18 +152,18 @@ export function AssemblyDashboard() {
       {profile && (profile.owners.length > 0 || profile.admins.length > 0) && (
         <Card className="mt-4 sm:mt-6">
           <CardHeader>
-            <h2 className="font-medium text-gray-900">{t("assemblyDashboard.leadership")}</h2>
+            <h2 className="font-medium text-text-primary">{t("assemblyDashboard.leadership")}</h2>
           </CardHeader>
           <CardBody>
             <div className="space-y-3">
               {profile.owners.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{t("assemblyDashboard.owners")}</p>
+                  <p className="text-xs text-text-tertiary uppercase tracking-wide mb-2">{t("assemblyDashboard.owners")}</p>
                   <div className="flex flex-wrap gap-3">
                     {profile.owners.map((r) => (
                       <div key={r.participantId} className="flex items-center gap-2">
                         <Avatar name={r.name ?? "?"} size="xs" />
-                        <span className="text-sm text-gray-700">{r.name ?? r.participantId.slice(0, 8)}</span>
+                        <span className="text-sm text-text-secondary">{r.name ?? r.participantId.slice(0, 8)}</span>
                         <Badge color="blue">{t("assemblyDashboard.ownerBadge")}</Badge>
                       </div>
                     ))}
@@ -172,12 +172,12 @@ export function AssemblyDashboard() {
               )}
               {profile.admins.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{t("assemblyDashboard.admins")}</p>
+                  <p className="text-xs text-text-tertiary uppercase tracking-wide mb-2">{t("assemblyDashboard.admins")}</p>
                   <div className="flex flex-wrap gap-3">
                     {profile.admins.map((r) => (
                       <div key={r.participantId} className="flex items-center gap-2">
                         <Avatar name={r.name ?? "?"} size="xs" />
-                        <span className="text-sm text-gray-700">{r.name ?? r.participantId.slice(0, 8)}</span>
+                        <span className="text-sm text-text-secondary">{r.name ?? r.participantId.slice(0, 8)}</span>
                       </div>
                     ))}
                   </div>
@@ -193,8 +193,8 @@ export function AssemblyDashboard() {
         <Card className="mt-4 sm:mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="font-medium text-gray-900">{t("assemblyDashboard.recentVotes")}</h2>
-              <Link to={`/assembly/${assemblyId}/events`} className="text-sm text-brand hover:text-brand-light">
+              <h2 className="font-medium text-text-primary">{t("assemblyDashboard.recentVotes")}</h2>
+              <Link to={`/assembly/${assemblyId}/events`} className="text-sm text-accent-text hover:text-accent-text">
                 {t("assemblyDashboard.viewAll")}
               </Link>
             </div>
@@ -205,9 +205,9 @@ export function AssemblyDashboard() {
                 <Link
                   key={evt.id}
                   to={`/assembly/${assemblyId}/events/${evt.id}`}
-                  className="flex items-center justify-between py-2.5 sm:py-2 px-3 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors min-h-[44px] sm:min-h-0"
+                  className="flex items-center justify-between py-2.5 sm:py-2 px-3 rounded-md hover:bg-interactive-hover active:bg-interactive-active transition-colors min-h-[44px] sm:min-h-0"
                 >
-                  <span className="text-sm text-gray-900">{evt.title}</span>
+                  <span className="text-sm text-text-primary">{evt.title}</span>
                   <Badge color="gray">{t("assemblyDashboard.nQuestions", { count: evt.issueIds?.length ?? 0 })}</Badge>
                 </Link>
               ))}
@@ -221,8 +221,8 @@ export function AssemblyDashboard() {
         <Card className="mt-4 sm:mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="font-medium text-gray-900">{t("assemblyDashboard.members")}</h2>
-              <Link to={`/assembly/${assemblyId}/members`} className="text-sm text-brand hover:text-brand-light">
+              <h2 className="font-medium text-text-primary">{t("assemblyDashboard.members")}</h2>
+              <Link to={`/assembly/${assemblyId}/members`} className="text-sm text-accent-text hover:text-accent-text">
                 {t("assemblyDashboard.viewAllN", { count: members.length })}
               </Link>
             </div>
@@ -232,11 +232,11 @@ export function AssemblyDashboard() {
               {members.slice(0, 12).map((m) => (
                 <div key={m.id} className="flex items-center gap-2">
                   <Avatar name={m.name} size="xs" />
-                  <span className="text-sm text-gray-700">{m.name}</span>
+                  <span className="text-sm text-text-secondary">{m.name}</span>
                 </div>
               ))}
               {members.length > 12 && (
-                <span className="text-sm text-gray-400 self-center">{t("assemblyDashboard.moreMembers", { count: members.length - 12 })}</span>
+                <span className="text-sm text-text-tertiary self-center">{t("assemblyDashboard.moreMembers", { count: members.length - 12 })}</span>
               )}
             </div>
           </CardBody>
@@ -248,10 +248,10 @@ export function AssemblyDashboard() {
 
 function StatCard({ label, value, linkTo }: { label: string; value: string | number; linkTo?: string }) {
   const content = (
-    <Card className={linkTo ? "hover:border-brand-200 active:border-brand transition-colors" : ""}>
+    <Card className={linkTo ? "hover:border-accent-muted active:border-accent transition-colors" : ""}>
       <CardBody className="text-center py-4 sm:py-6">
-        <div className="text-2xl sm:text-3xl font-semibold text-gray-900">{value}</div>
-        <div className="text-xs sm:text-sm text-gray-500 mt-1">{label}</div>
+        <div className="text-2xl sm:text-3xl font-semibold text-text-primary">{value}</div>
+        <div className="text-xs sm:text-sm text-text-muted mt-1">{label}</div>
       </CardBody>
     </Card>
   );
@@ -261,8 +261,8 @@ function StatCard({ label, value, linkTo }: { label: string; value: string | num
 function ConfigRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-gray-500">{label}</span>
-      <span className="text-gray-900 font-medium">{value}</span>
+      <span className="text-text-muted">{label}</span>
+      <span className="text-text-primary font-medium">{value}</span>
     </div>
   );
 }
@@ -282,27 +282,27 @@ function WelcomeCard({ assemblyId, assemblyName, config }: { assemblyId: string;
   const rules = summarizeRules(config, t);
 
   return (
-    <Card className="mb-6 border-brand-200 bg-brand-50/30">
+    <Card className="mb-6 border-accent-muted bg-accent-subtle">
       <CardBody>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900">{t("assemblyDashboard.welcomeTo", { name: assemblyName })}</h3>
-            <p className="text-xs text-gray-500 mt-0.5 mb-2">
+            <h3 className="text-sm font-semibold text-text-primary">{t("assemblyDashboard.welcomeTo", { name: assemblyName })}</h3>
+            <p className="text-xs text-text-muted mt-0.5 mb-2">
               {t("assemblyDashboard.usesGovernance", { preset: presetLabel(config.name, t) })}
             </p>
             <ul className="space-y-1">
               {rules.map((rule, i) => (
-                <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                  <span className="text-brand mt-0.5 shrink-0">-</span>
+                <li key={i} className="text-xs text-text-secondary flex items-start gap-1.5">
+                  <span className="text-accent-text mt-0.5 shrink-0">-</span>
                   <span>{rule}</span>
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-gray-400 mt-2">{t("assemblyDashboard.rulesPermanent")}</p>
+            <p className="text-xs text-text-tertiary mt-2">{t("assemblyDashboard.rulesPermanent")}</p>
           </div>
           <button
             onClick={dismiss}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded shrink-0"
+            className="p-1 text-text-tertiary hover:text-text-secondary rounded shrink-0"
             aria-label="Dismiss"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -56,21 +56,21 @@ function ErrorFallback({ message, onRetry, onReload }: { message?: string; onRet
   const { t } = useTranslation();
   return (
     <div className="max-w-md mx-auto py-16 text-center">
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-red-800 mb-2">{t("error.boundary.title")}</h2>
-        <p className="text-sm text-red-600 mb-4">
+      <div className="bg-error-subtle border border-error-border rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-error-text mb-2">{t("error.boundary.title")}</h2>
+        <p className="text-sm text-error-text mb-4">
           {message ?? t("error.boundary.unexpected")}
         </p>
         <div className="flex gap-3 justify-center">
           <button
             onClick={onRetry}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
+            className="px-4 py-2 bg-error text-text-on-accent text-sm font-medium rounded-md hover:bg-error-hover transition-colors"
           >
             {t("error.boundary.tryAgain")}
           </button>
           <button
             onClick={onReload}
-            className="px-4 py-2 bg-white text-red-700 text-sm font-medium rounded-md border border-red-300 hover:bg-red-50 transition-colors"
+            className="px-4 py-2 bg-surface-raised text-error-text text-sm font-medium rounded-md border border-error-border hover:bg-error-subtle transition-colors"
           >
             {t("error.boundary.reload")}
           </button>

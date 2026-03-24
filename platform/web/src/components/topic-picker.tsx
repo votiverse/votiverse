@@ -34,7 +34,7 @@ export function TopicPicker({ assemblyId, value, onChange, disabled }: TopicPick
 
   const topics = data?.topics ?? [];
   if (topics.length === 0) {
-    return <p className="text-sm text-gray-400">No topics defined for this assembly.</p>;
+    return <p className="text-sm text-text-tertiary">No topics defined for this assembly.</p>;
   }
 
   const selected = new Set(value);
@@ -97,7 +97,7 @@ function TopicCheckbox({
 }) {
   return (
     <label
-      className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-gray-50 ${
+      className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-interactive-hover ${
         disabled ? "opacity-50 cursor-not-allowed" : ""
       }`}
     >
@@ -106,9 +106,9 @@ function TopicCheckbox({
         checked={checked}
         onChange={() => onToggle(topic.id)}
         disabled={disabled}
-        className="rounded border-gray-300 text-brand focus:ring-brand"
+        className="rounded border-border-strong text-accent focus:ring-focus-ring"
       />
-      <span className={`text-sm ${isRoot ? "font-medium text-gray-900" : "text-gray-700"}`}>
+      <span className={`text-sm ${isRoot ? "font-medium text-text-primary" : "text-text-secondary"}`}>
         {topic.name}
       </span>
     </label>

@@ -14,7 +14,7 @@ export function Countdown({ target, className = "" }: { target: string; classNam
   const diff = deadline - now;
 
   if (diff <= 0) {
-    return <span className={`text-gray-400 ${className}`}>{t("countdown.ended")}</span>;
+    return <span className={`text-text-tertiary ${className}`}>{t("countdown.ended")}</span>;
   }
 
   const minutes = Math.floor(diff / 60_000);
@@ -26,16 +26,16 @@ export function Countdown({ target, className = "" }: { target: string; classNam
 
   if (days > 3) {
     text = t("countdown.days", { days });
-    colorClass = "text-gray-500";
+    colorClass = "text-text-muted";
   } else if (days >= 1) {
     text = t("countdown.daysHours", { days, hours: hours % 24 });
-    colorClass = "text-yellow-600";
+    colorClass = "text-warning-text";
   } else if (hours >= 1) {
     text = t("countdown.hoursMinutes", { hours, minutes: minutes % 60 });
-    colorClass = "text-red-600";
+    colorClass = "text-error-text";
   } else {
     text = t("countdown.minutes", { minutes });
-    colorClass = "text-red-600 font-semibold";
+    colorClass = "text-error-text font-semibold";
   }
 
   return <span className={`${colorClass} ${className}`}>{text}</span>;

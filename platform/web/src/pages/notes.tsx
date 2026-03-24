@@ -93,8 +93,8 @@ export function Notes() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("notesPage.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("notesPage.title")}</h1>
+        <p className="mt-1 text-sm text-text-muted">
           {t("notesPage.subtitle")}
         </p>
       </div>
@@ -150,8 +150,8 @@ function FilterChip({ label, count, active, onClick }: {
       onClick={onClick}
       className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
         active
-          ? "bg-brand text-white border-brand"
-          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+          ? "bg-accent text-text-on-accent border-accent"
+          : "bg-surface-raised text-text-secondary border-border-default hover:border-border-strong"
       }`}
     >
       {label} ({count})
@@ -209,19 +209,19 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
   const isOwnNote = note.authorId === participantId;
   const markdown = note.content?.markdown ?? fullNote?.content?.markdown;
 
-  const accentClass = isWithdrawn ? "border-l-gray-200 bg-gray-50/50 opacity-60"
-    : isVisible ? "border-l-green-400 bg-green-50/40"
-    : total > 0 ? "border-l-amber-300 bg-amber-50/30"
-    : "border-l-gray-200 bg-gray-50/30";
+  const accentClass = isWithdrawn ? "border-l-border-default bg-surface/50 opacity-60"
+    : isVisible ? "border-l-success bg-success-subtle"
+    : total > 0 ? "border-l-warning bg-warning-subtle"
+    : "border-l-border-default bg-surface";
 
   return (
-    <div className={`border-l-[3px] rounded-lg border border-gray-200 bg-white pl-4 pr-4 py-3 ${accentClass}`}>
+    <div className={`border-l-[3px] rounded-lg border border-border-default bg-surface-raised pl-4 pr-4 py-3 ${accentClass}`}>
         {/* Header: author + linked target + metadata */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Avatar name={authorName} size="xs" />
-            <span className="text-sm font-medium text-gray-900">{authorName}</span>
-            <span className="text-xs text-gray-400">{t("notesPage.on")}</span>
+            <span className="text-sm font-medium text-text-primary">{authorName}</span>
+            <span className="text-xs text-text-tertiary">{t("notesPage.on")}</span>
             <Link to={targetLink(assemblyId, note.target)} className="hover:opacity-80 transition-opacity">
               <Badge color="gray">{targetLabel}</Badge>
             </Link>
@@ -232,7 +232,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
             {note.visibility?.belowMinEvaluations && !isWithdrawn && (
               <Badge color="yellow">{t("notesPage.needsReviews")}</Badge>
             )}
-            <span className="text-[10px] text-gray-400">
+            <span className="text-[10px] text-text-tertiary">
               {formatDate(note.createdAt)}
             </span>
           </div>
@@ -241,26 +241,26 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
         {/* Expandable content */}
         {expanded && (
           <div className="mt-2">
-            {loadingContent && <p className="text-sm text-gray-400">{t("notesPage.loading")}</p>}
+            {loadingContent && <p className="text-sm text-text-tertiary">{t("notesPage.loading")}</p>}
             {markdown ? (
-              <p className="text-sm text-gray-700"><NoteContent text={markdown} /></p>
+              <p className="text-sm text-text-secondary"><NoteContent text={markdown} /></p>
             ) : !loadingContent ? (
-              <p className="text-sm text-gray-400 italic">{t("notesPage.contentNotAvailable")}</p>
+              <p className="text-sm text-text-tertiary italic">{t("notesPage.contentNotAvailable")}</p>
             ) : null}
           </div>
         )}
 
         {/* Footer: read toggle + stats + author actions */}
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <button onClick={handleExpand} className="text-xs text-gray-500 hover:text-gray-700">
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle">
+          <div className="flex items-center gap-3 text-xs text-text-muted">
+            <button onClick={handleExpand} className="text-xs text-text-muted hover:text-text-secondary">
               {expanded ? t("notesPage.collapse") : t("notesPage.read")}
             </button>
-            <span className="text-gray-200">|</span>
+            <span className="text-border-default">|</span>
             <span>{t("notesPage.nHelpful", { count: note.endorsementCount })}</span>
             <span>{t("notesPage.nNotHelpful", { count: note.disputeCount })}</span>
             {total > 0 && (
-              <span className={ratio >= 0.7 ? "text-green-600" : ratio <= 0.3 ? "text-red-500" : ""}>
+              <span className={ratio >= 0.7 ? "text-success-text" : ratio <= 0.3 ? "text-error" : ""}>
                 {t("notesPage.helpfulPercent", { percent: Math.round(ratio * 100) })}
               </span>
             )}
@@ -270,7 +270,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
             {/* Link to context page */}
             <Link
               to={targetLink(assemblyId, note.target)}
-              className="text-xs text-gray-400 hover:text-gray-600"
+              className="text-xs text-text-tertiary hover:text-text-secondary"
             >
               {t("notesPage.viewInContext")}
             </Link>
@@ -279,7 +279,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
               <button
                 onClick={handleWithdraw}
                 disabled={withdrawing}
-                className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+                className="text-xs text-error hover:text-error-text disabled:opacity-50"
               >
                 {withdrawing ? t("notesPage.withdrawing") : t("notesPage.withdraw")}
               </button>

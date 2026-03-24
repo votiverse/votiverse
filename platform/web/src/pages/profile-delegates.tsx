@@ -60,7 +60,7 @@ export function ProfileDelegates() {
   if (!storeUserId) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <p className="text-gray-500">{t("profileDelegates.noIdentity")}</p>
+        <p className="text-text-muted">{t("profileDelegates.noIdentity")}</p>
       </div>
     );
   }
@@ -72,15 +72,15 @@ export function ProfileDelegates() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">{t("profileDelegates.title")}</h1>
-      <p className="text-sm text-gray-500 mb-6">{t("profileDelegates.summary", { count: totalDelegates, delegates: totalDelegates, groups: data.filter((d) => (d.profile?.myDelegations.length ?? 0) > 0).length })}</p>
+      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-1">{t("profileDelegates.title")}</h1>
+      <p className="text-sm text-text-muted mb-6">{t("profileDelegates.summary", { count: totalDelegates, delegates: totalDelegates, groups: data.filter((d) => (d.profile?.myDelegations.length ?? 0) > 0).length })}</p>
 
       {data.length > 1 && (
         <div className="mb-6">
           <select
             value={selectedAssembly}
             onChange={(e) => setSelectedAssembly(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            className="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/20 focus:border-accent"
           >
             <option value="all">{t("profileDelegates.allGroups")}</option>
             {data.map((d) => (
@@ -100,7 +100,7 @@ export function ProfileDelegates() {
           {filtered.map(({ assembly, profile }) => (
             <Card key={assembly.id}>
               <CardHeader>
-                <h2 className="font-medium text-gray-900">{assembly.name}</h2>
+                <h2 className="font-medium text-text-primary">{assembly.name}</h2>
               </CardHeader>
               <CardBody>
                 <div className="space-y-2">
@@ -108,8 +108,8 @@ export function ProfileDelegates() {
                     <div key={i} className="flex items-center gap-3 py-2">
                       <Avatar name={d.targetName ?? "?"} size="sm" />
                       <div className="min-w-0">
-                        <span className="text-sm text-gray-900 font-medium">{d.targetName ?? d.targetId.slice(0, 12)}</span>
-                        <span className="text-xs text-gray-400 ml-2">
+                        <span className="text-sm text-text-primary font-medium">{d.targetName ?? d.targetId.slice(0, 12)}</span>
+                        <span className="text-xs text-text-tertiary ml-2">
                           {d.topicScope.length === 0 ? t("profileDelegates.global") : t("profileDelegates.topic", { count: d.topicScope.length })}
                         </span>
                       </div>

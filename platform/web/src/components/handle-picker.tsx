@@ -67,26 +67,26 @@ export function HandlePicker({ defaultHandle, onComplete }: HandlePickerProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+    <div className="fixed inset-0 bg-[var(--overlay-backdrop)] flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-raised rounded-xl shadow-xl max-w-sm w-full p-6">
         <div className="text-center mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">{t("completeProfile")}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t("chooseHandleDesc")}</p>
+          <h2 className="text-lg font-semibold text-text-primary">{t("completeProfile")}</h2>
+          <p className="text-sm text-text-muted mt-1">{t("chooseHandleDesc")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="handle-picker" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="handle-picker" className="block text-sm font-medium text-text-secondary mb-1">
               {t("label.handle")}
               {available === true && handle.length >= 3 && (
-                <span className="ml-2 text-green-600 text-xs font-normal">{t("handle.available")}</span>
+                <span className="ml-2 text-success-text text-xs font-normal">{t("handle.available")}</span>
               )}
               {available === false && (
-                <span className="ml-2 text-red-600 text-xs font-normal">{t("handle.taken")}</span>
+                <span className="ml-2 text-error-text text-xs font-normal">{t("handle.taken")}</span>
               )}
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">@</span>
               <Input
                 id="handle-picker"
                 type="text"
@@ -102,10 +102,10 @@ export function HandlePicker({ defaultHandle, onComplete }: HandlePickerProps) {
                 autoFocus
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">{t("handle.hint")}</p>
+            <p className="text-xs text-text-tertiary mt-1">{t("handle.hint")}</p>
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-error-text">{error}</p>}
 
           <div className="flex gap-3">
             <Button type="button" variant="secondary" onClick={onComplete} className="flex-1">

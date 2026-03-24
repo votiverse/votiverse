@@ -65,7 +65,7 @@ export function NoteContent({ text }: { text: string }) {
             href={part.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 underline break-all"
+            className="text-info-text hover:text-info-text underline break-all"
           >
             {part.value}
           </a>
@@ -95,11 +95,11 @@ export function NotesList({ assemblyId, targetType, targetId }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-medium text-gray-700">
+        <h4 className="text-sm font-medium text-text-secondary">
           {t("notes.title")} {notes.length > 0 && `(${notes.length})`}
         </h4>
         <button
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-info-text hover:text-info-text"
           onClick={() => setShowForm(!showForm)}
         >
           {showForm ? t("common:cancel") : t("notes.add")}
@@ -115,10 +115,10 @@ export function NotesList({ assemblyId, targetType, targetId }: {
         />
       )}
 
-      {loading && <p className="text-sm text-gray-400">{t("notes.loading")}</p>}
+      {loading && <p className="text-sm text-text-tertiary">{t("notes.loading")}</p>}
 
       {notes.length === 0 && !loading && (
-        <p className="text-sm text-gray-400">{t("notes.empty")}</p>
+        <p className="text-sm text-text-tertiary">{t("notes.empty")}</p>
       )}
 
       <div className="space-y-2">
@@ -156,19 +156,19 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
 
   return (
     <div className={`border-l-[3px] rounded-r-lg pl-3 pr-3 py-2.5 text-sm ${
-      note.status === "withdrawn" ? "border-l-gray-200 bg-gray-50/50 opacity-60" :
-      isVisible ? "border-l-green-400 bg-green-50/40" :
-      total > 0 ? "border-l-amber-300 bg-amber-50/30" :
-      "border-l-gray-200 bg-gray-50/30"
+      note.status === "withdrawn" ? "border-l-border-default bg-surface/50 opacity-60" :
+      isVisible ? "border-l-green-400 bg-success-subtle/40" :
+      total > 0 ? "border-l-warning-border bg-warning-subtle/30" :
+      "border-l-border-default bg-surface/30"
     }`}>
       {note.content?.markdown && (
-        <p className="text-gray-700"><NoteContent text={note.content.markdown} /></p>
+        <p className="text-text-secondary"><NoteContent text={note.content.markdown} /></p>
       )}
       {!note.content?.markdown && (
-        <p className="text-gray-400 italic">{t("notes.unavailable")}</p>
+        <p className="text-text-tertiary italic">{t("notes.unavailable")}</p>
       )}
 
-      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+      <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
         <span>{note.endorsementCount} {t("notes.helpful")}</span>
         <span>{note.disputeCount} {t("notes.disputed")}</span>
         {total > 0 && <span>{t("notes.helpfulPercent", { percent: Math.round(ratio * 100) })}</span>}
@@ -179,14 +179,14 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
       {note.status !== "withdrawn" && (
         <div className="flex gap-3 mt-2">
           <button
-            className="text-xs text-green-600 hover:text-green-800 disabled:opacity-50 inline-flex items-center gap-1"
+            className="text-xs text-success-text hover:text-success-text disabled:opacity-50 inline-flex items-center gap-1"
             onClick={() => handleEvaluate("endorse")}
             disabled={evaluating}
           >
             <ThumbsUp size={12} /> {t("notes.endorseBtn")}
           </button>
           <button
-            className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50 inline-flex items-center gap-1"
+            className="text-xs text-error-text hover:text-error-text disabled:opacity-50 inline-flex items-center gap-1"
             onClick={() => handleEvaluate("dispute")}
             disabled={evaluating}
           >
@@ -223,7 +223,7 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
   };
 
   return (
-    <div className="mb-4 border rounded-lg p-3 bg-blue-50">
+    <div className="mb-4 border rounded-lg p-3 bg-info-subtle">
       <textarea
         value={markdown}
         onChange={(e) => setMarkdown(e.target.value)}

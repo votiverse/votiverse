@@ -71,7 +71,7 @@ export function Surveys() {
   if (!surveysEnabled && !loading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">{t("surveys.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">{t("surveys.title")}</h1>
         <EmptyState
           title={t("surveys.notEnabled")}
           description={t("surveys.notEnabledDesc")}
@@ -83,12 +83,12 @@ export function Surveys() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{t("surveys.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("surveys.title")}</h1>
         {surveysEnabled && <Button onClick={() => setCreating(true)}>{t("surveys.newSurvey")}</Button>}
       </div>
 
       {/* Open / Closed tabs */}
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
+      <div className="flex gap-1 mb-4 border-b border-border-default">
         {([["open", t("surveys.tabOpen")], ["closed", t("surveys.tabClosed")]] as [SurveyTab, string][]).map(([key, label]) => {
           const count = key === "open" ? openSurveys.length : closedSurveys.length;
           return (
@@ -98,12 +98,12 @@ export function Surveys() {
               onClick={() => setTab(key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 tab === key
-                  ? "border-brand text-brand"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-accent text-accent-text"
+                  : "border-transparent text-text-muted hover:text-text-secondary hover:border-border-strong"
               }`}
             >
               {label}
-              {!loading && <span className="ml-1.5 text-xs text-gray-400">({count})</span>}
+              {!loading && <span className="ml-1.5 text-xs text-text-tertiary">({count})</span>}
             </button>
           );
         })}
@@ -259,7 +259,7 @@ function CreateSurveyForm({
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-gray-900">{t("surveys.newSurveyTitle")}</h3>
+          <h3 className="font-medium text-text-primary">{t("surveys.newSurveyTitle")}</h3>
           {formError && <ErrorBox message={formError} />}
 
           <div>
@@ -268,11 +268,11 @@ function CreateSurveyForm({
           </div>
 
           {questions.map((q, qIdx) => (
-            <div key={qIdx} className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3">
+            <div key={qIdx} className="bg-surface rounded-lg p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">{t("surveys.questionN", { n: qIdx + 1 })}</span>
+                <span className="text-sm font-medium text-text-secondary">{t("surveys.questionN", { n: qIdx + 1 })}</span>
                 {questions.length > 1 && (
-                  <button type="button" onClick={() => removeQuestion(qIdx)} className="text-xs text-red-500 hover:text-red-700">
+                  <button type="button" onClick={() => removeQuestion(qIdx)} className="text-xs text-error hover:text-error-text">
                     {t("surveys.removeQuestion")}
                   </button>
                 )}
@@ -314,7 +314,7 @@ function CreateSurveyForm({
                         <button
                           type="button"
                           onClick={() => removeOption(qIdx, oIdx)}
-                          className="text-gray-400 hover:text-red-500 text-lg px-1"
+                          className="text-text-tertiary hover:text-error text-lg px-1"
                           aria-label="Remove option"
                         >
                           ×
@@ -325,7 +325,7 @@ function CreateSurveyForm({
                   <button
                     type="button"
                     onClick={() => addOption(qIdx)}
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm text-info-text hover:text-info-text"
                   >
                     {t("surveys.addOption")}
                   </button>
@@ -337,7 +337,7 @@ function CreateSurveyForm({
           <button
             type="button"
             onClick={addQuestion}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="text-sm text-info-text hover:text-info-text font-medium"
           >
             {t("surveys.addQuestion")}
           </button>
@@ -452,12 +452,12 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-gray-900">{survey.title}</h3>
-            <span className="text-xs text-gray-400">{t("surveys.question", { count: survey.questions.length })}</span>
+            <h3 className="font-medium text-text-primary">{survey.title}</h3>
+            <span className="text-xs text-text-tertiary">{t("surveys.question", { count: survey.questions.length })}</span>
           </div>
           <div className="flex items-center gap-2">
             {closesLabel && !isClosed && (
-              <span className="text-xs text-gray-500">{closesLabel}</span>
+              <span className="text-xs text-text-muted">{closesLabel}</span>
             )}
             <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
           </div>
@@ -468,8 +468,8 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
         {resultsError && <ErrorBox message={resultsError} />}
 
         {survey.questions.map((q) => (
-          <div key={q.id} className="bg-gray-50 rounded-md p-3 sm:p-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">{q.text}</p>
+          <div key={q.id} className="bg-surface rounded-md p-3 sm:p-4">
+            <p className="text-sm font-medium text-text-secondary mb-3">{q.text}</p>
 
             {showButtons && (
               <QuestionButtons
@@ -481,7 +481,7 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
             )}
 
             {responded && !results && (
-              <p className="text-sm text-green-600">{t("surveys.responseRecorded")}</p>
+              <p className="text-sm text-success-text">{t("surveys.responseRecorded")}</p>
             )}
           </div>
         ))}
@@ -498,7 +498,7 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
                   type="button"
                   onClick={clearAnswers}
                   disabled={responding}
-                  className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                  className="text-sm text-text-muted hover:text-text-secondary disabled:opacity-50"
                 >
                   {t("surveys.clear")}
                 </button>
@@ -568,8 +568,8 @@ function QuestionButtons({
         </div>
         {labels && labels.length >= 2 && (
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-gray-400">{labels[0]}</span>
-            <span className="text-xs text-gray-400">{labels[1]}</span>
+            <span className="text-xs text-text-tertiary">{labels[0]}</span>
+            <span className="text-xs text-text-tertiary">{labels[1]}</span>
           </div>
         )}
       </div>
@@ -612,7 +612,7 @@ function QuestionButtons({
     );
   }
 
-  return <p className="text-sm text-gray-400 italic">{t("surveys.unsupported")}</p>;
+  return <p className="text-sm text-text-tertiary italic">{t("surveys.unsupported")}</p>;
 }
 
 // ---------------------------------------------------------------------------
@@ -644,8 +644,8 @@ function ResultsDisplay({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-700">{t("surveys.results")}</h4>
-        <span className="text-xs text-gray-500">
+        <h4 className="text-sm font-medium text-text-secondary">{t("surveys.results")}</h4>
+        <span className="text-xs text-text-muted">
           {t("surveys.response", { count: results.responseCount })}
           {results.responseRate > 0 && ` ${t("surveys.responseRate", { rate: (results.responseRate * 100).toFixed(0) })}`}
         </span>
@@ -658,9 +658,9 @@ function ResultsDisplay({
         const total = entries.reduce((sum, [, count]) => sum + count, 0);
 
         return (
-          <div key={qr.questionId} className="bg-gray-50 rounded-md p-3 sm:p-4">
+          <div key={qr.questionId} className="bg-surface rounded-md p-3 sm:p-4">
             {question && (
-              <p className="text-sm text-gray-600 mb-2">{question.text}</p>
+              <p className="text-sm text-text-secondary mb-2">{question.text}</p>
             )}
 
             {entries.length > 0 ? (
@@ -671,12 +671,12 @@ function ResultsDisplay({
                   return (
                     <div key={key}>
                       <div className="flex justify-between text-sm mb-0.5">
-                        <span className="text-gray-700">{humanizeKey(key, qType, t)}</span>
-                        <span className="text-gray-500">
+                        <span className="text-text-secondary">{humanizeKey(key, qType, t)}</span>
+                        <span className="text-text-muted">
                           {count} ({pct.toFixed(0)}%)
                         </span>
                       </div>
-                      <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-2.5 bg-skeleton rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${color}`}
                           style={{ width: `${pct}%` }}
@@ -687,11 +687,11 @@ function ResultsDisplay({
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 italic">{t("surveys.noResponses")}</p>
+              <p className="text-sm text-text-tertiary italic">{t("surveys.noResponses")}</p>
             )}
 
             {qr.mean !== undefined && qr.mean !== null && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-text-muted mt-2">
                 {t("surveys.mean", { mean: qr.mean.toFixed(2) })}
                 {qr.median !== undefined && ` · ${t("surveys.median", { median: qr.median.toFixed(1) })}`}
               </p>

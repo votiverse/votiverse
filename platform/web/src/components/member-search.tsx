@@ -95,10 +95,10 @@ export function MemberSearch({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
           placeholder={placeholder ?? t("search.byName")}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+          className="w-full border border-border-strong rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-accent"
         />
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -110,11 +110,11 @@ export function MemberSearch({
 
       {/* Dropdown */}
       {showDropdown && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-1 bg-surface-raised border border-border-default rounded-lg shadow-lg max-h-80 overflow-y-auto">
           {/* Featured candidates section (candidacy mode) */}
           {activeCandidates.length > 0 && query.length < 2 && (
             <div>
-              <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
+              <div className="px-3 py-2 text-xs font-medium text-text-muted uppercase tracking-wider bg-surface border-b">
                 {t("governance:candidates.declared")}
               </div>
               {activeCandidates.map((c) => (
@@ -126,7 +126,7 @@ export function MemberSearch({
                   onClick={() => handleSelect(c.participantId)}
                 />
               ))}
-              <div className="px-3 py-2 text-xs text-gray-400 border-t bg-gray-50">
+              <div className="px-3 py-2 text-xs text-text-tertiary border-t bg-surface">
                 {t("search.orSearchAny")}
               </div>
             </div>
@@ -136,13 +136,13 @@ export function MemberSearch({
           {query.length >= 2 && (
             <>
               {filteredResults.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-gray-400">
+                <div className="px-4 py-3 text-sm text-text-tertiary">
                   {t("search.noResults", { query })}
                 </div>
               ) : (
                 <>
                   {activeCandidates.length > 0 && (
-                    <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b">
+                    <div className="px-3 py-2 text-xs font-medium text-text-muted uppercase tracking-wider bg-surface border-b">
                       {t("search.results")}
                     </div>
                   )}
@@ -188,19 +188,19 @@ function CandidateRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 text-left transition-colors"
+      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-info-subtle text-left transition-colors"
     >
       <Avatar name={name} size="sm" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-900 truncate">{name}</span>
+          <span className="text-sm font-medium text-text-primary truncate">{name}</span>
           <Badge color="blue">{t("governance:candidate")}</Badge>
           {candidacy.voteTransparencyOptIn && (
             <Badge color="green">{t("governance:publicVotes")}</Badge>
           )}
         </div>
         {topics.length > 0 && (
-          <p className="text-xs text-gray-500 truncate mt-0.5">
+          <p className="text-xs text-text-muted truncate mt-0.5">
             {topics.join(", ")}
           </p>
         )}
@@ -223,10 +223,10 @@ function MemberRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 text-left transition-colors"
+      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-info-subtle text-left transition-colors"
     >
       <Avatar name={name} size="sm" />
-      <span className="text-sm text-gray-900 truncate">{name}</span>
+      <span className="text-sm text-text-primary truncate">{name}</span>
       {isCandidate && <Badge color="blue">{t("governance:candidate")}</Badge>}
     </button>
   );

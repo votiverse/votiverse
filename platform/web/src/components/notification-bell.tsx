@@ -94,26 +94,26 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 text-gray-500 hover:text-gray-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+        className="relative p-2 text-text-muted hover:text-text-secondary transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
         aria-label={unreadCount > 0 ? t("ariaLabelUnread", { count: unreadCount }) : t("title")}
       >
         <Bell size={18} strokeWidth={1.5} />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-brand text-white text-[10px] font-bold px-1">
+          <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-accent text-text-on-accent text-[10px] font-bold px-1">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-80 sm:w-96 bg-white border border-gray-200 rounded-lg shadow-xl z-30 max-h-[70vh] flex flex-col">
+        <div className="absolute right-0 mt-1 w-80 sm:w-96 bg-surface-raised border border-border-default rounded-lg shadow-xl z-30 max-h-[70vh] flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">{t("title")}</h3>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+            <h3 className="text-sm font-semibold text-text-primary">{t("title")}</h3>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-xs text-brand hover:text-brand-light transition-colors"
+                className="text-xs text-accent-text hover:text-accent-text transition-colors"
               >
                 {t("markAllRead")}
               </button>
@@ -123,9 +123,9 @@ export function NotificationBell() {
           {/* Notification list */}
           <div className="overflow-y-auto flex-1">
             {loading ? (
-              <div className="py-8 text-center text-sm text-gray-400">{t("common:loading")}</div>
+              <div className="py-8 text-center text-sm text-text-tertiary">{t("common:loading")}</div>
             ) : notifications.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-400">{t("empty")}</div>
+              <div className="py-8 text-center text-sm text-text-tertiary">{t("empty")}</div>
             ) : (
               notifications.map((notif) => (
                 <NotificationItem
@@ -138,10 +138,10 @@ export function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 px-4 py-2">
+          <div className="border-t border-border-subtle px-4 py-2">
             <button
               onClick={() => { navigate("/notifications"); setOpen(false); }}
-              className="text-xs text-brand hover:text-brand-light transition-colors w-full text-center"
+              className="text-xs text-accent-text hover:text-accent-text transition-colors w-full text-center"
             >
               {t("viewAll")}
             </button>
@@ -157,14 +157,14 @@ export function NotificationBell() {
 function NotificationItem({ notification, onClick }: { notification: Notification; onClick: () => void }) {
   const icon = TYPE_ICONS[notification.type] ?? <Clock size={14} />;
   const bgClass = !notification.read && notification.urgency === "action"
-    ? "bg-red-50/50 hover:bg-red-50"
+    ? "bg-error-subtle hover:bg-error-subtle"
     : !notification.read && notification.urgency === "timely"
-      ? "bg-blue-50/30 hover:bg-blue-50/50"
-      : "hover:bg-gray-50";
+      ? "bg-info-subtle hover:bg-info-subtle"
+      : "hover:bg-interactive-hover";
   const borderClass = notification.urgency === "action"
-    ? "border-l-red-400"
+    ? "border-l-error"
     : notification.urgency === "timely"
-      ? "border-l-blue-400"
+      ? "border-l-info"
       : "border-l-transparent";
 
   return (
@@ -175,27 +175,27 @@ function NotificationItem({ notification, onClick }: { notification: Notificatio
       }`}
     >
       <div className="flex items-start gap-2.5">
-        <div className={`mt-0.5 shrink-0 ${notification.read ? "text-gray-300" : "text-gray-500"}`}>
+        <div className={`mt-0.5 shrink-0 ${notification.read ? "text-text-tertiary" : "text-text-muted"}`}>
           {icon}
         </div>
         <div className="min-w-0 flex-1">
           {notification.assemblyName && (
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 truncate">
+            <p className="text-[10px] text-text-tertiary uppercase tracking-wide mb-0.5 truncate">
               {notification.assemblyName}
             </p>
           )}
-          <p className={`text-sm leading-snug ${notification.read ? "text-gray-500" : "text-gray-900"}`}>
+          <p className={`text-sm leading-snug ${notification.read ? "text-text-muted" : "text-text-primary"}`}>
             {notification.title}
           </p>
           {notification.body && (
-            <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{notification.body}</p>
+            <p className="text-xs text-text-tertiary mt-0.5 line-clamp-2">{notification.body}</p>
           )}
-          <p className="text-[10px] text-gray-300 mt-1">
+          <p className="text-[10px] text-text-tertiary mt-1">
             {formatRelativeTime(notification.createdAt)}
           </p>
         </div>
         {!notification.read && (
-          <div className="w-2 h-2 rounded-full bg-brand mt-1.5 shrink-0" />
+          <div className="w-2 h-2 rounded-full bg-accent mt-1.5 shrink-0" />
         )}
       </div>
     </button>

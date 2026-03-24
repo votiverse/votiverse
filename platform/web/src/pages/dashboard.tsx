@@ -96,15 +96,15 @@ function DashboardContent({ participantName }: { participantName: string | null 
     <div className="max-w-4xl mx-auto">
       {/* Greeting */}
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
           {t("dashboard.greeting", { name: participantName })}
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">{t("dashboard.attentionSubtitle")}</p>
+        <p className="text-sm text-text-muted mt-0.5">{t("dashboard.attentionSubtitle")}</p>
       </div>
 
       {/* Action banner */}
       {(totalPending > 0 || totalPendingSurveys > 0) ? (
-        <div className="mb-6 rounded-xl bg-brand p-4 sm:p-5 text-white">
+        <div className="mb-6 rounded-xl bg-accent p-4 sm:p-5 text-text-on-accent">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-lg sm:text-xl font-semibold">
@@ -114,16 +114,16 @@ function DashboardContent({ participantName }: { participantName: string | null 
                 {" "}{t("dashboard.needsYou", { count: totalPending + totalPendingSurveys })}
               </p>
               {nearestDeadline && (
-                <p className="text-brand-100 text-sm mt-0.5">
+                <p className="text-accent-muted text-sm mt-0.5">
                   {t("dashboard.nearestDeadline", { title: nearestDeadline.eventTitle })}{" "}
-                  <Countdown target={nearestDeadline.votingEnd} className="text-white font-medium" />
+                  <Countdown target={nearestDeadline.votingEnd} className="text-text-on-accent font-medium" />
                 </p>
               )}
             </div>
             {nearestDeadline && (
               <Link
                 to={`/assembly/${nearestDeadline.assemblyId}/events/${nearestDeadline.eventId}`}
-                className="inline-flex items-center justify-center px-4 py-2.5 bg-white text-brand font-medium rounded-md hover:bg-gray-50 transition-colors min-h-[44px] shrink-0"
+                className="inline-flex items-center justify-center px-4 py-2.5 bg-surface-raised text-accent-text font-medium rounded-md hover:bg-interactive-hover transition-colors min-h-[44px] shrink-0"
               >
                 {t("dashboard.voteNow")}
               </Link>
@@ -131,14 +131,14 @@ function DashboardContent({ participantName }: { participantName: string | null 
           </div>
         </div>
       ) : (
-        <div className="mb-6 rounded-xl bg-green-50 border border-green-200 p-4 sm:p-5">
+        <div className="mb-6 rounded-xl bg-success-subtle border border-success-border p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <svg className="w-6 h-6 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-6 h-6 text-success-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p className="font-medium text-green-800">{t("dashboard.allCaughtUp")}</p>
-              <p className="text-sm text-green-600 mt-0.5">{t("dashboard.noPendingDesc")}</p>
+              <p className="font-medium text-success-text">{t("dashboard.allCaughtUp")}</p>
+              <p className="text-sm text-success-text mt-0.5">{t("dashboard.noPendingDesc")}</p>
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
         groups.sort((a, b) => (a.pendingCount > 0 ? 0 : 1) - (b.pendingCount > 0 ? 0 : 1));
         return (
           <div className="mb-8">
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.activeVotes")}</h2>
+            <h2 className="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">{t("dashboard.activeVotes")}</h2>
             <div className="space-y-3">
               {groups.map((group) => (
                 <Link
@@ -165,21 +165,21 @@ function DashboardContent({ participantName }: { participantName: string | null 
                   to={`/assembly/${group.assemblyId}/events/${group.eventId}`}
                   className="block"
                 >
-                  <Card className="hover:border-brand-200 hover:shadow transition-all">
+                  <Card className="hover:border-accent-muted hover:shadow transition-all">
                     <CardBody className="py-3">
                       {/* Event header */}
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                            <span className="text-[10px] font-medium text-accent-text bg-accent-subtle px-1.5 py-0.5 rounded uppercase tracking-wide">
                               {group.assemblyName}
                             </span>
                           </div>
-                          <p className="text-sm font-medium text-gray-900">{group.eventTitle}</p>
+                          <p className="text-sm font-medium text-text-primary">{group.eventTitle}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <EventGroupBadge group={group} />
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-text-tertiary">
                             <Countdown target={group.votingEnd} className="text-[10px]" />
                           </span>
                         </div>
@@ -189,8 +189,8 @@ function DashboardContent({ participantName }: { participantName: string | null 
                         {group.questions.map((q) => (
                           <div key={q.issueId} className="flex items-center justify-between gap-2 py-0.5">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <span className="text-gray-300 text-xs">•</span>
-                              <span className="text-xs text-gray-600 truncate">{q.issueTitle}</span>
+                              <span className="text-text-tertiary text-xs">•</span>
+                              <span className="text-xs text-text-secondary truncate">{q.issueTitle}</span>
                             </div>
                             <VoteStatusChip vote={q} />
                           </div>
@@ -208,7 +208,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Pending surveys */}
       {pendingSurveys.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.pendingSurveysSection")}</h2>
+          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">{t("dashboard.pendingSurveysSection")}</h2>
           <div className="space-y-3">
             {pendingSurveys.map((survey) => (
               <Link
@@ -216,24 +216,24 @@ function DashboardContent({ participantName }: { participantName: string | null 
                 to={`/assembly/${survey.assemblyId}/surveys`}
                 className="block"
               >
-                <Card className="hover:border-brand-200 hover:shadow transition-all">
+                <Card className="hover:border-accent-muted hover:shadow transition-all">
                   <CardBody className="py-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                          <span className="text-[10px] font-medium text-accent-text bg-accent-subtle px-1.5 py-0.5 rounded uppercase tracking-wide">
                             {survey.assemblyName}
                           </span>
                         </div>
-                        <p className="text-sm font-medium text-gray-900">{survey.surveyTitle}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{t("surveys.question", { count: survey.questionCount })}</p>
+                        <p className="text-sm font-medium text-text-primary">{survey.surveyTitle}</p>
+                        <p className="text-xs text-text-tertiary mt-0.5">{t("surveys.question", { count: survey.questionCount })}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className="text-[10px] font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-medium text-neutral-text bg-neutral-subtle px-1.5 py-0.5 rounded">
                           {t("dashboard.surveyOpen")}
                         </span>
                         {survey.closesAt > 0 && (
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-text-tertiary">
                             <Countdown target={new Date(survey.closesAt).toISOString()} className="text-[10px]" />
                           </span>
                         )}
@@ -250,14 +250,14 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Assembly cards */}
       {assemblySummaries.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.yourGroups")}</h2>
+          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">{t("dashboard.yourGroups")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {assemblySummaries.map(({ assembly, activeEventCount, pendingVoteCount, pendingSurveyCount }) => (
               <Link key={assembly.id} to={`/assembly/${assembly.id}/events`} className="block">
-                <Card className="hover:border-brand-200 hover:shadow transition-all h-full">
+                <Card className="hover:border-accent-muted hover:shadow transition-all h-full">
                   <CardBody>
-                    <h3 className="font-medium text-gray-900">{assembly.name}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{presetLabel(assembly.config.name, t)}</p>
+                    <h3 className="font-medium text-text-primary">{assembly.name}</h3>
+                    <p className="text-xs text-text-tertiary mt-0.5">{presetLabel(assembly.config.name, t)}</p>
                     <div className="flex items-center gap-3 mt-3">
                       <Badge color={activeEventCount > 0 ? "blue" : "gray"}>
                         {t("dashboard.activeVote", { count: activeEventCount })}
@@ -283,8 +283,8 @@ function DashboardContent({ participantName }: { participantName: string | null 
 
       {assemblySummaries.length === 0 && pendingVotes.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">{t("dashboard.noGroups")}</p>
-          <Link to="/assemblies" className="text-sm text-brand hover:text-brand-light mt-2 inline-block">
+          <p className="text-text-muted">{t("dashboard.noGroups")}</p>
+          <Link to="/assemblies" className="text-sm text-accent-text hover:text-accent-muted mt-2 inline-block">
             {t("dashboard.browseGroups")}
           </Link>
         </div>
@@ -298,7 +298,7 @@ function EventGroupBadge({ group }: { group: VoteGroup }) {
   const { t } = useTranslation("governance");
   if (group.pendingCount > 0) {
     return (
-      <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+      <span className="text-[10px] font-medium text-warning-text bg-warning-subtle px-1.5 py-0.5 rounded">
         {t("dashboard.votesNeeded", { count: group.pendingCount })}
       </span>
     );
@@ -313,20 +313,20 @@ function EventGroupBadge({ group }: { group: VoteGroup }) {
   );
   if (delegatedCount === group.questions.length) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-info-text bg-info-subtle px-1.5 py-0.5 rounded">
         {checkIcon} {t("dashboard.allDelegated")}
       </span>
     );
   }
   if (votedCount === group.questions.length) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-success-text bg-success-subtle px-1.5 py-0.5 rounded">
         {checkIcon} {t("dashboard.allVoted")}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-success-text bg-success-subtle px-1.5 py-0.5 rounded">
       {checkIcon} {t("dashboard.allHandled")}
     </span>
   );
@@ -336,7 +336,7 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
   const { t } = useTranslation("governance");
   if (vote.hasVoted) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-success-text bg-success-subtle px-1.5 py-0.5 rounded">
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
         </svg>
@@ -346,14 +346,14 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
   }
   if (vote.isDelegated) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-info-text bg-info-subtle px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
         {vote.delegateTargetName && <Avatar name={vote.delegateTargetName} size="xs" className="!w-3.5 !h-3.5" />}
         {vote.delegateTargetName ? t("dashboard.delegatedTo", { name: vote.delegateTargetName }) : t("dashboard.delegated")}
       </span>
     );
   }
   return (
-    <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+    <span className="text-[10px] font-medium text-warning-text bg-warning-subtle px-1.5 py-0.5 rounded">
       {t("dashboard.needsYourVote")}
     </span>
   );
@@ -367,16 +367,16 @@ function PendingJoinRequests() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.pendingRequests")}</h2>
+      <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.pendingRequests")}</h2>
       <div className="space-y-2">
         {requests.map((req) => (
-          <Card key={req.id} className="border-gray-200">
+          <Card key={req.id} className="border-border-default">
             <CardBody className="flex items-center justify-between">
               <div className="min-w-0">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-text-secondary">
                   {t("dashboard.requestToJoin", { name: req.assemblyName ?? "a group" })}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-text-tertiary mt-0.5">
                   {t("dashboard.submitted", { date: formatDate(req.createdAt) })}
                 </p>
               </div>
@@ -422,16 +422,16 @@ function PendingInvitations() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("dashboard.invitations")}</h2>
+      <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.invitations")}</h2>
       <div className="space-y-2">
         {invitations.map((inv) => (
-          <Card key={inv.id} className="border-brand-200">
+          <Card key={inv.id} className="border-accent-muted">
             <CardBody className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-text-primary">
                   {t("dashboard.invitedToJoin", { name: inv.assemblyName ?? "a group" })}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-text-tertiary mt-0.5">
                   {formatDate(inv.createdAt)}
                 </p>
               </div>
