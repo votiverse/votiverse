@@ -322,7 +322,7 @@ async function translateBatch(
     try {
       const message = await client.messages.create({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
+        max_tokens: 16384,
         messages: [{ role: "user", content: prompt }],
       });
 
@@ -575,11 +575,23 @@ async function main(): Promise<void> {
     }
 
     for (const batch of translationBatches) {
-      const translated = await translateBatch(
-        locale,
-        batch.namespace,
-        batch.keys,
-      );
+      // Chunk large namespaces to avoid LLM output truncation.
+      const CHUNK_SIZE = 150;
+      const allKeys = Object.entries(batch.keys);
+      const chunks: TranslationMap[] = [];
+      for (let i = 0; i < allKeys.length; i += CHUNK_SIZE) {
+        chunks.push(Object.fromEntries(allKeys.slice(i, i + CHUNK_SIZE)));
+      }
+
+      let translated: TranslationMap = {};
+      for (const chunk of chunks) {
+        const chunkResult = await translateBatch(
+          locale,
+          batch.namespace,
+          chunk,
+        );
+        translated = { ...translated, ...chunkResult };
+      }
 
       // Merge translated values into the locale's namespace file.
       const localeFilePath = join(localeDir, `${batch.namespace}.json`);

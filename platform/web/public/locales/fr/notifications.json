@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Notifications ({{count}} non lue)",
+  "empty": "Aucune notification pour le moment",
+  "emptyDescription": "Les notifications apparaîtront ici lorsqu'il y aura de l'activité dans vos groupes.",
+  "emptyUnread": "Aucune notification non lue",
+  "emptyUnreadDescription": "Essayez d'afficher toutes les notifications.",
+  "markAllRead": "Tout marquer comme lu",
+  "title": "Notifications",
+  "unreadCount": "{{count}} non lue",
+  "unreadOnly": "Non lues uniquement",
+  "urgency.action": "Action requise",
+  "urgency.timely": "Nouveau",
+  "viewAll": "Voir toutes les notifications"
+}
