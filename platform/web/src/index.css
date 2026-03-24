@@ -1,12 +1,367 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ================================================================
+   LAYER 1: Primitive color scales
+   Never referenced by components — only used as source values
+   for the semantic layer below.
+   ================================================================ */
+
+:root {
+  /* Brand (generated from #185FA5) */
+  --primitive-brand-50: #EBF2FA;
+  --primitive-brand-100: #D1E2F4;
+  --primitive-brand-200: #A8C8E9;
+  --primitive-brand-300: #7EAEDE;
+  --primitive-brand-400: #5494D3;
+  --primitive-brand-500: #185FA5;
+  --primitive-brand-600: #2B7BD4;
+  --primitive-brand-700: #0F4273;
+  --primitive-brand-800: #0B3059;
+  --primitive-brand-900: #071E3F;
+  --primitive-brand-950: #041226;
+
+  /* Gray (neutral — Tailwind default gray, explicit for theme remapping) */
+  --primitive-gray-50: #F9FAFB;
+  --primitive-gray-100: #F3F4F6;
+  --primitive-gray-200: #E5E7EB;
+  --primitive-gray-300: #D1D5DB;
+  --primitive-gray-400: #9CA3AF;
+  --primitive-gray-500: #6B7280;
+  --primitive-gray-600: #4B5563;
+  --primitive-gray-700: #374151;
+  --primitive-gray-800: #1F2937;
+  --primitive-gray-900: #111827;
+  --primitive-gray-950: #030712;
+
+  /* Red */
+  --primitive-red-50: #FEF2F2;
+  --primitive-red-100: #FEE2E2;
+  --primitive-red-200: #FECACA;
+  --primitive-red-400: #F87171;
+  --primitive-red-500: #EF4444;
+  --primitive-red-600: #DC2626;
+  --primitive-red-700: #B91C1C;
+  --primitive-red-800: #991B1B;
+
+  /* Green */
+  --primitive-green-50: #F0FDF4;
+  --primitive-green-100: #DCFCE7;
+  --primitive-green-200: #BBF7D0;
+  --primitive-green-400: #4ADE80;
+  --primitive-green-500: #22C55E;
+  --primitive-green-600: #16A34A;
+  --primitive-green-700: #15803D;
+  --primitive-green-800: #166534;
+
+  /* Amber */
+  --primitive-amber-50: #FFFBEB;
+  --primitive-amber-100: #FEF3C7;
+  --primitive-amber-200: #FDE68A;
+  --primitive-amber-400: #FBBF24;
+  --primitive-amber-500: #F59E0B;
+  --primitive-amber-600: #D97706;
+  --primitive-amber-700: #B45309;
+  --primitive-amber-800: #92400E;
+
+  /* Blue */
+  --primitive-blue-50: #EFF6FF;
+  --primitive-blue-100: #DBEAFE;
+  --primitive-blue-200: #BFDBFE;
+  --primitive-blue-400: #60A5FA;
+  --primitive-blue-500: #3B82F6;
+  --primitive-blue-600: #2563EB;
+  --primitive-blue-700: #1D4ED8;
+
+  /* Purple (surveys, neutral status) */
+  --primitive-purple-50: #FAF5FF;
+  --primitive-purple-400: #C084FC;
+  --primitive-purple-700: #7E22CE;
+
+  /* Yellow (Badge "yellow" variant) */
+  --primitive-yellow-100: #FEF9C3;
+  --primitive-yellow-700: #A16207;
+}
+
+/* ================================================================
+   LAYER 2: Semantic tokens — LIGHT THEME (default)
+   ================================================================ */
+
+:root {
+  /* Surface */
+  --surface: var(--primitive-gray-50);
+  --surface-raised: #FFFFFF;
+  --surface-sunken: var(--primitive-gray-100);
+  --surface-overlay: #FFFFFF;
+
+  /* Text */
+  --text-primary: var(--primitive-gray-900);
+  --text-secondary: var(--primitive-gray-700);
+  --text-muted: var(--primitive-gray-500);
+  --text-tertiary: var(--primitive-gray-400);
+  --text-on-accent: #FFFFFF;
+  --text-inverted: #FFFFFF;
+
+  /* Border */
+  --border-default: var(--primitive-gray-200);
+  --border-strong: var(--primitive-gray-300);
+  --border-subtle: var(--primitive-gray-100);
+
+  /* Accent (brand) */
+  --accent: var(--primitive-brand-500);
+  --accent-hover: var(--primitive-brand-600);
+  --accent-active: var(--primitive-brand-700);
+  --accent-subtle: var(--primitive-brand-50);
+  --accent-muted: var(--primitive-brand-100);
+  --accent-text: var(--primitive-brand-500);
+  --accent-strong-text: var(--primitive-brand-700);
+
+  /* Interactive */
+  --interactive-hover: var(--primitive-gray-50);
+  --interactive-active: var(--primitive-gray-100);
+  --focus-ring: var(--primitive-brand-500);
+
+  /* Status: Error */
+  --error: var(--primitive-red-600);
+  --error-subtle: var(--primitive-red-50);
+  --error-text: var(--primitive-red-700);
+  --error-border: var(--primitive-red-200);
+  --error-hover: var(--primitive-red-700);
+  --error-active: var(--primitive-red-800);
+
+  /* Status: Success */
+  --success: var(--primitive-green-600);
+  --success-subtle: var(--primitive-green-50);
+  --success-text: var(--primitive-green-700);
+  --success-border: var(--primitive-green-200);
+
+  /* Status: Warning */
+  --warning: var(--primitive-amber-600);
+  --warning-subtle: var(--primitive-amber-50);
+  --warning-text: var(--primitive-amber-700);
+  --warning-border: var(--primitive-amber-200);
+
+  /* Status: Info */
+  --info: var(--primitive-blue-600);
+  --info-subtle: var(--primitive-blue-50);
+  --info-text: var(--primitive-blue-700);
+  --info-border: var(--primitive-blue-200);
+
+  /* Status: Neutral (surveys, misc) */
+  --neutral-subtle: var(--primitive-purple-50);
+  --neutral-text: var(--primitive-purple-700);
+
+  /* Badge variants (semantic mapping for Badge component) */
+  --badge-gray-bg: var(--primitive-gray-100);
+  --badge-gray-text: var(--primitive-gray-700);
+  --badge-green-bg: var(--primitive-green-100);
+  --badge-green-text: var(--primitive-green-700);
+  --badge-blue-bg: var(--primitive-blue-100);
+  --badge-blue-text: var(--primitive-blue-700);
+  --badge-yellow-bg: var(--primitive-yellow-100);
+  --badge-yellow-text: var(--primitive-yellow-700);
+  --badge-red-bg: var(--primitive-red-100);
+  --badge-red-text: var(--primitive-red-700);
+
+  /* Miscellaneous */
+  --skeleton: var(--primitive-gray-200);
+  --overlay-backdrop: rgb(0 0 0 / 0.2);
+  --tooltip-bg: var(--primitive-gray-800);
+  --tooltip-text: #FFFFFF;
+  --notification-dot: var(--primitive-red-500);
+}
+
+/* ================================================================
+   LAYER 2: Semantic tokens — DARK THEME
+   ================================================================ */
+
+.dark {
+  /* Surface */
+  --surface: var(--primitive-gray-950);
+  --surface-raised: var(--primitive-gray-900);
+  --surface-sunken: var(--primitive-gray-800);
+  --surface-overlay: var(--primitive-gray-800);
+
+  /* Text */
+  --text-primary: var(--primitive-gray-50);
+  --text-secondary: var(--primitive-gray-300);
+  --text-muted: var(--primitive-gray-400);
+  --text-tertiary: var(--primitive-gray-500);
+  --text-on-accent: #FFFFFF;
+  --text-inverted: var(--primitive-gray-900);
+
+  /* Border */
+  --border-default: var(--primitive-gray-700);
+  --border-strong: var(--primitive-gray-600);
+  --border-subtle: var(--primitive-gray-800);
+
+  /* Accent (brand) */
+  --accent: var(--primitive-brand-400);
+  --accent-hover: var(--primitive-brand-300);
+  --accent-active: var(--primitive-brand-200);
+  --accent-subtle: rgb(24 95 165 / 0.15);
+  --accent-muted: rgb(24 95 165 / 0.25);
+  --accent-text: var(--primitive-brand-300);
+  --accent-strong-text: var(--primitive-brand-200);
+
+  /* Interactive */
+  --interactive-hover: var(--primitive-gray-800);
+  --interactive-active: var(--primitive-gray-700);
+  --focus-ring: var(--primitive-brand-400);
+
+  /* Status: Error */
+  --error: var(--primitive-red-400);
+  --error-subtle: rgb(239 68 68 / 0.1);
+  --error-text: #FCA5A5;
+  --error-border: rgb(239 68 68 / 0.3);
+  --error-hover: var(--primitive-red-500);
+  --error-active: var(--primitive-red-600);
+
+  /* Status: Success */
+  --success: var(--primitive-green-400);
+  --success-subtle: rgb(34 197 94 / 0.1);
+  --success-text: #86EFAC;
+  --success-border: rgb(34 197 94 / 0.3);
+
+  /* Status: Warning */
+  --warning: var(--primitive-amber-400);
+  --warning-subtle: rgb(245 158 11 / 0.1);
+  --warning-text: #FDE68A;
+  --warning-border: rgb(245 158 11 / 0.3);
+
+  /* Status: Info */
+  --info: var(--primitive-blue-400);
+  --info-subtle: rgb(59 130 246 / 0.1);
+  --info-text: #93C5FD;
+  --info-border: rgb(59 130 246 / 0.3);
+
+  /* Status: Neutral */
+  --neutral-subtle: rgb(126 34 206 / 0.15);
+  --neutral-text: var(--primitive-purple-400);
+
+  /* Badge variants */
+  --badge-gray-bg: var(--primitive-gray-800);
+  --badge-gray-text: var(--primitive-gray-300);
+  --badge-green-bg: rgb(34 197 94 / 0.15);
+  --badge-green-text: #86EFAC;
+  --badge-blue-bg: rgb(59 130 246 / 0.15);
+  --badge-blue-text: #93C5FD;
+  --badge-yellow-bg: rgb(245 158 11 / 0.15);
+  --badge-yellow-text: #FDE68A;
+  --badge-red-bg: rgb(239 68 68 / 0.15);
+  --badge-red-text: #FCA5A5;
+
+  /* Miscellaneous */
+  --skeleton: var(--primitive-gray-700);
+  --overlay-backdrop: rgb(0 0 0 / 0.5);
+  --tooltip-bg: var(--primitive-gray-200);
+  --tooltip-text: var(--primitive-gray-900);
+  --notification-dot: var(--primitive-red-400);
+}
+
+/* ================================================================
+   LAYER 3: Tailwind @theme — register semantic tokens as utilities
+   ================================================================ */
+
 @theme {
-  --color-brand: #185FA5;
-  --color-brand-light: #2B7BD4;
-  --color-brand-dark: #0F4273;
-  --color-brand-50: #EBF2FA;
-  --color-brand-100: #D1E2F4;
-  --color-brand-200: #A8C8E9;
+  /* Surfaces */
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-overlay: var(--surface-overlay);
+
+  /* Text */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-on-accent: var(--text-on-accent);
+  --color-text-inverted: var(--text-inverted);
+
+  /* Borders */
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-subtle: var(--border-subtle);
+
+  /* Accent (brand) */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-text: var(--accent-text);
+  --color-accent-strong-text: var(--accent-strong-text);
+
+  /* Interactive */
+  --color-interactive-hover: var(--interactive-hover);
+  --color-interactive-active: var(--interactive-active);
+  --color-focus-ring: var(--focus-ring);
+
+  /* Status: Error */
+  --color-error: var(--error);
+  --color-error-subtle: var(--error-subtle);
+  --color-error-text: var(--error-text);
+  --color-error-border: var(--error-border);
+  --color-error-hover: var(--error-hover);
+  --color-error-active: var(--error-active);
+
+  /* Status: Success */
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-text: var(--success-text);
+  --color-success-border: var(--success-border);
+
+  /* Status: Warning */
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-text: var(--warning-text);
+  --color-warning-border: var(--warning-border);
+
+  /* Status: Info */
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-text: var(--info-text);
+  --color-info-border: var(--info-border);
+
+  /* Status: Neutral */
+  --color-neutral-subtle: var(--neutral-subtle);
+  --color-neutral-text: var(--neutral-text);
+
+  /* Badge variants */
+  --color-badge-gray-bg: var(--badge-gray-bg);
+  --color-badge-gray-text: var(--badge-gray-text);
+  --color-badge-green-bg: var(--badge-green-bg);
+  --color-badge-green-text: var(--badge-green-text);
+  --color-badge-blue-bg: var(--badge-blue-bg);
+  --color-badge-blue-text: var(--badge-blue-text);
+  --color-badge-yellow-bg: var(--badge-yellow-bg);
+  --color-badge-yellow-text: var(--badge-yellow-text);
+  --color-badge-red-bg: var(--badge-red-bg);
+  --color-badge-red-text: var(--badge-red-text);
+
+  /* Miscellaneous */
+  --color-skeleton: var(--skeleton);
+  --color-notification-dot: var(--notification-dot);
+
+  /* Backward compatibility — old brand tokens alias to accent tokens.
+     These will be removed in Phase I after all components are migrated. */
+  --color-brand: var(--accent);
+  --color-brand-light: var(--accent-hover);
+  --color-brand-dark: var(--accent-active);
+  --color-brand-50: var(--accent-subtle);
+  --color-brand-100: var(--accent-muted);
+  --color-brand-200: var(--primitive-brand-200);
+}
+
+/* ================================================================
+   Base styles
+   ================================================================ */
+
+body {
+  background-color: var(--surface);
+  color: var(--text-primary);
 }
 
 /* Safe area padding for bottom tab bar (notched phones) */

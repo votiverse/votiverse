@@ -39,5 +39,11 @@
   "connectedAccounts.title": "Connected accounts",
   "connectedAccounts.connect": "Connect",
   "connectedAccounts.disconnect": "Disconnect",
-  "connectedAccounts.unlinking": "Disconnecting\u2026"
+  "connectedAccounts.unlinking": "Disconnecting\u2026",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

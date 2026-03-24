@@ -6,6 +6,7 @@ import { useAssembly } from "../hooks/use-assembly.js";
 import { useAssemblyTabs } from "../hooks/use-assembly-tabs.js";
 import { Avatar } from "./avatar.js";
 import { NotificationBell } from "./notification-bell.js";
+import { ThemeToggle } from "./theme-toggle.js";
 import {
   Home,
   Vote,
@@ -179,6 +180,16 @@ function IdentityIndicator({ name }: { name: string | null }) {
           >
             {t("nav.language")}
           </Link>
+          <Link
+            to="/settings/appearance"
+            onClick={() => setOpen(false)}
+            className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"
+          >
+            {t("nav.appearance")}
+          </Link>
+          <div className="px-3 py-2 border-t border-gray-100">
+            <ThemeToggle />
+          </div>
           <button
             onClick={() => { clearIdentity(); setOpen(false); }}
             className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center"

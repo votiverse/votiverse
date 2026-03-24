@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
+import { ThemeContext, useThemeProvider } from "./hooks/use-theme.js";
 import { Header, BottomTabs } from "./components/layout.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
 import { Dashboard } from "./pages/dashboard.js";
@@ -27,6 +28,7 @@ import { LanguageSettings } from "./pages/language-settings.js";
 import { Notifications } from "./pages/notifications.js";
 import { InvitePage } from "./pages/invite.js";
 import { LoginPage } from "./pages/login.js";
+import { AppearanceSettings } from "./pages/appearance-settings.js";
 import { DevClock } from "./components/dev-clock.js";
 
 function Layout() {
@@ -44,12 +46,14 @@ function Layout() {
 }
 
 export function App() {
+  const theme = useThemeProvider();
   const identity = useIdentityProvider();
   const attention = useAttentionProvider(
     identity.loading ? null : identity.memberships,
   );
 
   return (
+    <ThemeContext value={theme}>
     <IdentityContext value={identity}>
       <AttentionContext value={attention}>
         <BrowserRouter>
@@ -69,6 +73,7 @@ export function App() {
               <Route path="notifications" element={<Notifications />} />
               <Route path="settings/notifications" element={<NotificationSettings />} />
               <Route path="settings/language" element={<LanguageSettings />} />
+              <Route path="settings/appearance" element={<AppearanceSettings />} />
               <Route path="assembly/:assemblyId" element={<AssemblyDashboard />} />
               <Route path="assembly/:assemblyId/members" element={<Members />} />
               <Route path="assembly/:assemblyId/events" element={<EventsList />} />
@@ -87,5 +92,6 @@ export function App() {
       </AttentionContext>
       {import.meta.env.DEV && <DevClock />}
     </IdentityContext>
+    </ThemeContext>
   );
 }

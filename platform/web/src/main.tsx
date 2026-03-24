@@ -5,10 +5,14 @@ import { initI18n } from "./i18n.js";
 import { RTL_LOCALES } from "./locales.js";
 import { App } from "./app.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
+import { bootstrapTheme } from "./hooks/use-theme.js";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 async function bootstrap() {
+  // 0. Apply theme class synchronously (prevents flash of wrong theme).
+  bootstrapTheme();
+
   // 1. Attempt to resolve the user's locale before React mounts.
   //    If authenticated, /me returns the user profile including locale.
   //    If not (login page, expired session), this fails silently and
