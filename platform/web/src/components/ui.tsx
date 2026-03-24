@@ -5,14 +5,14 @@ import { useTranslation } from "react-i18next";
 
 export function Card({ children, className = "", onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`} onClick={onClick} role={onClick ? "button" : undefined}>
+    <div className={`bg-surface-raised rounded-lg border border-border-default shadow-sm ${className}`} onClick={onClick} role={onClick ? "button" : undefined}>
       {children}
     </div>
   );
 }
 
 export function CardHeader({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 ${className}`}>{children}</div>;
+  return <div className={`px-4 py-3 sm:px-6 sm:py-4 border-b border-border-subtle ${className}`}>{children}</div>;
 }
 
 export function CardBody({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -31,10 +31,10 @@ export function Button({
 }) {
   const base = "inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
-    primary: "bg-brand text-white hover:bg-brand-light focus:ring-brand active:bg-brand-dark",
-    secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-brand active:bg-gray-100",
-    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 active:bg-red-800",
-    ghost: "text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-brand active:bg-gray-200",
+    primary: "bg-accent text-text-on-accent hover:bg-accent-hover focus:ring-focus-ring active:bg-accent-active",
+    secondary: "bg-surface-raised text-text-secondary border border-border-strong hover:bg-interactive-hover focus:ring-focus-ring active:bg-interactive-active",
+    danger: "bg-error text-text-on-accent hover:bg-error-hover focus:ring-error active:bg-error-active",
+    ghost: "text-text-secondary hover:text-text-primary hover:bg-interactive-active focus:ring-focus-ring active:bg-surface-sunken",
   };
   const sizes = {
     sm: "px-3 py-2 text-sm min-h-[36px] sm:min-h-0 sm:py-1.5",
@@ -52,7 +52,7 @@ export function Button({
 export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`block w-full rounded-md border border-gray-300 px-3 py-2.5 text-base sm:text-sm shadow-sm placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
+      className={`block w-full rounded-md border border-border-strong bg-surface-raised px-3 py-2.5 text-base sm:text-sm shadow-sm placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
       {...props}
     />
   );
@@ -61,7 +61,7 @@ export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInpu
 export function Select({ className = "", children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
-      className={`block w-full rounded-md border border-gray-300 px-3 py-2.5 text-base sm:text-sm shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
+      className={`block w-full rounded-md border border-border-strong bg-surface-raised px-3 py-2.5 text-base sm:text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
       {...props}
     >
       {children}
@@ -70,16 +70,16 @@ export function Select({ className = "", children, ...props }: SelectHTMLAttribu
 }
 
 export function Label({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <label className={`block text-sm font-medium text-gray-700 mb-1 ${className}`}>{children}</label>;
+  return <label className={`block text-sm font-medium text-text-secondary mb-1 ${className}`}>{children}</label>;
 }
 
 export function Badge({ children, color = "gray" }: { children: ReactNode; color?: "gray" | "green" | "blue" | "yellow" | "red" }) {
   const colors = {
-    gray: "bg-gray-100 text-gray-700",
-    green: "bg-green-100 text-green-700",
-    blue: "bg-blue-100 text-blue-700",
-    yellow: "bg-yellow-100 text-yellow-700",
-    red: "bg-red-100 text-red-700",
+    gray: "bg-badge-gray-bg text-badge-gray-text",
+    green: "bg-badge-green-bg text-badge-green-text",
+    blue: "bg-badge-blue-bg text-badge-blue-text",
+    yellow: "bg-badge-yellow-bg text-badge-yellow-text",
+    red: "bg-badge-red-bg text-badge-red-text",
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[color]}`}>
@@ -91,7 +91,7 @@ export function Badge({ children, color = "gray" }: { children: ReactNode; color
 export function Spinner() {
   return (
     <div className="flex items-center justify-center py-12">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-brand" />
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-border-default border-t-accent" />
     </div>
   );
 }
@@ -99,10 +99,10 @@ export function Spinner() {
 export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="rounded-md bg-red-50 border border-red-200 p-4">
-      <p className="text-sm text-red-700">{message}</p>
+    <div className="rounded-md bg-error-subtle border border-error-border p-4">
+      <p className="text-sm text-error-text">{message}</p>
       {onRetry && (
-        <button onClick={onRetry} className="mt-2 text-sm text-red-600 underline hover:text-red-800 min-h-[44px] sm:min-h-0">
+        <button onClick={onRetry} className="mt-2 text-sm text-error underline hover:text-error-hover min-h-[44px] sm:min-h-0">
           {t("retry")}
         </button>
       )}
@@ -113,8 +113,8 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
     <div className="text-center py-12 px-4">
-      <h3 className="text-sm font-medium text-gray-900">{title}</h3>
-      {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+      <h3 className="text-sm font-medium text-text-primary">{title}</h3>
+      {description && <p className="mt-1 text-sm text-text-muted">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -123,14 +123,14 @@ export function EmptyState({ title, description, action }: { title: string; desc
 export function BadgeDot({ count, className = "" }: { count: number; className?: string }) {
   if (count <= 0) return null;
   return (
-    <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none ${className}`}>
+    <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-notification-dot text-text-on-accent text-[10px] font-bold leading-none ${className}`}>
       {count > 99 ? "99+" : count}
     </span>
   );
 }
 
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse bg-gray-200 rounded ${className}`} />;
+  return <div className={`animate-pulse bg-skeleton rounded ${className}`} />;
 }
 
 /** CSS-only tooltip using Tailwind group hover. Wraps children and shows text on hover. */
@@ -138,9 +138,9 @@ export function Tooltip({ text, children }: { text: string; children: ReactNode 
   return (
     <span className="relative group inline-flex">
       {children}
-      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 text-xs text-white bg-gray-800 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 text-xs text-[var(--tooltip-text)] bg-[var(--tooltip-bg)] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
         {text}
-        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--tooltip-bg)]" />
       </span>
     </span>
   );
