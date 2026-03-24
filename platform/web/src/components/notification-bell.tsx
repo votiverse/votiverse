@@ -94,7 +94,7 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 text-gray-500 hover:text-gray-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+        className="relative p-2 text-gray-500 hover:text-gray-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
         aria-label={unreadCount > 0 ? t("ariaLabelUnread", { count: unreadCount }) : t("title")}
       >
         <Bell size={18} strokeWidth={1.5} />

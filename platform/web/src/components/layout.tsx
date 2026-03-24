@@ -123,7 +123,7 @@ export function Header() {
 function IdentityIndicator({ name }: { name: string | null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { clearIdentity, email } = useIdentity();
+  const { clearIdentity, handle } = useIdentity();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -140,17 +140,16 @@ function IdentityIndicator({ name }: { name: string | null }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 min-h-[44px] sm:min-h-0 px-1"
+        className="flex items-center gap-2 min-h-[44px] sm:min-h-0 px-1 cursor-pointer"
         aria-label="Identity menu"
       >
         <Avatar name={name ?? "?"} size="sm" />
-        <span className="hidden sm:inline text-sm text-gray-700 font-medium max-w-[120px] truncate">{name}</span>
       </button>
       {open && (
         <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
           <div className="px-3 py-2 border-b border-gray-100">
             <p className="text-sm font-medium text-gray-900">{name}</p>
-            {email && <p className="text-xs text-gray-400 truncate">{email}</p>}
+            {handle && <p className="text-xs text-gray-400 truncate">@{handle}</p>}
           </div>
           <Link
             to="/profile"
