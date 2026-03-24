@@ -10,15 +10,19 @@ export interface LinkedProvider {
   createdAt: string;
 }
 
-/** Fetch the list of enabled OAuth providers. */
+/** Fetch the list of enabled OAuth providers. In dev mode, always returns both providers for UI preview. */
 export async function getOAuthProviders(): Promise<string[]> {
   try {
     const res = await fetch(`${BASE_URL}/auth/oauth/providers`);
-    if (!res.ok) return [];
+    if (!res.ok) return import.meta.env.DEV ? ["google", "microsoft"] : [];
     const data = await res.json() as { providers: string[] };
+    // In dev, show all providers even if not configured so the UI can be assessed
+    if (import.meta.env.DEV && data.providers.length === 0) {
+      return ["google", "microsoft"];
+    }
     return data.providers;
   } catch {
-    return [];
+    return import.meta.env.DEV ? ["google", "microsoft"] : [];
   }
 }
 

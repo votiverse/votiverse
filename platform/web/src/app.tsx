@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
@@ -53,8 +54,9 @@ export function App() {
       <AttentionContext value={attention}>
         <BrowserRouter>
           <Routes>
-            {/* Login page — outside Layout (no header/tabs) */}
-            <Route path="login" element={<LoginPage />} />
+            {/* Login page — outside Layout (no header/tabs). Suspense needed
+                because the auth i18n namespace may not be preloaded yet. */}
+            <Route path="login" element={<Suspense><LoginPage /></Suspense>} />
 
             <Route element={<Layout />}>
               <Route index element={<Dashboard />} />
