@@ -35,6 +35,12 @@ export interface BackendConfig {
   s3Bucket: string;
   s3Region: string;
   s3CdnDomain: string;
+  oauthGoogleClientId: string;
+  oauthGoogleClientSecret: string;
+  oauthMicrosoftClientId: string;
+  oauthMicrosoftClientSecret: string;
+  oauthRedirectBaseUrl: string;
+  oauthFrontendUrl: string;
 }
 
 const DEFAULT_JWT_SECRET = "backend-dev-secret-do-not-use-in-production";
@@ -75,6 +81,12 @@ export function loadConfig(): BackendConfig {
     s3Bucket: process.env["BACKEND_S3_BUCKET"] ?? "",
     s3Region: process.env["BACKEND_S3_REGION"] ?? "us-east-1",
     s3CdnDomain: process.env["BACKEND_S3_CDN_DOMAIN"] ?? "",
+    oauthGoogleClientId: process.env["OAUTH_GOOGLE_CLIENT_ID"] ?? "",
+    oauthGoogleClientSecret: process.env["OAUTH_GOOGLE_CLIENT_SECRET"] ?? "",
+    oauthMicrosoftClientId: process.env["OAUTH_MICROSOFT_CLIENT_ID"] ?? "",
+    oauthMicrosoftClientSecret: process.env["OAUTH_MICROSOFT_CLIENT_SECRET"] ?? "",
+    oauthRedirectBaseUrl: process.env["OAUTH_REDIRECT_BASE_URL"] ?? "http://localhost:4000",
+    oauthFrontendUrl: process.env["OAUTH_FRONTEND_URL"] ?? "http://localhost:5173",
   };
 }
 

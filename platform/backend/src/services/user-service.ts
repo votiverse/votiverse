@@ -101,7 +101,7 @@ export class UserService {
   constructor(private readonly db: DatabaseAdapter) {}
 
   /** Find a unique handle, appending -2, -3, etc. if the base is taken. */
-  private async findUniqueHandle(base: string): Promise<string> {
+  async findUniqueHandle(base: string): Promise<string> {
     let candidate = base;
     let suffix = 2;
     while (true) {
@@ -273,6 +273,16 @@ export class UserService {
     const user = await this.getById(id);
     if (!user) throw new NotFoundError("User not found");
     return user;
+  }
+
+  /** Get user by email (case-insensitive). */
+  async getByEmail(email: string): Promise<User | null> {
+    const row = await this.db.queryOne<UserRow>(
+      "SELECT * FROM users WHERE email = ?",
+      [email.toLowerCase()],
+    );
+    if (!row) return null;
+    return rowToUser(row);
   }
 
   /** Get public profile by handle. */
