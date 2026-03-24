@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Meldingen ({{count}} ongelezen)",
+  "empty": "Nog geen meldingen",
+  "emptyDescription": "Meldingen verschijnen hier wanneer er activiteit is in uw groepen.",
+  "emptyUnread": "Geen ongelezen meldingen",
+  "emptyUnreadDescription": "Probeer alle meldingen te tonen.",
+  "markAllRead": "Alle markeren als gelezen",
+  "title": "Meldingen",
+  "unreadCount": "{{count}} ongelezen",
+  "unreadOnly": "Alleen ongelezen",
+  "urgency.action": "Actie vereist",
+  "urgency.timely": "Nieuw",
+  "viewAll": "Alle meldingen bekijken"
+}

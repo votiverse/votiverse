@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "通知（{{count}} 條未讀）",
+  "empty": "暫無通知",
+  "emptyDescription": "當您的群組中有活動時，通知將顯示在此處。",
+  "emptyUnread": "沒有未讀通知",
+  "emptyUnreadDescription": "嘗試顯示所有通知。",
+  "markAllRead": "標記全部為已讀",
+  "title": "通知",
+  "unreadCount": "{{count}} 條未讀",
+  "unreadOnly": "僅未讀",
+  "urgency.action": "需要操作",
+  "urgency.timely": "最新",
+  "viewAll": "查看所有通知"
+}

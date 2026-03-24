@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Benachrichtigungen ({{count}} ungelesen)",
+  "empty": "Noch keine Benachrichtigungen",
+  "emptyDescription": "Benachrichtigungen erscheinen hier, wenn es Aktivitäten in Ihren Gruppen gibt.",
+  "emptyUnread": "Keine ungelesenen Benachrichtigungen",
+  "emptyUnreadDescription": "Versuchen Sie, alle Benachrichtigungen anzuzeigen.",
+  "markAllRead": "Alle als gelesen markieren",
+  "title": "Benachrichtigungen",
+  "unreadCount": "{{count}} ungelesen",
+  "unreadOnly": "Nur ungelesene",
+  "urgency.action": "Aktion erforderlich",
+  "urgency.timely": "Neu",
+  "viewAll": "Alle Benachrichtigungen anzeigen"
+}

@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "सूचनाएं ({{count}} अपठित)",
+  "empty": "अभी तक कोई सूचना नहीं",
+  "emptyDescription": "आपके समूहों में गतिविधि होने पर सूचनाएं यहां दिखाई देंगी।",
+  "emptyUnread": "कोई अपठित सूचना नहीं",
+  "emptyUnreadDescription": "सभी सूचनाएं दिखाने का प्रयास करें।",
+  "markAllRead": "सभी को पढ़ा गया चिह्नित करें",
+  "title": "सूचनाएं",
+  "unreadCount": "{{count}} अपठित",
+  "unreadOnly": "केवल अपठित",
+  "urgency.action": "कार्रवाई आवश्यक",
+  "urgency.timely": "नई",
+  "viewAll": "सभी सूचनाएं देखें"
+}

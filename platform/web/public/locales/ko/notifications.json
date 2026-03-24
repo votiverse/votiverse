@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "알림 ({{count}}개 읽지 않음)",
+  "empty": "알림이 없습니다",
+  "emptyDescription": "그룹에서 활동이 있을 때 여기에 알림이 표시됩니다.",
+  "emptyUnread": "읽지 않은 알림이 없습니다",
+  "emptyUnreadDescription": "모든 알림을 확인해 보세요.",
+  "markAllRead": "모두 읽음으로 표시",
+  "title": "알림",
+  "unreadCount": "{{count}}개의 읽지 않은 알림",
+  "unreadOnly": "읽지 않은 알림만",
+  "urgency.action": "조치 필요",
+  "urgency.timely": "새 알림",
+  "viewAll": "모든 알림 보기"
+}

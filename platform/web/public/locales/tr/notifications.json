@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Bildirimler ({{count}} okunmamış)",
+  "empty": "Henüz bildirim yok",
+  "emptyDescription": "Gruplarınızda etkinlik olduğunda bildirimler burada görünecektir.",
+  "emptyUnread": "Okunmamış bildirim yok",
+  "emptyUnreadDescription": "Tüm bildirimleri göstermeyi deneyin.",
+  "markAllRead": "Tümünü okundu olarak işaretle",
+  "title": "Bildirimler",
+  "unreadCount": "{{count}} okunmamış",
+  "unreadOnly": "Yalnızca okunmamış",
+  "urgency.action": "Eylem gerekli",
+  "urgency.timely": "Yeni",
+  "viewAll": "Tüm bildirimleri görüntüle"
+}

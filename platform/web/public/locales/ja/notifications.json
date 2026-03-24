@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "通知（{{count}}件未読）",
+  "empty": "通知はまだありません",
+  "emptyDescription": "グループ内で活動があると、ここに通知が表示されます。",
+  "emptyUnread": "未読の通知はありません",
+  "emptyUnreadDescription": "すべての通知を表示してみてください。",
+  "markAllRead": "すべて既読にする",
+  "title": "通知",
+  "unreadCount": "{{count}}件未読",
+  "unreadOnly": "未読のみ",
+  "urgency.action": "アクションが必要",
+  "urgency.timely": "新着",
+  "viewAll": "すべての通知を表示"
+}

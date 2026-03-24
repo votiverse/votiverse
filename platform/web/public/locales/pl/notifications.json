@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Powiadomienia ({{count}} nieprzeczytanych)",
+  "empty": "Brak powiadomień",
+  "emptyDescription": "Powiadomienia pojawią się tutaj, gdy będzie aktywność w Pana/Pani grupach.",
+  "emptyUnread": "Brak nieprzeczytanych powiadomień",
+  "emptyUnreadDescription": "Spróbuj wyświetlić wszystkie powiadomienia.",
+  "markAllRead": "Oznacz wszystkie jako przeczytane",
+  "title": "Powiadomienia",
+  "unreadCount": "{{count}} nieprzeczytanych",
+  "unreadOnly": "Tylko nieprzeczytane",
+  "urgency.action": "Wymagane działanie",
+  "urgency.timely": "Nowe",
+  "viewAll": "Zobacz wszystkie powiadomienia"
+}

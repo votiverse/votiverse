@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Notifiche ({{count}} non lette)",
+  "empty": "Nessuna notifica ancora",
+  "emptyDescription": "Le notifiche appariranno qui quando ci sarà attività nei Suoi gruppi.",
+  "emptyUnread": "Nessuna notifica non letta",
+  "emptyUnreadDescription": "Provi a mostrare tutte le notifiche.",
+  "markAllRead": "Segna tutte come lette",
+  "title": "Notifiche",
+  "unreadCount": "{{count}} non lette",
+  "unreadOnly": "Solo non lette",
+  "urgency.action": "Azione richiesta",
+  "urgency.timely": "Nuovo",
+  "viewAll": "Visualizza tutte le notifiche"
+}

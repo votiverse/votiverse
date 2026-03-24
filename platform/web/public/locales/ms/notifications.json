@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Notifikasi ({{count}} belum dibaca)",
+  "empty": "Belum ada notifikasi",
+  "emptyDescription": "Notifikasi akan muncul di sini apabila terdapat aktiviti dalam kumpulan anda.",
+  "emptyUnread": "Tiada notifikasi yang belum dibaca",
+  "emptyUnreadDescription": "Cuba paparkan semua notifikasi.",
+  "markAllRead": "Tandai semua sudah dibaca",
+  "title": "Notifikasi",
+  "unreadCount": "{{count}} belum dibaca",
+  "unreadOnly": "Belum dibaca sahaja",
+  "urgency.action": "Tindakan diperlukan",
+  "urgency.timely": "Baharu",
+  "viewAll": "Lihat semua notifikasi"
+}

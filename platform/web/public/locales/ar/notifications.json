@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "الإشعارات ({{count}} غير مقروءة)",
+  "empty": "لا توجد إشعارات بعد",
+  "emptyDescription": "ستظهر الإشعارات هنا عندما يكون هناك نشاط في مجموعاتك.",
+  "emptyUnread": "لا توجد إشعارات غير مقروءة",
+  "emptyUnreadDescription": "جرب إظهار جميع الإشعارات.",
+  "markAllRead": "تحديد الكل كمقروء",
+  "title": "الإشعارات",
+  "unreadCount": "{{count}} غير مقروءة",
+  "unreadOnly": "غير المقروءة فقط",
+  "urgency.action": "مطلوب إجراء",
+  "urgency.timely": "جديد",
+  "viewAll": "عرض جميع الإشعارات"
+}

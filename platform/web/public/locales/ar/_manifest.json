@@ -1,0 +1,2885 @@
+{
+  "auth": {
+    "checkingSession": {
+      "hash": "b952cab7"
+    },
+    "createAccount": {
+      "hash": "86033f75"
+    },
+    "createAccountButton": {
+      "hash": "798ca2ce"
+    },
+    "email.hint": {
+      "hash": "c5b702e3"
+    },
+    "handle.available": {
+      "hash": "e6744473"
+    },
+    "handle.hint": {
+      "hash": "02d4f831"
+    },
+    "handle.taken": {
+      "hash": "c76e6790"
+    },
+    "hasAccount": {
+      "hash": "e77fea93"
+    },
+    "joinToContinue": {
+      "hash": "21be4bf2"
+    },
+    "label.email": {
+      "hash": "969ccbd3"
+    },
+    "label.handle": {
+      "hash": "fa04ae3d"
+    },
+    "label.name": {
+      "hash": "dcd1d522"
+    },
+    "label.password": {
+      "hash": "e7cf3ef4"
+    },
+    "noAccount": {
+      "hash": "9dd227f9"
+    },
+    "placeholder.name": {
+      "hash": "2c6b2e25"
+    },
+    "signIn": {
+      "hash": "bfd402b2"
+    },
+    "signInToContinue": {
+      "hash": "73c27c81"
+    },
+    "signUp": {
+      "hash": "5e2b8e96"
+    },
+    "welcomeBack": {
+      "hash": "66212495"
+    }
+  },
+  "common": {
+    "apply": {
+      "hash": "31e392d1"
+    },
+    "back": {
+      "hash": "76900f1b"
+    },
+    "cancel": {
+      "hash": "19766ed6"
+    },
+    "close": {
+      "hash": "7d9eb7ac"
+    },
+    "confirm": {
+      "hash": "eebdd24a"
+    },
+    "countdown.days": {
+      "hash": "949207ee"
+    },
+    "countdown.daysHours": {
+      "hash": "47b4a624"
+    },
+    "countdown.ended": {
+      "hash": "7cdc804e"
+    },
+    "countdown.hoursMinutes": {
+      "hash": "8c82b3db"
+    },
+    "countdown.minutes": {
+      "hash": "79629bf8"
+    },
+    "delete": {
+      "hash": "e2d0a549"
+    },
+    "editor.bold": {
+      "hash": "94fee62e"
+    },
+    "editor.bulletList": {
+      "hash": "a2b5baef"
+    },
+    "editor.divider": {
+      "hash": "cc29053f"
+    },
+    "editor.heading": {
+      "hash": "b34f17f0"
+    },
+    "editor.image": {
+      "hash": "1aa4cb0b"
+    },
+    "editor.import": {
+      "hash": "2cff9baa"
+    },
+    "editor.importFile": {
+      "hash": "9be38c15"
+    },
+    "editor.insertImage": {
+      "hash": "cf3a92da"
+    },
+    "editor.italic": {
+      "hash": "9bf37cb5"
+    },
+    "editor.link": {
+      "hash": "a6a32dbc"
+    },
+    "editor.list": {
+      "hash": "6f202f54"
+    },
+    "editor.numberedList": {
+      "hash": "cc62f6c7"
+    },
+    "editor.placeholder": {
+      "hash": "f61684d5"
+    },
+    "editor.quote": {
+      "hash": "eb4cdebd"
+    },
+    "editor.subheading": {
+      "hash": "f593a11d"
+    },
+    "empty.generic": {
+      "hash": "2de5247a"
+    },
+    "error.boundary.reload": {
+      "hash": "46c8780b"
+    },
+    "error.boundary.title": {
+      "hash": "ab827e3f"
+    },
+    "error.boundary.tryAgain": {
+      "hash": "df0fe9e0"
+    },
+    "error.boundary.unexpected": {
+      "hash": "7053d12a"
+    },
+    "error.generic": {
+      "hash": "3ccd9d65"
+    },
+    "error.network": {
+      "hash": "fd997cda"
+    },
+    "error.notFound": {
+      "hash": "0802559d"
+    },
+    "loading": {
+      "hash": "ba3bbbe1"
+    },
+    "nav.candidates": {
+      "hash": "fdc9c0f6"
+    },
+    "nav.delegates": {
+      "hash": "d503461e"
+    },
+    "nav.delegators": {
+      "hash": "c053fe70"
+    },
+    "nav.goBack": {
+      "hash": "6aadac2f"
+    },
+    "nav.goHome": {
+      "hash": "a0aac914"
+    },
+    "nav.home": {
+      "hash": "3a786953"
+    },
+    "nav.language": {
+      "hash": "a4fe6526"
+    },
+    "nav.logout": {
+      "hash": "49616145"
+    },
+    "nav.me": {
+      "hash": "d30af076"
+    },
+    "nav.myGroups": {
+      "hash": "e9db9ced"
+    },
+    "nav.notes": {
+      "hash": "8a7525b1"
+    },
+    "nav.notifications": {
+      "hash": "78801183"
+    },
+    "nav.surveys": {
+      "hash": "7c763b8f"
+    },
+    "nav.topics": {
+      "hash": "e22820fc"
+    },
+    "nav.votes": {
+      "hash": "cd8e974b"
+    },
+    "next": {
+      "hash": "1ff57a29"
+    },
+    "presets.admissionApproval": {
+      "hash": "0e706f27"
+    },
+    "presets.admissionInviteOnly": {
+      "hash": "db840575"
+    },
+    "presets.admissionOpen": {
+      "hash": "ccf5652b"
+    },
+    "presets.ballotPublic": {
+      "hash": "7297fe31"
+    },
+    "presets.ballotPublicLive": {
+      "hash": "290c8e4d"
+    },
+    "presets.ballotSecret": {
+      "hash": "2882a448"
+    },
+    "presets.ballotVoteChange": {
+      "hash": "82e7a047"
+    },
+    "presets.boardProxy": {
+      "hash": "4f5fa2bc"
+    },
+    "presets.civicParticipatory": {
+      "hash": "09a12e14"
+    },
+    "presets.directDemocracy": {
+      "hash": "4574b40a"
+    },
+    "presets.disabled": {
+      "hash": "75081b59"
+    },
+    "presets.enabled": {
+      "hash": "92c1cdfd"
+    },
+    "presets.featureNotes": {
+      "hash": "4321b689"
+    },
+    "presets.featureSurveys": {
+      "hash": "bab6ecbf"
+    },
+    "presets.fullAccountability": {
+      "hash": "fb3fd1ad"
+    },
+    "presets.liquidDelegation": {
+      "hash": "56510626"
+    },
+    "presets.liquidOpen": {
+      "hash": "53dc8b78"
+    },
+    "presets.no": {
+      "hash": "1ea442a1"
+    },
+    "presets.representative": {
+      "hash": "1f544eb5"
+    },
+    "presets.ruleCandidacy": {
+      "hash": "b7eb432f"
+    },
+    "presets.ruleCandidacyTransferable": {
+      "hash": "cd057842"
+    },
+    "presets.ruleDirect": {
+      "hash": "cfb42be1"
+    },
+    "presets.ruleTransferable": {
+      "hash": "7a2e4be9"
+    },
+    "presets.swissVotation": {
+      "hash": "eb72c870"
+    },
+    "presets.timelineCuration": {
+      "hash": "ab39da81"
+    },
+    "presets.timelineDeliberation": {
+      "hash": "1a1c21ce"
+    },
+    "presets.timelineThen": {
+      "hash": "21af6f12"
+    },
+    "presets.timelineVoting": {
+      "hash": "5d779d17"
+    },
+    "presets.yes": {
+      "hash": "85a39ab3"
+    },
+    "remove": {
+      "hash": "c3812fc4"
+    },
+    "retry": {
+      "hash": "942087cc"
+    },
+    "save": {
+      "hash": "1509f561"
+    },
+    "search.byName": {
+      "hash": "8cf42395"
+    },
+    "search.noResults": {
+      "hash": "d201f41a"
+    },
+    "search.orSearchAny": {
+      "hash": "b48c9de8"
+    },
+    "search.results": {
+      "hash": "39414102"
+    },
+    "status.active": {
+      "hash": "92340695"
+    },
+    "status.closed": {
+      "hash": "7cdc804e"
+    },
+    "status.curation": {
+      "hash": "bba16837"
+    },
+    "status.deliberation": {
+      "hash": "5eb6cf64"
+    },
+    "status.open": {
+      "hash": "ed077f3d"
+    },
+    "status.scheduled": {
+      "hash": "4724f344"
+    },
+    "status.upcoming": {
+      "hash": "5f1a2542"
+    },
+    "status.voting": {
+      "hash": "84a6a83d"
+    }
+  },
+  "governance": {
+    "assemblyDashboard.admins": {
+      "hash": "8273a67b"
+    },
+    "assemblyDashboard.assemblyNotFound": {
+      "hash": "54141514"
+    },
+    "assemblyDashboard.ballot": {
+      "hash": "e964e32c"
+    },
+    "assemblyDashboard.candidatesLabel": {
+      "hash": "fdc9c0f6"
+    },
+    "assemblyDashboard.communityNotes": {
+      "hash": "b607506e"
+    },
+    "assemblyDashboard.configuration": {
+      "hash": "b332c349"
+    },
+    "assemblyDashboard.curation": {
+      "hash": "bba16837"
+    },
+    "assemblyDashboard.curationNone": {
+      "hash": "dc937b59"
+    },
+    "assemblyDashboard.day_few": {
+      "hash": "02b4fc59"
+    },
+    "assemblyDashboard.day_many": {
+      "hash": "02b4fc59"
+    },
+    "assemblyDashboard.day_one": {
+      "hash": "02b4fc59"
+    },
+    "assemblyDashboard.day_other": {
+      "hash": "ca4c4a68"
+    },
+    "assemblyDashboard.day_zero": {
+      "hash": "02b4fc59"
+    },
+    "assemblyDashboard.decisionModel": {
+      "hash": "9aa9d2da"
+    },
+    "assemblyDashboard.deliberation": {
+      "hash": "60c34b5e"
+    },
+    "assemblyDashboard.features": {
+      "hash": "5697d03d"
+    },
+    "assemblyDashboard.governanceSettings": {
+      "hash": "35762d35"
+    },
+    "assemblyDashboard.leadership": {
+      "hash": "ec75f790"
+    },
+    "assemblyDashboard.liveResults": {
+      "hash": "6a23e624"
+    },
+    "assemblyDashboard.majority": {
+      "hash": "15fbf197"
+    },
+    "assemblyDashboard.members": {
+      "hash": "1044a4c0"
+    },
+    "assemblyDashboard.moreMembers": {
+      "hash": "48380bad"
+    },
+    "assemblyDashboard.nQuestions": {
+      "hash": "1f9e5add"
+    },
+    "assemblyDashboard.ownerBadge": {
+      "hash": "4b1b8aa3"
+    },
+    "assemblyDashboard.owners": {
+      "hash": "58f5df9b"
+    },
+    "assemblyDashboard.predictionsLabel": {
+      "hash": "d3176397"
+    },
+    "assemblyDashboard.public": {
+      "hash": "591935b1"
+    },
+    "assemblyDashboard.quorum": {
+      "hash": "18ed8b6c"
+    },
+    "assemblyDashboard.recentVotes": {
+      "hash": "20ff0633"
+    },
+    "assemblyDashboard.rulesPermanent": {
+      "hash": "2a94ab78"
+    },
+    "assemblyDashboard.secret": {
+      "hash": "7e32a729"
+    },
+    "assemblyDashboard.statMembers": {
+      "hash": "1044a4c0"
+    },
+    "assemblyDashboard.statVotes": {
+      "hash": "cd8e974b"
+    },
+    "assemblyDashboard.statYourDelegates": {
+      "hash": "31b095bf"
+    },
+    "assemblyDashboard.statYourVotes": {
+      "hash": "9729de7a"
+    },
+    "assemblyDashboard.supermajority": {
+      "hash": "71b84afb"
+    },
+    "assemblyDashboard.surveysLabel": {
+      "hash": "7c763b8f"
+    },
+    "assemblyDashboard.timeline": {
+      "hash": "9dcff98e"
+    },
+    "assemblyDashboard.totalDaysPerVote": {
+      "hash": "144f0835"
+    },
+    "assemblyDashboard.transferableLabel": {
+      "hash": "4ef7138e"
+    },
+    "assemblyDashboard.usesGovernance": {
+      "hash": "a4c7dff0"
+    },
+    "assemblyDashboard.viewAll": {
+      "hash": "30a64216"
+    },
+    "assemblyDashboard.viewAllN": {
+      "hash": "a1bdd394"
+    },
+    "assemblyDashboard.voteChangeAllowed": {
+      "hash": "1bb201d1"
+    },
+    "assemblyDashboard.voteChangeFinal": {
+      "hash": "2e53c1d9"
+    },
+    "assemblyDashboard.voteChanges": {
+      "hash": "0ab7f387"
+    },
+    "assemblyDashboard.voting": {
+      "hash": "aca2f665"
+    },
+    "assemblyDashboard.votingMethod": {
+      "hash": "315c5e78"
+    },
+    "assemblyDashboard.welcomeTo": {
+      "hash": "cca0a088"
+    },
+    "assemblyList.admissionApproval": {
+      "hash": "71d62143"
+    },
+    "assemblyList.admissionApprovalDesc": {
+      "hash": "3d924edd"
+    },
+    "assemblyList.admissionInviteOnly": {
+      "hash": "a140ffe8"
+    },
+    "assemblyList.admissionInviteOnlyDesc": {
+      "hash": "bd3e2e53"
+    },
+    "assemblyList.admissionOpen": {
+      "hash": "a1c7094a"
+    },
+    "assemblyList.admissionOpenDesc": {
+      "hash": "cd8be2a9"
+    },
+    "assemblyList.allowVoteChanges": {
+      "hash": "8e3cf05e"
+    },
+    "assemblyList.apply": {
+      "hash": "31e392d1"
+    },
+    "assemblyList.changeableNote": {
+      "hash": "984c5cdd"
+    },
+    "assemblyList.createError": {
+      "hash": "8848db90"
+    },
+    "assemblyList.createGroup": {
+      "hash": "12133946"
+    },
+    "assemblyList.creating": {
+      "hash": "c79ed949"
+    },
+    "assemblyList.curation": {
+      "hash": "2c4fe4bf"
+    },
+    "assemblyList.customizeRules": {
+      "hash": "c4e0d595"
+    },
+    "assemblyList.customized": {
+      "hash": "125a46dc"
+    },
+    "assemblyList.days": {
+      "hash": "ab51004e"
+    },
+    "assemblyList.declaredCandidates": {
+      "hash": "1a5bfebb"
+    },
+    "assemblyList.deliberation": {
+      "hash": "02a67270"
+    },
+    "assemblyList.featureCommunityNotes": {
+      "hash": "1828955e"
+    },
+    "assemblyList.featurePredictions": {
+      "hash": "d3176397"
+    },
+    "assemblyList.featureSurveys": {
+      "hash": "7c763b8f"
+    },
+    "assemblyList.governance": {
+      "hash": "56d178dd"
+    },
+    "assemblyList.governanceRules": {
+      "hash": "835ddee8"
+    },
+    "assemblyList.governanceRulesDesc": {
+      "hash": "1c625a32"
+    },
+    "assemblyList.liveResultsToggle": {
+      "hash": "8630f079"
+    },
+    "assemblyList.majority": {
+      "hash": "15fbf197"
+    },
+    "assemblyList.nameLabel": {
+      "hash": "dcd1d522"
+    },
+    "assemblyList.namePlaceholder": {
+      "hash": "762ebb70"
+    },
+    "assemblyList.needsYou_few": {
+      "hash": "af9f85ab"
+    },
+    "assemblyList.needsYou_many": {
+      "hash": "af9f85ab"
+    },
+    "assemblyList.needsYou_one": {
+      "hash": "af9f85ab"
+    },
+    "assemblyList.needsYou_other": {
+      "hash": "05352065"
+    },
+    "assemblyList.needsYou_zero": {
+      "hash": "af9f85ab"
+    },
+    "assemblyList.newGroup": {
+      "hash": "3726836b"
+    },
+    "assemblyList.newGroupTitle": {
+      "hash": "3726836b"
+    },
+    "assemblyList.noGroups": {
+      "hash": "07514d06"
+    },
+    "assemblyList.noGroupsDesc": {
+      "hash": "9efeebac"
+    },
+    "assemblyList.openVote_few": {
+      "hash": "9309e503"
+    },
+    "assemblyList.openVote_many": {
+      "hash": "9309e503"
+    },
+    "assemblyList.openVote_one": {
+      "hash": "9309e503"
+    },
+    "assemblyList.openVote_other": {
+      "hash": "207862a4"
+    },
+    "assemblyList.openVote_zero": {
+      "hash": "9309e503"
+    },
+    "assemblyList.presetCivic": {
+      "hash": "a6e75391"
+    },
+    "assemblyList.presetCivicDesc": {
+      "hash": "da675f8e"
+    },
+    "assemblyList.presetDirectDemocracy": {
+      "hash": "0e73c495"
+    },
+    "assemblyList.presetDirectDemocracyDesc": {
+      "hash": "dc6bcdd9"
+    },
+    "assemblyList.presetLiquidDelegation": {
+      "hash": "aefc0e56"
+    },
+    "assemblyList.presetLiquidDelegationDesc": {
+      "hash": "2eee4a53"
+    },
+    "assemblyList.presetLiquidOpen": {
+      "hash": "a5133663"
+    },
+    "assemblyList.presetLiquidOpenDesc": {
+      "hash": "6909532b"
+    },
+    "assemblyList.presetRepresentative": {
+      "hash": "5753cbd6"
+    },
+    "assemblyList.presetRepresentativeDesc": {
+      "hash": "20d4b42f"
+    },
+    "assemblyList.presetResetsAll": {
+      "hash": "f4d3fe34"
+    },
+    "assemblyList.presetSwissVotation": {
+      "hash": "615978fe"
+    },
+    "assemblyList.presetSwissVotationDesc": {
+      "hash": "7c2bf48c"
+    },
+    "assemblyList.quorum": {
+      "hash": "18ed8b6c"
+    },
+    "assemblyList.rulesPermanent": {
+      "hash": "b96ae382"
+    },
+    "assemblyList.secretBallot": {
+      "hash": "3ecf7bf7"
+    },
+    "assemblyList.sectionBallot": {
+      "hash": "fe19edba"
+    },
+    "assemblyList.sectionDelegation": {
+      "hash": "a6d910ba"
+    },
+    "assemblyList.sectionFeatures": {
+      "hash": "5697d03d"
+    },
+    "assemblyList.startFromPreset": {
+      "hash": "765fe22c"
+    },
+    "assemblyList.subtitle": {
+      "hash": "ce81c1c0"
+    },
+    "assemblyList.supermajority": {
+      "hash": "71b84afb"
+    },
+    "assemblyList.sybilWarning": {
+      "hash": "2b1922d3"
+    },
+    "assemblyList.timelinePerVote": {
+      "hash": "849b98b0"
+    },
+    "assemblyList.title": {
+      "hash": "e9db9ced"
+    },
+    "assemblyList.transferableAnyMember": {
+      "hash": "2e876107"
+    },
+    "assemblyList.voting": {
+      "hash": "82e31d50"
+    },
+    "assemblyList.votingMethodLabel": {
+      "hash": "d16e34ba"
+    },
+    "assemblyList.whoCanJoin": {
+      "hash": "35c68535"
+    },
+    "booklet.close": {
+      "hash": "190dee1c"
+    },
+    "booklet.contentUnavailable": {
+      "hash": "b802ea71"
+    },
+    "booklet.curate": {
+      "hash": "de3040c6"
+    },
+    "booklet.curationHelp": {
+      "hash": "d6e16f05"
+    },
+    "booklet.curationTitle": {
+      "hash": "8663646e"
+    },
+    "booklet.curationVisibility": {
+      "hash": "067e5841"
+    },
+    "booklet.deliberationPhase": {
+      "hash": "96aa07a5"
+    },
+    "booklet.dispute": {
+      "hash": "3a8931a9"
+    },
+    "booklet.endorse": {
+      "hash": "c74eb34f"
+    },
+    "booklet.featuredByOrganizer": {
+      "hash": "d0817ee1"
+    },
+    "booklet.hide": {
+      "hash": "ac20a57b"
+    },
+    "booklet.hideNotes": {
+      "hash": "2a30cc41"
+    },
+    "booklet.next": {
+      "hash": "1ff57a29"
+    },
+    "booklet.noProposals": {
+      "hash": "7e4c0dac"
+    },
+    "booklet.noProposalsYet": {
+      "hash": "30e5ea56"
+    },
+    "booklet.notes": {
+      "hash": "8a7525b1"
+    },
+    "booklet.pinFeatured": {
+      "hash": "7d96aa1f"
+    },
+    "booklet.posAbstain": {
+      "hash": "ebb9e102"
+    },
+    "booklet.posAgainst": {
+      "hash": "c365e60b"
+    },
+    "booklet.posCustom": {
+      "hash": "d5f47264"
+    },
+    "booklet.posFor": {
+      "hash": "7fc26da0"
+    },
+    "booklet.posGeneral": {
+      "hash": "eaf90eb1"
+    },
+    "booklet.positionCount": {
+      "hash": "fdb84ece"
+    },
+    "booklet.previous": {
+      "hash": "a57b08a4"
+    },
+    "booklet.proposals": {
+      "hash": "834cfc1e"
+    },
+    "booklet.recPlaceholder": {
+      "hash": "caa86b2b"
+    },
+    "booklet.recommendation": {
+      "hash": "23c8fc30"
+    },
+    "booklet.saveRec": {
+      "hash": "30a622bf"
+    },
+    "booklet.saving": {
+      "hash": "23e39291"
+    },
+    "booklet.score": {
+      "hash": "38e5a46c"
+    },
+    "booklet.sectionArguesChoosing": {
+      "hash": "8f337eb9"
+    },
+    "booklet.sectionArguesVoting": {
+      "hash": "8be76ecb"
+    },
+    "booklet.seeAll": {
+      "hash": "0d8afe46"
+    },
+    "booklet.title": {
+      "hash": "d3a7e93e"
+    },
+    "booklet.unpin": {
+      "hash": "ee3c7161"
+    },
+    "booklet.updateRec": {
+      "hash": "33d94fbe"
+    },
+    "candidacies.candidateStatement": {
+      "hash": "86bcae34"
+    },
+    "candidacies.declareBtn": {
+      "hash": "68a87505"
+    },
+    "candidacies.declareCandidacy": {
+      "hash": "68a87505"
+    },
+    "candidacies.declareFailed": {
+      "hash": "b113419c"
+    },
+    "candidacies.declareIntro": {
+      "hash": "3d802d1a"
+    },
+    "candidacies.declareTitle": {
+      "hash": "68a87505"
+    },
+    "candidacies.declared": {
+      "hash": "a91cdaf2"
+    },
+    "candidacies.declaring": {
+      "hash": "914ce8ae"
+    },
+    "candidacies.editorPlaceholder": {
+      "hash": "af8b5b3f"
+    },
+    "candidacies.global": {
+      "hash": "a258b30f"
+    },
+    "candidacies.hideStatement": {
+      "hash": "96339ef5"
+    },
+    "candidacies.loading": {
+      "hash": "ba3bbbe1"
+    },
+    "candidacies.loadingEditor": {
+      "hash": "fafb50ef"
+    },
+    "candidacies.noCandidates": {
+      "hash": "9ce91870"
+    },
+    "candidacies.noCandidatesDesc": {
+      "hash": "9dc7ce7c"
+    },
+    "candidacies.notesLabel": {
+      "hash": "8a7525b1"
+    },
+    "candidacies.profileNotAvailable": {
+      "hash": "6ae48412"
+    },
+    "candidacies.publicVotesLabel": {
+      "hash": "10511e58"
+    },
+    "candidacies.subtitleCandidacy": {
+      "hash": "c87e1166"
+    },
+    "candidacies.subtitleGeneral": {
+      "hash": "a273815f"
+    },
+    "candidacies.title": {
+      "hash": "30d8ad49"
+    },
+    "candidate": {
+      "hash": "b2452d1e"
+    },
+    "candidates.declared": {
+      "hash": "ba2ac744"
+    },
+    "dashboard.accept": {
+      "hash": "89713b9c"
+    },
+    "dashboard.activeVote_few": {
+      "hash": "5e63c01f"
+    },
+    "dashboard.activeVote_many": {
+      "hash": "5e63c01f"
+    },
+    "dashboard.activeVote_one": {
+      "hash": "5e63c01f"
+    },
+    "dashboard.activeVote_other": {
+      "hash": "4a89d3b0"
+    },
+    "dashboard.activeVote_zero": {
+      "hash": "5e63c01f"
+    },
+    "dashboard.activeVotes": {
+      "hash": "6c124d3a"
+    },
+    "dashboard.allCaughtUp": {
+      "hash": "ee1a1e39"
+    },
+    "dashboard.allDelegated": {
+      "hash": "6371b639"
+    },
+    "dashboard.allHandled": {
+      "hash": "6fa074dd"
+    },
+    "dashboard.allVoted": {
+      "hash": "c5a856e1"
+    },
+    "dashboard.and": {
+      "hash": "6201111b"
+    },
+    "dashboard.attentionSubtitle": {
+      "hash": "a0be2d9a"
+    },
+    "dashboard.awaitingReview": {
+      "hash": "4848885e"
+    },
+    "dashboard.browseGroups": {
+      "hash": "29311430"
+    },
+    "dashboard.decline": {
+      "hash": "a2d285b3"
+    },
+    "dashboard.delegated": {
+      "hash": "dd341e5d"
+    },
+    "dashboard.delegatedTo": {
+      "hash": "f6477bd0"
+    },
+    "dashboard.greeting": {
+      "hash": "5e5e431f"
+    },
+    "dashboard.invitations": {
+      "hash": "14210e69"
+    },
+    "dashboard.invitedToJoin": {
+      "hash": "4f45ff64"
+    },
+    "dashboard.joining": {
+      "hash": "6bbb89ee"
+    },
+    "dashboard.nearestDeadline": {
+      "hash": "23c9f3bb"
+    },
+    "dashboard.needsYou_one": {
+      "hash": "db4113f7"
+    },
+    "dashboard.needsYou_other": {
+      "hash": "1c2b563c"
+    },
+    "dashboard.needsYourVote": {
+      "hash": "f8b4fcbb"
+    },
+    "dashboard.noGroups": {
+      "hash": "ffb3951a"
+    },
+    "dashboard.noPendingDesc": {
+      "hash": "c5082b49"
+    },
+    "dashboard.pendingRequests": {
+      "hash": "87b17944"
+    },
+    "dashboard.pendingSurveysSection": {
+      "hash": "9dacf788"
+    },
+    "dashboard.pendingSurveys_few": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.pendingSurveys_many": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.pendingSurveys_one": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.pendingSurveys_other": {
+      "hash": "6102fc79"
+    },
+    "dashboard.pendingSurveys_zero": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.pendingVote_few": {
+      "hash": "815b0f3a"
+    },
+    "dashboard.pendingVote_many": {
+      "hash": "815b0f3a"
+    },
+    "dashboard.pendingVote_one": {
+      "hash": "815b0f3a"
+    },
+    "dashboard.pendingVote_other": {
+      "hash": "56fed6b4"
+    },
+    "dashboard.pendingVote_zero": {
+      "hash": "815b0f3a"
+    },
+    "dashboard.pendingVotes_few": {
+      "hash": "4c672249"
+    },
+    "dashboard.pendingVotes_many": {
+      "hash": "4c672249"
+    },
+    "dashboard.pendingVotes_one": {
+      "hash": "4c672249"
+    },
+    "dashboard.pendingVotes_other": {
+      "hash": "8ce57030"
+    },
+    "dashboard.pendingVotes_zero": {
+      "hash": "4c672249"
+    },
+    "dashboard.requestToJoin": {
+      "hash": "782808d4"
+    },
+    "dashboard.submitted": {
+      "hash": "8456282f"
+    },
+    "dashboard.surveyOpen": {
+      "hash": "771d0981"
+    },
+    "dashboard.survey_few": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.survey_many": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.survey_one": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.survey_other": {
+      "hash": "6102fc79"
+    },
+    "dashboard.survey_zero": {
+      "hash": "90e7b4e8"
+    },
+    "dashboard.voteNow": {
+      "hash": "9cfca0b3"
+    },
+    "dashboard.voted": {
+      "hash": "9cf238de"
+    },
+    "dashboard.votesNeeded_few": {
+      "hash": "e9a4b639"
+    },
+    "dashboard.votesNeeded_many": {
+      "hash": "e9a4b639"
+    },
+    "dashboard.votesNeeded_one": {
+      "hash": "e9a4b639"
+    },
+    "dashboard.votesNeeded_other": {
+      "hash": "a8073f32"
+    },
+    "dashboard.votesNeeded_zero": {
+      "hash": "e9a4b639"
+    },
+    "dashboard.yourGroups": {
+      "hash": "66b907ed"
+    },
+    "delegate.createError": {
+      "hash": "21ffb186"
+    },
+    "delegate.delegating": {
+      "hash": "338027cd"
+    },
+    "delegate.permissionDenied": {
+      "hash": "2857c165"
+    },
+    "delegate.previewAllTopics": {
+      "hash": "ae8a429d"
+    },
+    "delegate.previewIssueOnly": {
+      "hash": "825a60ad"
+    },
+    "delegate.previewOnTopic": {
+      "hash": "d34a5ead"
+    },
+    "delegate.previewWillVote": {
+      "hash": "344601cb"
+    },
+    "delegate.scope": {
+      "hash": "b073f6c6"
+    },
+    "delegate.scopeBroader": {
+      "hash": "6c97db7b"
+    },
+    "delegate.scopeGlobal": {
+      "hash": "29366ff5"
+    },
+    "delegate.scopeIssue": {
+      "hash": "06e8ea72"
+    },
+    "delegate.scopeTopic": {
+      "hash": "fed0ca0e"
+    },
+    "delegate.selectMember": {
+      "hash": "7c18f279"
+    },
+    "delegate.submit": {
+      "hash": "760ed960"
+    },
+    "delegate.title": {
+      "hash": "06bbb8f8"
+    },
+    "delegate.whoLabel": {
+      "hash": "e5ab75ab"
+    },
+    "delegations.addDelegate": {
+      "hash": "8f99aa32"
+    },
+    "delegations.allTopics": {
+      "hash": "29366ff5"
+    },
+    "delegations.browseCandidates": {
+      "hash": "3330bf67"
+    },
+    "delegations.change": {
+      "hash": "c0bf75bd"
+    },
+    "delegations.confirmNo": {
+      "hash": "1ea442a1"
+    },
+    "delegations.confirmYes": {
+      "hash": "85a39ab3"
+    },
+    "delegations.delegateBtn": {
+      "hash": "760ed960"
+    },
+    "delegations.delegateScope": {
+      "hash": "b073f6c6"
+    },
+    "delegations.delegateYourVote": {
+      "hash": "4a6fe2b5"
+    },
+    "delegations.delegating": {
+      "hash": "338027cd"
+    },
+    "delegations.failedCreate": {
+      "hash": "21ffb186"
+    },
+    "delegations.formTitle": {
+      "hash": "4a6fe2b5"
+    },
+    "delegations.noDelegates": {
+      "hash": "4d743acf"
+    },
+    "delegations.noDelegatesDesc": {
+      "hash": "28208fa7"
+    },
+    "delegations.noIdentity": {
+      "hash": "4d5d9106"
+    },
+    "delegations.noIdentityDesc": {
+      "hash": "0909e9aa"
+    },
+    "delegations.remove": {
+      "hash": "c3812fc4"
+    },
+    "delegations.revokeFailed": {
+      "hash": "f9567e8b"
+    },
+    "delegations.revokeOwnOnly": {
+      "hash": "0e54748a"
+    },
+    "delegations.searchMember": {
+      "hash": "18bbc6ff"
+    },
+    "delegations.specificTopics": {
+      "hash": "dccc35bf"
+    },
+    "delegations.subtitle": {
+      "hash": "307f9876"
+    },
+    "delegations.title": {
+      "hash": "a7e88601"
+    },
+    "eventDetail.abstainNote": {
+      "hash": "838de958"
+    },
+    "eventDetail.abstainWontDelegate": {
+      "hash": "ac95d7e0"
+    },
+    "eventDetail.argument_few": {
+      "hash": "94ec2569"
+    },
+    "eventDetail.argument_many": {
+      "hash": "94ec2569"
+    },
+    "eventDetail.argument_one": {
+      "hash": "94ec2569"
+    },
+    "eventDetail.argument_other": {
+      "hash": "c43b5508"
+    },
+    "eventDetail.argument_two": {
+      "hash": "94ec2569"
+    },
+    "eventDetail.argument_zero": {
+      "hash": "94ec2569"
+    },
+    "eventDetail.cancelled": {
+      "hash": "d353a99e"
+    },
+    "eventDetail.changeVote": {
+      "hash": "7c2628a3"
+    },
+    "eventDetail.changeYourVote": {
+      "hash": "1370f1fa"
+    },
+    "eventDetail.delegatedTo": {
+      "hash": "ed0a8159"
+    },
+    "eventDetail.delegatedVia": {
+      "hash": "72ed2316"
+    },
+    "eventDetail.delegationNotAvailable": {
+      "hash": "dc2b8cb5"
+    },
+    "eventDetail.didNotParticipate": {
+      "hash": "4948ed16"
+    },
+    "eventDetail.liveBreakdown": {
+      "hash": "a6c068db"
+    },
+    "eventDetail.liveResults": {
+      "hash": "6a23e624"
+    },
+    "eventDetail.manageDelegation": {
+      "hash": "5a234448"
+    },
+    "eventDetail.membersVoted": {
+      "hash": "b98c4b54"
+    },
+    "eventDetail.membersVotedOf": {
+      "hash": "29cfa46e"
+    },
+    "eventDetail.nCandidates": {
+      "hash": "2a8e7ae3"
+    },
+    "eventDetail.needsYourVote": {
+      "hash": "f8b4fcbb"
+    },
+    "eventDetail.noDelegateForTopic": {
+      "hash": "0ed60182"
+    },
+    "eventDetail.noVotesCast": {
+      "hash": "eb32e81e"
+    },
+    "eventDetail.orVoteDirectly": {
+      "hash": "6a31803d"
+    },
+    "eventDetail.phaseDiscussion": {
+      "hash": "5eb6cf64"
+    },
+    "eventDetail.phaseEnded": {
+      "hash": "7cdc804e"
+    },
+    "eventDetail.phaseVoting": {
+      "hash": "aca2f665"
+    },
+    "eventDetail.quorumMet": {
+      "hash": "7aeb8e38"
+    },
+    "eventDetail.quorumNotMet": {
+      "hash": "7ce78762"
+    },
+    "eventDetail.resultApproved": {
+      "hash": "87b42e40"
+    },
+    "eventDetail.resultLabel": {
+      "hash": "5d7fa5e5"
+    },
+    "eventDetail.resultNotApproved": {
+      "hash": "ad281501"
+    },
+    "eventDetail.results": {
+      "hash": "219c4a6c"
+    },
+    "eventDetail.resultsSealedUntilEnd": {
+      "hash": "8cf5c03e"
+    },
+    "eventDetail.secretBallot": {
+      "hash": "0c3ff0ee"
+    },
+    "eventDetail.selectIdentityToVote": {
+      "hash": "0a9e1814"
+    },
+    "eventDetail.statusDiscussion": {
+      "hash": "5eb6cf64"
+    },
+    "eventDetail.statusEnded": {
+      "hash": "7cdc804e"
+    },
+    "eventDetail.statusUpcoming": {
+      "hash": "5f1a2542"
+    },
+    "eventDetail.statusVoting": {
+      "hash": "84a6a83d"
+    },
+    "eventDetail.viewAllProposals": {
+      "hash": "e0c314c7"
+    },
+    "eventDetail.viewLiveBreakdown": {
+      "hash": "181450da"
+    },
+    "eventDetail.viewLiveResults": {
+      "hash": "9d695631"
+    },
+    "eventDetail.voteAbstain": {
+      "hash": "bf92ab42"
+    },
+    "eventDetail.voteAgainst": {
+      "hash": "101a944b"
+    },
+    "eventDetail.voteBreakdown": {
+      "hash": "fee6538c"
+    },
+    "eventDetail.voteFinal": {
+      "hash": "f4ed8fa6"
+    },
+    "eventDetail.voteFor": {
+      "hash": "ca15ebc0"
+    },
+    "eventDetail.voteNotFound": {
+      "hash": "8be12bd3"
+    },
+    "eventDetail.vote_few": {
+      "hash": "4c672249"
+    },
+    "eventDetail.vote_many": {
+      "hash": "4c672249"
+    },
+    "eventDetail.vote_one": {
+      "hash": "4c672249"
+    },
+    "eventDetail.vote_other": {
+      "hash": "8ce57030"
+    },
+    "eventDetail.vote_two": {
+      "hash": "4c672249"
+    },
+    "eventDetail.vote_zero": {
+      "hash": "4c672249"
+    },
+    "eventDetail.votedAllQuestions": {
+      "hash": "e7920f83"
+    },
+    "eventDetail.votedSummary": {
+      "hash": "8409dc9d"
+    },
+    "eventDetail.votesTotal": {
+      "hash": "ed782208"
+    },
+    "eventDetail.votingBooklet": {
+      "hash": "38da112c"
+    },
+    "eventDetail.votingClosed": {
+      "hash": "26f5ddb1"
+    },
+    "eventDetail.votingNotStarted": {
+      "hash": "90c4c3b6"
+    },
+    "eventDetail.votingOpen": {
+      "hash": "75507d1c"
+    },
+    "eventDetail.weightDisplay": {
+      "hash": "33d69ae4"
+    },
+    "eventDetail.writeProposal": {
+      "hash": "e1869524"
+    },
+    "eventDetail.youVoted": {
+      "hash": "d8391eb8"
+    },
+    "eventDetail.youVotedDirectly": {
+      "hash": "67a53fbe"
+    },
+    "eventDetail.youVotedOn": {
+      "hash": "624ef525"
+    },
+    "eventDetail.yourVote": {
+      "hash": "24638ec5"
+    },
+    "eventDetail.yourVoteCastVia": {
+      "hash": "1c554158"
+    },
+    "eventDetail.yourVoteCountedAs": {
+      "hash": "6d4dc1c1"
+    },
+    "eventsList.addQuestion": {
+      "hash": "40d40f8e"
+    },
+    "eventsList.allMembersEligible": {
+      "hash": "f65efc30"
+    },
+    "eventsList.createError": {
+      "hash": "4c5305cb"
+    },
+    "eventsList.createVote": {
+      "hash": "a153d8dd"
+    },
+    "eventsList.createVoteBtn": {
+      "hash": "e1f914d8"
+    },
+    "eventsList.creating": {
+      "hash": "c79ed949"
+    },
+    "eventsList.descLabel": {
+      "hash": "526e0087"
+    },
+    "eventsList.descOptionalPlaceholder": {
+      "hash": "f6cbe2f0"
+    },
+    "eventsList.descPlaceholder": {
+      "hash": "b33bd8b2"
+    },
+    "eventsList.newVote": {
+      "hash": "516625a7"
+    },
+    "eventsList.noVotes": {
+      "hash": "01690f9a"
+    },
+    "eventsList.noVotesDesc": {
+      "hash": "efc250b7"
+    },
+    "eventsList.now": {
+      "hash": "fe18013d"
+    },
+    "eventsList.questionPlaceholder": {
+      "hash": "0eb58ee3"
+    },
+    "eventsList.question_few": {
+      "hash": "0509cefb"
+    },
+    "eventsList.question_many": {
+      "hash": "0509cefb"
+    },
+    "eventsList.question_one": {
+      "hash": "0509cefb"
+    },
+    "eventsList.question_other": {
+      "hash": "1f9e5add"
+    },
+    "eventsList.question_two": {
+      "hash": "0509cefb"
+    },
+    "eventsList.question_zero": {
+      "hash": "0509cefb"
+    },
+    "eventsList.questionsLabel": {
+      "hash": "9a72221a"
+    },
+    "eventsList.schedule": {
+      "hash": "f4830a1d"
+    },
+    "eventsList.timelineSummary": {
+      "hash": "0ea56057"
+    },
+    "eventsList.timelineSummaryWithCuration": {
+      "hash": "821b9af7"
+    },
+    "eventsList.timelineTotal": {
+      "hash": "11cc67b6"
+    },
+    "eventsList.title": {
+      "hash": "cd8e974b"
+    },
+    "eventsList.titleLabel": {
+      "hash": "7e8cd205"
+    },
+    "eventsList.titlePlaceholder": {
+      "hash": "0670a9a8"
+    },
+    "eventsList.votedCount": {
+      "hash": "0c822b67"
+    },
+    "eventsList.whenToStart": {
+      "hash": "ca3b35fa"
+    },
+    "members.add": {
+      "hash": "9fd728c6"
+    },
+    "members.addError": {
+      "hash": "6ced81e1"
+    },
+    "members.addMember": {
+      "hash": "e7d80d8f"
+    },
+    "members.addMemberTitle": {
+      "hash": "e7d80d8f"
+    },
+    "members.adding": {
+      "hash": "c6de6f45"
+    },
+    "members.admissionApproval": {
+      "hash": "ef677f59"
+    },
+    "members.admissionApprovalOption": {
+      "hash": "ef677f59"
+    },
+    "members.admissionInviteOnly": {
+      "hash": "8e76da24"
+    },
+    "members.admissionInviteOnlyOption": {
+      "hash": "a140ffe8"
+    },
+    "members.admissionLabel": {
+      "hash": "8c195030"
+    },
+    "members.admissionOpen": {
+      "hash": "ed077f3d"
+    },
+    "members.admissionOpenOption": {
+      "hash": "a1c7094a"
+    },
+    "members.admissionSettings": {
+      "hash": "e8884dd5"
+    },
+    "members.approvalNeeded": {
+      "hash": "1544ba67"
+    },
+    "members.approve": {
+      "hash": "6007acbe"
+    },
+    "members.bulkInvite": {
+      "hash": "382c248d"
+    },
+    "members.changeSettings": {
+      "hash": "c0bf75bd"
+    },
+    "members.confirm": {
+      "hash": "eebdd24a"
+    },
+    "members.copied": {
+      "hash": "ea61bc15"
+    },
+    "members.copy": {
+      "hash": "e21f935f"
+    },
+    "members.directInviteNote": {
+      "hash": "711456db"
+    },
+    "members.directInviteTitle": {
+      "hash": "45f59778"
+    },
+    "members.handlePlaceholder": {
+      "hash": "16f78a7d"
+    },
+    "members.hideSettings": {
+      "hash": "2ba0a057"
+    },
+    "members.inviteByHandle": {
+      "hash": "45f59778"
+    },
+    "members.inviteLink": {
+      "hash": "826c2722"
+    },
+    "members.inviteLinkCopied": {
+      "hash": "360b7801"
+    },
+    "members.inviteOnlyWarning": {
+      "hash": "5379f350"
+    },
+    "members.joined": {
+      "hash": "adfdd1a1"
+    },
+    "members.linkExpires": {
+      "hash": "b4a8f00a"
+    },
+    "members.nameLabel": {
+      "hash": "dcd1d522"
+    },
+    "members.namePlaceholder": {
+      "hash": "22b86d4f"
+    },
+    "members.noMembers": {
+      "hash": "669a52e9"
+    },
+    "members.noMembersDesc": {
+      "hash": "962a694a"
+    },
+    "members.pendingJoinRequests": {
+      "hash": "e06ddfbb"
+    },
+    "members.reject": {
+      "hash": "ab604a36"
+    },
+    "members.remove": {
+      "hash": "c3812fc4"
+    },
+    "members.removeError": {
+      "hash": "1cff79b7"
+    },
+    "members.requested": {
+      "hash": "90dad898"
+    },
+    "members.saving": {
+      "hash": "23e39291"
+    },
+    "members.sendError": {
+      "hash": "cedbf507"
+    },
+    "members.sendInvite": {
+      "hash": "76a13f80"
+    },
+    "members.sending": {
+      "hash": "b8ed5279"
+    },
+    "members.sent": {
+      "hash": "77d771c4"
+    },
+    "members.shareLink": {
+      "hash": "d779105a"
+    },
+    "members.sybilRisk": {
+      "hash": "87fa97d3"
+    },
+    "members.sybilWarning": {
+      "hash": "3c365857"
+    },
+    "members.title": {
+      "hash": "1044a4c0"
+    },
+    "members.updateError": {
+      "hash": "8eb4917b"
+    },
+    "members.whoCanJoinLabel": {
+      "hash": "35c68535"
+    },
+    "notes.add": {
+      "hash": "e30f00b3"
+    },
+    "notes.disputeBtn": {
+      "hash": "3c4ebf31"
+    },
+    "notes.disputed": {
+      "hash": "ed87b960"
+    },
+    "notes.empty": {
+      "hash": "7aedf644"
+    },
+    "notes.endorseBtn": {
+      "hash": "63c432db"
+    },
+    "notes.helpful": {
+      "hash": "8678e475"
+    },
+    "notes.helpfulPercent": {
+      "hash": "4d564906"
+    },
+    "notes.loading": {
+      "hash": "d38fae38"
+    },
+    "notes.placeholder": {
+      "hash": "9e7ecdad"
+    },
+    "notes.postBtn": {
+      "hash": "92091955"
+    },
+    "notes.posting": {
+      "hash": "648a2ef4"
+    },
+    "notes.title": {
+      "hash": "b607506e"
+    },
+    "notes.unavailable": {
+      "hash": "d1d0ed05"
+    },
+    "notes.visible": {
+      "hash": "d42ef149"
+    },
+    "notes.withdrawn": {
+      "hash": "fd60c459"
+    },
+    "notesPage.collapse": {
+      "hash": "be6eb1fc"
+    },
+    "notesPage.contentNotAvailable": {
+      "hash": "b802ea71"
+    },
+    "notesPage.filterAll": {
+      "hash": "a52ace42"
+    },
+    "notesPage.filterMine": {
+      "hash": "f57afb7d"
+    },
+    "notesPage.helpfulPercent": {
+      "hash": "99eaece5"
+    },
+    "notesPage.loading": {
+      "hash": "ba3bbbe1"
+    },
+    "notesPage.nHelpful": {
+      "hash": "6f4c3768"
+    },
+    "notesPage.nNotHelpful": {
+      "hash": "e7093343"
+    },
+    "notesPage.needsReviews": {
+      "hash": "9ade9a40"
+    },
+    "notesPage.noMineNotes": {
+      "hash": "28df7d65"
+    },
+    "notesPage.noNotes": {
+      "hash": "a092ad6b"
+    },
+    "notesPage.noNotesDesc": {
+      "hash": "28e98837"
+    },
+    "notesPage.on": {
+      "hash": "b8d31e85"
+    },
+    "notesPage.read": {
+      "hash": "9b9a8d05"
+    },
+    "notesPage.subtitle": {
+      "hash": "d8075634"
+    },
+    "notesPage.targetCandidate": {
+      "hash": "b2452d1e"
+    },
+    "notesPage.targetNote": {
+      "hash": "d8da2c49"
+    },
+    "notesPage.targetProposal": {
+      "hash": "5d42766c"
+    },
+    "notesPage.targetSurvey": {
+      "hash": "211bb3de"
+    },
+    "notesPage.title": {
+      "hash": "8a7525b1"
+    },
+    "notesPage.viewInContext": {
+      "hash": "d8e8b318"
+    },
+    "notesPage.withdraw": {
+      "hash": "164546a9"
+    },
+    "notesPage.withdrawing": {
+      "hash": "fd1fd7ba"
+    },
+    "predictions.accuracy": {
+      "hash": "ac991dd3"
+    },
+    "predictions.evaluated": {
+      "hash": "ca533a85"
+    },
+    "predictions.hash": {
+      "hash": "97c3bf85"
+    },
+    "predictions.measuredBy": {
+      "hash": "6341dea6"
+    },
+    "predictions.noPredictions": {
+      "hash": "b1698e33"
+    },
+    "predictions.noPredictionsDesc": {
+      "hash": "cbd94e52"
+    },
+    "predictions.selectIdentity": {
+      "hash": "ceb3626c"
+    },
+    "predictions.subtitle": {
+      "hash": "9bb4099e"
+    },
+    "predictions.title": {
+      "hash": "ae74b84d"
+    },
+    "predictions.total": {
+      "hash": "c9b3c382"
+    },
+    "predictions.yourTrackRecord": {
+      "hash": "f158c9de"
+    },
+    "profile.activityByGroup": {
+      "hash": "3dd6fd05"
+    },
+    "profile.avatarLabel": {
+      "hash": "ca8e826d"
+    },
+    "profile.avatarPickerHint": {
+      "hash": "ad735211"
+    },
+    "profile.bioLabel": {
+      "hash": "3933b180"
+    },
+    "profile.bioPlaceholder": {
+      "hash": "7a1c147b"
+    },
+    "profile.chooseAvatar": {
+      "hash": "77779405"
+    },
+    "profile.closePicker": {
+      "hash": "ca62e10f"
+    },
+    "profile.currentAvatar": {
+      "hash": "ad406f65"
+    },
+    "profile.customSeedPlaceholder": {
+      "hash": "76677c70"
+    },
+    "profile.delegators": {
+      "hash": "c053fe70"
+    },
+    "profile.delegatorsToYou_few": {
+      "hash": "db99232c"
+    },
+    "profile.delegatorsToYou_many": {
+      "hash": "db99232c"
+    },
+    "profile.delegatorsToYou_one": {
+      "hash": "db99232c"
+    },
+    "profile.delegatorsToYou_other": {
+      "hash": "684252d5"
+    },
+    "profile.delegatorsToYou_zero": {
+      "hash": "db99232c"
+    },
+    "profile.editProfile": {
+      "hash": "fec2ac0f"
+    },
+    "profile.globalScope": {
+      "hash": "07f3cbc0"
+    },
+    "profile.handle": {
+      "hash": "c2a116aa"
+    },
+    "profile.handleLabel": {
+      "hash": "fa04ae3d"
+    },
+    "profile.moreVotes": {
+      "hash": "4a08a3e9"
+    },
+    "profile.myDelegates": {
+      "hash": "7e1ae72e"
+    },
+    "profile.nameLabel": {
+      "hash": "dcd1d522"
+    },
+    "profile.noDelegatesInGroup": {
+      "hash": "b8fecb5e"
+    },
+    "profile.noIdentity": {
+      "hash": "05cedcea"
+    },
+    "profile.noVotesInGroup": {
+      "hash": "889e7e89"
+    },
+    "profile.preview": {
+      "hash": "324b134f"
+    },
+    "profile.recentVotes": {
+      "hash": "98b8de0d"
+    },
+    "profile.saveChanges": {
+      "hash": "dd0ae7a5"
+    },
+    "profile.saveFailed": {
+      "hash": "2c079972"
+    },
+    "profile.saved": {
+      "hash": "ed9b7602"
+    },
+    "profile.saving": {
+      "hash": "23e39291"
+    },
+    "profile.style": {
+      "hash": "7e744141"
+    },
+    "profile.title": {
+      "hash": "d30af076"
+    },
+    "profile.topicScope_few": {
+      "hash": "ae37449c"
+    },
+    "profile.topicScope_many": {
+      "hash": "ae37449c"
+    },
+    "profile.topicScope_one": {
+      "hash": "ae37449c"
+    },
+    "profile.topicScope_other": {
+      "hash": "b5d66b27"
+    },
+    "profile.topicScope_zero": {
+      "hash": "ae37449c"
+    },
+    "profile.votesCast": {
+      "hash": "0f1ab139"
+    },
+    "profile.yourDelegates": {
+      "hash": "e9213bdd"
+    },
+    "profile.yourName": {
+      "hash": "2c6b2e25"
+    },
+    "profileDelegates.allGroups": {
+      "hash": "1b492be7"
+    },
+    "profileDelegates.global": {
+      "hash": "a258b30f"
+    },
+    "profileDelegates.noDelegates": {
+      "hash": "5bc15814"
+    },
+    "profileDelegates.noDelegatesDesc": {
+      "hash": "48abcdfd"
+    },
+    "profileDelegates.noIdentity": {
+      "hash": "ada2e184"
+    },
+    "profileDelegates.summary_few": {
+      "hash": "7895fc79"
+    },
+    "profileDelegates.summary_many": {
+      "hash": "7895fc79"
+    },
+    "profileDelegates.summary_one": {
+      "hash": "7895fc79"
+    },
+    "profileDelegates.summary_other": {
+      "hash": "8eef2735"
+    },
+    "profileDelegates.summary_zero": {
+      "hash": "7895fc79"
+    },
+    "profileDelegates.title": {
+      "hash": "e9213bdd"
+    },
+    "profileDelegates.topic_few": {
+      "hash": "de627288"
+    },
+    "profileDelegates.topic_many": {
+      "hash": "de627288"
+    },
+    "profileDelegates.topic_one": {
+      "hash": "de627288"
+    },
+    "profileDelegates.topic_other": {
+      "hash": "8444a7df"
+    },
+    "profileDelegates.topic_zero": {
+      "hash": "de627288"
+    },
+    "profileDelegators.allGroups": {
+      "hash": "1b492be7"
+    },
+    "profileDelegators.noDelegators": {
+      "hash": "7ae11cdb"
+    },
+    "profileDelegators.noDelegatorsDesc": {
+      "hash": "0a8aa72a"
+    },
+    "profileDelegators.noDelegatorsSearchDesc": {
+      "hash": "2e6d79de"
+    },
+    "profileDelegators.noIdentity": {
+      "hash": "ada2e184"
+    },
+    "profileDelegators.searchPlaceholder": {
+      "hash": "8cf42395"
+    },
+    "profileDelegators.summary_few": {
+      "hash": "a9842515"
+    },
+    "profileDelegators.summary_many": {
+      "hash": "a9842515"
+    },
+    "profileDelegators.summary_one": {
+      "hash": "a9842515"
+    },
+    "profileDelegators.summary_other": {
+      "hash": "987a9e3f"
+    },
+    "profileDelegators.summary_zero": {
+      "hash": "a9842515"
+    },
+    "profileDelegators.title": {
+      "hash": "4529f9f0"
+    },
+    "profileVotes.adjustFilters": {
+      "hash": "d3a0cd26"
+    },
+    "profileVotes.allChoices": {
+      "hash": "7d8b15e3"
+    },
+    "profileVotes.allGroups": {
+      "hash": "1b492be7"
+    },
+    "profileVotes.choice": {
+      "hash": "efa0389a"
+    },
+    "profileVotes.date": {
+      "hash": "99c40ab4"
+    },
+    "profileVotes.group": {
+      "hash": "34ca0e76"
+    },
+    "profileVotes.group_few": {
+      "hash": "0cbca7ca"
+    },
+    "profileVotes.group_many": {
+      "hash": "0cbca7ca"
+    },
+    "profileVotes.group_one": {
+      "hash": "0cbca7ca"
+    },
+    "profileVotes.group_other": {
+      "hash": "ceef92de"
+    },
+    "profileVotes.group_zero": {
+      "hash": "0cbca7ca"
+    },
+    "profileVotes.noIdentity": {
+      "hash": "ada2e184"
+    },
+    "profileVotes.noVotes": {
+      "hash": "7d5a29d4"
+    },
+    "profileVotes.noVotesDesc": {
+      "hash": "7caad67b"
+    },
+    "profileVotes.sortBy": {
+      "hash": "27ab0062"
+    },
+    "profileVotes.summary": {
+      "hash": "853d52fe"
+    },
+    "profileVotes.title": {
+      "hash": "0f1ab139"
+    },
+    "profileVotes.vote_few": {
+      "hash": "4c672249"
+    },
+    "profileVotes.vote_many": {
+      "hash": "4c672249"
+    },
+    "profileVotes.vote_one": {
+      "hash": "4c672249"
+    },
+    "profileVotes.vote_other": {
+      "hash": "8ce57030"
+    },
+    "profileVotes.vote_zero": {
+      "hash": "4c672249"
+    },
+    "proposals.advocates": {
+      "hash": "ac24dffa"
+    },
+    "proposals.by": {
+      "hash": "9f181a72"
+    },
+    "proposals.choiceAgainst": {
+      "hash": "101a944b"
+    },
+    "proposals.choiceFor": {
+      "hash": "ca15ebc0"
+    },
+    "proposals.choiceGeneral": {
+      "hash": "c910d474"
+    },
+    "proposals.contentNotAvailable": {
+      "hash": "b61b18b9"
+    },
+    "proposals.createDraft": {
+      "hash": "0f3960b0"
+    },
+    "proposals.delete": {
+      "hash": "e2d0a549"
+    },
+    "proposals.dispute": {
+      "hash": "3a8931a9"
+    },
+    "proposals.doneEditing": {
+      "hash": "058f24ef"
+    },
+    "proposals.draft": {
+      "hash": "ebf12ef4"
+    },
+    "proposals.edit": {
+      "hash": "464c4ffd"
+    },
+    "proposals.editorPlaceholder": {
+      "hash": "d8afbfae"
+    },
+    "proposals.endorse": {
+      "hash": "c74eb34f"
+    },
+    "proposals.featured": {
+      "hash": "c533cafa"
+    },
+    "proposals.hideProposal": {
+      "hash": "199c93a6"
+    },
+    "proposals.loading": {
+      "hash": "ba3bbbe1"
+    },
+    "proposals.loadingEditor": {
+      "hash": "fafb50ef"
+    },
+    "proposals.newDraft": {
+      "hash": "c3f4664d"
+    },
+    "proposals.newDraftTitle": {
+      "hash": "c97e5166"
+    },
+    "proposals.noProposals": {
+      "hash": "1f5440e7"
+    },
+    "proposals.noProposalsDesc": {
+      "hash": "d21a4481"
+    },
+    "proposals.notesLabel": {
+      "hash": "8a7525b1"
+    },
+    "proposals.readProposal": {
+      "hash": "8c1c716a"
+    },
+    "proposals.selectQuestion": {
+      "hash": "642dff56"
+    },
+    "proposals.submitFailed": {
+      "hash": "a8bf099a"
+    },
+    "proposals.submitProposal": {
+      "hash": "10e73627"
+    },
+    "proposals.submitting": {
+      "hash": "49195f55"
+    },
+    "proposals.subtitle": {
+      "hash": "f30e1bda"
+    },
+    "proposals.title": {
+      "hash": "834cfc1e"
+    },
+    "proposals.titlePlaceholder": {
+      "hash": "f85d9e1a"
+    },
+    "proposals.version": {
+      "hash": "3ab5cefe"
+    },
+    "proposals.yourDrafts": {
+      "hash": "523a5850"
+    },
+    "publicVotes": {
+      "hash": "72c41760"
+    },
+    "surveys.addOption": {
+      "hash": "b435d700"
+    },
+    "surveys.addQuestion": {
+      "hash": "40d40f8e"
+    },
+    "surveys.clear": {
+      "hash": "83b12c22"
+    },
+    "surveys.closesIn": {
+      "hash": "2275bd9e"
+    },
+    "surveys.createError": {
+      "hash": "db7c2344"
+    },
+    "surveys.createSurvey": {
+      "hash": "bd7e7ce2"
+    },
+    "surveys.creating": {
+      "hash": "c79ed949"
+    },
+    "surveys.improved": {
+      "hash": "c3b95922"
+    },
+    "surveys.likertStronglyAgree": {
+      "hash": "599474de"
+    },
+    "surveys.likertStronglyDisagree": {
+      "hash": "c9f49a79"
+    },
+    "surveys.mean": {
+      "hash": "2352ad84"
+    },
+    "surveys.median": {
+      "hash": "e25bf2cb"
+    },
+    "surveys.newSurvey": {
+      "hash": "596822c7"
+    },
+    "surveys.newSurveyTitle": {
+      "hash": "596822c7"
+    },
+    "surveys.no": {
+      "hash": "1ea442a1"
+    },
+    "surveys.noClosedSurveys": {
+      "hash": "957ddc8a"
+    },
+    "surveys.noClosedSurveysDesc": {
+      "hash": "674b3492"
+    },
+    "surveys.noOpenSurveys": {
+      "hash": "561bd752"
+    },
+    "surveys.noOpenSurveysDesc": {
+      "hash": "ed18fa17"
+    },
+    "surveys.noResponses": {
+      "hash": "258de94d"
+    },
+    "surveys.notEnabled": {
+      "hash": "7b135d40"
+    },
+    "surveys.notEnabledDesc": {
+      "hash": "f29e6934"
+    },
+    "surveys.optionPlaceholder": {
+      "hash": "8eddcc61"
+    },
+    "surveys.optionsLabel": {
+      "hash": "d0db8b5e"
+    },
+    "surveys.questionN": {
+      "hash": "0eb58ee3"
+    },
+    "surveys.questionPlaceholder": {
+      "hash": "a0dbb0ff"
+    },
+    "surveys.question_few": {
+      "hash": "0509cefb"
+    },
+    "surveys.question_many": {
+      "hash": "0509cefb"
+    },
+    "surveys.question_one": {
+      "hash": "0509cefb"
+    },
+    "surveys.question_other": {
+      "hash": "1f9e5add"
+    },
+    "surveys.question_zero": {
+      "hash": "0509cefb"
+    },
+    "surveys.removeQuestion": {
+      "hash": "c3812fc4"
+    },
+    "surveys.responseRate": {
+      "hash": "1f94c2a3"
+    },
+    "surveys.responseRecorded": {
+      "hash": "b5fbf785"
+    },
+    "surveys.response_few": {
+      "hash": "0e2e4321"
+    },
+    "surveys.response_many": {
+      "hash": "0e2e4321"
+    },
+    "surveys.response_one": {
+      "hash": "0e2e4321"
+    },
+    "surveys.response_other": {
+      "hash": "46ad0d30"
+    },
+    "surveys.response_zero": {
+      "hash": "0e2e4321"
+    },
+    "surveys.results": {
+      "hash": "219c4a6c"
+    },
+    "surveys.same": {
+      "hash": "2a98b1de"
+    },
+    "surveys.submitResponse_few": {
+      "hash": "02ca78af"
+    },
+    "surveys.submitResponse_many": {
+      "hash": "02ca78af"
+    },
+    "surveys.submitResponse_one": {
+      "hash": "02ca78af"
+    },
+    "surveys.submitResponse_other": {
+      "hash": "5b903e4f"
+    },
+    "surveys.submitResponse_zero": {
+      "hash": "02ca78af"
+    },
+    "surveys.submitting": {
+      "hash": "49195f55"
+    },
+    "surveys.surveyTitleLabel": {
+      "hash": "7e8cd205"
+    },
+    "surveys.surveyTitlePlaceholder": {
+      "hash": "87f21dfa"
+    },
+    "surveys.tabClosed": {
+      "hash": "c21ead06"
+    },
+    "surveys.tabOpen": {
+      "hash": "ed077f3d"
+    },
+    "surveys.title": {
+      "hash": "7c763b8f"
+    },
+    "surveys.typeDirection": {
+      "hash": "4af160b0"
+    },
+    "surveys.typeLabel": {
+      "hash": "baaddf70"
+    },
+    "surveys.typeLikert": {
+      "hash": "fb98a8e5"
+    },
+    "surveys.typeMultipleChoice": {
+      "hash": "987caef5"
+    },
+    "surveys.typeYesNo": {
+      "hash": "c00e6554"
+    },
+    "surveys.unsupported": {
+      "hash": "b82948ee"
+    },
+    "surveys.viewResults": {
+      "hash": "17165cca"
+    },
+    "surveys.worsened": {
+      "hash": "4851606a"
+    },
+    "surveys.yes": {
+      "hash": "85a39ab3"
+    },
+    "topicPage.breadcrumbTopics": {
+      "hash": "e22820fc"
+    },
+    "topicPage.cancelled": {
+      "hash": "d353a99e"
+    },
+    "topicPage.closed": {
+      "hash": "c21ead06"
+    },
+    "topicPage.delegate_few": {
+      "hash": "fe45c94a"
+    },
+    "topicPage.delegate_many": {
+      "hash": "fe45c94a"
+    },
+    "topicPage.delegate_one": {
+      "hash": "fe45c94a"
+    },
+    "topicPage.delegate_other": {
+      "hash": "6bae91a4"
+    },
+    "topicPage.delegate_zero": {
+      "hash": "fe45c94a"
+    },
+    "topicPage.delegated": {
+      "hash": "dd341e5d"
+    },
+    "topicPage.issue_few": {
+      "hash": "5722b414"
+    },
+    "topicPage.issue_many": {
+      "hash": "5722b414"
+    },
+    "topicPage.issue_one": {
+      "hash": "5722b414"
+    },
+    "topicPage.issue_other": {
+      "hash": "30293c03"
+    },
+    "topicPage.issue_zero": {
+      "hash": "5722b414"
+    },
+    "topicPage.noActivity": {
+      "hash": "0a12b92c"
+    },
+    "topicPage.noActivityDesc": {
+      "hash": "935e10a1"
+    },
+    "topicPage.subtopics": {
+      "hash": "fad32c49"
+    },
+    "topicPage.upcoming": {
+      "hash": "5f1a2542"
+    },
+    "topicPage.votingNow": {
+      "hash": "9e748ff5"
+    },
+    "topicPage.weightDistribution": {
+      "hash": "41dd7d48"
+    },
+    "topicPage.weightDistributionDesc": {
+      "hash": "607fb034"
+    },
+    "topicPage.weightLabel": {
+      "hash": "9d416c0b"
+    },
+    "topicPage.yourDelegate": {
+      "hash": "636f5649"
+    },
+    "topicsList.delegation_few": {
+      "hash": "7f324e8f"
+    },
+    "topicsList.delegation_many": {
+      "hash": "7f324e8f"
+    },
+    "topicsList.delegation_one": {
+      "hash": "7f324e8f"
+    },
+    "topicsList.delegation_other": {
+      "hash": "de4e50de"
+    },
+    "topicsList.delegation_zero": {
+      "hash": "7f324e8f"
+    },
+    "topicsList.issue_few": {
+      "hash": "5722b414"
+    },
+    "topicsList.issue_many": {
+      "hash": "5722b414"
+    },
+    "topicsList.issue_one": {
+      "hash": "5722b414"
+    },
+    "topicsList.issue_other": {
+      "hash": "30293c03"
+    },
+    "topicsList.issue_zero": {
+      "hash": "5722b414"
+    },
+    "topicsList.noTopics": {
+      "hash": "2616ad20"
+    },
+    "topicsList.noTopicsDesc": {
+      "hash": "9b84aecd"
+    },
+    "topicsList.subtitle": {
+      "hash": "c919d004"
+    },
+    "topicsList.title": {
+      "hash": "e22820fc"
+    }
+  },
+  "notifications": {
+    "ariaLabelUnread": {
+      "hash": "ca102c90"
+    },
+    "empty": {
+      "hash": "37ecf360"
+    },
+    "emptyDescription": {
+      "hash": "c273ae19"
+    },
+    "emptyUnread": {
+      "hash": "3e3b752c"
+    },
+    "emptyUnreadDescription": {
+      "hash": "6e7a46ce"
+    },
+    "markAllRead": {
+      "hash": "3bc62a9e"
+    },
+    "title": {
+      "hash": "78801183"
+    },
+    "unreadCount": {
+      "hash": "7cf5ab0d"
+    },
+    "unreadOnly": {
+      "hash": "8ab25e81"
+    },
+    "urgency.action": {
+      "hash": "f6b44079"
+    },
+    "urgency.timely": {
+      "hash": "18fdd549"
+    },
+    "viewAll": {
+      "hash": "13af64d6"
+    }
+  },
+  "onboarding": {
+    "bulk.alreadyMembers": {
+      "hash": "6136981a"
+    },
+    "bulk.canInvite": {
+      "hash": "4573b593"
+    },
+    "bulk.done": {
+      "hash": "11a6767d"
+    },
+    "bulk.dropzone": {
+      "hash": "b1bbd6d2"
+    },
+    "bulk.dropzoneHint": {
+      "hash": "af5502e1"
+    },
+    "bulk.fileEmpty": {
+      "hash": "0b16865b"
+    },
+    "bulk.invalid": {
+      "hash": "e9f6c1e3"
+    },
+    "bulk.notFound": {
+      "hash": "7dea6f00"
+    },
+    "bulk.processError": {
+      "hash": "95927956"
+    },
+    "bulk.processing": {
+      "hash": "42074396"
+    },
+    "bulk.resultSent": {
+      "hash": "8fd873bf"
+    },
+    "bulk.resultSkipped": {
+      "hash": "dd5b4713"
+    },
+    "bulk.sendError": {
+      "hash": "c8811f8e"
+    },
+    "bulk.sendInvitations": {
+      "hash": "a44c61e1"
+    },
+    "bulk.sending": {
+      "hash": "0ae239eb"
+    },
+    "bulk.statusAlreadyMember": {
+      "hash": "8508a01b"
+    },
+    "bulk.statusNotFound": {
+      "hash": "e3ebaa16"
+    },
+    "bulk.statusWillInvite": {
+      "hash": "1ffd1815"
+    },
+    "bulk.title": {
+      "hash": "08713c73"
+    },
+    "bulk.total": {
+      "hash": "c9b3c382"
+    },
+    "bulk.uploadDifferent": {
+      "hash": "e5aab268"
+    },
+    "dialog.ariaLabel": {
+      "hash": "6ab1e12f"
+    },
+    "dialog.gotIt": {
+      "hash": "aca2a322"
+    },
+    "dialog.skip": {
+      "hash": "28d03596"
+    },
+    "dialog.stepOf": {
+      "hash": "487fcaf3"
+    },
+    "invite.admin": {
+      "hash": "c1c224b0"
+    },
+    "invite.approvalHint": {
+      "hash": "b1ca31ce"
+    },
+    "invite.backToDashboard": {
+      "hash": "b59e0c1c"
+    },
+    "invite.governancePermanent": {
+      "hash": "b96ae382"
+    },
+    "invite.governanceRules": {
+      "hash": "835ddee8"
+    },
+    "invite.joinFailed": {
+      "hash": "4c674e46"
+    },
+    "invite.joinGroup": {
+      "hash": "f4ed3961"
+    },
+    "invite.joining": {
+      "hash": "6bbb89ee"
+    },
+    "invite.leadership": {
+      "hash": "ec75f790"
+    },
+    "invite.loadFailed": {
+      "hash": "88169fcb"
+    },
+    "invite.loginToJoin": {
+      "hash": "74f350e5"
+    },
+    "invite.loginToRequest": {
+      "hash": "e3e5739c"
+    },
+    "invite.memberCount_few": {
+      "hash": "e1c605d7"
+    },
+    "invite.memberCount_many": {
+      "hash": "e1c605d7"
+    },
+    "invite.memberCount_one": {
+      "hash": "e1c605d7"
+    },
+    "invite.memberCount_other": {
+      "hash": "9f5aa2fb"
+    },
+    "invite.memberCount_two": {
+      "hash": "e1c605d7"
+    },
+    "invite.memberCount_zero": {
+      "hash": "e1c605d7"
+    },
+    "invite.noAccount": {
+      "hash": "209d1e77"
+    },
+    "invite.notFound": {
+      "hash": "775ba9eb"
+    },
+    "invite.owner": {
+      "hash": "4b1b8aa3"
+    },
+    "invite.requestSentMessage": {
+      "hash": "f6c7a4d2"
+    },
+    "invite.requestSubmitted": {
+      "hash": "51998e5a"
+    },
+    "invite.requestToJoin": {
+      "hash": "dc80ecbe"
+    },
+    "invite.requesting": {
+      "hash": "1db9285a"
+    },
+    "invite.youveBeenInvited": {
+      "hash": "97a72507"
+    },
+    "step.delegation.candidacy": {
+      "hash": "c5616158"
+    },
+    "step.delegation.intro": {
+      "hash": "dc0ece46"
+    },
+    "step.delegation.open": {
+      "hash": "ed6b3bcb"
+    },
+    "step.delegation.override": {
+      "hash": "120cc426"
+    },
+    "step.delegation.title": {
+      "hash": "a6d910ba"
+    },
+    "step.delegation.topicScoped": {
+      "hash": "7d803f50"
+    },
+    "step.features.communityNotes": {
+      "hash": "5d25108f"
+    },
+    "step.features.intro": {
+      "hash": "0ac1363d"
+    },
+    "step.features.predictions": {
+      "hash": "c6b71479"
+    },
+    "step.features.surveys": {
+      "hash": "3ba857d6"
+    },
+    "step.features.title": {
+      "hash": "a09ffe6c"
+    },
+    "step.start.browseDashboard": {
+      "hash": "5df70b55"
+    },
+    "step.start.exploreMembers": {
+      "hash": "b0dfecab"
+    },
+    "step.start.ready": {
+      "hash": "29a74eef"
+    },
+    "step.start.setupDelegations": {
+      "hash": "7c25a99e"
+    },
+    "step.start.title": {
+      "hash": "d00eca1b"
+    },
+    "step.voting.allowVoteChange": {
+      "hash": "58ea55eb"
+    },
+    "step.voting.curation_few": {
+      "hash": "85b670fc"
+    },
+    "step.voting.curation_many": {
+      "hash": "85b670fc"
+    },
+    "step.voting.curation_one": {
+      "hash": "85b670fc"
+    },
+    "step.voting.curation_other": {
+      "hash": "94fcfe2b"
+    },
+    "step.voting.curation_two": {
+      "hash": "85b670fc"
+    },
+    "step.voting.curation_zero": {
+      "hash": "85b670fc"
+    },
+    "step.voting.deliberation_few": {
+      "hash": "a4cdd4b2"
+    },
+    "step.voting.deliberation_many": {
+      "hash": "a4cdd4b2"
+    },
+    "step.voting.deliberation_one": {
+      "hash": "a4cdd4b2"
+    },
+    "step.voting.deliberation_other": {
+      "hash": "5963a0cc"
+    },
+    "step.voting.deliberation_two": {
+      "hash": "a4cdd4b2"
+    },
+    "step.voting.deliberation_zero": {
+      "hash": "a4cdd4b2"
+    },
+    "step.voting.secretBallot": {
+      "hash": "7873792f"
+    },
+    "step.voting.timeline": {
+      "hash": "5a3b5eef"
+    },
+    "step.voting.title": {
+      "hash": "88fd4d7e"
+    },
+    "step.voting.votingDays_few": {
+      "hash": "b7b7e22f"
+    },
+    "step.voting.votingDays_many": {
+      "hash": "b7b7e22f"
+    },
+    "step.voting.votingDays_one": {
+      "hash": "b7b7e22f"
+    },
+    "step.voting.votingDays_other": {
+      "hash": "7f9f5c0b"
+    },
+    "step.voting.votingDays_two": {
+      "hash": "b7b7e22f"
+    },
+    "step.voting.votingDays_zero": {
+      "hash": "b7b7e22f"
+    },
+    "step.welcome.governanceModel": {
+      "hash": "6a66de8f"
+    },
+    "step.welcome.overview": {
+      "hash": "5a55e4b3"
+    },
+    "step.welcome.title": {
+      "hash": "cca0a088"
+    }
+  },
+  "settings": {
+    "admin.description": {
+      "hash": "f8b02692"
+    },
+    "admin.joinRequests": {
+      "hash": "a1321fc2"
+    },
+    "admin.joinRequestsDescription": {
+      "hash": "03e9df3f"
+    },
+    "admin.newMembers": {
+      "hash": "928d40b0"
+    },
+    "admin.newMembersDescription": {
+      "hash": "9aaa36e1"
+    },
+    "admin.title": {
+      "hash": "ae80505b"
+    },
+    "channel.both": {
+      "hash": "7b9066ec"
+    },
+    "channel.description": {
+      "hash": "f004edd3"
+    },
+    "channel.disabledWarning": {
+      "hash": "ee77f5d4"
+    },
+    "channel.email": {
+      "hash": "969ccbd3"
+    },
+    "channel.label": {
+      "hash": "ce4683e7"
+    },
+    "channel.labelDescription": {
+      "hash": "4370de9c"
+    },
+    "channel.none": {
+      "hash": "789682d5"
+    },
+    "channel.sms": {
+      "hash": "40b601a1"
+    },
+    "channel.title": {
+      "hash": "2038167b"
+    },
+    "disabled": {
+      "hash": "75081b59"
+    },
+    "enabled": {
+      "hash": "92c1cdfd"
+    },
+    "language.description": {
+      "hash": "0abd2b51"
+    },
+    "language.preferred": {
+      "hash": "864313e9"
+    },
+    "language.title": {
+      "hash": "a4fe6526"
+    },
+    "notificationSettings": {
+      "hash": "07a063ca"
+    },
+    "saveFailed": {
+      "hash": "2c079972"
+    },
+    "surveys.description": {
+      "hash": "b7e806e5"
+    },
+    "surveys.newSurveys": {
+      "hash": "6925b37b"
+    },
+    "surveys.newSurveysDescription": {
+      "hash": "1efa6c19"
+    },
+    "surveys.title": {
+      "hash": "46b51da8"
+    },
+    "voting.deadlines": {
+      "hash": "cd42acaf"
+    },
+    "voting.deadlinesDescription": {
+      "hash": "b1adf4f4"
+    },
+    "voting.description": {
+      "hash": "4fcaf3bc"
+    },
+    "voting.newEvents": {
+      "hash": "c7d4b984"
+    },
+    "voting.newEventsAlways": {
+      "hash": "446767a1"
+    },
+    "voting.newEventsDescription": {
+      "hash": "255b31de"
+    },
+    "voting.newEventsNever": {
+      "hash": "6300ef80"
+    },
+    "voting.newEventsUndelegated": {
+      "hash": "baf87926"
+    },
+    "voting.results": {
+      "hash": "ebcb2db8"
+    },
+    "voting.resultsDescription": {
+      "hash": "97b4a6ab"
+    },
+    "voting.title": {
+      "hash": "8b307e58"
+    }
+  }
+}

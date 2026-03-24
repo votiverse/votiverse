@@ -1,0 +1,14 @@
+{
+  "ariaLabelUnread": "Thông báo ({{count}} chưa đọc)",
+  "empty": "Chưa có thông báo nào",
+  "emptyDescription": "Thông báo sẽ xuất hiện ở đây khi có hoạt động trong các nhóm của bạn.",
+  "emptyUnread": "Không có thông báo chưa đọc",
+  "emptyUnreadDescription": "Hãy thử hiển thị tất cả thông báo.",
+  "markAllRead": "Đánh dấu tất cả đã đọc",
+  "title": "Thông báo",
+  "unreadCount": "{{count}} chưa đọc",
+  "unreadOnly": "Chỉ chưa đọc",
+  "urgency.action": "Cần hành động",
+  "urgency.timely": "Mới",
+  "viewAll": "Xem tất cả thông báo"
+}
