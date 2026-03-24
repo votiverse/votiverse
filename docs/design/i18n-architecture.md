@@ -144,6 +144,9 @@ export function initI18n(userLocale?: string) {
       ns: ['common'],
       defaultNS: 'common',
 
+      // Keys use literal dots ("confirm.title"), not nested objects.
+      keySeparator: false,
+
       interpolation: {
         escapeValue: false, // React already escapes
       },
