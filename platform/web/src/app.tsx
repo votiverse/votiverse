@@ -25,6 +25,7 @@ import { NotificationSettings } from "./pages/notification-settings.js";
 import { LanguageSettings } from "./pages/language-settings.js";
 import { Notifications } from "./pages/notifications.js";
 import { InvitePage } from "./pages/invite.js";
+import { LoginPage } from "./pages/login.js";
 import { DevClock } from "./components/dev-clock.js";
 
 function Layout() {
@@ -52,6 +53,9 @@ export function App() {
       <AttentionContext value={attention}>
         <BrowserRouter>
           <Routes>
+            {/* Login page — outside Layout (no header/tabs) */}
+            <Route path="login" element={<LoginPage />} />
+
             <Route element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="invite/:token" element={<InvitePage />} />

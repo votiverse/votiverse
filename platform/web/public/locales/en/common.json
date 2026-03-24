@@ -9,6 +9,7 @@
   "retry": "Retry",
   "back": "Back",
   "next": "Next",
+  "skip": "Skip",
   "loading": "Loading\u2026",
   "error.generic": "Something went wrong. Please try again.",
   "error.network": "Unable to connect. Check your internet connection.",

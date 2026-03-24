@@ -1,12 +1,11 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAttention, type PendingVote } from "../hooks/use-attention.js";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
-import { LoginForm } from "../components/login-form.js";
 import { Countdown } from "../components/countdown.js";
 import { Card, CardBody, Button, Badge, Skeleton } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
@@ -47,10 +46,20 @@ function groupByEvent(votes: PendingVote[]): VoteGroup[] {
 }
 
 export function Dashboard() {
-  const { storeUserId, participantName } = useIdentity();
+  const { storeUserId, participantName, loading } = useIdentity();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  if (!storeUserId) {
-    return <LoginForm />;
+  useEffect(() => {
+    if (!loading && !storeUserId) {
+      const currentPath = location.pathname + location.search;
+      const redirect = currentPath !== "/" ? `?redirect=${encodeURIComponent(currentPath)}` : "";
+      navigate(`/login${redirect}`, { replace: true });
+    }
+  }, [loading, storeUserId, navigate, location]);
+
+  if (loading || !storeUserId) {
+    return null;
   }
 
   return <DashboardContent participantName={participantName} />;

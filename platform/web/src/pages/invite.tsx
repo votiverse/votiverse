@@ -228,7 +228,7 @@ export function InvitePage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <Button onClick={() => navigate(`/?redirect=/invite/${token}`)} className="w-full">
+          <Button onClick={() => navigate(`/login?redirect=/invite/${token}`)} className="w-full">
             {isApprovalMode ? t("invite.loginToRequest") : t("invite.loginToJoin")}
           </Button>
           <p className="text-xs text-gray-400 text-center">
