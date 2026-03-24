@@ -636,6 +636,17 @@ function getDirection(locale: string): 'ltr' | 'rtl' {
 
 This runs during the bootstrap phase (see App Integration above), before `createRoot()`.
 
+### Known Issue: Bidirectional Text in Interpolated Strings
+
+When Arabic (or another RTL language) is active, translated strings that embed LTR content via interpolation (e.g., `"2 votes need you"` where the number and English event title are injected) can produce mixed-directionality rendering. The browser's Unicode Bidirectional Algorithm handles most cases, but complex interpolations — especially those mixing numbers, English proper nouns, and Arabic text — can appear visually disordered.
+
+**Potential fixes (not yet implemented):**
+- Add `dir="auto"` on specific elements that contain interpolated mixed-direction content (e.g., the attention banner, countdown strings, event titles). This lets the browser infer direction from the first strong character.
+- Wrap LTR interpolation values with Unicode bidi isolation characters (`U+2066` LRI / `U+2069` PDI) in the translation strings themselves, e.g., `"⁦{{count}}⁩ أصوات تحتاج إليك"`.
+- Use the `<bdi>` HTML element around interpolated values when rendering with `<Trans>` components.
+
+This is a cosmetic polish issue, not a functional blocker. The translated text is correct — only the visual ordering is occasionally off in specific interpolation patterns.
+
 ## Cache-Busting for Translation Files
 
 Translation JSON files are served from `public/locales/` as static assets. After a deploy with updated translations, users may receive stale cached versions from their browser or a CDN.
