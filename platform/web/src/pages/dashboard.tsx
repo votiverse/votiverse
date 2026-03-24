@@ -114,7 +114,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
                 {" "}{t("dashboard.needsYou", { count: totalPending + totalPendingSurveys })}
               </p>
               {nearestDeadline && (
-                <p className="text-accent-muted text-sm mt-0.5">
+                <p className="text-text-on-accent/70 text-sm mt-0.5">
                   {t("dashboard.nearestDeadline", { title: nearestDeadline.eventTitle })}{" "}
                   <Countdown target={nearestDeadline.votingEnd} className="text-text-on-accent font-medium" />
                 </p>
