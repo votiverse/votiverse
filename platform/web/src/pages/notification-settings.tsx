@@ -42,20 +42,20 @@ export function NotificationSettings() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6">
+      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">
         {t("notificationSettings")}
       </h1>
 
       {saveError && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 p-3">
-          <p className="text-sm text-red-700">{saveError}</p>
+        <div className="mb-4 rounded-md bg-error-subtle border border-error p-3">
+          <p className="text-sm text-error">{saveError}</p>
         </div>
       )}
 
       <Card className="mb-6">
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">{t("voting.title")}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t("voting.description")}</p>
+          <h2 className="text-base font-medium text-text-primary">{t("voting.title")}</h2>
+          <p className="text-sm text-text-muted mt-1">{t("voting.description")}</p>
         </CardHeader>
         <CardBody className="space-y-5">
           <PreferenceSelect
@@ -99,8 +99,8 @@ export function NotificationSettings() {
 
       <Card className="mb-6">
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">{t("surveys.title")}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t("surveys.description")}</p>
+          <h2 className="text-base font-medium text-text-primary">{t("surveys.title")}</h2>
+          <p className="text-sm text-text-muted mt-1">{t("surveys.description")}</p>
         </CardHeader>
         <CardBody>
           <PreferenceSelect
@@ -119,8 +119,8 @@ export function NotificationSettings() {
 
       <Card className="mb-6">
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">{t("admin.title")}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t("admin.description")}</p>
+          <h2 className="text-base font-medium text-text-primary">{t("admin.title")}</h2>
+          <p className="text-sm text-text-muted mt-1">{t("admin.description")}</p>
         </CardHeader>
         <CardBody className="space-y-5">
           <PreferenceSelect
@@ -151,8 +151,8 @@ export function NotificationSettings() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-base font-medium text-gray-900">{t("channel.title")}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t("channel.description")}</p>
+          <h2 className="text-base font-medium text-text-primary">{t("channel.title")}</h2>
+          <p className="text-sm text-text-muted mt-1">{t("channel.description")}</p>
         </CardHeader>
         <CardBody>
           <PreferenceSelect
@@ -169,7 +169,7 @@ export function NotificationSettings() {
             onChange={(v) => handleChange("notify_channel", v)}
           />
           {prefs.notify_channel === "none" && (
-            <p className="mt-3 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+            <p className="mt-3 text-sm text-warning-text bg-warning-subtle border border-warning-border rounded-md p-3">
               {t("channel.disabledWarning")}
             </p>
           )}
@@ -197,7 +197,7 @@ function PreferenceSelect({
   return (
     <div>
       <Label>{label}</Label>
-      <p className="text-xs text-gray-500 mb-1.5">{description}</p>
+      <p className="text-xs text-text-muted mb-1.5">{description}</p>
       <div className="relative">
         <Select
           value={value}
@@ -213,7 +213,7 @@ function PreferenceSelect({
         </Select>
         {saving && (
           <div className="absolute right-8 top-1/2 -translate-y-1/2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-brand" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-border-default border-t-accent" />
           </div>
         )}
       </div>
