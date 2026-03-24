@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
@@ -48,15 +48,13 @@ function groupByEvent(votes: PendingVote[]): VoteGroup[] {
 export function Dashboard() {
   const { storeUserId, participantName, loading } = useIdentity();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     if (!loading && !storeUserId) {
-      const currentPath = location.pathname + location.search;
-      const redirect = currentPath !== "/" ? `?redirect=${encodeURIComponent(currentPath)}` : "";
-      navigate(`/login${redirect}`, { replace: true });
+      // Dashboard is the index route at "/", so redirect is always just "/login"
+      navigate("/login", { replace: true });
     }
-  }, [loading, storeUserId, navigate, location]);
+  }, [loading, storeUserId, navigate]);
 
   if (loading || !storeUserId) {
     return null;

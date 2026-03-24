@@ -156,7 +156,10 @@ export function useIdentityProvider(): IdentityCtx {
 
   const doLogout = useCallback(async () => {
     await auth.logout();
-    setUser(null);
+    // Hard navigation to /login — avoids React state issues during the
+    // unauthenticated re-render cascade. A clean page load is the right
+    // UX after sign-out anyway (no stale data, fresh i18n bootstrap).
+    window.location.href = "/login";
   }, []);
 
   const getParticipantId = useCallback((assemblyId: string): string | null => {
