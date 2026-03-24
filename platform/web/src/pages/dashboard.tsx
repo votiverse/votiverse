@@ -104,7 +104,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
 
       {/* Action banner */}
       {(totalPending > 0 || totalPendingSurveys > 0) ? (
-        <div className="mb-6 rounded-xl bg-accent p-4 sm:p-5 text-text-on-accent">
+        <div className="mb-6 rounded-xl bg-accent-emphasis p-4 sm:p-5 text-text-on-accent">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-lg sm:text-xl font-semibold">
