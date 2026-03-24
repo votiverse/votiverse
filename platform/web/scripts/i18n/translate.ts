@@ -350,8 +350,61 @@ async function translateBatch(
       if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
         responseText = responseText.slice(firstBrace, lastBrace + 1);
       }
+      // 3. Fix unescaped straight double quotes inside JSON string values.
+      //    Replace "value with "inner quotes" here" patterns by converting
+      //    inner straight quotes to Unicode curly quotes.
+      responseText = responseText.replace(
+        /: "([^"]*?)"/g,
+        (_match: string) => {
+          // Find the value portion (after ": ")
+          const colonIdx = _match.indexOf(': "');
+          const prefix = _match.slice(0, colonIdx + 3); // ': "'
+          const rest = _match.slice(colonIdx + 3);
+          // The last " is the closing quote. Everything between is the value.
+          // If there are inner unescaped " that aren't at the end, fix them.
+          // We use a line-by-line approach: try parsing, and if it fails,
+          // replace inner quotes.
+          return prefix + rest;
+        },
+      );
+      // More targeted fix: find lines where a string value contains unescaped quotes
+      // Pattern: "key": "text "quoted" more" → "key": "text \u201cquoted\u201d more"
+      const lines = responseText.split("\n");
+      const fixedLines = lines.map((line) => {
+        // Match a JSON key-value line: "key": "value"
+        const m = line.match(/^(\s*"[^"]+"\s*:\s*")(.*)(",?\s*)$/);
+        if (!m) return line;
+        let value = m[2];
+        // If the value has unbalanced quotes (unescaped " inside), fix them
+        // Count unescaped quotes in value
+        const unescaped = value.match(/(?<!\\)"/g);
+        if (unescaped && unescaped.length > 0) {
+          // Replace inner straight double quotes with curly quotes
+          value = value.replace(/(?<!\\)"/g, "\u201c");
+          // If we made replacements, also close them (alternate open/close)
+          let open = true;
+          value = value.replace(/\u201c/g, () => {
+            const q = open ? "\u201c" : "\u201d";
+            open = !open;
+            return q;
+          });
+        }
+        return m[1] + value + m[3];
+      });
+      responseText = fixedLines.join("\n");
 
-      const parsed = JSON.parse(responseText) as TranslationMap;
+      let parsed: TranslationMap;
+      try {
+        parsed = JSON.parse(responseText) as TranslationMap;
+      } catch (parseErr) {
+        // Log the problematic area around the error position for debugging.
+        const pos = (parseErr as SyntaxError).message.match(/position (\d+)/)?.[1];
+        if (pos) {
+          const p = parseInt(pos, 10);
+          console.warn(`  JSON error near position ${p}: ...${responseText.slice(Math.max(0, p - 60), p + 60)}...`);
+        }
+        throw parseErr;
+      }
 
       // Validate: ensure all requested keys are present.
       const missingKeys = Object.keys(keysToTranslate).filter(

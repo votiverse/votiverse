@@ -14,6 +14,7 @@ Rules:
 - Use a formal register for UI text (e.g., "vous" not "tu" in French,
   "usted" not "tú" in Spanish).
 - Output valid JSON only. No markdown fences, no commentary, no trailing commas.
+- CRITICAL: Escape any double quotes inside string values with backslash (\"). Use Unicode curly quotes (\u201c and \u201d) for quoted text within values, NOT straight double quotes.
 
 Input:
 {{sourceJson}}
