@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "Tylko jeśli nie delegowałem/-am",
   "voting.results": "Dostępne wyniki",
   "voting.resultsDescription": "Gdy wyniki głosowania stają się dostępne",
-  "voting.title": "Powiadomienia o głosowaniach"
+  "voting.title": "Powiadomienia o głosowaniach",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

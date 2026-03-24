@@ -93,5 +93,6 @@
   "status.open": "Mở",
   "status.scheduled": "Đã lên lịch",
   "status.upcoming": "Sắp tới",
-  "status.voting": "Đang mở bỏ phiếu"
+  "status.voting": "Đang mở bỏ phiếu",
+  "nav.appearance": "Appearance"
 }

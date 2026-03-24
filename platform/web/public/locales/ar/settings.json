@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "فقط إذا لم أفوض صوتي",
   "voting.results": "النتائج متاحة",
   "voting.resultsDescription": "عندما تصبح نتائج التصويت متاحة",
-  "voting.title": "إشعارات التصويت"
+  "voting.title": "إشعارات التصويت",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

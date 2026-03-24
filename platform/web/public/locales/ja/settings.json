@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "委任していない場合のみ",
   "voting.results": "結果の公開",
   "voting.resultsDescription": "投票結果が利用可能になったとき",
-  "voting.title": "投票通知"
+  "voting.title": "投票通知",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

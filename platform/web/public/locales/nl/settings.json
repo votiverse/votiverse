@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "Alleen als ik niet heb gedelegeerd",
   "voting.results": "Resultaten beschikbaar",
   "voting.resultsDescription": "Wanneer stemresultaten beschikbaar komen",
-  "voting.title": "Stemmeldingen"
+  "voting.title": "Stemmeldingen",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

@@ -93,5 +93,6 @@
   "status.open": "开放",
   "status.scheduled": "已安排",
   "status.upcoming": "即将开始",
-  "status.voting": "投票进行中"
+  "status.voting": "投票进行中",
+  "nav.appearance": "Appearance"
 }

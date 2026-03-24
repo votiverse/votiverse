@@ -93,5 +93,6 @@
   "status.open": "खुला",
   "status.scheduled": "निर्धारित",
   "status.upcoming": "आगामी",
-  "status.voting": "मतदान खुला"
+  "status.voting": "मतदान खुला",
+  "nav.appearance": "Appearance"
 }

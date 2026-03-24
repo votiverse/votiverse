@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "เฉพาะเมื่อฉันยังไม่ได้มอบหมาย",
   "voting.results": "ผลการลงคะแนนพร้อมแล้ว",
   "voting.resultsDescription": "เมื่อผลการลงคะแนนพร้อมใช้งาน",
-  "voting.title": "การแจ้งเตือนการลงคะแนน"
+  "voting.title": "การแจ้งเตือนการลงคะแนน",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

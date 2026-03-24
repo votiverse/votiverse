@@ -93,5 +93,6 @@
   "status.open": "مفتوح",
   "status.scheduled": "مجدول",
   "status.upcoming": "قادم",
-  "status.voting": "التصويت مفتوح"
+  "status.voting": "التصويت مفتوح",
+  "nav.appearance": "Appearance"
 }

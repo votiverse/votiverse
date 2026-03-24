@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "Chỉ khi tôi chưa ủy quyền",
   "voting.results": "Kết quả có sẵn",
   "voting.resultsDescription": "Khi kết quả bỏ phiếu có sẵn",
-  "voting.title": "Thông báo bỏ phiếu"
+  "voting.title": "Thông báo bỏ phiếu",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

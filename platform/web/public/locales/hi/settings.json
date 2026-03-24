@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "केवल तभी जब मैंने प्रत्यायोजित नहीं किया हो",
   "voting.results": "परिणाम उपलब्ध",
   "voting.resultsDescription": "जब मतदान परिणाम उपलब्ध हो जाते हैं",
-  "voting.title": "मतदान सूचनाएं"
+  "voting.title": "मतदान सूचनाएं",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

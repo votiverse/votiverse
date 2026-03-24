@@ -93,5 +93,6 @@
   "status.open": "เปิด",
   "status.scheduled": "มีกำหนดการแล้ว",
   "status.upcoming": "กำลังจะมาถึง",
-  "status.voting": "เปิดรับการลงคะแนน"
+  "status.voting": "เปิดรับการลงคะแนน",
+  "nav.appearance": "Appearance"
 }

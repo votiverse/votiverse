@@ -93,5 +93,6 @@
   "status.open": "オープン",
   "status.scheduled": "予定済み",
   "status.upcoming": "開始予定",
-  "status.voting": "投票受付中"
+  "status.voting": "投票受付中",
+  "nav.appearance": "Appearance"
 }

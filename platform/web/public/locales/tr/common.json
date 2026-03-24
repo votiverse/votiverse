@@ -92,5 +92,6 @@
   "status.open": "Açık",
   "status.scheduled": "Planlandı",
   "status.upcoming": "Yaklaşan",
-  "status.voting": "Oylama Açık"
+  "status.voting": "Oylama Açık",
+  "nav.appearance": "Appearance"
 }

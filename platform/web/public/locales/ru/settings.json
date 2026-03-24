@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "Только если я не делегировал полномочия",
   "voting.results": "Результаты доступны",
   "voting.resultsDescription": "Когда становятся доступны результаты голосования",
-  "voting.title": "Уведомления о голосовании"
+  "voting.title": "Уведомления о голосовании",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

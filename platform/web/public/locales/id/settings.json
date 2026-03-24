@@ -35,5 +35,11 @@
   "voting.newEventsUndelegated": "Hanya jika saya belum mendelegasikan",
   "voting.results": "Hasil tersedia",
   "voting.resultsDescription": "Ketika hasil pemungutan suara tersedia",
-  "voting.title": "Notifikasi Pemungutan Suara"
+  "voting.title": "Notifikasi Pemungutan Suara",
+  "appearance.title": "Appearance",
+  "appearance.theme": "Theme",
+  "appearance.description": "Choose how Votiverse looks. Select a theme or let it follow your system settings.",
+  "appearance.light": "Light",
+  "appearance.dark": "Dark",
+  "appearance.system": "System"
 }

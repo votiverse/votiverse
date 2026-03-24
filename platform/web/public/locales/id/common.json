@@ -93,5 +93,6 @@
   "status.open": "Dibuka",
   "status.scheduled": "Terjadwal",
   "status.upcoming": "Akan Datang",
-  "status.voting": "Pemungutan Suara Dibuka"
+  "status.voting": "Pemungutan Suara Dibuka",
+  "nav.appearance": "Appearance"
 }

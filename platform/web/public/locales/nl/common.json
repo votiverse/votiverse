@@ -93,5 +93,6 @@
   "status.open": "Open",
   "status.scheduled": "Gepland",
   "status.upcoming": "Aankomend",
-  "status.voting": "Stemming Open"
+  "status.voting": "Stemming Open",
+  "nav.appearance": "Appearance"
 }

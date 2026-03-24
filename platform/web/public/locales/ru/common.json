@@ -93,5 +93,6 @@
   "status.open": "Открыто",
   "status.scheduled": "Запланировано",
   "status.upcoming": "Предстоящее",
-  "status.voting": "Голосование открыто"
+  "status.voting": "Голосование открыто",
+  "nav.appearance": "Appearance"
 }

@@ -93,5 +93,6 @@
   "status.open": "열림",
   "status.scheduled": "예약됨",
   "status.upcoming": "예정됨",
-  "status.voting": "투표 진행 중"
+  "status.voting": "투표 진행 중",
+  "nav.appearance": "Appearance"
 }
