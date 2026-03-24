@@ -315,7 +315,7 @@ async function translateBatch(
   );
 
   let attempts = 0;
-  const maxAttempts = 2;
+  const maxAttempts = 3;
 
   while (attempts < maxAttempts) {
     attempts++;
@@ -339,6 +339,16 @@ async function translateBatch(
         responseText = responseText
           .replace(/^```(?:json)?\s*\n?/, "")
           .replace(/\n?```\s*$/, "");
+      }
+
+      // Sanitize common LLM JSON issues:
+      // 1. Trailing commas before } or ]
+      responseText = responseText.replace(/,\s*([}\]])/g, "$1");
+      // 2. Ensure response starts with { and ends with } (trim any trailing text)
+      const firstBrace = responseText.indexOf("{");
+      const lastBrace = responseText.lastIndexOf("}");
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        responseText = responseText.slice(firstBrace, lastBrace + 1);
       }
 
       const parsed = JSON.parse(responseText) as TranslationMap;
