@@ -35,5 +35,9 @@
   "channel.disabledWarning": "Email notifications are disabled. You'll still see all notifications in the notification bell and on the notifications page.",
   "language.title": "Language",
   "language.preferred": "Preferred Language",
-  "language.description": "Choose the language for the Votiverse interface. The page will reload to apply your selection."
+  "language.description": "Choose the language for the Votiverse interface. The page will reload to apply your selection.",
+  "connectedAccounts.title": "Connected accounts",
+  "connectedAccounts.connect": "Connect",
+  "connectedAccounts.disconnect": "Disconnect",
+  "connectedAccounts.unlinking": "Disconnecting\u2026"
 }

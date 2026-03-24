@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
+import * as oauthApi from "../api/oauth.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Spinner, ErrorBox } from "../components/ui.js";
 import { Avatar, AVATAR_STYLES, AVATAR_STYLE_LABELS, avatarUrl, type AvatarStyle } from "../components/avatar.js";
@@ -113,6 +114,9 @@ export function Profile() {
           }}
         />
       )}
+
+      {/* Connected accounts */}
+      <ConnectedAccounts />
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-8">
@@ -224,6 +228,127 @@ export function Profile() {
       ))}
     </div>
   );
+}
+
+// ── Connected accounts ────────────────────────────────────────────────
+
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  microsoft: "Microsoft",
+};
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+function ConnectedAccounts() {
+  const { t } = useTranslation("settings");
+  const [linked, setLinked] = useState<oauthApi.LinkedProvider[]>([]);
+  const [providers, setProviders] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [linkedRes, providersRes] = await Promise.all([
+        oauthApi.getLinkedProviders(),
+        oauthApi.getOAuthProviders(),
+      ]);
+      if (!cancelled) {
+        setLinked(linkedRes);
+        setProviders(providersRes);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Don't show section if no providers are configured and none linked
+  if (!loading && providers.length === 0 && linked.length === 0) return null;
+  if (loading) return null;
+
+  const linkedSet = new Set(linked.map((l) => l.provider));
+  const unlinkedProviders = providers.filter((p) => !linkedSet.has(p));
+
+  const handleUnlink = async (provider: string) => {
+    setUnlinking(provider);
+    try {
+      await oauthApi.unlinkProvider(provider);
+      setLinked((prev) => prev.filter((l) => l.provider !== provider));
+    } catch {
+      // Silently fail — could show error
+    } finally {
+      setUnlinking(null);
+    }
+  };
+
+  const handleConnect = (provider: string) => {
+    // Navigate to OAuth initiation — will redirect back to /profile after login
+    window.location.href = `${BASE_URL}/auth/oauth/${provider}?redirect=/profile`;
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardBody>
+        <h3 className="font-medium text-gray-900 mb-3">{t("connectedAccounts.title")}</h3>
+        <div className="space-y-2">
+          {linked.map((l) => (
+            <div key={l.provider} className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2.5">
+                <ProviderIcon provider={l.provider} />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{PROVIDER_LABELS[l.provider] ?? l.provider}</p>
+                  {l.providerEmail && <p className="text-xs text-gray-400">{l.providerEmail}</p>}
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleUnlink(l.provider)}
+                disabled={unlinking === l.provider || linked.length <= 1}
+              >
+                {unlinking === l.provider ? t("connectedAccounts.unlinking") : t("connectedAccounts.disconnect")}
+              </Button>
+            </div>
+          ))}
+          {unlinkedProviders.map((provider) => (
+            <div key={provider} className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2.5">
+                <ProviderIcon provider={provider} />
+                <p className="text-sm text-gray-500">{PROVIDER_LABELS[provider] ?? provider}</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => handleConnect(provider)}>
+                {t("connectedAccounts.connect")}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function ProviderIcon({ provider }: { provider: string }) {
+  if (provider === "google") {
+    return (
+      <svg width="20" height="20" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853" />
+        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
+      </svg>
+    );
+  }
+  if (provider === "microsoft") {
+    return (
+      <svg width="20" height="20" viewBox="0 0 21 21" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+        <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+        <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+        <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+      </svg>
+    );
+  }
+  return <div className="w-5 h-5 rounded-full bg-gray-300" />;
 }
 
 // ── Profile editor ────────────────────────────────────────────────────
