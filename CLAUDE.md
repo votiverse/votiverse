@@ -233,123 +233,9 @@ Work proceeds in phases. Complete one phase fully before starting the next. At t
 
 **Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, surveys, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. Group creation with LIQUID_DELEGATION default, assembly roles (owner/admin), curation phase enforcement. Onboarding system: handles (@username), invite links with public group preview, direct invitations by handle, multi-step onboarding dialog, avatar style picker, profile editing. Invitation hardening: email notifications (InvitationNotifier with adapter pattern), bulk CSV import with preview. Admission control: backend-owned mutable `admissionMode` (open/approval/invite-only), join request flow, Sybil risk warnings in UI. 830+ tests across engine (471), VCP (143), backend (146), web (16), and config (88).
 
-### Phase 1: Foundation
-1. `@votiverse/core` — base types, event definitions, EventStore interface, Result type, error base class
-2. Tests for core
-3. `@votiverse/config` — GovernanceConfig schema, validation, named presets, diffing
-4. Tests for config
-5. `@votiverse/identity` — IdentityProvider interface, InvitationProvider implementation
-6. Tests for identity
-7. `@votiverse/delegation` — delegation CRUD, graph construction, scope resolution, weight computation, cycle detection, concentration metrics
-8. Tests for delegation (including whitepaper Appendix C examples)
-9. `@votiverse/voting` — vote casting, override rule, ballot methods (SimpleMajority, Supermajority), quorum checking, tally
-10. Tests for voting
-11. `@votiverse/engine` — wire core, config, identity, delegation, voting together. Event bus. Public API surface.
-12. Integration tests across Phase 1 packages
-13. `@votiverse/cli` — init, config commands, basic event/delegate/vote commands (Modes 1 and 2)
-14. End-to-end test: create a voting event with delegations and verify tally from CLI
-15. **STOP. Write status report. Wait for review.**
+Detailed per-phase task lists (Phases 1–7) are in git history. Future phases follow the same discipline: complete fully, run all tests, write status report, STOP.
 
-### Phase 2: Accountability
-1. `@votiverse/prediction` — prediction creation, commitment hashing, outcome recording, accuracy evaluation, track records
-2. Tests for prediction
-3. `@votiverse/survey` — survey creation, response collection, aggregation, trend computation
-4. Tests for survey
-5. Wire prediction and survey into engine
-6. CLI commands for predict and survey
-7. Integration tests
-8. **STOP. Write status report. Wait for review.**
-
-### Phase 3: Awareness
-1. `@votiverse/awareness` — concentration monitoring, chain resolution, harvesting detection, delegate profiles, engagement prompts, personal voting history, historical context
-2. Tests for awareness
-3. Wire awareness into engine
-4. CLI awareness commands
-5. Integration tests
-6. **STOP. Write status report. Wait for review.**
-
-### Phase 4: Simulation
-1. `@votiverse/simulate` — rule-based agent framework, persona definitions, simulation runner
-2. Tests for simulation framework
-3. Run simulations against all named presets, document findings
-4. CLI simulate commands
-5. LLM-driven agent support (Anthropic API integration)
-6. **STOP. Write status report. Wait for review.**
-
-### Phase 5: Integrity
-1. `@votiverse/integrity` — commitment generation, BlockchainAnchor interface, no-op anchor, verification tools
-2. Tests for integrity
-3. Wire integrity into engine
-4. CLI integrity commands
-5. **STOP. Write status report. Wait for review.**
-
-### Phase 6: Production Hardening
-1. PostgreSQL storage adapter
-2. Performance profiling and optimization
-3. Error handling audit
-4. Logging and monitoring hooks
-5. Documentation polish — all package READMEs, API docs
-6. **STOP. Write status report. Wait for review.**
-
-### Phase 7: Content — Proposals, Candidacies, and Community Notes
-
-See `docs/design/content-architecture.md` for the full design. The VCP stores governance metadata and content hashes; the backend stores rich content (markdown, assets).
-
-**A. Foundation types and events**
-1. Add `CandidacyId`, `NoteId`, `AssetId`, `ContentHash` branded types to `@votiverse/core`
-2. Add new event types and payload interfaces to `@votiverse/core/events.ts`
-3. Add delegation `candidacy`/`transferable` booleans, `allowVoteChange`, `noteVisibilityThreshold`, `noteMinEvaluations`, `surveyResponseAnonymity` to `@votiverse/config`
-4. Replace `DelegationConfig.enabled` with `candidacy`/`transferable` in all presets and tests
-5. Update config validation
-
-**B. Content package**
-6. Create `@votiverse/content` package scaffold
-7. Implement content hash utility (with tests)
-8. Implement proposal metadata lifecycle (with tests)
-9. Implement candidacy metadata lifecycle (with tests)
-10. Implement community note lifecycle + evaluation + visibility (with tests)
-11. Property-based tests for immutability guarantees
-
-**C. Engine + awareness integration**
-12. Wire content into `@votiverse/engine` API
-13. Implement proposal locking on voting window open
-14. Implement vote transparency for opted-in candidates
-15. Extend awareness layer (DelegateProfile, HistoricalContext, engagement prompts)
-16. Integration tests
-
-**D. VCP layer**
-17. VCP database schema additions
-18. VCP API routes for proposals, candidacies, notes (metadata only)
-19. VCP integration tests
-
-**E. Backend layer**
-20. Backend database schema additions (content + drafts + assets)
-21. Asset store adapter (PostgreSQL initially)
-22. Backend API routes (drafts, content, assets, VCP proxy for evaluations)
-23. Backend integration tests
-
-**F. Web UI**
-24. Markdown editor component (with asset upload)
-25. Proposal creation/viewing pages
-26. Candidacy profile pages
-27. Community notes display + evaluation UI
-28. Updated delegation discovery (candidacy mode)
-29. **STOP. Write status report. Wait for review.**
-
----
-
-## Formal Properties to Test
-
-These properties must hold for ALL governance configurations. Write property-based tests that generate random configurations and verify:
-
-1. **Sovereignty.** A participant who casts a direct vote always has weight = 1 on that issue, regardless of any delegation.
-2. **One person, one vote.** The sum of all effective weights for an issue equals the number of participants who either voted directly or whose delegation chain terminates at a voter. No weight is created or destroyed.
-3. **Monotonicity.** Casting a direct vote never reduces a participant's influence compared to delegating.
-4. **Revocability.** Revoking a delegation and recomputing weights produces the same result as if the delegation had never existed.
-5. **Override rule.** If participant A delegates to B, and A votes directly, then B's weight does not include A's vote.
-6. **Cycle resolution.** Participants in a delegation cycle who do not vote directly have effective weight 0. A direct vote from any cycle member breaks the cycle at that point.
-7. **Scope precedence.** A more specific delegation always overrides a more general one for the same participant and issue.
-8. **Survey non-transferability.** No API path allows a survey response to be submitted on behalf of another participant.
+**Formal properties** (sovereignty, one-person-one-vote, monotonicity, revocability, override rule, cycle resolution, scope precedence, survey non-transferability) are verified by property-based tests in `packages/engine/tests/`.
 
 ---
 
@@ -660,17 +546,7 @@ lsof -i :5173 -i :5174 -i :3000 -i :4000 -P | grep LISTEN
 
 Kill everything and start fresh. Use either manual `pnpm dev` or the `.claude/launch.json` preview tool — not both.
 
-### 5. VCP server must be restarted after rebuild (production only)
-
-**Note:** In dev, this is no longer an issue — the VCP resolves from engine source via the `"source"` export condition (see gotcha #1). You only need to rebuild `dist/` for production/CI.
-
-**Symptom:** Engine packages rebuild successfully but the VCP still returns old errors.
-
-**Cause:** The VCP server loads modules into memory at startup. Rebuilding `dist/` doesn't affect a running process.
-
-**Fix:** Always restart the VCP server after rebuilding packages.
-
-### 6. Vote rejected with VOTING_NOT_OPEN or VOTING_CLOSED
+### 5. Vote rejected with VOTING_NOT_OPEN or VOTING_CLOSED
 
 **Symptom:** `GovernanceRuleViolation: Voting has not started yet` or `Voting has closed` when casting a vote.
 
@@ -695,7 +571,7 @@ curl -X POST http://localhost:3000/dev/clock/reset
 
 **Note:** Dev clock endpoints are only available when `NODE_ENV !== "production"`. They are double-gated: not mounted in production AND a middleware guard blocks even if misconfigured.
 
-### 7. VCP list vs detail endpoint divergence
+### 6. VCP list vs detail endpoint divergence
 
 **Symptom:** A page shows correct data when viewing a single entity (e.g., event detail shows issues with topics) but an overview/list page shows missing data (e.g., events list has no issues, so topic counts are 0).
 
@@ -705,7 +581,7 @@ curl -X POST http://localhost:3000/dev/clock/reset
 
 **Prevention:** When adding new fields to entity responses, update both the list and detail endpoints. The web client's TypeScript types (in `platform/web/src/api/types.ts`) define optional fields like `issues?: Issue[]` — if a list endpoint doesn't populate them, code using `event.issues ?? []` silently returns empty arrays rather than erroring.
 
-### 8. Delegation visibility hides data by design
+### 7. Delegation visibility hides data by design
 
 **Symptom:** Delegations show as empty (0 delegations) for some assemblies or users.
 
