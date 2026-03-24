@@ -345,14 +345,6 @@
   --color-skeleton: var(--skeleton);
   --color-notification-dot: var(--notification-dot);
 
-  /* Backward compatibility — old brand tokens alias to accent tokens.
-     These will be removed in Phase I after all components are migrated. */
-  --color-brand: var(--accent);
-  --color-brand-light: var(--accent-hover);
-  --color-brand-dark: var(--accent-active);
-  --color-brand-50: var(--accent-subtle);
-  --color-brand-100: var(--accent-muted);
-  --color-brand-200: var(--primitive-brand-200);
 }
 
 /* ================================================================
