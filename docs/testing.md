@@ -17,7 +17,7 @@ cd platform/backend && pnpm reset && pnpm dev
 cd platform/web && pnpm dev
 ```
 
-Open the URL shown by Vite (typically `http://localhost:5173`, port may vary) and log in with any seeded account (see Section 3).
+Open the URL shown by Vite (typically `http://localhost:5173`, port may vary) and log in with any seeded account (see Section 3). Or use `/dev-start` in Claude Code to automate git sync, dependency installation, database resets, and server startup.
 
 ---
 

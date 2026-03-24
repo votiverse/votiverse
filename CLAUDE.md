@@ -349,7 +349,7 @@ cd platform/backend && pnpm dev
 cd platform/web && pnpm dev
 ```
 
-Or use the `.claude/launch.json` configurations (`vcp`, `backend`, and `web`) with the preview tool.
+Or use `/dev-start` — a Claude Code slash command that handles git sync, dependency installation, database resets, cache clearing, and server startup with health verification. Run `/dev-start reset` to force a full reset, `/dev-start stop` to kill servers, or `/dev-start status` to check what's running. See `.claude/commands/dev-start.md` for details.
 
 ### Seed Data Overview
 
