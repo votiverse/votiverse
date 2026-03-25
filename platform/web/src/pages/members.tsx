@@ -83,9 +83,10 @@ export function Members() {
       </div>
 
       {showSettings && (
-        <AdmissionModeSettings
+        <AssemblySettings
           assemblyId={assemblyId!}
           currentMode={admissionMode}
+          currentWebsiteUrl={settingsData?.websiteUrl ?? null}
           onChanged={() => { refetchSettings(); setShowSettings(false); }}
         />
       )}
@@ -348,18 +349,24 @@ function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: s
   );
 }
 
-function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assemblyId: string; currentMode: AdmissionMode; onChanged: () => void }) {
+function AssemblySettings({ assemblyId, currentMode, currentWebsiteUrl, onChanged }: { assemblyId: string; currentMode: AdmissionMode; currentWebsiteUrl: string | null; onChanged: () => void }) {
   const { t } = useTranslation("governance");
   const [mode, setMode] = useState(currentMode);
+  const [websiteUrl, setWebsiteUrl] = useState(currentWebsiteUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
-    if (mode === currentMode) { onChanged(); return; }
+    const modeChanged = mode !== currentMode;
+    const urlChanged = (websiteUrl.trim() || null) !== currentWebsiteUrl;
+    if (!modeChanged && !urlChanged) { onChanged(); return; }
     setSaving(true);
     setError(null);
     try {
-      await api.updateAssemblySettings(assemblyId, { admissionMode: mode });
+      const updates: Parameters<typeof api.updateAssemblySettings>[1] = {};
+      if (modeChanged) updates.admissionMode = mode;
+      if (urlChanged) updates.websiteUrl = websiteUrl.trim();
+      await api.updateAssemblySettings(assemblyId, updates);
       onChanged();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("members.updateError"));
@@ -371,7 +378,7 @@ function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assembl
   return (
     <Card className="mb-4">
       <CardBody>
-        <h3 className="text-sm font-semibold text-text-primary mb-3">{t("members.admissionSettings")}</h3>
+        <h3 className="text-sm font-semibold text-text-primary mb-3">{t("members.groupSettings")}</h3>
         {error && <ErrorBox message={error} />}
         <div className="space-y-3">
           <div>
@@ -392,6 +399,23 @@ function AdmissionModeSettings({ assemblyId, currentMode, onChanged }: { assembl
               {t("members.inviteOnlyWarning")}
             </p>
           )}
+          <div>
+            <Label>{t("members.websiteLabel")}</Label>
+            <Input
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://..."
+            />
+            {!websiteUrl && (
+              <p className="text-xs text-text-tertiary mt-1">
+                {t("members.websiteHelper")}{" "}
+                <a href="https://uniweb.app/templates?category=organization" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
+                  {t("members.browseTemplates")} →
+                </a>
+              </p>
+            )}
+          </div>
           <div className="flex gap-2 justify-end">
             <Button variant="secondary" onClick={onChanged}>{t("common:cancel")}</Button>
             <Button onClick={handleSave} disabled={saving}>

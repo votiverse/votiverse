@@ -248,6 +248,7 @@ export function contentRoutes(
       voteTransparencyOptIn: boolean;
       markdown: string;
       assets?: string[];
+      websiteUrl?: string;
     }>();
     const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
 
@@ -273,6 +274,7 @@ export function contentRoutes(
       markdown: body.markdown,
       assets: body.assets ?? [],
       contentHash,
+      websiteUrl: body.websiteUrl || null,
       createdAt: vcpData.declaredAt,
     });
 
@@ -675,6 +677,7 @@ function mapContentRow(row: Record<string, unknown>) {
     assets: parseJsonColumn<unknown[]>(row["assets"] ?? "[]"),
     contentHash: row["content_hash"],
     changeSummary: row["change_summary"] ?? undefined,
+    websiteUrl: row["website_url"] ?? null,
     versionNumber: row["version_number"],
     createdAt: row["created_at"],
   };

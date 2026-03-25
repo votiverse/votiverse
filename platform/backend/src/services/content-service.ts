@@ -176,12 +176,13 @@ export class ContentService {
     assets: string[];
     contentHash: string;
     changeSummary?: string;
+    websiteUrl?: string | null;
     createdAt: number;
   }): Promise<void> {
     await this.db.run(
-      `INSERT INTO candidacy_content (candidacy_id, assembly_id, version_number, markdown, assets, content_hash, change_summary, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [params.candidacyId, params.assemblyId, params.versionNumber, params.markdown, JSON.stringify(params.assets), params.contentHash, params.changeSummary ?? null, params.createdAt],
+      `INSERT INTO candidacy_content (candidacy_id, assembly_id, version_number, markdown, assets, content_hash, change_summary, website_url, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [params.candidacyId, params.assemblyId, params.versionNumber, params.markdown, JSON.stringify(params.assets), params.contentHash, params.changeSummary ?? null, params.websiteUrl ?? null, params.createdAt],
     );
   }
 

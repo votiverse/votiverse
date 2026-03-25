@@ -16,6 +16,7 @@ export interface Assembly {
   status: string;
   createdAt: string;
   admissionMode?: AdmissionMode;
+  websiteUrl?: string | null;
 }
 
 export interface AssemblyRole {
@@ -393,6 +394,7 @@ export interface Candidacy {
     markdown: string;
     assets: string[];
     contentHash: string;
+    websiteUrl?: string | null;
     versionNumber: number;
   };
 }

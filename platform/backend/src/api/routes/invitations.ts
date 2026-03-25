@@ -37,7 +37,7 @@ import type { InvitationNotifier } from "../../services/invitation-notifier.js";
 import type { NotificationHubService } from "../../services/notification-hub.js";
 import { getUser } from "../middleware/auth.js";
 import { parseCsvInvites } from "../../lib/csv-parser.js";
-import { AdmissionModeBody, BulkInviteBody, parseBody } from "../../lib/validation.js";
+import { AssemblySettingsBody, BulkInviteBody, parseBody } from "../../lib/validation.js";
 import { NotFoundError, ForbiddenError, GoneError, ValidationError } from "../middleware/error-handler.js";
 
 export function invitationRoutes(
@@ -177,7 +177,7 @@ export function invitationRoutes(
     if (!assembly) {
       throw new NotFoundError("Assembly not found");
     }
-    return c.json({ admissionMode: assembly.admissionMode });
+    return c.json({ admissionMode: assembly.admissionMode, websiteUrl: assembly.websiteUrl });
   });
 
   /** PUT /assemblies/:id/settings — update assembly settings (admin only). */
@@ -189,9 +189,15 @@ export function invitationRoutes(
       throw new ForbiddenError("Only admins can change settings");
     }
 
-    const body = parseBody(AdmissionModeBody, await c.req.json());
-    await assemblyCacheService.updateAdmissionMode(assemblyId, body.admissionMode as AdmissionMode);
-    return c.json({ admissionMode: body.admissionMode });
+    const body = parseBody(AssemblySettingsBody, await c.req.json());
+    if (body.admissionMode !== undefined) {
+      await assemblyCacheService.updateAdmissionMode(assemblyId, body.admissionMode as AdmissionMode);
+    }
+    if (body.websiteUrl !== undefined) {
+      await assemblyCacheService.updateWebsiteUrl(assemblyId, body.websiteUrl || null);
+    }
+    const updated = await assemblyCacheService.get(assemblyId);
+    return c.json({ admissionMode: updated!.admissionMode, websiteUrl: updated!.websiteUrl });
   });
 
   // ── Admin routes (assembly-scoped) ───────────────────────────────

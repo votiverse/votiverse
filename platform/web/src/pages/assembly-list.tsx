@@ -167,6 +167,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
   const [name, setName] = useState("");
   const [config, setConfig] = useState<ConfigDraft>(getDefaultConfig);
   const [admissionMode, setAdmissionMode] = useState<"open" | "approval" | "invite-only">("approval");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -182,7 +183,7 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
     setError(null);
     try {
       // Send full config when customized, otherwise just the preset name
-      const params: Parameters<typeof api.createAssembly>[0] = { name: name.trim(), admissionMode };
+      const params: Parameters<typeof api.createAssembly>[0] = { name: name.trim(), admissionMode, websiteUrl: websiteUrl.trim() || undefined };
       if (isCustomized) {
         params.config = config;
       } else {
@@ -285,6 +286,25 @@ function CreateAssemblyForm({ onClose, onCreated }: { onClose: () => void; onCre
                 </p>
               )}
               <p className="text-xs text-text-tertiary mt-1">{t("assemblyList.changeableNote")}</p>
+            </div>
+
+            {/* Website URL */}
+            <div>
+              <Label>{t("assemblyList.websiteLabel")}</Label>
+              <Input
+                type="url"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder="https://..."
+              />
+              {!websiteUrl && (
+                <p className="text-xs text-text-tertiary mt-1">
+                  {t("assemblyList.websiteHelper")}{" "}
+                  <a href="https://uniweb.app/templates?category=organization" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
+                    {t("assemblyList.browseTemplates")} →
+                  </a>
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end">

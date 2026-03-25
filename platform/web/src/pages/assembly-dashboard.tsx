@@ -7,6 +7,7 @@ import * as api from "../api/client.js";
 import type { GovernanceConfig } from "../api/types.js";
 import { Card, CardHeader, CardBody, Spinner, ErrorBox, StatusBadge, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
+import { ExternalLink } from "lucide-react";
 import {
   presetLabel,
   humanizeBoolean,
@@ -68,6 +69,17 @@ export function AssemblyDashboard() {
           <StatusBadge status={assembly.status} />
         </div>
         <p className="mt-1 text-sm text-text-muted">{config.description}</p>
+        {assembly.websiteUrl && (
+          <a
+            href={assembly.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 text-sm text-accent-text hover:underline inline-flex items-center gap-1"
+          >
+            {(() => { try { return new URL(assembly.websiteUrl).hostname; } catch { return assembly.websiteUrl; } })()}
+            <ExternalLink size={13} />
+          </a>
+        )}
       </div>
 
       {/* Onboarding rules summary — shown once per assembly (suppressed if onboarding dialog was shown) */}

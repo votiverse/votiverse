@@ -59,6 +59,7 @@ export function proxyRoutes(
       preset?: string;
       config?: unknown;
       admissionMode?: string;
+      websiteUrl?: string;
     }>();
 
     if (!body.name?.trim()) {
@@ -78,7 +79,7 @@ export function proxyRoutes(
     // Bootstrap owner role
     await vcpClient.bootstrapRole(vcpAssembly.id, participant.id);
 
-    // Cache assembly locally with admission mode
+    // Cache assembly locally with admission mode and website URL
     await assemblyCacheService.upsert({
       id: vcpAssembly.id,
       organizationId: vcpAssembly.organizationId ?? null,
@@ -87,6 +88,7 @@ export function proxyRoutes(
       status: vcpAssembly.status,
       createdAt: vcpAssembly.createdAt,
       admissionMode: (body.admissionMode as "open" | "approval" | "invite-only") ?? "approval",
+      websiteUrl: body.websiteUrl || null,
     });
 
     // Create local membership
@@ -95,6 +97,7 @@ export function proxyRoutes(
     return c.json({
       ...vcpAssembly,
       admissionMode: body.admissionMode ?? "approval",
+      websiteUrl: body.websiteUrl || null,
     }, 201);
   });
 

@@ -107,6 +107,7 @@ export function createAssembly(params: {
   preset?: string;
   config?: unknown;
   admissionMode?: string;
+  websiteUrl?: string;
 }): Promise<Assembly> {
   return request("POST", "/assemblies", params);
 }
@@ -161,11 +162,11 @@ export function createBulkInvites(assemblyId: string, handles: string[]): Promis
 
 // ---- Assembly Settings ----
 
-export function getAssemblySettings(assemblyId: string): Promise<{ admissionMode: string }> {
+export function getAssemblySettings(assemblyId: string): Promise<{ admissionMode: string; websiteUrl: string | null }> {
   return request("GET", `/assemblies/${assemblyId}/settings`);
 }
 
-export function updateAssemblySettings(assemblyId: string, settings: { admissionMode: string }): Promise<{ admissionMode: string }> {
+export function updateAssemblySettings(assemblyId: string, settings: { admissionMode?: string; websiteUrl?: string }): Promise<{ admissionMode: string; websiteUrl: string | null }> {
   return request("PUT", `/assemblies/${assemblyId}/settings`, settings);
 }
 
@@ -561,7 +562,7 @@ export function deleteRecommendation(
 
 export function declareCandidacy(
   assemblyId: string,
-  params: { topicScope: string[]; voteTransparencyOptIn: boolean; markdown: string },
+  params: { topicScope: string[]; voteTransparencyOptIn: boolean; markdown: string; websiteUrl?: string },
 ): Promise<import("./types.js").Candidacy> {
   return request("POST", `/assemblies/${assemblyId}/candidacies`, params);
 }

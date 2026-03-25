@@ -86,6 +86,11 @@ export const AdmissionModeBody = z.object({
   admissionMode: z.enum(["open", "approval", "invite-only"]),
 });
 
+export const AssemblySettingsBody = z.object({
+  admissionMode: z.enum(["open", "approval", "invite-only"]).optional(),
+  websiteUrl: z.string().url().max(2048).optional().or(z.literal("")),
+});
+
 export const CreateLinkInviteBody = z.object({
   maxUses: z.number().int().positive().optional(),
   expiresAt: z.string().optional(),

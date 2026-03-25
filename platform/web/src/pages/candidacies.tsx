@@ -10,7 +10,7 @@ import type { Candidacy } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
-import { FileText, MessageSquareText } from "lucide-react";
+import { FileText, MessageSquareText, ExternalLink } from "lucide-react";
 import { lazy, Suspense } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
@@ -94,6 +94,8 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
 
   const name = nameMap.get(candidacy.participantId) ?? candidacy.participantId;
   const topics = candidacy.topicScope.map((t) => topicNameMap.get(t) ?? t);
+  const websiteUrl = fullContent?.content?.websiteUrl ?? candidacy.content?.websiteUrl;
+  const websiteHostname = websiteUrl ? (() => { try { return new URL(websiteUrl).hostname; } catch { return websiteUrl; } })() : null;
 
   const handleExpand = async () => {
     if (!expanded && !fullContent) {
@@ -127,6 +129,17 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
             <p className="text-xs text-text-muted mt-1">
               {t("candidacies.declared", { date: formatDate(candidacy.declaredAt) })}
             </p>
+            {websiteUrl && (
+              <a
+                href={websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-accent-text hover:underline inline-flex items-center gap-1 mt-1"
+              >
+                {websiteHostname}
+                <ExternalLink size={11} />
+              </a>
+            )}
           </div>
         </div>
 
@@ -170,6 +183,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
 function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclared: () => void }) {
   const { t } = useTranslation("governance");
   const [markdown, setMarkdown] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [voteTransparency, setVoteTransparency] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -181,6 +195,7 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
         topicScope: [],
         voteTransparencyOptIn: voteTransparency,
         markdown,
+        websiteUrl: websiteUrl.trim() || undefined,
       });
       onDeclared();
     } catch (err) {
@@ -206,6 +221,27 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
             minHeight={250}
           />
         </Suspense>
+        <div className="mb-4">
+          <label htmlFor="candidacy-website" className="block text-sm font-medium text-text-secondary mb-1">
+            {t("candidacies.websiteLabel")}
+          </label>
+          <input
+            id="candidacy-website"
+            type="url"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full border border-border-strong rounded-xl px-4 py-2.5 text-sm bg-transparent text-text-primary focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-accent"
+          />
+          {!websiteUrl && (
+            <p className="text-xs text-text-tertiary mt-1">
+              {t("candidacies.websiteHelper")}{" "}
+              <a href="https://uniweb.app/templates?category=campaign" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
+                {t("candidacies.browseTemplates")} →
+              </a>
+            </p>
+          )}
+        </div>
         <label className="flex items-center gap-2 text-sm text-text-secondary mb-4">
           <input
             type="checkbox"
