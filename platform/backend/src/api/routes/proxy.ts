@@ -61,6 +61,7 @@ export function proxyRoutes(
       config?: unknown;
       admissionMode?: string;
       websiteUrl?: string;
+      voteCreation?: string;
     }>();
 
     if (!body.name?.trim()) {
@@ -96,6 +97,7 @@ export function proxyRoutes(
       createdAt: vcpAssembly.createdAt,
       admissionMode: (body.admissionMode as "open" | "approval" | "invite-only") ?? "approval",
       websiteUrl: body.websiteUrl || null,
+      voteCreation: (body.voteCreation as "admin" | "members") ?? "admin",
     });
 
     // Create local membership
@@ -105,6 +107,7 @@ export function proxyRoutes(
       ...vcpAssembly,
       admissionMode: body.admissionMode ?? "approval",
       websiteUrl: body.websiteUrl || null,
+      voteCreation: body.voteCreation ?? "admin",
     }, 201);
   });
 

@@ -162,11 +162,11 @@ export function createBulkInvites(assemblyId: string, handles: string[]): Promis
 
 // ---- Assembly Settings ----
 
-export function getAssemblySettings(assemblyId: string): Promise<{ admissionMode: string; websiteUrl: string | null }> {
+export function getAssemblySettings(assemblyId: string): Promise<{ admissionMode: string; websiteUrl: string | null; voteCreation: string }> {
   return request("GET", `/assemblies/${assemblyId}/settings`);
 }
 
-export function updateAssemblySettings(assemblyId: string, settings: { admissionMode?: string; websiteUrl?: string }): Promise<{ admissionMode: string; websiteUrl: string | null }> {
+export function updateAssemblySettings(assemblyId: string, settings: { admissionMode?: string; websiteUrl?: string; voteCreation?: string }): Promise<{ admissionMode: string; websiteUrl: string | null; voteCreation: string }> {
   return request("PUT", `/assemblies/${assemblyId}/settings`, settings);
 }
 

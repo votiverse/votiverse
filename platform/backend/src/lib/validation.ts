@@ -103,6 +103,7 @@ export const safeWebsiteUrl = z.string().max(2048).refine(
 export const AssemblySettingsBody = z.object({
   admissionMode: z.enum(["open", "approval", "invite-only"]).optional(),
   websiteUrl: safeWebsiteUrl.optional().or(z.literal("")),
+  voteCreation: z.enum(["admin", "members"]).optional(),
 });
 
 export const CreateLinkInviteBody = z.object({

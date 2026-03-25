@@ -30,7 +30,7 @@ import type { InvitationService } from "../../services/invitation-service.js";
 import type { JoinRequestService } from "../../services/join-request-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
-import type { AdmissionMode } from "../../services/assembly-cache.js";
+import type { AdmissionMode, VoteCreation } from "../../services/assembly-cache.js";
 import type { VCPClient } from "../../services/vcp-client.js";
 import type { UserService } from "../../services/user-service.js";
 import type { InvitationNotifier } from "../../services/invitation-notifier.js";
@@ -177,7 +177,7 @@ export function invitationRoutes(
     if (!assembly) {
       throw new NotFoundError("Assembly not found");
     }
-    return c.json({ admissionMode: assembly.admissionMode, websiteUrl: assembly.websiteUrl });
+    return c.json({ admissionMode: assembly.admissionMode, websiteUrl: assembly.websiteUrl, voteCreation: assembly.voteCreation });
   });
 
   /** PUT /assemblies/:id/settings — update assembly settings (admin only). */
@@ -196,8 +196,11 @@ export function invitationRoutes(
     if (body.websiteUrl !== undefined) {
       await assemblyCacheService.updateWebsiteUrl(assemblyId, body.websiteUrl || null);
     }
+    if (body.voteCreation !== undefined) {
+      await assemblyCacheService.updateVoteCreation(assemblyId, body.voteCreation as VoteCreation);
+    }
     const updated = await assemblyCacheService.get(assemblyId);
-    return c.json({ admissionMode: updated!.admissionMode, websiteUrl: updated!.websiteUrl });
+    return c.json({ admissionMode: updated!.admissionMode, websiteUrl: updated!.websiteUrl, voteCreation: updated!.voteCreation });
   });
 
   // ── Admin routes (assembly-scoped) ───────────────────────────────

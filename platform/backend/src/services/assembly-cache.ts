@@ -9,6 +9,7 @@ import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import { parseJsonColumn } from "../adapters/database/interface.js";
 
 export type AdmissionMode = "open" | "approval" | "invite-only";
+export type VoteCreation = "admin" | "members";
 
 export interface CachedAssembly {
   id: string;
@@ -19,6 +20,7 @@ export interface CachedAssembly {
   createdAt: string;
   admissionMode: AdmissionMode;
   websiteUrl: string | null;
+  voteCreation: VoteCreation;
 }
 
 interface CachedAssemblyRow {
@@ -30,6 +32,7 @@ interface CachedAssemblyRow {
   created_at: string;
   admission_mode: string;
   website_url: string | null;
+  vote_creation: string;
 }
 
 function rowToAssembly(row: CachedAssemblyRow): CachedAssembly {
@@ -42,20 +45,22 @@ function rowToAssembly(row: CachedAssemblyRow): CachedAssembly {
     createdAt: row.created_at,
     admissionMode: (row.admission_mode as AdmissionMode) ?? "approval",
     websiteUrl: row.website_url ?? null,
+    voteCreation: (row.vote_creation as VoteCreation) ?? "admin",
   };
 }
 
 export class AssemblyCacheService {
   constructor(private readonly db: DatabaseAdapter) {}
 
-  /** Insert or replace an assembly in the cache. admission_mode and website_url are preserved on conflict (only changeable via dedicated update methods). */
-  async upsert(assembly: Omit<CachedAssembly, "admissionMode" | "websiteUrl"> & { admissionMode?: AdmissionMode; websiteUrl?: string | null }): Promise<void> {
+  /** Insert or replace an assembly in the cache. Mutable settings are preserved on conflict (only changeable via dedicated update methods). */
+  async upsert(assembly: Omit<CachedAssembly, "admissionMode" | "websiteUrl" | "voteCreation"> & { admissionMode?: AdmissionMode; websiteUrl?: string | null; voteCreation?: VoteCreation }): Promise<void> {
     const configJson = typeof assembly.config === "string" ? assembly.config : JSON.stringify(assembly.config);
     const admissionMode = assembly.admissionMode ?? "approval";
     const websiteUrl = assembly.websiteUrl ?? null;
+    const voteCreation = assembly.voteCreation ?? "admin";
     await this.db.run(
-      `INSERT INTO assemblies_cache (id, organization_id, name, config, status, created_at, admission_mode, website_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO assemblies_cache (id, organization_id, name, config, status, created_at, admission_mode, website_url, vote_creation)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (id) DO UPDATE SET
          organization_id = excluded.organization_id,
          name = excluded.name,
@@ -71,6 +76,7 @@ export class AssemblyCacheService {
         assembly.createdAt,
         admissionMode,
         websiteUrl,
+        voteCreation,
       ],
     );
   }
@@ -78,7 +84,7 @@ export class AssemblyCacheService {
   /** Get a single assembly by ID. Returns undefined if not cached. */
   async get(id: string): Promise<CachedAssembly | undefined> {
     const row = await this.db.queryOne<CachedAssemblyRow>(
-      "SELECT id, organization_id, name, config, status, created_at, admission_mode, website_url FROM assemblies_cache WHERE id = ?",
+      "SELECT id, organization_id, name, config, status, created_at, admission_mode, website_url, vote_creation FROM assemblies_cache WHERE id = ?",
       [id],
     );
     return row ? rowToAssembly(row) : undefined;
@@ -90,7 +96,7 @@ export class AssemblyCacheService {
 
     const placeholders = ids.map(() => "?").join(", ");
     const rows = await this.db.query<CachedAssemblyRow>(
-      `SELECT id, organization_id, name, config, status, created_at, admission_mode, website_url FROM assemblies_cache WHERE id IN (${placeholders})`,
+      `SELECT id, organization_id, name, config, status, created_at, admission_mode, website_url, vote_creation FROM assemblies_cache WHERE id IN (${placeholders})`,
       ids,
     );
     return rows.map(rowToAssembly);
@@ -109,6 +115,14 @@ export class AssemblyCacheService {
     await this.db.run(
       "UPDATE assemblies_cache SET website_url = ? WHERE id = ?",
       [url, assemblyId],
+    );
+  }
+
+  /** Update who can create votes. */
+  async updateVoteCreation(assemblyId: string, mode: VoteCreation): Promise<void> {
+    await this.db.run(
+      "UPDATE assemblies_cache SET vote_creation = ? WHERE id = ?",
+      [mode, assemblyId],
     );
   }
 }

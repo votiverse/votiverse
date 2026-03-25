@@ -8,6 +8,8 @@ export interface PaginationMeta {
 
 export type AdmissionMode = "open" | "approval" | "invite-only";
 
+export type VoteCreation = "admin" | "members";
+
 export interface Assembly {
   id: string;
   organizationId: string | null;
@@ -17,6 +19,7 @@ export interface Assembly {
   createdAt: string;
   admissionMode?: AdmissionMode;
   websiteUrl?: string | null;
+  voteCreation?: VoteCreation;
 }
 
 export interface AssemblyRole {

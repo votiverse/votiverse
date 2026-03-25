@@ -42,10 +42,12 @@ export function EventsList() {
   const { data, loading, error, refetch } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
   const { assembly: assemblyData } = useAssembly(assemblyId);
   const timelineConfig = assemblyData?.config.timeline;
+  const voteCreation = assemblyData?.voteCreation ?? "admin";
   const [creating, setCreating] = useState(false);
 
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const { data: profileData } = useApi(() => api.getAssemblyProfile(assemblyId!), [assemblyId]);
   const { data: historyData } = useApi(
     () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
     [assemblyId, participantId],
@@ -82,6 +84,14 @@ export function EventsList() {
     });
   }, [events, fullEvents, votedIssueIds]);
 
+  const canCreateVote = useMemo(() => {
+    if (!participantId || !profileData) return false;
+    if (voteCreation === "members") return true;
+    return [...(profileData.owners ?? []), ...(profileData.admins ?? [])].some(
+      (r) => r.participantId === participantId,
+    );
+  }, [participantId, profileData, voteCreation]);
+
   if (loading || loadingFull) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
 
@@ -89,7 +99,9 @@ export function EventsList() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("eventsList.title")}</h1>
-        <Button onClick={() => setCreating(true)}>{t("eventsList.createVote")}</Button>
+        {canCreateVote && (
+          <Button onClick={() => setCreating(true)}>{t("eventsList.createVote")}</Button>
+        )}
       </div>
 
       {creating && (

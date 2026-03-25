@@ -87,6 +87,7 @@ export function Members() {
           assemblyId={assemblyId!}
           currentMode={admissionMode}
           currentWebsiteUrl={settingsData?.websiteUrl ?? null}
+          currentVoteCreation={(settingsData?.voteCreation as "admin" | "members") ?? "admin"}
           onChanged={() => { refetchSettings(); setShowSettings(false); }}
         />
       )}
@@ -349,23 +350,26 @@ function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: s
   );
 }
 
-function AssemblySettings({ assemblyId, currentMode, currentWebsiteUrl, onChanged }: { assemblyId: string; currentMode: AdmissionMode; currentWebsiteUrl: string | null; onChanged: () => void }) {
+function AssemblySettings({ assemblyId, currentMode, currentWebsiteUrl, currentVoteCreation, onChanged }: { assemblyId: string; currentMode: AdmissionMode; currentWebsiteUrl: string | null; currentVoteCreation: "admin" | "members"; onChanged: () => void }) {
   const { t } = useTranslation("governance");
   const [mode, setMode] = useState(currentMode);
   const [websiteUrl, setWebsiteUrl] = useState(currentWebsiteUrl ?? "");
+  const [voteCreation, setVoteCreation] = useState(currentVoteCreation);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
     const modeChanged = mode !== currentMode;
     const urlChanged = (websiteUrl.trim() || null) !== currentWebsiteUrl;
-    if (!modeChanged && !urlChanged) { onChanged(); return; }
+    const voteCreationChanged = voteCreation !== currentVoteCreation;
+    if (!modeChanged && !urlChanged && !voteCreationChanged) { onChanged(); return; }
     setSaving(true);
     setError(null);
     try {
       const updates: Parameters<typeof api.updateAssemblySettings>[1] = {};
       if (modeChanged) updates.admissionMode = mode;
       if (urlChanged) updates.websiteUrl = websiteUrl.trim();
+      if (voteCreationChanged) updates.voteCreation = voteCreation;
       await api.updateAssemblySettings(assemblyId, updates);
       onChanged();
     } catch (err: unknown) {
@@ -415,6 +419,14 @@ function AssemblySettings({ assemblyId, currentMode, currentWebsiteUrl, onChange
                 </a>
               </p>
             )}
+          </div>
+          <div>
+            <Label>{t("members.voteCreationLabel")}</Label>
+            <Select value={voteCreation} onChange={(e) => setVoteCreation(e.target.value as "admin" | "members")}>
+              <option value="admin">{t("members.voteCreationAdmin")}</option>
+              <option value="members">{t("members.voteCreationMembers")}</option>
+            </Select>
+            <p className="text-xs text-text-tertiary mt-1">{t("members.voteCreationHint")}</p>
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="secondary" onClick={onChanged}>{t("common:cancel")}</Button>
