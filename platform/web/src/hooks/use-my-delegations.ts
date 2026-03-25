@@ -74,8 +74,8 @@ export function resolveTopicDelegation(
     }
   }
 
-  // 3. Global delegation (empty topicScope)
-  const global = myDelegations.find((d) => d.topicScope.length === 0);
+  // 3. Global delegation (empty topicScope AND no issueScope — issue-scoped delegations are not global)
+  const global = myDelegations.find((d) => d.topicScope.length === 0 && !d.issueScope);
   if (global) {
     return {
       delegateId: global.targetId,
