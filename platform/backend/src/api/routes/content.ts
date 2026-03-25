@@ -15,6 +15,7 @@ import type { BackendConfig } from "../../config/schema.js";
 import { parseJsonColumn } from "../../adapters/database/interface.js";
 import { getUser } from "../middleware/auth.js";
 import { NotFoundError, ValidationError, AppError } from "../middleware/error-handler.js";
+import { safeWebsiteUrl } from "../../lib/validation.js";
 import type { AssetStore } from "../../services/asset-store.js";
 import { DatabaseAssetStore } from "../../services/asset-store.js";
 
@@ -251,6 +252,13 @@ export function contentRoutes(
       websiteUrl?: string;
     }>();
     const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    if (body.websiteUrl) {
+      const urlResult = safeWebsiteUrl.safeParse(body.websiteUrl);
+      if (!urlResult.success) {
+        throw new ValidationError(urlResult.error.issues[0]?.message ?? "Invalid website URL");
+      }
+    }
 
     const contentHash = computeContentHash(body.markdown, body.assets ?? []);
 

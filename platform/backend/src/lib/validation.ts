@@ -86,9 +86,23 @@ export const AdmissionModeBody = z.object({
   admissionMode: z.enum(["open", "approval", "invite-only"]),
 });
 
+/** Validates a website URL: must be http(s), max 2048 chars. Rejects javascript:, data:, etc. */
+export const safeWebsiteUrl = z.string().max(2048).refine(
+  (val) => {
+    if (!val) return true;
+    try {
+      const url = new URL(val);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  },
+  { message: "Must be a valid http or https URL" },
+);
+
 export const AssemblySettingsBody = z.object({
   admissionMode: z.enum(["open", "approval", "invite-only"]).optional(),
-  websiteUrl: z.string().url().max(2048).optional().or(z.literal("")),
+  websiteUrl: safeWebsiteUrl.optional().or(z.literal("")),
 });
 
 export const CreateLinkInviteBody = z.object({

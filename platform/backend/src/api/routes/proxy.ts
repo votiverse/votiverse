@@ -22,6 +22,7 @@ import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
 import { ValidationError, NotFoundError } from "../middleware/error-handler.js";
+import { safeWebsiteUrl } from "../../lib/validation.js";
 
 export function proxyRoutes(
   membershipService: MembershipService,
@@ -64,6 +65,12 @@ export function proxyRoutes(
 
     if (!body.name?.trim()) {
       throw new ValidationError("Assembly name is required");
+    }
+    if (body.websiteUrl) {
+      const urlResult = safeWebsiteUrl.safeParse(body.websiteUrl);
+      if (!urlResult.success) {
+        throw new ValidationError(urlResult.error.issues[0]?.message ?? "Invalid website URL");
+      }
     }
 
     // Create assembly on VCP
