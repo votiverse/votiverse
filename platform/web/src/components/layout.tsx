@@ -19,12 +19,11 @@ import {
   LayoutGrid,
   User,
   ChevronLeft,
+  ChevronRight,
   Menu,
   X,
   Tags,
   Bell,
-  LogOut,
-  Settings,
   Scale,
 } from "lucide-react";
 
@@ -36,7 +35,7 @@ export function Sidebar() {
   const { assemblyId } = useParams();
   const location = useLocation();
   const { t } = useTranslation();
-  const { storeUserId, participantName, handle, memberships, clearIdentity } = useIdentity();
+  const { storeUserId, participantName, handle, memberships } = useIdentity();
   const { pendingByAssembly, totalPending, totalPendingSurveys } = useAttention();
 
   if (!storeUserId) return null;
@@ -94,27 +93,19 @@ export function Sidebar() {
 
       {/* User footer */}
       <div className="p-3 border-t border-border-subtle shrink-0">
-        <div className="flex items-center gap-3 px-2 py-2">
+        <Link
+          to="/profile"
+          className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-surface-sunken transition-colors"
+        >
           <Avatar name={participantName ?? "?"} size="sm" />
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-text-primary truncate">{participantName}</div>
-            {handle && <div className="text-xs text-text-tertiary truncate">@{handle}</div>}
+            {handle
+              ? <div className="text-sm font-medium text-text-primary truncate">@{handle}</div>
+              : <div className="text-sm font-medium text-text-primary truncate">{participantName}</div>
+            }
           </div>
-          <Link
-            to="/profile"
-            className="p-1.5 text-text-tertiary hover:text-text-secondary transition-colors rounded-lg hover:bg-interactive-active"
-            aria-label={t("nav.me")}
-          >
-            <Settings size={14} />
-          </Link>
-          <button
-            onClick={() => clearIdentity()}
-            className="p-1.5 text-text-tertiary hover:text-error-text transition-colors rounded-lg hover:bg-error-subtle"
-            aria-label={t("nav.logout")}
-          >
-            <LogOut size={14} />
-          </button>
-        </div>
+          <ChevronRight size={14} className="text-text-tertiary shrink-0" />
+        </Link>
       </div>
     </aside>
   );

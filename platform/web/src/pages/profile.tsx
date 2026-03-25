@@ -184,6 +184,7 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
   totalOutbound: number;
 }) {
   const { t } = useTranslation("governance");
+  const { clearIdentity } = useIdentity();
 
   return (
     <>
@@ -295,6 +296,16 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
           </CardBody>
         </Card>
       ))}
+
+      {/* Logout */}
+      <div className="mt-8 pt-6 border-t border-border-subtle">
+        <button
+          onClick={() => clearIdentity()}
+          className="text-sm text-text-muted hover:text-error-text transition-colors"
+        >
+          {t("profile.logout")}
+        </button>
+      </div>
     </>
   );
 }
