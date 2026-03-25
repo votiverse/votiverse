@@ -37,6 +37,8 @@
   "language.preferred": "Preferred Language",
   "language.description": "Choose the language for the Votiverse interface. The page will reload to apply your selection.",
   "connectedAccounts.title": "Connected accounts",
+  "connectedAccounts.description": "Link your Google or Microsoft account for easy sign-in.",
+  "connectedAccounts.none": "No social login providers are configured.",
   "connectedAccounts.connect": "Connect",
   "connectedAccounts.disconnect": "Disconnect",
   "connectedAccounts.unlinking": "Disconnecting\u2026",

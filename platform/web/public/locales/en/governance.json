@@ -566,6 +566,10 @@
   "dashboard.accept": "Accept",
 
   "profile.title": "Me",
+  "profile.tab.activity": "Activity",
+  "profile.tab.language": "Language",
+  "profile.tab.appearance": "Appearance",
+  "profile.tab.accounts": "Accounts",
   "profile.noIdentity": "No identity selected. Go to Home to pick who you are.",
   "profile.votesCast": "Votes Cast",
   "profile.delegators": "Delegators",

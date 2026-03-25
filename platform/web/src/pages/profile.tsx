@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
@@ -8,6 +8,22 @@ import * as oauthApi from "../api/oauth.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Spinner, ErrorBox } from "../components/ui.js";
 import { Avatar, AVATAR_STYLES, AVATAR_STYLE_LABELS, avatarUrl, type AvatarStyle } from "../components/avatar.js";
+import { Sun, Monitor, Moon, Globe, Palette, User, Link2 } from "lucide-react";
+import { useTheme, type ThemeMode } from "../hooks/use-theme.js";
+import { ALL_LOCALES, LOCALE_NAMES } from "../locales.js";
+
+// ── Tab definitions ──────────────────────────────────────────────────
+
+type ProfileTab = "activity" | "language" | "appearance" | "accounts";
+
+const TAB_ICONS: Record<ProfileTab, typeof User> = {
+  activity: User,
+  language: Globe,
+  appearance: Palette,
+  accounts: Link2,
+};
+
+// ── Main profile page ────────────────────────────────────────────────
 
 interface AssemblyProfileData {
   assembly: Assembly;
@@ -18,10 +34,20 @@ interface AssemblyProfileData {
 export function Profile() {
   const { t } = useTranslation("governance");
   const { storeUserId, participantName, handle, email, memberships } = useIdentity();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+
+  const activeTab = (searchParams.get("tab") as ProfileTab) || "activity";
+  const setActiveTab = (tab: ProfileTab) => {
+    if (tab === "activity") {
+      setSearchParams({}, { replace: true });
+    } else {
+      setSearchParams({ tab }, { replace: true });
+    }
+  };
 
   useEffect(() => {
     if (!storeUserId || memberships.length === 0) {
@@ -80,12 +106,14 @@ export function Profile() {
   const totalDelegators = data.reduce((sum, d) => sum + (d.profile?.delegatorsCount ?? 0), 0);
   const totalOutbound = data.reduce((sum, d) => sum + (d.profile?.myDelegations.length ?? 0), 0);
 
+  const tabs: ProfileTab[] = ["activity", "language", "appearance", "accounts"];
+
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("profile.title")}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-4">{t("profile.title")}</h1>
 
-      {/* Identity card */}
-      <Card className="mb-6">
+      {/* Identity card — always visible above tabs */}
+      <Card className="mb-4">
         <CardBody>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -109,15 +137,56 @@ export function Profile() {
           currentHandle={handle ?? ""}
           onSaved={() => {
             setEditing(false);
-            // Refresh identity by reloading the page (simplest approach)
             window.location.reload();
           }}
         />
       )}
 
-      {/* Connected accounts */}
-      <ConnectedAccounts />
+      {/* Tab bar */}
+      <div className="flex overflow-x-auto hide-scrollbar gap-1 mb-6 border-b border-border-subtle">
+        {tabs.map((tab) => {
+          const Icon = TAB_ICONS[tab];
+          const active = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex items-center gap-1.5 px-3 pb-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                active
+                  ? "border-accent text-accent-text"
+                  : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
+              }`}
+            >
+              <Icon size={15} strokeWidth={1.5} />
+              {t(`profile.tab.${tab}`)}
+            </button>
+          );
+        })}
+      </div>
 
+      {/* Tab content */}
+      {activeTab === "activity" && (
+        <ActivityTab data={data} totalVotes={totalVotes} totalDelegators={totalDelegators} totalOutbound={totalOutbound} />
+      )}
+      {activeTab === "language" && <LanguageTab />}
+      {activeTab === "appearance" && <AppearanceTab />}
+      {activeTab === "accounts" && <AccountsTab />}
+    </div>
+  );
+}
+
+// ── Activity tab ─────────────────────────────────────────────────────
+
+function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
+  data: AssemblyProfileData[];
+  totalVotes: number;
+  totalDelegators: number;
+  totalOutbound: number;
+}) {
+  const { t } = useTranslation("governance");
+
+  return (
+    <>
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3 mb-8">
         <Link to="/profile/votes">
@@ -153,7 +222,7 @@ export function Profile() {
       {data.map(({ assembly, profile, history }) => (
         <Card key={assembly.id} className="mb-4">
           <CardHeader>
-            <Link to={`/assembly/${assembly.id}`} className="font-medium text-text-primary hover:text-accent-text transition-colors">
+            <Link to={`/assembly/${assembly.id}/events`} className="font-medium text-text-primary hover:text-accent-text transition-colors">
               {assembly.name}
             </Link>
           </CardHeader>
@@ -226,11 +295,104 @@ export function Profile() {
           </CardBody>
         </Card>
       ))}
-    </div>
+    </>
   );
 }
 
-// ── Connected accounts ────────────────────────────────────────────────
+// ── Language tab ──────────────────────────────────────────────────────
+
+function LanguageTab() {
+  const { t, i18n } = useTranslation("settings");
+  const currentLocale = i18n.language;
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (newLocale: string) => {
+    if (newLocale === currentLocale) return;
+    setSaving(true);
+    try {
+      await api.updateProfile({ locale: newLocale });
+      window.location.reload();
+    } catch {
+      setSaving(false);
+    }
+  };
+
+  if (saving) return <Spinner />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-medium text-text-primary">{t("language.preferred")}</h2>
+        <p className="text-sm text-text-muted mt-1">{t("language.description")}</p>
+      </CardHeader>
+      <CardBody>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {ALL_LOCALES.map((locale) => (
+            <button
+              key={locale}
+              onClick={() => handleChange(locale)}
+              className={`text-left px-4 py-3 rounded-lg border transition-colors ${
+                locale === currentLocale
+                  ? "border-accent bg-accent-subtle text-accent-strong-text font-medium"
+                  : "border-border-default hover:border-border-strong hover:bg-interactive-hover text-text-secondary"
+              }`}
+            >
+              <span className="text-sm">{LOCALE_NAMES[locale] ?? locale}</span>
+              {locale === currentLocale && (
+                <span className="ml-2 text-xs text-accent-text">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// ── Appearance tab ───────────────────────────────────────────────────
+
+const THEME_MODES: { mode: ThemeMode; Icon: typeof Sun }[] = [
+  { mode: "light", Icon: Sun },
+  { mode: "system", Icon: Monitor },
+  { mode: "dark", Icon: Moon },
+];
+
+function AppearanceTab() {
+  const { t } = useTranslation("settings");
+  const { mode, setMode } = useTheme();
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-medium text-text-primary">{t("appearance.theme")}</h2>
+        <p className="text-sm text-text-muted mt-1">{t("appearance.description")}</p>
+      </CardHeader>
+      <CardBody>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {THEME_MODES.map(({ mode: m, Icon }) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
+                m === mode
+                  ? "border-accent bg-accent-subtle text-accent-strong-text font-medium"
+                  : "border-border-default hover:border-border-strong hover:bg-interactive-hover text-text-secondary"
+              }`}
+            >
+              <Icon size={20} />
+              <span className="text-sm">{t(`appearance.${m}`)}</span>
+              {m === mode && (
+                <span className="ml-auto text-xs text-accent-text">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// ── Accounts tab ─────────────────────────────────────────────────────
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: "Google",
@@ -239,7 +401,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
-function ConnectedAccounts() {
+function AccountsTab() {
   const { t } = useTranslation("settings");
   const [linked, setLinked] = useState<oauthApi.LinkedProvider[]>([]);
   const [providers, setProviders] = useState<string[]>([]);
@@ -262,9 +424,10 @@ function ConnectedAccounts() {
     return () => { cancelled = true; };
   }, []);
 
-  // Don't show section if no providers are configured and none linked
-  if (!loading && providers.length === 0 && linked.length === 0) return null;
-  if (loading) return null;
+  if (loading) return <Spinner />;
+  if (providers.length === 0 && linked.length === 0) {
+    return <p className="text-sm text-text-muted">{t("connectedAccounts.none")}</p>;
+  }
 
   const linkedSet = new Set(linked.map((l) => l.provider));
   const unlinkedProviders = providers.filter((p) => !linkedSet.has(p));
@@ -275,21 +438,23 @@ function ConnectedAccounts() {
       await oauthApi.unlinkProvider(provider);
       setLinked((prev) => prev.filter((l) => l.provider !== provider));
     } catch {
-      // Silently fail — could show error
+      // Silently fail
     } finally {
       setUnlinking(null);
     }
   };
 
   const handleConnect = (provider: string) => {
-    // Navigate to OAuth initiation — will redirect back to /profile after login
-    window.location.href = `${BASE_URL}/auth/oauth/${provider}?redirect=/profile`;
+    window.location.href = `${BASE_URL}/auth/oauth/${provider}?redirect=/profile?tab=accounts`;
   };
 
   return (
-    <Card className="mb-6">
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-medium text-text-primary">{t("connectedAccounts.title")}</h2>
+        <p className="text-sm text-text-muted mt-1">{t("connectedAccounts.description")}</p>
+      </CardHeader>
       <CardBody>
-        <h3 className="font-medium text-text-primary mb-3">{t("connectedAccounts.title")}</h3>
         <div className="space-y-2">
           {linked.map((l) => (
             <div key={l.provider} className="flex items-center justify-between py-2">
@@ -353,7 +518,6 @@ function ProviderIcon({ provider }: { provider: string }) {
 
 // ── Profile editor ────────────────────────────────────────────────────
 
-/** A set of fun seed words to generate varied avatars for browsing. */
 const SEED_POOL = [
   "felix", "luna", "atlas", "nova", "sage", "river", "ember", "storm",
   "coral", "jasper", "maple", "onyx", "pearl", "robin", "sky", "wren",
@@ -397,7 +561,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-4">
       <CardBody className="space-y-4">
         <h3 className="font-medium text-text-primary">{t("profile.editProfile")}</h3>
         {error && <ErrorBox message={error} />}
@@ -425,7 +589,7 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="block w-full rounded-md border border-border-strong px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring"
+            className="block w-full rounded-xl border border-border-strong px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring"
             rows={2}
             maxLength={280}
             placeholder={t("profile.bioPlaceholder")}
@@ -448,7 +612,6 @@ function ProfileEditor({ currentName, currentHandle, onSaved }: {
           </div>
         </div>
 
-        {/* Avatar gallery */}
         {showAvatarPicker && (
           <AvatarPicker
             currentStyle={selectedStyle}
@@ -495,17 +658,13 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
   const [browsingStyle, setBrowsingStyle] = useState<AvatarStyle>(currentStyle);
   const [customSeed, setCustomSeed] = useState("");
 
-  // Generate a set of seeds: the user's current seed + pool of fun words
   const seeds = [currentSeed, ...SEED_POOL.filter((s) => s !== currentSeed)];
-
-  // If user typed a custom seed, prepend it
   const displaySeeds = customSeed.trim()
     ? [customSeed.trim(), ...seeds]
     : seeds;
 
   return (
     <div className="border border-border-default rounded-xl p-3 space-y-3">
-      {/* Style tabs — scrollable row */}
       <div>
         <p className="text-xs font-medium text-text-muted mb-2">{t("profile.style")}</p>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -526,7 +685,6 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
         </div>
       </div>
 
-      {/* Custom seed input */}
       <div>
         <Input
           value={customSeed}
@@ -536,7 +694,6 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
         />
       </div>
 
-      {/* Avatar grid for the selected style */}
       <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
         {displaySeeds.slice(0, 24).map((seed) => {
           const isSelected = browsingStyle === currentStyle && seed === currentSeed;
