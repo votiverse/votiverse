@@ -90,9 +90,9 @@ Contextual variables that map primitives to UI purposes. These are defined twice
 | | `--text-tertiary` | gray-400 | De-emphasized metadata, disabled text |
 | | `--text-on-accent` | `#FFFFFF` | Text on accent-colored backgrounds |
 | | `--text-inverted` | `#FFFFFF` | Text on dark surfaces |
-| **Border** | `--border-default` | gray-200 | Card borders, dividers |
-| | `--border-strong` | gray-300 | Input borders, emphasized dividers |
-| | `--border-subtle` | gray-100 | Faint separators within cards |
+| **Border** | `--border-default` | `rgb(15 23 42 / 0.10)` | Card borders, dividers (semi-transparent) |
+| | `--border-strong` | `rgb(15 23 42 / 0.15)` | Input borders, emphasized dividers |
+| | `--border-subtle` | `rgb(15 23 42 / 0.05)` | Faint separators within cards |
 | **Accent** | `--accent` | brand-500 | Primary buttons, active states |
 | | `--accent-hover` | brand-600 | Button hover |
 | | `--accent-active` | brand-700 | Button press |
@@ -206,6 +206,30 @@ Nested or secondary grouping elements within a card should use `bg-surface-sunke
 
 **Do not use `rounded-md` or `rounded-lg` for structural cards.** Reserve smaller radii for inline elements like badges, inputs, and small buttons.
 
+#### Semi-Transparent Borders ("The Secret Sauce")
+
+A common UI mistake is pairing a solid gray border with a drop shadow. A solid hex border acts like flat paint — at the bottom edge of a card, it "fights" the shadow beneath it, creating visual mud. Semi-transparent borders act like tinted glass: they blend with the shadow, making the card feel physically grounded.
+
+**Rule:** Structural borders use alpha-channel washes of the text color, not solid gray hex codes. This is implemented in the border tokens:
+
+```css
+/* LIGHT MODE: 5-15% opacity of Deep Slate (#0F172A) */
+:root {
+  --border-default: rgb(15 23 42 / 0.10);
+  --border-strong: rgb(15 23 42 / 0.15);
+  --border-subtle: rgb(15 23 42 / 0.05);
+}
+
+/* DARK MODE: 5-15% opacity of Frost White (#F8FAFC) */
+.dark {
+  --border-default: rgb(248 250 252 / 0.10);
+  --border-strong: rgb(248 250 252 / 0.15);
+  --border-subtle: rgb(248 250 252 / 0.05);
+}
+```
+
+Because every component references `border-border-default`, this single token change upgraded the entire app's elevation system.
+
 ### Modals & Dialogs
 
 - Border radius: `rounded-2xl` (matching cards, not larger)
@@ -253,7 +277,7 @@ On screens ≥ 1024px, the app uses a persistent left sidebar with a scrollable 
 - **Logo area** (top): Votiverse logo + wordmark, links to dashboard
 - **Personal section**: Dashboard, Notifications
 - **My Groups section**: List of user's assemblies, each clickable to enter the assembly scope
-- **User footer** (bottom): Avatar, name, logout, settings
+- **User footer** (bottom): Avatar + @handle, clickable row linking to profile page
 
 The sidebar uses `bg-surface-raised` with a right border (`border-r border-border-default`). The content area uses `bg-surface`.
 
@@ -500,10 +524,10 @@ The full dark token set in `index.css`:
   --text-on-accent: var(--primitive-brand-950); /* Dark text on light teal — 7.6:1 contrast */
   --text-inverted: var(--primitive-gray-900);
 
-  /* Borders */
-  --border-default: var(--primitive-gray-700);
-  --border-strong: var(--primitive-gray-600);
-  --border-subtle: var(--primitive-gray-800);
+  /* Borders — semi-transparent for natural shadow blending */
+  --border-default: rgb(248 250 252 / 0.10);
+  --border-strong: rgb(248 250 252 / 0.15);
+  --border-subtle: rgb(248 250 252 / 0.05);
 
   /* Accent (shifted lighter for contrast) */
   --accent: var(--primitive-brand-400);
