@@ -48,7 +48,7 @@ export function LocalePicker() {
         <span className="font-medium">{displayCode}</span>
       </button>
       {open && (
-        <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-surface-overlay border border-border-default rounded-lg shadow-lg z-30 py-1">
+        <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-surface-overlay border border-border-default rounded-xl shadow-lg z-30 py-1">
           {ALL_LOCALES.map((locale) => {
             const isActive = i18n.language === locale || i18n.language?.startsWith(locale);
             return (

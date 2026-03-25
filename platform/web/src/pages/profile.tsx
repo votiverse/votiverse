@@ -504,7 +504,7 @@ function AvatarPicker({ currentStyle, currentSeed, onSelect }: {
     : seeds;
 
   return (
-    <div className="border border-border-default rounded-lg p-3 space-y-3">
+    <div className="border border-border-default rounded-xl p-3 space-y-3">
       {/* Style tabs — scrollable row */}
       <div>
         <p className="text-xs font-medium text-text-muted mb-2">{t("profile.style")}</p>

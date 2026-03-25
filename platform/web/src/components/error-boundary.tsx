@@ -56,7 +56,7 @@ function ErrorFallback({ message, onRetry, onReload }: { message?: string; onRet
   const { t } = useTranslation();
   return (
     <div className="max-w-md mx-auto py-16 text-center">
-      <div className="bg-error-subtle border border-error-border rounded-lg p-6">
+      <div className="bg-error-subtle border border-error-border rounded-xl p-6">
         <h2 className="text-lg font-bold font-display text-error-text mb-2">{t("error.boundary.title")}</h2>
         <p className="text-sm text-error-text mb-4">
           {message ?? t("error.boundary.unexpected")}

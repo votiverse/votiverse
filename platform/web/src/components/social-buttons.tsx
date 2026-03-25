@@ -21,7 +21,7 @@ export function GoogleSignInButton({ redirect }: SocialButtonProps) {
   return (
     <a
       href={href}
-      className="flex items-center justify-center gap-3 w-full min-h-[44px] px-4 py-2.5 bg-surface-raised border border-border-strong rounded-lg text-sm font-medium text-text-secondary hover:bg-interactive-hover hover:border-border-strong transition-colors cursor-pointer"
+      className="flex items-center justify-center gap-3 w-full min-h-[44px] px-4 py-2.5 bg-surface-raised border border-border-strong rounded-xl text-sm font-medium text-text-secondary hover:bg-interactive-hover hover:border-border-strong transition-colors cursor-pointer"
     >
       <GoogleLogo />
       {t("continueWithGoogle")}
@@ -36,7 +36,7 @@ export function MicrosoftSignInButton({ redirect }: SocialButtonProps) {
   return (
     <a
       href={href}
-      className="flex items-center justify-center gap-3 w-full min-h-[44px] px-4 py-2.5 bg-[#2f2f2f] border border-[#2f2f2f] rounded-lg text-sm font-medium text-white hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+      className="flex items-center justify-center gap-3 w-full min-h-[44px] px-4 py-2.5 bg-[#2f2f2f] border border-[#2f2f2f] rounded-xl text-sm font-medium text-white hover:bg-[#1a1a1a] transition-colors cursor-pointer"
     >
       <MicrosoftLogo />
       {t("continueWithMicrosoft")}

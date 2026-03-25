@@ -85,7 +85,9 @@ export function LoginForm() {
   return (
     <div className="max-w-sm mx-auto py-8 sm:py-16">
       <div className="text-center mb-8">
-        <img src="/logo.svg" alt="Votiverse" className="w-14 h-14 mx-auto mb-4" />
+        <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mx-auto mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-on-accent"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+        </div>
         <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">
           {mode === "login" ? t("welcomeBack") : t("createAccount")}
         </h1>

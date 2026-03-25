@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router";
+import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
 import { ThemeContext, useThemeProvider } from "./hooks/use-theme.js";
@@ -7,7 +7,7 @@ import { Sidebar, MobileHeader, AssemblyContentHeader, BottomTabs } from "./comp
 import { ErrorBoundary } from "./components/error-boundary.js";
 import { Dashboard } from "./pages/dashboard.js";
 import { AssemblyList } from "./pages/assembly-list.js";
-import { AssemblyDashboard } from "./pages/assembly-dashboard.js";
+// AssemblyDashboard import removed — /assembly/:id now redirects to /assembly/:id/events
 import { Members } from "./pages/members.js";
 import { EventsList } from "./pages/events-list.js";
 import { EventDetail } from "./pages/event-detail.js";
@@ -59,6 +59,12 @@ function Layout() {
   );
 }
 
+/** Redirect /assembly/:id → /assembly/:id/events (Votes is the default tab). */
+function AssemblyRedirect() {
+  const { assemblyId } = useParams();
+  return <Navigate to={`/assembly/${assemblyId}/events`} replace />;
+}
+
 export function App() {
   const theme = useThemeProvider();
   const identity = useIdentityProvider();
@@ -88,7 +94,7 @@ export function App() {
               <Route path="settings/notifications" element={<NotificationSettings />} />
               <Route path="settings/language" element={<LanguageSettings />} />
               <Route path="settings/appearance" element={<AppearanceSettings />} />
-              <Route path="assembly/:assemblyId" element={<AssemblyDashboard />} />
+              <Route path="assembly/:assemblyId" element={<AssemblyRedirect />} />
               <Route path="assembly/:assemblyId/members" element={<Members />} />
               <Route path="assembly/:assemblyId/events" element={<EventsList />} />
               <Route path="assembly/:assemblyId/events/:eventId" element={<EventDetail />} />

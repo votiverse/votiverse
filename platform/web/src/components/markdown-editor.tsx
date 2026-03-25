@@ -152,7 +152,7 @@ export function MarkdownEditor({
   if (!editor) return null;
 
   return (
-    <div className="tiptap-editor border rounded-lg overflow-hidden bg-surface-raised">
+    <div className="tiptap-editor border rounded-xl overflow-hidden bg-surface-raised">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b bg-surface">
         <ToolbarButton

@@ -88,7 +88,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border-default rounded-lg p-8 text-center cursor-pointer hover:border-accent transition-colors"
+              className="border-2 border-dashed border-border-default rounded-xl p-8 text-center cursor-pointer hover:border-accent transition-colors"
             >
               {loading ? (
                 <p className="text-sm text-text-muted">{t("bulk.processing")}</p>
@@ -135,7 +135,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
             </div>
 
             {/* Handle list */}
-            <div className="max-h-64 overflow-y-auto border border-border-subtle rounded-lg divide-y divide-surface">
+            <div className="max-h-64 overflow-y-auto border border-border-subtle rounded-xl divide-y divide-surface">
               {preview.valid.map((v) => (
                 <div key={v.handle} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span className="text-text-secondary font-mono">@{v.handle}</span>

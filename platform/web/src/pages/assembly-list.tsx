@@ -444,7 +444,7 @@ function PresetPicker({ value, onChange }: { value: string; onChange: (v: string
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 hover:border-border-strong focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring transition-colors"
+        className="w-full text-left rounded-xl border border-border-strong px-3 py-2.5 hover:border-border-strong focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring transition-colors"
       >
         <span className="text-sm font-medium text-text-primary">{selected.label}</span>
         <p className="text-xs text-text-muted mt-0.5">{selected.desc}</p>
@@ -455,7 +455,7 @@ function PresetPicker({ value, onChange }: { value: string; onChange: (v: string
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-10 mt-1 w-full bg-surface-raised rounded-lg border border-border-default shadow-lg max-h-[320px] overflow-y-auto">
+        <div className="absolute z-10 mt-1 w-full bg-surface-raised rounded-xl border border-border-default shadow-lg max-h-[320px] overflow-y-auto">
           {PRESETS.map((p) => (
             <button
               key={p.value}

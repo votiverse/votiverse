@@ -110,7 +110,7 @@ export function MemberSearch({
 
       {/* Dropdown */}
       {showDropdown && (
-        <div className="absolute z-10 w-full mt-1 bg-surface-raised border border-border-default rounded-lg shadow-lg max-h-80 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-1 bg-surface-raised border border-border-default rounded-xl shadow-lg max-h-80 overflow-y-auto">
           {/* Featured candidates section (candidacy mode) */}
           {activeCandidates.length > 0 && query.length < 2 && (
             <div>

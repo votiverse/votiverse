@@ -215,7 +215,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
     : "border-l-border-default bg-surface";
 
   return (
-    <div className={`border-l-[3px] rounded-lg border border-border-default bg-surface-raised pl-4 pr-4 py-3 ${accentClass}`}>
+    <div className={`border-l-[3px] rounded-xl border border-border-default bg-surface-raised pl-4 pr-4 py-3 ${accentClass}`}>
         {/* Header: author + linked target + metadata */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">

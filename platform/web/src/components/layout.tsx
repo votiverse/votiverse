@@ -316,7 +316,7 @@ function IdentityIndicator({ name }: { name: string | null }) {
         <Avatar name={name ?? "?"} size="sm" />
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-48 bg-surface-overlay border border-border-default rounded-lg shadow-lg z-30 py-1">
+        <div className="absolute right-0 mt-1 w-48 bg-surface-overlay border border-border-default rounded-xl shadow-lg z-30 py-1">
           <div className="px-3 py-2 border-b border-border-subtle">
             <p className="text-sm font-medium text-text-primary">{name}</p>
             {handle && <p className="text-xs text-text-tertiary truncate">@{handle}</p>}

@@ -268,7 +268,7 @@ function CreateSurveyForm({
           </div>
 
           {questions.map((q, qIdx) => (
-            <div key={qIdx} className="bg-surface rounded-lg p-3 sm:p-4 space-y-3">
+            <div key={qIdx} className="bg-surface rounded-xl p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-text-secondary">{t("surveys.questionN", { n: qIdx + 1 })}</span>
                 {questions.length > 1 && (
