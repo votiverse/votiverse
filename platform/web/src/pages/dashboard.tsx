@@ -104,7 +104,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
 
       {/* Action banner */}
       {(totalPending > 0 || totalPendingSurveys > 0) ? (
-        <div className="mb-6 rounded-xl bg-accent-emphasis p-4 sm:p-5 text-text-on-accent">
+        <div className="mb-6 rounded-2xl bg-accent-emphasis p-4 sm:p-5 text-text-on-accent">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-lg sm:text-xl font-semibold">
@@ -123,7 +123,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
             {nearestDeadline && (
               <Link
                 to={`/assembly/${nearestDeadline.assemblyId}/events/${nearestDeadline.eventId}`}
-                className="inline-flex items-center justify-center px-4 py-2.5 bg-surface-raised text-accent-text font-medium rounded-md hover:bg-interactive-hover transition-colors min-h-[44px] shrink-0"
+                className="inline-flex items-center justify-center px-4 py-2.5 bg-surface-raised text-accent-text font-bold rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all min-h-[44px] shrink-0"
               >
                 {t("dashboard.voteNow")}
               </Link>
@@ -131,7 +131,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
           </div>
         </div>
       ) : (
-        <div className="mb-6 rounded-xl bg-success-subtle border border-success-border p-4 sm:p-5">
+        <div className="mb-6 rounded-2xl bg-success-subtle border border-success-border p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <svg className="w-6 h-6 text-success-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
