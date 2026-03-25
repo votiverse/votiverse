@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
+import { useAssemblyRole } from "../hooks/use-assembly-role.js";
 import * as api from "../api/client.js";
 import type { VotingEvent } from "../api/types.js";
 import { Card, CardBody, Button, Input, Select, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
@@ -47,7 +48,7 @@ export function EventsList() {
 
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
-  const { data: profileData } = useApi(() => api.getAssemblyProfile(assemblyId!), [assemblyId]);
+  const { isAdmin } = useAssemblyRole(assemblyId);
   const { data: historyData } = useApi(
     () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
     [assemblyId, participantId],
@@ -84,13 +85,7 @@ export function EventsList() {
     });
   }, [events, fullEvents, votedIssueIds]);
 
-  const canCreateVote = useMemo(() => {
-    if (!participantId || !profileData) return false;
-    if (voteCreation === "members") return true;
-    return [...(profileData.owners ?? []), ...(profileData.admins ?? [])].some(
-      (r) => r.participantId === participantId,
-    );
-  }, [participantId, profileData, voteCreation]);
+  const canCreateVote = voteCreation === "members" ? !!participantId : isAdmin;
 
   if (loading || loadingFull) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;

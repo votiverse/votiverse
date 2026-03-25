@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
-import { useIdentity } from "../hooks/use-identity.js";
+import { useAssemblyRole } from "../hooks/use-assembly-role.js";
 import { useMyDelegations, resolveRootTopicDelegation } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
 import type { Topic, VotingEvent, Delegation } from "../api/types.js";
@@ -51,8 +51,7 @@ function buildTree(
 export function TopicsList() {
   const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
-  const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const { isAdmin } = useAssemblyRole(assemblyId);
   const { data: topicsData, loading, error, refetch } = useApi(
     () => api.listTopics(assemblyId!),
     [assemblyId],
@@ -63,10 +62,6 @@ export function TopicsList() {
   );
   const { data: delegationsData } = useApi(
     () => api.listDelegations(assemblyId!),
-    [assemblyId],
-  );
-  const { data: profileData } = useApi(
-    () => api.getAssemblyProfile(assemblyId!),
     [assemblyId],
   );
   const { myDelegations, participantNames } = useMyDelegations();
@@ -82,14 +77,6 @@ export function TopicsList() {
     ),
     [topics, eventsData, delegationsData],
   );
-
-  // Check if current user is an admin or owner
-  const isAdmin = useMemo(() => {
-    if (!participantId || !profileData) return false;
-    return [...(profileData.owners ?? []), ...(profileData.admins ?? [])].some(
-      (r) => r.participantId === participantId,
-    );
-  }, [participantId, profileData]);
 
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
