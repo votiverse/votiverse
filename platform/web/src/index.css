@@ -10,18 +10,18 @@
    ================================================================ */
 
 :root {
-  /* Brand (generated from #185FA5) */
-  --primitive-brand-50: #EBF2FA;
-  --primitive-brand-100: #D1E2F4;
-  --primitive-brand-200: #A8C8E9;
-  --primitive-brand-300: #7EAEDE;
-  --primitive-brand-400: #5494D3;
-  --primitive-brand-500: #185FA5;
-  --primitive-brand-600: #2B7BD4;
-  --primitive-brand-700: #0F4273;
-  --primitive-brand-800: #0B3059;
-  --primitive-brand-900: #071E3F;
-  --primitive-brand-950: #041226;
+  /* Brand — Diplomatic Teal (aligned with marketing site identity) */
+  --primitive-brand-50: #F0FDFB;
+  --primitive-brand-100: #CCFBF1;
+  --primitive-brand-200: #99F6E4;
+  --primitive-brand-300: #5EEAD4;
+  --primitive-brand-400: #2DD4BF;
+  --primitive-brand-500: #006B5F;
+  --primitive-brand-600: #005A50;
+  --primitive-brand-700: #004D44;
+  --primitive-brand-800: #115E59;
+  --primitive-brand-900: #134E4A;
+  --primitive-brand-950: #0A302D;
 
   /* Gray (neutral — Tailwind default gray, explicit for theme remapping) */
   --primitive-gray-50: #F9FAFB;
@@ -166,6 +166,12 @@
   --badge-red-bg: var(--primitive-red-100);
   --badge-red-text: var(--primitive-red-700);
 
+  /* Tally bar colors — neutral rotation (never map option semantics to color) */
+  --tally-color-1: #3B82F6; /* Blue */
+  --tally-color-2: #F59E0B; /* Amber */
+  --tally-color-3: #10B981; /* Emerald */
+  --tally-color-4: #8B5CF6; /* Purple */
+
   /* Miscellaneous */
   --skeleton: var(--primitive-gray-200);
   --overlay-backdrop: rgb(0 0 0 / 0.2);
@@ -198,13 +204,13 @@
   --border-strong: var(--primitive-gray-600);
   --border-subtle: var(--primitive-gray-800);
 
-  /* Accent (brand) */
+  /* Accent (brand — shifted lighter for dark surfaces) */
   --accent: var(--primitive-brand-400);
   --accent-hover: var(--primitive-brand-300);
-  --accent-active: var(--primitive-brand-200);
-  --accent-emphasis: var(--primitive-brand-500);
-  --accent-subtle: rgb(24 95 165 / 0.15);
-  --accent-muted: rgb(24 95 165 / 0.25);
+  --accent-active: var(--primitive-brand-500);
+  --accent-emphasis: var(--primitive-brand-400);
+  --accent-subtle: rgb(45 212 191 / 0.1);
+  --accent-muted: rgb(45 212 191 / 0.2);
   --accent-text: var(--primitive-brand-300);
   --accent-strong-text: var(--primitive-brand-200);
 
@@ -268,6 +274,15 @@
    ================================================================ */
 
 @theme {
+  /* Typography */
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+
+  /* Tally bar colors */
+  --color-tally-1: var(--tally-color-1);
+  --color-tally-2: var(--tally-color-2);
+  --color-tally-3: var(--tally-color-3);
+  --color-tally-4: var(--tally-color-4);
+
   /* Surfaces */
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
@@ -357,6 +372,8 @@
 body {
   background-color: var(--surface);
   color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
 /* Safe area padding for bottom tab bar (notched phones) */
@@ -370,3 +387,12 @@ body {
     font-size: 16px !important;
   }
 }
+
+/* Custom scrollbar for sidebar and overflow containers */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--border-strong); border-radius: 10px; }
+
+/* Hide scrollbar for horizontal scroll containers (tab bars, badge filters) */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

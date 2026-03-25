@@ -34,3 +34,6 @@ test-notifications/
 # Claude Code local/ephemeral files
 .claude/settings.local.json
 .claude/launch.json
+
+# Temporary files
+.aux/

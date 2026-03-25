@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 export function Card({ children, className = "", onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <div className={`bg-surface-raised rounded-lg border border-border-default shadow-sm ${className}`} onClick={onClick} role={onClick ? "button" : undefined}>
+    <div className={`bg-surface-raised rounded-2xl border border-border-default shadow-sm ${className}`} onClick={onClick} role={onClick ? "button" : undefined}>
       {children}
     </div>
   );
@@ -29,7 +29,7 @@ export function Button({
   variant?: "primary" | "secondary" | "danger" | "ghost";
   size?: "sm" | "md" | "lg";
 }) {
-  const base = "inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  const base = "inline-flex items-center justify-center font-medium rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]";
   const variants = {
     primary: "bg-accent text-text-on-accent hover:bg-accent-hover focus:ring-focus-ring active:bg-accent-active",
     secondary: "bg-surface-raised text-text-secondary border border-border-strong hover:bg-interactive-hover focus:ring-focus-ring active:bg-interactive-active",
@@ -52,7 +52,7 @@ export function Button({
 export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`block w-full rounded-md border border-border-strong bg-surface-raised px-3 py-2.5 text-base sm:text-sm shadow-sm placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
+      className={`block w-full rounded-xl border border-border-strong bg-surface-raised px-3 py-2.5 text-base sm:text-sm shadow-sm placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
       {...props}
     />
   );
@@ -61,7 +61,7 @@ export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInpu
 export function Select({ className = "", children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
-      className={`block w-full rounded-md border border-border-strong bg-surface-raised px-3 py-2.5 text-base sm:text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
+      className={`block w-full rounded-xl border border-border-strong bg-surface-raised px-3 py-2.5 text-base sm:text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring min-h-[44px] sm:min-h-0 sm:py-2 ${className}`}
       {...props}
     >
       {children}
@@ -99,7 +99,7 @@ export function Spinner() {
 export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="rounded-md bg-error-subtle border border-error-border p-4">
+    <div className="rounded-xl bg-error-subtle border border-error-border p-4">
       <p className="text-sm text-error-text">{message}</p>
       {onRetry && (
         <button onClick={onRetry} className="mt-2 text-sm text-error underline hover:text-error-hover min-h-[44px] sm:min-h-0">
