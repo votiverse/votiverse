@@ -16,12 +16,12 @@ import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip }
 import { Avatar } from "../components/avatar.js";
 import { QuickDelegateForm } from "../components/quick-delegate-form.js";
 
-/** Neutral color rotation for tally bars — first place gets the strongest color, no choice is privileged. */
+/** Neutral color rotation for tally bars — no choice is visually privileged. */
 const TALLY_COLORS = [
-  "bg-info-subtle0",
-  "bg-amber-500",
-  "bg-emerald-500",
-  "bg-purple-500",
+  "bg-tally-1",
+  "bg-tally-2",
+  "bg-tally-3",
+  "bg-tally-4",
   "bg-rose-500",
   "bg-cyan-500",
   "bg-orange-500",
@@ -152,7 +152,7 @@ export function EventDetail() {
       {/* Event header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 flex-wrap mb-1">
-          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{event.title}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{event.title}</h1>
           <EventStatusBadge status={status} />
         </div>
         {event.description && <p className="text-sm text-text-muted">{event.description}</p>}

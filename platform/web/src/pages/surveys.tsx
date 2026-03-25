@@ -15,10 +15,10 @@ type SurveyTab = "open" | "closed";
 // ---------------------------------------------------------------------------
 
 const RESULT_COLORS = [
-  "bg-blue-500",
-  "bg-amber-500",
-  "bg-emerald-500",
-  "bg-purple-500",
+  "bg-tally-1",
+  "bg-tally-2",
+  "bg-tally-3",
+  "bg-tally-4",
   "bg-rose-500",
   "bg-cyan-500",
   "bg-orange-500",
@@ -71,7 +71,7 @@ export function Surveys() {
   if (!surveysEnabled && !loading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">{t("surveys.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("surveys.title")}</h1>
         <EmptyState
           title={t("surveys.notEnabled")}
           description={t("surveys.notEnabledDesc")}
@@ -83,7 +83,7 @@ export function Surveys() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("surveys.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("surveys.title")}</h1>
         {surveysEnabled && <Button onClick={() => setCreating(true)}>{t("surveys.newSurvey")}</Button>}
       </div>
 

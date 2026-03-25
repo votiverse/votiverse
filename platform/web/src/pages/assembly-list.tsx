@@ -112,7 +112,7 @@ export function AssemblyList() {
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("assemblyList.title")}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("assemblyList.title")}</h1>
           <p className="mt-1 text-sm text-text-muted">{t("assemblyList.subtitle")}</p>
         </div>
         <Button onClick={() => setCreating(true)}>{t("assemblyList.newGroup")}</Button>
@@ -345,7 +345,7 @@ function ConfigModal({
         <div className="px-6 py-4 border-b bg-surface shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">{t("assemblyList.governanceRules")}</h2>
+              <h2 className="text-lg font-bold font-display text-text-primary">{t("assemblyList.governanceRules")}</h2>
               <p className="text-xs text-text-muted mt-0.5">
                 {t("assemblyList.governanceRulesDesc")}
               </p>

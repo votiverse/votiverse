@@ -72,7 +72,7 @@ export function ProfileDelegates() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-1">{t("profileDelegates.title")}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-1">{t("profileDelegates.title")}</h1>
       <p className="text-sm text-text-muted mb-6">{t("profileDelegates.summary", { count: totalDelegates, delegates: totalDelegates, groups: data.filter((d) => (d.profile?.myDelegations.length ?? 0) > 0).length })}</p>
 
       {data.length > 1 && (

@@ -70,7 +70,7 @@ export function HandlePicker({ defaultHandle, onComplete }: HandlePickerProps) {
     <div className="fixed inset-0 bg-[var(--overlay-backdrop)] flex items-center justify-center z-50 p-4">
       <div className="bg-surface-raised rounded-xl shadow-xl max-w-sm w-full p-6">
         <div className="text-center mb-6">
-          <h2 className="text-lg font-semibold text-text-primary">{t("completeProfile")}</h2>
+          <h2 className="text-lg font-bold font-display text-text-primary">{t("completeProfile")}</h2>
           <p className="text-sm text-text-muted mt-1">{t("chooseHandleDesc")}</p>
         </div>
 

@@ -170,7 +170,7 @@ export function LoginPage() {
           {/* Logo and title */}
           <div className="text-center mb-8">
             <img src="/logo.svg" alt="Votiverse" className="w-14 h-14 mx-auto mb-4" />
-            <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">
               {mode === "login" ? t("welcomeBack") : t("createAccount")}
             </h1>
             <p className="mt-2 text-sm text-text-muted">

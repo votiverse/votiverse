@@ -64,7 +64,7 @@ export function AssemblyDashboard() {
 
       <div className="mb-6">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{assembly.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{assembly.name}</h1>
           <StatusBadge status={assembly.status} />
         </div>
         <p className="mt-1 text-sm text-text-muted">{config.description}</p>

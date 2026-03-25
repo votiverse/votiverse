@@ -37,7 +37,7 @@ export function Delegations() {
   if (!participantId) {
     return (
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">{t("delegations.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("delegations.title")}</h1>
         <EmptyState
           title={t("delegations.noIdentity")}
           description={t("delegations.noIdentityDesc")}
@@ -76,7 +76,7 @@ export function Delegations() {
     <div className="max-w-3xl mx-auto">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("delegations.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("delegations.title")}</h1>
         <p className="text-sm text-text-muted mt-1">
           {t("delegations.subtitle")}
         </p>

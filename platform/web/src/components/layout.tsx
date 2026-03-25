@@ -40,7 +40,7 @@ export function Header() {
   };
 
   return (
-    <header className="bg-surface-raised border-b border-border-default sticky top-0 z-20">
+    <header className="bg-surface-raised/90 backdrop-blur-md border-b border-border-default sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Left: logo / back + desktop nav */}
@@ -71,7 +71,7 @@ export function Header() {
             ) : (
               <Link to="/" className="flex items-center gap-2 shrink-0">
                 <img src="/logo.svg" alt="Votiverse" className="w-16 h-16" />
-                <span className="font-semibold text-text-primary hidden sm:inline">Votiverse</span>
+                <span className="font-bold font-display text-text-primary hidden sm:inline tracking-tight">Votiverse</span>
               </Link>
             )}
             {/* Desktop nav — hidden on mobile (bottom tabs handle it), hidden when not logged in */}
@@ -230,7 +230,7 @@ export function BottomTabs() {
   const tabs = inAssembly ? assemblyTabs : globalTabs;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-raised border-t border-border-default z-20 safe-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-raised/95 backdrop-blur-xl border-t border-border-default z-20 safe-bottom">
       <div className="flex items-stretch">
         {tabs.map((tab) => {
           const active = tab.exact

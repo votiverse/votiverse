@@ -45,7 +45,7 @@ export function Notifications() {
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("title")}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("title")}</h1>
           {unreadCount > 0 && <Badge color="blue">{t("unreadCount", { count: unreadCount })}</Badge>}
         </div>
         <div className="flex items-center gap-3">

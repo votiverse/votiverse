@@ -96,7 +96,7 @@ export function TopicPage() {
       {/* Header with delegation status */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{topic.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{topic.name}</h1>
           <div className="flex items-center gap-4 text-sm text-text-muted mt-1">
             <span>{t("topicPage.issue", { count: issues.length })}</span>
             <span>{t("topicPage.delegate", { count: delegations.length })}</span>

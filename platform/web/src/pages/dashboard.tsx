@@ -96,7 +96,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
     <div className="max-w-4xl mx-auto">
       {/* Greeting */}
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">
           {t("dashboard.greeting", { name: participantName })}
         </h1>
         <p className="text-sm text-text-muted mt-0.5">{t("dashboard.attentionSubtitle")}</p>
@@ -157,7 +157,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
         groups.sort((a, b) => (a.pendingCount > 0 ? 0 : 1) - (b.pendingCount > 0 ? 0 : 1));
         return (
           <div className="mb-8">
-            <h2 className="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">{t("dashboard.activeVotes")}</h2>
+            <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.activeVotes")}</h2>
             <div className="space-y-3">
               {groups.map((group) => (
                 <Link
@@ -208,7 +208,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Pending surveys */}
       {pendingSurveys.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">{t("dashboard.pendingSurveysSection")}</h2>
+          <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.pendingSurveysSection")}</h2>
           <div className="space-y-3">
             {pendingSurveys.map((survey) => (
               <Link
@@ -250,7 +250,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {/* Assembly cards */}
       {assemblySummaries.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">{t("dashboard.yourGroups")}</h2>
+          <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.yourGroups")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {assemblySummaries.map(({ assembly, activeEventCount, pendingVoteCount, pendingSurveyCount }) => (
               <Link key={assembly.id} to={`/assembly/${assembly.id}/events`} className="block">
@@ -367,7 +367,7 @@ function PendingJoinRequests() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.pendingRequests")}</h2>
+      <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.pendingRequests")}</h2>
       <div className="space-y-2">
         {requests.map((req) => (
           <Card key={req.id} className="border-border-default">
@@ -422,7 +422,7 @@ function PendingInvitations() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.invitations")}</h2>
+      <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t("dashboard.invitations")}</h2>
       <div className="space-y-2">
         {invitations.map((inv) => (
           <Card key={inv.id} className="border-accent-muted">

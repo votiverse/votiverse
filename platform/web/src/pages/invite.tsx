@@ -125,7 +125,7 @@ export function InvitePage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-text-primary mb-2">{t("invite.requestSubmitted")}</h1>
+        <h1 className="text-xl font-bold font-display text-text-primary mb-2">{t("invite.requestSubmitted")}</h1>
         <p className="text-sm text-text-muted mb-6">
           <Trans
             i18nKey="invite.requestSentMessage"
@@ -148,7 +148,7 @@ export function InvitePage() {
         <div className="w-16 h-16 bg-accent rounded-xl flex items-center justify-center mx-auto mb-4">
           <span className="text-text-on-accent font-bold text-3xl">{group.name.charAt(0).toUpperCase()}</span>
         </div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">
           {group.name}
         </h1>
         <p className="mt-1 text-sm text-text-muted">

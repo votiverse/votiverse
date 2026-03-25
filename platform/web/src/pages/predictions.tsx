@@ -41,7 +41,7 @@ export function Predictions() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("predictions.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("predictions.title")}</h1>
         <p className="mt-1 text-sm text-text-muted">{t("predictions.subtitle")}</p>
       </div>
 

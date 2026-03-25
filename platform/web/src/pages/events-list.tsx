@@ -87,7 +87,7 @@ export function EventsList() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("eventsList.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("eventsList.title")}</h1>
         <Button onClick={() => setCreating(true)}>{t("eventsList.createVote")}</Button>
       </div>
 

@@ -32,7 +32,7 @@ export function LanguageSettings() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">
+      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">
         {t("language.title")}
       </h1>
 

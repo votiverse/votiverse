@@ -35,7 +35,7 @@ function Layout() {
   return (
     <div className="min-h-screen bg-surface">
       <Header />
-      <main className="py-6 px-4 sm:py-8 sm:px-6 lg:px-8 pb-20 lg:pb-8">
+      <main className="py-6 px-4 sm:py-8 sm:px-6 lg:px-8 pb-20 lg:pb-8 animate-page-in">
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>

@@ -172,7 +172,7 @@ export function VotingBooklet({
                 {t("booklet.title")}
                 {eventPhase === "deliberation" && <span className="ml-2 text-warning-text">{t("booklet.deliberationPhase")}</span>}
               </p>
-              <h2 className="text-lg font-semibold text-text-primary">{issueTitle}</h2>
+              <h2 className="text-lg font-bold font-display text-text-primary">{issueTitle}</h2>
               {issueDescription && (
                 <p className="text-sm text-text-muted mt-1">{issueDescription}</p>
               )}

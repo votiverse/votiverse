@@ -204,7 +204,7 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
         {/* Step content */}
         <div className="px-6 py-4 min-h-[220px]">
           <div className="text-3xl mb-3">{step.icon}</div>
-          <h2 className="text-lg font-semibold text-text-primary mb-3">{step.title}</h2>
+          <h2 className="text-lg font-bold font-display text-text-primary mb-3">{step.title}</h2>
           <div className="space-y-2">
             {step.lines.map((line, i) => (
               <p key={i} className="text-sm text-text-secondary leading-relaxed">{line}</p>

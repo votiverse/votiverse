@@ -116,7 +116,7 @@ export function ProfileVotes() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-1">{t("profileVotes.title")}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-1">{t("profileVotes.title")}</h1>
       <p className="text-sm text-text-muted mb-6">{t("profileVotes.vote", { count: entries.length })} {t("profileVotes.group", { count: new Set(entries.map((e) => e.assemblyId)).size })}</p>
 
       {/* Filters */}

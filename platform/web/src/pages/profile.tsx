@@ -82,7 +82,7 @@ export function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">{t("profile.title")}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("profile.title")}</h1>
 
       {/* Identity card */}
       <Card className="mb-6">

@@ -4,8 +4,9 @@ import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAt
 import { useTranslation } from "react-i18next";
 
 export function Card({ children, className = "", onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
+  const interactive = onClick ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-accent-muted transition-all duration-200" : "";
   return (
-    <div className={`bg-surface-raised rounded-2xl border border-border-default shadow-sm ${className}`} onClick={onClick} role={onClick ? "button" : undefined}>
+    <div className={`bg-surface-raised rounded-2xl border border-border-default shadow-sm ${interactive} ${className}`} onClick={onClick} role={onClick ? "button" : undefined}>
       {children}
     </div>
   );

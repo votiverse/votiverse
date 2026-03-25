@@ -81,7 +81,7 @@ export function TopicsList() {
   if (tree.length === 0) {
     return (
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-6">{t("topicsList.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("topicsList.title")}</h1>
         <EmptyState title={t("topicsList.noTopics")} description={t("topicsList.noTopicsDesc")} />
       </div>
     );
@@ -90,7 +90,7 @@ export function TopicsList() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">{t("topicsList.title")}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("topicsList.title")}</h1>
         <p className="text-sm text-text-muted mt-1">
           {t("topicsList.subtitle")}
         </p>

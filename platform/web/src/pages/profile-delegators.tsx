@@ -80,7 +80,7 @@ export function ProfileDelegators() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold text-text-primary mb-1">{t("profileDelegators.title")}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-1">{t("profileDelegators.title")}</h1>
       <p className="text-sm text-text-muted mb-6">{t("profileDelegators.summary", { count: totalDelegators, delegators: totalDelegators, groups: data.filter((d) => (d.profile?.delegatorsCount ?? 0) > 0).length })}</p>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
