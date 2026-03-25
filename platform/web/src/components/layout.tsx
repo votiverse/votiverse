@@ -26,6 +26,8 @@ import {
   LogOut,
   Settings,
   Scale,
+  Globe,
+  Palette,
 } from "lucide-react";
 
 // ============================================================================
@@ -89,6 +91,11 @@ export function Sidebar() {
             })}
           </>
         )}
+
+        {/* Settings section */}
+        <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest px-3 mb-2 mt-6">{t("nav.settings")}</div>
+        <SidebarLink to="/settings/language" icon={Globe} label={t("nav.language")} active={location.pathname === "/settings/language"} />
+        <SidebarLink to="/settings/appearance" icon={Palette} label={t("nav.appearance")} active={location.pathname === "/settings/appearance"} />
       </div>
 
       {/* User footer */}
