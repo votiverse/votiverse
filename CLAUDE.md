@@ -407,7 +407,7 @@ const issueId = m.issue("maple-lobby", 0);
 
 The web UI uses JWT-based authentication through the client backend. Users log in with email/password, the backend issues JWT access tokens, and all API requests go through the backend which resolves user identity to assembly-specific participant IDs. The VCP never sees user credentials — it receives only opaque `X-Participant-Id` headers from the backend.
 
-For local development, the seed script creates test users with email format `{slug}@example.com` and password `password1234`. See `platform/web/TESTING.md` for the full list.
+For local development, the seed script creates test users with email format `{first}-{last}@example.com` (hyphen-separated, lowercase) and password `password1234`. For example, Elena Vasquez → `elena-vasquez@example.com`. See `platform/web/TESTING.md` for the full list.
 
 ### Case Studies & Screenshots
 
@@ -569,7 +569,7 @@ curl -X POST http://localhost:3000/dev/clock/advance \
 curl -X POST http://localhost:3000/dev/clock/reset
 ```
 
-**Note:** Dev clock endpoints are only available when `NODE_ENV !== "production"`. They are double-gated: not mounted in production AND a middleware guard blocks even if misconfigured.
+**Note:** Dev clock endpoints require `NODE_ENV=development` or `NODE_ENV=test` — they are **not** mounted when `NODE_ENV` is unset. The VCP's `pnpm dev`/`pnpm reset` scripts set this automatically. If you start the VCP manually (e.g., via `tsx src/main.ts`), you must set `NODE_ENV=development` or the dev clock endpoints will silently 404.
 
 ### 6. VCP list vs detail endpoint divergence
 
