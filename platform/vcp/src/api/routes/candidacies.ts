@@ -137,7 +137,7 @@ export function candidacyRoutes(manager: AssemblyManager) {
       await db.run(
         `INSERT INTO candidacy_versions (assembly_id, candidacy_id, version_number, content_hash, topic_scope, vote_transparency_opt_in, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [assemblyId, candidacyId, latestVersion.versionNumber, body.contentHash, body.topicScope ? JSON.stringify(body.topicScope) : null, body.voteTransparencyOptIn ?? null, latestVersion.createdAt],
+        [assemblyId, candidacyId, latestVersion.versionNumber, body.contentHash, JSON.stringify(updated.topicScope), updated.voteTransparencyOptIn, latestVersion.createdAt],
       );
 
       return c.json({ currentVersion: updated.currentVersion, status: updated.status }, 200);

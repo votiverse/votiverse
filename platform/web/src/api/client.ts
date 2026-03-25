@@ -582,6 +582,21 @@ export function listCandidacies(
   return request("GET", `/assemblies/${assemblyId}/candidacies${qs}`);
 }
 
+export function createCandidacyVersion(
+  assemblyId: string,
+  candidacyId: string,
+  params: { markdown: string; topicScope?: string[]; voteTransparencyOptIn?: boolean; websiteUrl?: string },
+): Promise<{ currentVersion: number; contentHash: string }> {
+  return request("POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/version`, params);
+}
+
+export function withdrawCandidacy(
+  assemblyId: string,
+  candidacyId: string,
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/withdraw`, {});
+}
+
 // ---- Community Notes ----
 
 export function createNote(

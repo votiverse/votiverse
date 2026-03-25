@@ -10,7 +10,7 @@ import type { Candidacy } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
-import { FileText, MessageSquareText, ExternalLink } from "lucide-react";
+import { FileText, MessageSquareText, ExternalLink, Pencil } from "lucide-react";
 import { lazy, Suspense } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
@@ -37,6 +37,11 @@ export function Candidacies() {
 
   const delegationCandidacy = assembly?.config.delegation.candidacy ?? false;
 
+  // Check if the current user already has an active candidacy
+  const myActiveCandidacy = participantId
+    ? candidacies.find((c) => c.participantId === participantId)
+    : null;
+
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
 
@@ -51,7 +56,7 @@ export function Candidacies() {
               : t("candidacies.subtitleGeneral")}
           </p>
         </div>
-        {participantId && (
+        {participantId && !myActiveCandidacy && (
           <Button onClick={() => setShowDeclareForm(!showDeclareForm)}>
             {showDeclareForm ? t("common:cancel") : t("candidacies.declareCandidacy")}
           </Button>
@@ -59,7 +64,10 @@ export function Candidacies() {
       </div>
 
       {showDeclareForm && (
-        <DeclareForm assemblyId={assemblyId!} onDeclared={() => { setShowDeclareForm(false); refetch(); }} />
+        <CandidacyForm
+          assemblyId={assemblyId!}
+          onDone={() => { setShowDeclareForm(false); refetch(); }}
+        />
       )}
 
       {candidacies.length === 0 ? (
@@ -73,6 +81,8 @@ export function Candidacies() {
               nameMap={nameMap}
               topicNameMap={topicNameMap}
               assemblyId={assemblyId!}
+              isOwn={c.participantId === participantId}
+              onChanged={refetch}
             />
           ))}
         </div>
@@ -81,15 +91,19 @@ export function Candidacies() {
   );
 }
 
-function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
+function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, isOwn, onChanged }: {
   candidacy: Candidacy;
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
   assemblyId: string;
+  isOwn: boolean;
+  onChanged: () => void;
 }) {
   const { t } = useTranslation("governance");
   const [expanded, setExpanded] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [fullContent, setFullContent] = useState<Candidacy | null>(null);
 
   const name = nameMap.get(candidacy.participantId) ?? candidacy.participantId;
@@ -107,7 +121,44 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
     setExpanded(!expanded);
   };
 
+  const handleEdit = async () => {
+    // Ensure we have full content loaded for the edit form
+    if (!fullContent) {
+      try {
+        const full = await api.getCandidacy(assemblyId, candidacy.id);
+        setFullContent(full);
+      } catch { /* proceed with what we have */ }
+    }
+    setEditing(true);
+  };
+
+  const handleWithdraw = async () => {
+    setWithdrawing(true);
+    try {
+      await api.withdrawCandidacy(assemblyId, candidacy.id);
+      onChanged();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t("candidacies.withdrawFailed"));
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
   const markdown = fullContent?.content?.markdown ?? candidacy.content?.markdown;
+
+  if (editing) {
+    return (
+      <CandidacyForm
+        assemblyId={assemblyId}
+        candidacyId={candidacy.id}
+        initialMarkdown={fullContent?.content?.markdown ?? candidacy.content?.markdown ?? ""}
+        initialWebsiteUrl={fullContent?.content?.websiteUrl ?? candidacy.websiteUrl ?? ""}
+        initialVoteTransparency={candidacy.voteTransparencyOptIn}
+        onDone={() => { setEditing(false); setFullContent(null); onChanged(); }}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
 
   return (
     <Card>
@@ -128,6 +179,11 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
             </div>
             <p className="text-xs text-text-muted mt-1">
               {t("candidacies.declared", { date: formatDate(candidacy.declaredAt) })}
+              {candidacy.currentVersion > 1 && (
+                <span className="ml-1 text-text-tertiary">
+                  · {t("candidacies.edited", { version: candidacy.currentVersion })}
+                </span>
+              )}
             </p>
             {websiteUrl && (
               <a
@@ -153,7 +209,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
           </div>
         )}
 
-        <div className="mt-3 flex gap-4">
+        <div className="mt-3 flex items-center gap-4">
           <button
             className="text-sm text-info-text hover:text-info-text inline-flex items-center gap-1.5"
             onClick={handleExpand}
@@ -168,6 +224,24 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
             <MessageSquareText size={14} />
             {t("candidacies.notesLabel")}
           </button>
+          {isOwn && (
+            <>
+              <button
+                className="text-sm text-accent-text hover:text-accent-strong-text inline-flex items-center gap-1.5 ml-auto"
+                onClick={handleEdit}
+              >
+                <Pencil size={14} />
+                {t("candidacies.editProfile")}
+              </button>
+              <button
+                className="text-sm text-error-text hover:text-error-text"
+                onClick={() => { if (confirm(t("candidacies.withdrawConfirm"))) handleWithdraw(); }}
+                disabled={withdrawing}
+              >
+                {withdrawing ? t("candidacies.withdrawing") : t("candidacies.withdraw")}
+              </button>
+            </>
+          )}
         </div>
 
         {showNotes && (
@@ -180,24 +254,53 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
   );
 }
 
-function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclared: () => void }) {
+// ---------------------------------------------------------------------------
+// Shared form for declaring and editing candidacies
+// ---------------------------------------------------------------------------
+
+function CandidacyForm({
+  assemblyId,
+  candidacyId,
+  initialMarkdown = "",
+  initialWebsiteUrl = "",
+  initialVoteTransparency = false,
+  onDone,
+  onCancel,
+}: {
+  assemblyId: string;
+  candidacyId?: string;
+  initialMarkdown?: string;
+  initialWebsiteUrl?: string;
+  initialVoteTransparency?: boolean;
+  onDone: () => void;
+  onCancel?: () => void;
+}) {
   const { t } = useTranslation("governance");
-  const [markdown, setMarkdown] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [voteTransparency, setVoteTransparency] = useState(false);
+  const isEdit = !!candidacyId;
+  const [markdown, setMarkdown] = useState(initialMarkdown);
+  const [websiteUrl, setWebsiteUrl] = useState(initialWebsiteUrl || "");
+  const [voteTransparency, setVoteTransparency] = useState(initialVoteTransparency);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleDeclare = async () => {
+  const handleSubmit = async () => {
     if (!markdown.trim()) return;
     setSubmitting(true);
     try {
-      await api.declareCandidacy(assemblyId, {
-        topicScope: [],
-        voteTransparencyOptIn: voteTransparency,
-        markdown,
-        websiteUrl: websiteUrl.trim() || undefined,
-      });
-      onDeclared();
+      if (isEdit) {
+        await api.createCandidacyVersion(assemblyId, candidacyId, {
+          markdown,
+          voteTransparencyOptIn: voteTransparency,
+          websiteUrl: websiteUrl.trim() || undefined,
+        });
+      } else {
+        await api.declareCandidacy(assemblyId, {
+          topicScope: [],
+          voteTransparencyOptIn: voteTransparency,
+          markdown,
+          websiteUrl: websiteUrl.trim() || undefined,
+        });
+      }
+      onDone();
     } catch (err) {
       alert(err instanceof Error ? err.message : t("candidacies.declareFailed"));
     } finally {
@@ -208,10 +311,14 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
   return (
     <Card className="mb-6">
       <CardBody>
-        <h3 className="font-medium text-text-primary mb-3">{t("candidacies.declareTitle")}</h3>
-        <p className="text-sm text-text-muted mb-4">
-          {t("candidacies.declareIntro")}
-        </p>
+        <h3 className="font-medium text-text-primary mb-3">
+          {isEdit ? t("candidacies.editTitle") : t("candidacies.declareTitle")}
+        </h3>
+        {!isEdit && (
+          <p className="text-sm text-text-muted mb-4">
+            {t("candidacies.declareIntro")}
+          </p>
+        )}
         <Suspense fallback={<p className="text-sm text-text-tertiary">{t("candidacies.loadingEditor")}</p>}>
           <MarkdownEditor
             value={markdown}
@@ -251,9 +358,22 @@ function DeclareForm({ assemblyId, onDeclared }: { assemblyId: string; onDeclare
           />
           {t("candidacies.publicVotesLabel")}
         </label>
-        <Button onClick={handleDeclare} disabled={submitting || !markdown.trim()}>
-          {submitting ? t("candidacies.declaring") : t("candidacies.declareBtn")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSubmit} disabled={submitting || !markdown.trim()}>
+            {submitting
+              ? (isEdit ? t("candidacies.saving") : t("candidacies.declaring"))
+              : (isEdit ? t("candidacies.saveChanges") : t("candidacies.declareBtn"))}
+          </Button>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-sm text-text-muted hover:text-text-secondary min-h-[36px] px-2"
+            >
+              {t("common:cancel")}
+            </button>
+          )}
+        </div>
       </CardBody>
     </Card>
   );

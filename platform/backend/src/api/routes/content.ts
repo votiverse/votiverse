@@ -330,6 +330,73 @@ export function contentRoutes(
     return c.json({ ...metadata, content: content ? mapContentRow(content) : null });
   });
 
+  /** POST candidacy version — update profile with new version. */
+  app.post("/assemblies/:assemblyId/candidacies/:candidacyId/version", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const candidacyId = c.req.param("candidacyId");
+    const body = await c.req.json<{
+      markdown: string;
+      assets?: string[];
+      topicScope?: string[];
+      voteTransparencyOptIn?: boolean;
+      websiteUrl?: string;
+    }>();
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    if (body.websiteUrl) {
+      const urlResult = safeWebsiteUrl.safeParse(body.websiteUrl);
+      if (!urlResult.success) {
+        throw new ValidationError(urlResult.error.issues[0]?.message ?? "Invalid website URL");
+      }
+    }
+
+    const contentHash = computeContentHash(body.markdown, body.assets ?? []);
+
+    // VCP-first: register version metadata
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/version`, {
+      contentHash,
+      topicScope: body.topicScope,
+      voteTransparencyOptIn: body.voteTransparencyOptIn,
+    }, participantId);
+
+    if (!vcpRes.ok) {
+      await throwVcpError(vcpRes, "Failed to create candidacy version");
+    }
+
+    const vcpData = await vcpRes.json() as { currentVersion: number; status: string };
+
+    // Store content locally
+    await contentService.storeCandidacyContent({
+      candidacyId,
+      assemblyId,
+      versionNumber: vcpData.currentVersion,
+      markdown: body.markdown,
+      assets: body.assets ?? [],
+      contentHash,
+      websiteUrl: body.websiteUrl || null,
+      createdAt: Date.now(),
+    });
+
+    return c.json({ currentVersion: vcpData.currentVersion, contentHash });
+  });
+
+  /** POST candidacy withdraw. */
+  app.post("/assemblies/:assemblyId/candidacies/:candidacyId/withdraw", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const candidacyId = c.req.param("candidacyId");
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/withdraw`, {}, participantId);
+
+    if (!vcpRes.ok) {
+      await throwVcpError(vcpRes, "Failed to withdraw candidacy");
+    }
+
+    return c.json({ status: "withdrawn" });
+  });
+
   // -----------------------------------------------------------------------
   // Community notes content
   // -----------------------------------------------------------------------
