@@ -7,7 +7,7 @@ import { Sidebar, MobileHeader, AssemblyContentHeader, BottomTabs } from "./comp
 import { ErrorBoundary } from "./components/error-boundary.js";
 import { Dashboard } from "./pages/dashboard.js";
 import { AssemblyList } from "./pages/assembly-list.js";
-// AssemblyDashboard import removed — /assembly/:id now redirects to /assembly/:id/events
+import { AssemblyDashboard } from "./pages/assembly-dashboard.js";
 import { Members } from "./pages/members.js";
 import { EventsList } from "./pages/events-list.js";
 import { EventDetail } from "./pages/event-detail.js";
@@ -93,6 +93,7 @@ export function App() {
               <Route path="settings/language" element={<Navigate to="/profile?tab=language" replace />} />
               <Route path="settings/appearance" element={<Navigate to="/profile?tab=appearance" replace />} />
               <Route path="assembly/:assemblyId" element={<AssemblyRedirect />} />
+              <Route path="assembly/:assemblyId/about" element={<AssemblyDashboard />} />
               <Route path="assembly/:assemblyId/members" element={<Members />} />
               <Route path="assembly/:assemblyId/events" element={<EventsList />} />
               <Route path="assembly/:assemblyId/events/:eventId" element={<EventDetail />} />

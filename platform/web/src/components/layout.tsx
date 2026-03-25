@@ -25,6 +25,8 @@ import {
   Tags,
   Bell,
   Scale,
+  Info,
+  Plus,
 } from "lucide-react";
 
 // ============================================================================
@@ -64,7 +66,16 @@ export function Sidebar() {
         {/* Assemblies section */}
         {memberships.length > 0 && (
           <>
-            <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest px-3 mb-2 mt-6">{t("nav.myGroups")}</div>
+            <div className="flex items-center justify-between px-3 mb-2 mt-6">
+              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">{t("nav.myGroups")}</span>
+              <Link
+                to="/assemblies"
+                className="p-0.5 text-text-tertiary hover:text-accent-text transition-colors rounded"
+                aria-label={t("nav.createGroup")}
+              >
+                <Plus size={14} />
+              </Link>
+            </div>
             {memberships.map((m) => {
               const isActive = assemblyId === m.assemblyId;
               const pending = pendingByAssembly[m.assemblyId] ?? 0;
@@ -453,6 +464,7 @@ const NAV_ICONS: Record<string, typeof Home> = {
   Surveys: BarChart3,
   Notes: MessageSquareText,
   Topics: Tags,
+  About: Info,
 };
 
 const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Element> = {
@@ -462,6 +474,7 @@ const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Elemen
   Surveys: TabChart,
   Notes: TabNotes,
   Topics: TabTopics,
+  About: TabInfo,
 };
 
 function TabHome({ active }: { active: boolean }) {
@@ -490,6 +503,10 @@ function TabNotes({ active }: { active: boolean }) {
 
 function TabTopics({ active }: { active: boolean }) {
   return <Tags size={20} strokeWidth={active ? 2.5 : 1.5} />;
+}
+
+function TabInfo({ active }: { active: boolean }) {
+  return <Info size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
 function TabGrid({ active }: { active: boolean }) {
