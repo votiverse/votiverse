@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
@@ -637,7 +637,7 @@ function VotingSection({
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm text-success-text">
-              {t("eventDetail.youVoted", { choice: issueStatus.myVoteChoice })}
+              <Trans i18nKey="eventDetail.youVoted" ns="governance" values={{ choice: issueStatus.myVoteChoice }} components={{ bold: <span className="font-semibold" /> }} />
               {issueStatus.myVoteDate && (
                 <span className="text-success ml-1">
                   {t("eventDetail.youVotedOn", { date: formatDateTime(issueStatus.myVoteDate) })}
@@ -1160,7 +1160,7 @@ function ClosedEventParticipation({
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span className="text-sm text-success-text">
-          {t("eventDetail.youVotedDirectly", { choice: participation.effectiveChoice ?? "\u2014" })}
+          <Trans i18nKey="eventDetail.youVotedDirectly" ns="governance" values={{ choice: participation.effectiveChoice ?? "\u2014" }} components={{ bold: <span className="font-semibold" /> }} />
         </span>
       </div>
     );
