@@ -104,10 +104,9 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
       await Promise.allSettled(
         assemblies.map(async (asm) => {
           const participantId = membershipMap.get(asm.id)!;
-          const [eventsRes, historyRes, delegRes, surveysRes] = await Promise.allSettled([
+          const [eventsRes, historyRes, surveysRes] = await Promise.allSettled([
             api.listEvents(asm.id),
             api.getVotingHistory(asm.id, participantId),
-            api.listDelegations(asm.id, participantId),
             api.listSurveys(asm.id, participantId),
           ]);
 
@@ -115,7 +114,10 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
           const votedIssueIds = new Set(
             historyRes.status === "fulfilled" ? historyRes.value.history.map((h) => h.issueId) : [],
           );
-          const myDelegations = delegRes.status === "fulfilled" ? delegRes.value.delegations : [];
+
+          // Fetch participants once per assembly (used to resolve delegate names)
+          const participantsRes = await api.listParticipants(asm.id).catch(() => ({ participants: [] }));
+          const nameMap = new Map(participantsRes.participants.map((p) => [p.id, p.name]));
 
           // For each event, fetch full event to get status
           const eventDetails = await Promise.allSettled(
@@ -136,21 +138,23 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
             activeCount++;
 
             const issues = evt.issues ?? [];
-            // Fetch participants to resolve delegate names
-            const participantsRes = await api.listParticipants(asm.id).catch(() => ({ participants: [] }));
-            const nameMap = new Map(participantsRes.participants.map((p) => [p.id, p.name]));
 
-            for (const issue of issues) {
+            // Resolve delegation chains for all issues in parallel (engine-backed)
+            const chainResults = await Promise.allSettled(
+              issues.map((issue) => api.resolveChain(asm.id, participantId, issue.id)),
+            );
+
+            for (let i = 0; i < issues.length; i++) {
+              const issue = issues[i]!;
               const hasVoted = votedIssueIds.has(issue.id);
-              // Check if there's a delegation that covers this issue's topics
-              const relevantDelegation = myDelegations.find((d) => {
-                if (!d.active) return false;
-                if (d.topicScope.length === 0) return true; // global delegation
-                const issueTopics = issue.topicId ? [issue.topicId] : [];
-                return d.topicScope.some((t) => issueTopics.includes(t));
-              });
-              const isDelegated = Boolean(relevantDelegation) && !hasVoted;
-              const delegateName = relevantDelegation ? (nameMap.get(relevantDelegation.targetId) ?? null) : null;
+
+              const chainRes = chainResults[i]!;
+              const chain = chainRes.status === "fulfilled" ? chainRes.value : null;
+              const isDelegated = chain != null && chain.chain.length > 1 && !chain.votedDirectly;
+
+              // The direct delegate is chain[1] (chain[0] is the participant themselves)
+              const delegateTargetId = isDelegated && chain!.chain.length > 1 ? chain!.chain[1] : null;
+              const delegateName = delegateTargetId ? (nameMap.get(delegateTargetId) ?? null) : null;
 
               const pending: PendingVote = {
                 assemblyId: asm.id,
