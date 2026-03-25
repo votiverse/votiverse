@@ -7,16 +7,24 @@ export const API_KEY = process.env["VCP_API_KEY"] ?? "vcp_dev_key_00000000";
 
 /** Set the VCP dev clock to a specific epoch timestamp. */
 export async function setDevClock(timeMs: number): Promise<void> {
-  await fetch(`${BASE_URL}/dev/clock/set`, {
+  const res = await fetch(`${BASE_URL}/dev/clock/set`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ time: timeMs }),
   });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to set dev clock (${res.status}): ${err}. Is NODE_ENV=development set?`);
+  }
 }
 
 /** Reset the VCP dev clock to system time. */
 export async function resetDevClock(): Promise<void> {
-  await fetch(`${BASE_URL}/dev/clock/reset`, { method: "POST" });
+  const res = await fetch(`${BASE_URL}/dev/clock/reset`, { method: "POST" });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to reset dev clock (${res.status}): ${err}. Is NODE_ENV=development set?`);
+  }
 }
 
 const headers = {

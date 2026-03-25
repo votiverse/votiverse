@@ -55,7 +55,7 @@ console.log("\n🚀 Starting VCP server...\n");
 const server = spawn("node_modules/.bin/tsx", ["--conditions", "source", "src/main.ts"], {
   cwd: VCP_ROOT,
   stdio: ["ignore", "pipe", "pipe"],
-  env: { ...process.env },
+  env: { ...process.env, NODE_ENV: "development" },
 });
 
 let serverOutput = "";
