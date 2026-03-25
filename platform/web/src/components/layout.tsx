@@ -27,6 +27,7 @@ import {
   Scale,
   Info,
   Plus,
+  UserPlus,
 } from "lucide-react";
 
 // ============================================================================
@@ -69,7 +70,7 @@ export function Sidebar() {
             <div className="flex items-center justify-between px-3 mb-2 mt-6">
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">{t("nav.myGroups")}</span>
               <Link
-                to="/assemblies"
+                to="/assemblies/new"
                 className="p-0.5 text-text-tertiary hover:text-accent-text transition-colors rounded"
                 aria-label={t("nav.createGroup")}
               >
@@ -464,6 +465,7 @@ const NAV_ICONS: Record<string, typeof Home> = {
   Surveys: BarChart3,
   Notes: MessageSquareText,
   Topics: Tags,
+  Members: UserPlus,
   About: Info,
 };
 
@@ -474,6 +476,7 @@ const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Elemen
   Surveys: TabChart,
   Notes: TabNotes,
   Topics: TabTopics,
+  Members: TabMembers,
   About: TabInfo,
 };
 
@@ -503,6 +506,10 @@ function TabNotes({ active }: { active: boolean }) {
 
 function TabTopics({ active }: { active: boolean }) {
   return <Tags size={20} strokeWidth={active ? 2.5 : 1.5} />;
+}
+
+function TabMembers({ active }: { active: boolean }) {
+  return <UserPlus size={20} strokeWidth={active ? 2.5 : 1.5} />;
 }
 
 function TabInfo({ active }: { active: boolean }) {

@@ -7,6 +7,7 @@ import { Sidebar, MobileHeader, AssemblyContentHeader, BottomTabs } from "./comp
 import { ErrorBoundary } from "./components/error-boundary.js";
 import { Dashboard } from "./pages/dashboard.js";
 import { AssemblyList } from "./pages/assembly-list.js";
+import { CreateAssembly } from "./pages/create-assembly.js";
 import { AssemblyDashboard } from "./pages/assembly-dashboard.js";
 import { Members } from "./pages/members.js";
 import { EventsList } from "./pages/events-list.js";
@@ -84,6 +85,7 @@ export function App() {
               <Route index element={<Dashboard />} />
               <Route path="invite/:token" element={<InvitePage />} />
               <Route path="assemblies" element={<AssemblyList />} />
+              <Route path="assemblies/new" element={<CreateAssembly />} />
               <Route path="profile" element={<Profile />} />
               <Route path="profile/delegators" element={<ProfileDelegators />} />
               <Route path="profile/delegates" element={<ProfileDelegates />} />

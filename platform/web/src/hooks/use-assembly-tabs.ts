@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { GovernanceConfig } from "../api/types.js";
+import { useAssemblyRole } from "./use-assembly-role.js";
 
 export interface AssemblyTab {
   to: string;
@@ -18,6 +19,7 @@ function delegationEnabled(config: GovernanceConfig): boolean {
 /** Single source of truth for assembly navigation tabs. */
 export function useAssemblyTabs(assemblyId: string | undefined, config: GovernanceConfig | undefined): AssemblyTab[] {
   const { t } = useTranslation();
+  const { isAdmin } = useAssemblyRole(assemblyId);
   return useMemo(() => {
     if (!assemblyId) return [];
     const tabs: AssemblyTab[] = [
@@ -28,7 +30,6 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     }
     if (config && delegationEnabled(config)) {
       tabs.push({ to: `/assembly/${assemblyId}/delegations`, key: "Delegates", label: t("nav.delegates") });
-      // Topics tab: always available when delegation is enabled (scoping is always available)
       tabs.push({ to: `/assembly/${assemblyId}/topics`, key: "Topics", label: t("nav.topics") });
     }
     if (config?.features.communityNotes) {
@@ -37,8 +38,11 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     if (config?.delegation.candidacy) {
       tabs.push({ to: `/assembly/${assemblyId}/candidacies`, key: "Candidates", label: t("nav.candidates") });
     }
+    if (isAdmin) {
+      tabs.push({ to: `/assembly/${assemblyId}/members`, key: "Members", label: t("nav.members") });
+    }
     // About tab — always last, always present
     tabs.push({ to: `/assembly/${assemblyId}/about`, key: "About", label: t("nav.about") });
     return tabs;
-  }, [assemblyId, config, t]);
+  }, [assemblyId, config, isAdmin, t]);
 }

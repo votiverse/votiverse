@@ -124,7 +124,7 @@ export function EmptyState({ title, description, action }: { title: string; desc
 export function BadgeDot({ count, className = "" }: { count: number; className?: string }) {
   if (count <= 0) return null;
   return (
-    <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-notification-dot text-text-on-accent text-[10px] font-bold leading-none ${className}`}>
+    <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-error-subtle text-error-text text-[10px] font-bold leading-none ${className}`}>
       {count > 99 ? "99+" : count}
     </span>
   );

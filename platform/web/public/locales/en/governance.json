@@ -470,6 +470,7 @@
   "assemblyList.creating": "Creating\u2026",
   "assemblyList.createGroup": "Create Group",
   "assemblyList.createError": "Failed to create group",
+  "createAssembly.title": "Create a New Group",
   "assemblyList.governanceRules": "Governance Rules",
   "assemblyList.governanceRulesDesc": "These settings are permanent once the group is created. Every member will see these rules and can trust they won't change.",
   "assemblyList.startFromPreset": "Start from a preset",
