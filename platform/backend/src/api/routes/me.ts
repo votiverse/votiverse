@@ -138,6 +138,17 @@ export function meRoutes(
     }
   });
 
+  // ── Internal seed-only routes ────────────────────────────────────
+  // These endpoints are only available in development/test environments.
+  // They allow direct data manipulation for seeding and are NOT
+  // exposed in production.
+  app.use("/internal/*", async (c, next) => {
+    if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
+      return c.json({ error: { code: "NOT_FOUND", message: "Not found" } }, 404);
+    }
+    return next();
+  });
+
   /**
    * POST /internal/memberships — create membership record directly (seed only).
    * Does NOT call VCP — assumes participant already exists.

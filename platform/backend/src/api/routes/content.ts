@@ -14,7 +14,7 @@ import { computeContentHash } from "../../services/content-service.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { parseJsonColumn } from "../../adapters/database/interface.js";
 import { getUser } from "../middleware/auth.js";
-import { NotFoundError, ValidationError, AppError } from "../middleware/error-handler.js";
+import { NotFoundError, ForbiddenError, ValidationError, AppError } from "../middleware/error-handler.js";
 import { safeWebsiteUrl } from "../../lib/validation.js";
 import type { AssetStore } from "../../services/asset-store.js";
 import { DatabaseAssetStore } from "../../services/asset-store.js";
@@ -73,18 +73,30 @@ export function contentRoutes(
   });
 
   app.get("/assemblies/:assemblyId/proposals/drafts/:draftId", async (c) => {
+    const user = getUser(c);
     const assemblyId = c.req.param("assemblyId");
     const draftId = c.req.param("draftId");
     const draft = await contentService.getDraft(assemblyId, draftId);
     if (!draft) {
       throw new NotFoundError("Draft not found");
     }
+    if (draft.authorId !== user.id) {
+      throw new ForbiddenError("You can only view your own drafts");
+    }
     return c.json(draft);
   });
 
   app.put("/assemblies/:assemblyId/proposals/drafts/:draftId", async (c) => {
+    const user = getUser(c);
     const assemblyId = c.req.param("assemblyId");
     const draftId = c.req.param("draftId");
+    const draft = await contentService.getDraft(assemblyId, draftId);
+    if (!draft) {
+      throw new NotFoundError("Draft not found");
+    }
+    if (draft.authorId !== user.id) {
+      throw new ForbiddenError("You can only edit your own drafts");
+    }
     const body = await c.req.json<{
       title?: string;
       markdown?: string;
@@ -98,8 +110,16 @@ export function contentRoutes(
   });
 
   app.delete("/assemblies/:assemblyId/proposals/drafts/:draftId", async (c) => {
+    const user = getUser(c);
     const assemblyId = c.req.param("assemblyId");
     const draftId = c.req.param("draftId");
+    const draft = await contentService.getDraft(assemblyId, draftId);
+    if (!draft) {
+      throw new NotFoundError("Draft not found");
+    }
+    if (draft.authorId !== user.id) {
+      throw new ForbiddenError("You can only delete your own drafts");
+    }
     await contentService.deleteDraft(assemblyId, draftId);
     return c.json({ status: "deleted" });
   });
@@ -113,6 +133,9 @@ export function contentRoutes(
     const draft = await contentService.getDraft(assemblyId, draftId);
     if (!draft) {
       throw new NotFoundError("Draft not found");
+    }
+    if (draft.authorId !== user.id) {
+      throw new ForbiddenError("You can only submit your own drafts");
     }
 
     // Compute content hash
@@ -673,7 +696,15 @@ export function contentRoutes(
 
   // -----------------------------------------------------------------------
   // Internal seed endpoint — bulk content storage (bypasses VCP)
+  // Only available in development/test environments.
   // -----------------------------------------------------------------------
+
+  app.use("/internal/*", async (c, next) => {
+    if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
+      return c.json({ error: { code: "NOT_FOUND", message: "Not found" } }, 404);
+    }
+    return next();
+  });
 
   /**
    * POST /internal/content-seed — store content directly (seed only).

@@ -247,13 +247,22 @@ export function invitationRoutes(
 
   /** GET /assemblies/:id/invitations — list invitations for assembly (admin). */
   app.get("/assemblies/:id/invitations", async (c) => {
+    const { id: userId } = getUser(c);
     const assemblyId = c.req.param("id");
+    if (!(await isAdminOf(userId, assemblyId))) {
+      throw new ForbiddenError("Only admins can list invitations");
+    }
     const invitations = await invitationService.listByAssembly(assemblyId);
     return c.json({ invitations });
   });
 
-  /** DELETE /assemblies/:id/invitations/:invId — revoke an invitation. */
+  /** DELETE /assemblies/:id/invitations/:invId — revoke an invitation (admin). */
   app.delete("/assemblies/:id/invitations/:invId", async (c) => {
+    const { id: userId } = getUser(c);
+    const assemblyId = c.req.param("id");
+    if (!(await isAdminOf(userId, assemblyId))) {
+      throw new ForbiddenError("Only admins can revoke invitations");
+    }
     const invId = c.req.param("invId");
     await invitationService.revoke(invId);
     return c.json({ status: "revoked" });
