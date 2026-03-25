@@ -271,11 +271,19 @@ export function proxyRoutes(
     const user = getUser(c);
     const assemblyId = c.req.param("assemblyId");
 
+    // Content routes handle their own VCP calls — skip proxy for these paths.
+    // Without this guard, the catch-all forwards raw markdown bodies to the VCP
+    // instead of letting content routes compute contentHash first.
+    const url = new URL(c.req.url);
+    const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
+    if (/^\/(candidacies|proposals|notes)(\/|$)/.test(subpath)) {
+      return c.notFound();
+    }
+
     // Resolve user's participant ID for this assembly
     const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
 
     // Reconstruct the original path
-    const url = new URL(c.req.url);
     const path = url.pathname + url.search;
 
     const response = await proxyToVcp(c, config, c.req.method, path, participantId);
