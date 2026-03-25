@@ -21,6 +21,7 @@ The repository has three layers:
 - `docs/papers/paper-ii-self-sustaining-governance.md` — proposals, candidacies, community notes, self-sustaining governance
 - `docs/design/app-design-system.md` — web UI design system: brand palette, tokens, typography, layout, components, dark mode
 - `docs/design/content-architecture.md` — design for proposals, candidacies, community notes, asset storage
+- `docs/design/candidacy-lifecycle.md` — candidacy versioning, withdrawal, note persistence principle, website URL
 - `docs/design/onboarding-invitations-handles.md` — handles, invite links, direct invitations, signup flow
 - `docs/design/admission-control.md` — admission modes (open/approval/invite-only), Sybil resistance, join requests
 - `docs/testing.md` — comprehensive testing guide: seed data, dev clock, unit tests, integration tests, manual scenarios
