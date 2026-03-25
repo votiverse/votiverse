@@ -275,12 +275,13 @@ export function proxyRoutes(
     const user = getUser(c);
     const assemblyId = c.req.param("assemblyId");
 
-    // Content routes handle their own VCP calls — skip proxy for these paths.
-    // Without this guard, the catch-all forwards raw markdown bodies to the VCP
-    // instead of letting content routes compute contentHash first.
+    // Content routes handle POST/PUT/DELETE for candidacies, proposals, and notes
+    // (they compute contentHash before calling VCP). The proxy must not intercept
+    // these writes, but GET requests can fall through safely — the proxy serves as
+    // fallback for list/detail endpoints not explicitly handled by content routes.
     const url = new URL(c.req.url);
     const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
-    if (/^\/(candidacies|proposals|notes)(\/|$)/.test(subpath)) {
+    if (c.req.method !== "GET" && /^\/(candidacies|proposals|notes)(\/|$)/.test(subpath)) {
       return c.notFound();
     }
 
