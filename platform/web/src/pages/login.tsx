@@ -16,6 +16,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import { getOAuthProviders } from "../api/oauth.js";
 import { GoogleSignInButton, MicrosoftSignInButton } from "../components/social-buttons.js";
 import { LocalePicker } from "../components/locale-picker.js";
+import { ThemeToggle } from "../components/theme-toggle.js";
 import { HandlePicker } from "../components/handle-picker.js";
 import { Spinner, ErrorBox, Button, Input } from "../components/ui.js";
 
@@ -159,8 +160,9 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
-      {/* Top bar with locale picker */}
-      <div className="flex justify-end p-4">
+      {/* Top bar with theme toggle + locale picker */}
+      <div className="flex items-center justify-end gap-3 p-4">
+        <ThemeToggle />
         <LocalePicker />
       </div>
 
