@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
-import type { Topic } from "../api/types.js";
-import { Card, CardBody, Button, Select, Label, ErrorBox } from "./ui.js";
+import type { Topic, Candidacy } from "../api/types.js";
+import { Card, CardBody, Button, Label, ErrorBox } from "./ui.js";
 import { Avatar } from "./avatar.js";
+import { MemberSearch } from "./member-search.js";
 
 export interface QuickDelegateFormProps {
   assemblyId: string;
@@ -17,6 +18,10 @@ export interface QuickDelegateFormProps {
   isTopicScoped: boolean;
   /** The issue ID for issue-scoped delegation. */
   issueId: string;
+  /** Declared candidates (shown featured in member search). */
+  candidates?: Candidacy[];
+  /** Topic names for candidate topic badges. */
+  topicNameMap?: Map<string, string>;
   onCreated: () => void;
   onClose: () => void;
 }
@@ -35,6 +40,8 @@ export function QuickDelegateForm({
   topics,
   isTopicScoped,
   issueId,
+  candidates,
+  topicNameMap,
   onCreated,
   onClose,
 }: QuickDelegateFormProps) {
@@ -99,7 +106,7 @@ export function QuickDelegateForm({
     }
   };
 
-  const others = participants.filter((p) => p.id !== participantId);
+  const selectedName = participants.find((p) => p.id === targetId)?.name;
 
   return (
     <Card className="mt-3">
@@ -112,12 +119,27 @@ export function QuickDelegateForm({
           {/* Person picker */}
           <div>
             <Label>{t("delegate.whoLabel")}</Label>
-            <Select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-              <option value="">{t("delegate.selectMember")}</option>
-              {others.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </Select>
+            {targetId ? (
+              <div className="flex items-center gap-2 border border-border-default rounded-xl px-3 py-2">
+                <Avatar name={selectedName ?? "?"} size="sm" />
+                <span className="text-sm font-medium text-text-primary flex-1">{selectedName}</span>
+                <button
+                  type="button"
+                  onClick={() => setTargetId("")}
+                  className="text-xs text-text-tertiary hover:text-text-secondary"
+                >
+                  {t("delegations.change")}
+                </button>
+              </div>
+            ) : (
+              <MemberSearch
+                participants={participants}
+                currentParticipantId={participantId}
+                onSelect={setTargetId}
+                candidates={candidates}
+                topicNameMap={topicNameMap}
+              />
+            )}
           </div>
 
           {/* Scope selector — only for topic-scoped assemblies with topic context */}
@@ -178,9 +200,9 @@ export function QuickDelegateForm({
           {/* Selected delegate preview */}
           {targetId && (
             <div className="flex items-center gap-2 bg-surface rounded-md px-3 py-2">
-              <Avatar name={others.find((p) => p.id === targetId)?.name ?? "?"} size="xs" />
+              <Avatar name={selectedName ?? "?"} size="xs" />
               <span className="text-sm text-text-secondary">
-                <span className="font-medium">{others.find((p) => p.id === targetId)?.name}</span>
+                <span className="font-medium">{selectedName}</span>
                 {" "}{t("delegate.previewWillVote")}
                 {isTopicScoped && scopeMode === "issue" ? ` ${t("delegate.previewIssueOnly")}` : ""}
                 {isTopicScoped && scopeMode === "topic" && topicNames ? ` ${t("delegate.previewOnTopic", { topic: topicNames })}` : ""}

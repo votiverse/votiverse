@@ -7,7 +7,7 @@ import { useAssembly } from "../hooks/use-assembly.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
-import type { Tally, WeightDist, ParticipationRecord, Proposal } from "../api/types.js";
+import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy } from "../api/types.js";
 import { FileText } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
@@ -62,6 +62,12 @@ export function EventDetail() {
   const { data: topicsData } = useApi(
     () => api.listTopics(assemblyId!),
     [assemblyId],
+  );
+
+  const delegationCandidacy = assembly?.config.delegation.candidacy ?? false;
+  const { data: candidaciesData } = useApi(
+    () => delegationCandidacy ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
+    [assemblyId, delegationCandidacy],
   );
 
   // Fetch all proposals in the assembly (one call, grouped per issue client-side)
@@ -125,11 +131,14 @@ export function EventDetail() {
     [historyData],
   );
 
+  const topicNameMap = useMemo(() => new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name])), [topicsData]);
+
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? t("eventDetail.voteNotFound")} onRetry={refetch} />;
 
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
+  const candidates = candidaciesData?.candidacies ?? [];
   const refreshAll = () => {
     invalidateHistoryCache();
     attention.refresh();
@@ -199,6 +208,8 @@ export function EventDetail() {
               proposals={proposalsByIssue.get(issue.id) ?? []}
               participants={participants}
               topics={topicsData?.topics ?? []}
+              candidates={delegationCandidacy ? candidates : undefined}
+              topicNameMap={topicNameMap}
               isCreator={participantId === event?.createdBy}
               onVoted={refreshAll}
             />
@@ -360,6 +371,8 @@ function IssueVotingCard({
   proposals,
   participants,
   topics,
+  candidates,
+  topicNameMap,
   isCreator,
   onVoted,
 }: {
@@ -382,6 +395,8 @@ function IssueVotingCard({
   proposals: Proposal[];
   participants: Array<{ id: string; name: string }>;
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
+  candidates?: Candidacy[];
+  topicNameMap?: Map<string, string>;
   isCreator: boolean;
   onVoted: () => void;
 }) {
@@ -526,6 +541,8 @@ function IssueVotingCard({
             issueTopicIds={topicId ? [topicId] : []}
             participants={participants}
             topics={topics}
+            candidates={candidates}
+            topicNameMap={topicNameMap}
             participantId={participantId!}
             voting={voting}
             voteError={voteError}
@@ -595,6 +612,8 @@ function VotingSection({
   issueTopicIds,
   participants,
   topics,
+  candidates,
+  topicNameMap,
   participantId,
   voting,
   voteError,
@@ -614,6 +633,8 @@ function VotingSection({
   issueTopicIds: string[];
   participants: Array<{ id: string; name: string }>;
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
+  candidates?: Candidacy[];
+  topicNameMap?: Map<string, string>;
   participantId: string;
   voting: boolean;
   voteError: string | null;
@@ -677,6 +698,8 @@ function VotingSection({
         issueTopicIds={issueTopicIds}
         participants={participants}
         topics={topics}
+        candidates={candidates}
+        topicNameMap={topicNameMap}
         participantId={participantId}
         onDelegationCreated={onDelegationCreated}
       />
@@ -768,6 +791,8 @@ function DelegationCard({
   issueTopicIds,
   participants,
   topics,
+  candidates,
+  topicNameMap,
   participantId,
   onDelegationCreated,
 }: {
@@ -781,6 +806,8 @@ function DelegationCard({
   issueTopicIds: string[];
   participants: Array<{ id: string; name: string }>;
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
+  candidates?: Candidacy[];
+  topicNameMap?: Map<string, string>;
   participantId: string;
   onDelegationCreated: () => void;
 }) {
@@ -842,6 +869,8 @@ function DelegationCard({
             topics={topics}
             isTopicScoped={delegationConfig.topicScoped}
             issueId={issueId}
+            candidates={candidates}
+            topicNameMap={topicNameMap}
             onCreated={() => { setShowForm(false); onDelegationCreated(); }}
             onClose={() => setShowForm(false)}
           />
