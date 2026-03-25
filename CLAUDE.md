@@ -19,6 +19,7 @@ The repository has three layers:
 - `docs/integration-architecture.md` — 3-tier system architecture, VCP/backend boundary, API contract
 - `docs/papers/paper-i-whitepaper.md` — governance model, formal properties, design rationale
 - `docs/papers/paper-ii-self-sustaining-governance.md` — proposals, candidacies, community notes, self-sustaining governance
+- `docs/design/app-design-system.md` — web UI design system: brand palette, tokens, typography, layout, components, dark mode
 - `docs/design/content-architecture.md` — design for proposals, candidacies, community notes, asset storage
 - `docs/design/onboarding-invitations-handles.md` — handles, invite links, direct invitations, signup flow
 - `docs/design/admission-control.md` — admission modes (open/approval/invite-only), Sybil resistance, join requests
@@ -47,7 +48,7 @@ When context is compacted, you lose architectural reasoning. Before resuming any
 2. Re-read `docs/architecture.md`
 3. Re-read the `README.md` of the package you are currently working on
 4. Re-read the existing tests for that package
-5. If working on the web UI, re-read `platform/web/TESTING.md`
+5. If working on the web UI, re-read `platform/web/TESTING.md` and `docs/design/app-design-system.md`
 6. Only then resume implementation
 
 This is not optional. Skipping this step leads to architectural drift that is expensive to fix.
