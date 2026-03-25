@@ -13,6 +13,7 @@
  */
 
 import type { Context, Next } from "hono";
+import { getConnInfo } from "@hono/node-server/conninfo";
 
 interface WindowEntry {
   count: number;
@@ -44,9 +45,18 @@ function startCleanup() {
 function getClientIp(c: Context): string {
   // Trust X-Forwarded-For only from reverse proxies (ALB, CloudFront).
   // In production, the ALB sets this header; locally it may be absent.
-  return c.req.header("X-Forwarded-For")?.split(",")[0]?.trim()
-    ?? c.req.header("X-Real-IP")
-    ?? "unknown";
+  const forwarded = c.req.header("X-Forwarded-For")?.split(",")[0]?.trim();
+  if (forwarded) return forwarded;
+  const realIp = c.req.header("X-Real-IP");
+  if (realIp) return realIp;
+  // Fall back to the actual connection address (works in local dev without proxy)
+  try {
+    const info = getConnInfo(c);
+    if (info.remote?.address) return info.remote.address;
+  } catch {
+    // getConnInfo may fail in non-Node runtimes
+  }
+  return "unknown";
 }
 
 /**

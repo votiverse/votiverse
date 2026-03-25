@@ -60,7 +60,9 @@ export function loadConfig(): BackendConfig {
     logLevel: (process.env["BACKEND_LOG_LEVEL"] as BackendConfig["logLevel"]) ?? "info",
     corsOrigins: parseCorsOrigins(process.env["BACKEND_CORS_ORIGINS"]),
     rateLimitRpm: parseInt(process.env["BACKEND_RATE_LIMIT_RPM"] ?? "0", 10),
-    rateLimitEnabled: process.env["BACKEND_RATE_LIMIT_ENABLED"] !== "false",
+    rateLimitEnabled: process.env["BACKEND_RATE_LIMIT_ENABLED"]
+      ? process.env["BACKEND_RATE_LIMIT_ENABLED"] !== "false"
+      : process.env["NODE_ENV"] === "production",
     cookieDomain: process.env["BACKEND_COOKIE_DOMAIN"] ?? null,
     maxBodySize: parseInt(process.env["BACKEND_MAX_BODY_SIZE"] ?? String(1024 * 1024), 10),
     notificationAdapter: (process.env["BACKEND_NOTIFICATION_ADAPTER"] as BackendConfig["notificationAdapter"]) ?? "console",
