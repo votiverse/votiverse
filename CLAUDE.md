@@ -108,6 +108,16 @@ These decisions are final. Do not reconsider them without explicit instruction f
 - **Framework:** React 19 with React Router v7
 - **Build/Dev:** Vite (HMR dev server on port 5174)
 - **Styling:** Tailwind CSS
+- **State management:** No global store (no Redux/Zustand). Data fetching uses `useApi` hook with per-component fetch. Cross-component cache invalidation uses **mutation signals** (`useMutationSignal`).
+
+**Mutation signals:** When a mutation happens (e.g., creating an assembly), the mutating component calls `signal("assemblies")`. Any hook or component subscribed via `useSignal("assemblies")` automatically re-renders and re-fetches. This is a lightweight pub/sub pattern (50 lines, no dependencies) that avoids stale data after mutations without introducing a global state store.
+
+- `useApi(fetcher, deps, signalKey?)` — fetches data, auto-refetches when the signal fires
+- `useAssembly` — assembly config cache, invalidated on `"assemblies"` signal
+- `useAttention` — sidebar pending counts, re-fetches on `"assemblies"` signal
+- `useIdentity` — user profile + memberships, re-fetches on `"assemblies"` signal
+
+**When adding a new mutation in the UI**, always call `signal(key)` after the API call succeeds. Use existing keys (`"assemblies"`) or add new ones as needed. This ensures all dependent UI updates without manual `refetch()` calls across unrelated components.
 
 **Note:** Vite is used for the web UI only. The engine packages do NOT use Vite — use `tsup` or `tsc` for compilation and Vitest for testing.
 
