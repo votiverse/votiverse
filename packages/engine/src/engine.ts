@@ -464,6 +464,16 @@ export class VotiverseEngine {
     this.issues.set(issue.id, issue);
   }
 
+  /**
+   * Inject topic data during initialization (when topics are stored
+   * outside the event log). Builds the topic ancestor map used by
+   * delegation chain resolution.
+   */
+  injectTopic(topic: Topic): void {
+    this.topics.set(topic.id, topic);
+    this.buildTopicAncestors(topic.id, topic.parentId);
+  }
+
   // -----------------------------------------------------------------------
   // Delegation API
   // -----------------------------------------------------------------------

@@ -156,6 +156,24 @@ export class AssemblyManager {
     await provider.rehydrate();
     await engine.rehydrate();
 
+    // Inject persisted topics (stored in SQL, not in the event log).
+    // Must happen before issues so that topicAncestors is populated
+    // for delegation chain resolution. Inject roots first so that
+    // buildTopicAncestors can walk up the parent chain for children.
+    const topicRows = await this.db.query<TopicRow>(
+      "SELECT * FROM topics WHERE assembly_id = ?",
+      [assemblyId],
+    );
+    const roots = topicRows.filter((r) => r.parent_id === null);
+    const children = topicRows.filter((r) => r.parent_id !== null);
+    for (const row of [...roots, ...children]) {
+      engine.injectTopic({
+        id: row.id as TopicId,
+        name: row.name,
+        parentId: (row.parent_id as TopicId | null),
+      });
+    }
+
     // Inject persisted issue details
     const issueRows = await this.db.query<IssueRow>(
       "SELECT * FROM issues WHERE assembly_id = ?",
