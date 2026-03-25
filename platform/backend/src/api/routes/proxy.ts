@@ -21,8 +21,9 @@ import type { VCPClient } from "../../services/vcp-client.js";
 import type { BackendConfig } from "../../config/schema.js";
 import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
-import { ValidationError, NotFoundError } from "../middleware/error-handler.js";
+import { ValidationError, NotFoundError, ForbiddenError } from "../middleware/error-handler.js";
 import { safeWebsiteUrl } from "../../lib/validation.js";
+import { isAdminOf } from "../../lib/admin-check.js";
 
 export function proxyRoutes(
   membershipService: MembershipService,
@@ -285,6 +286,25 @@ export function proxyRoutes(
 
     // Resolve user's participant ID for this assembly
     const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    // Enforce admin-only operations server-side (not just a frontend gate)
+    if (c.req.method === "POST") {
+      // Event creation: gated by voteCreation assembly setting
+      if (/^\/events\/?$/.test(subpath)) {
+        const assembly = await assemblyCacheService.get(assemblyId);
+        if (assembly?.voteCreation !== "members") {
+          if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+            throw new ForbiddenError("Only admins can create votes in this group");
+          }
+        }
+      }
+      // Topic creation: always admin-only
+      if (/^\/topics\/?$/.test(subpath)) {
+        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+          throw new ForbiddenError("Only admins can create topics");
+        }
+      }
+    }
 
     // Reconstruct the original path
     const path = url.pathname + url.search;

@@ -38,6 +38,7 @@ import type { NotificationHubService } from "../../services/notification-hub.js"
 import { getUser } from "../middleware/auth.js";
 import { parseCsvInvites } from "../../lib/csv-parser.js";
 import { AssemblySettingsBody, BulkInviteBody, parseBody } from "../../lib/validation.js";
+import { isAdminOf as isAdminOfShared } from "../../lib/admin-check.js";
 import { NotFoundError, ForbiddenError, GoneError, ValidationError } from "../middleware/error-handler.js";
 
 export function invitationRoutes(
@@ -52,17 +53,8 @@ export function invitationRoutes(
 ) {
   const app = new Hono();
 
-  // ── Helper: check admin role ─────────────────────────────────────
-
-  async function isAdminOf(userId: string, assemblyId: string): Promise<boolean> {
-    const participantId = await membershipService.getParticipantIdOrThrow(userId, assemblyId);
-    try {
-      const roles = await vcpClient.listRoles(assemblyId);
-      return roles.some((r) => r.participantId === participantId && (r.role === "admin" || r.role === "owner"));
-    } catch {
-      return false;
-    }
-  }
+  const isAdminOf = (userId: string, assemblyId: string) =>
+    isAdminOfShared(userId, assemblyId, membershipService, vcpClient);
 
   // ── Public routes (no auth) ──────────────────────────────────────
 
