@@ -104,10 +104,10 @@
   --text-on-accent: #FFFFFF;
   --text-inverted: #FFFFFF;
 
-  /* Border */
-  --border-default: var(--primitive-gray-200);
-  --border-strong: var(--primitive-gray-300);
-  --border-subtle: var(--primitive-gray-100);
+  /* Border — semi-transparent so borders blend with shadows instead of fighting them */
+  --border-default: rgb(15 23 42 / 0.10);
+  --border-strong: rgb(15 23 42 / 0.15);
+  --border-subtle: rgb(15 23 42 / 0.05);
 
   /* Accent (brand) */
   --accent: var(--primitive-brand-500);
@@ -199,10 +199,10 @@
   --text-on-accent: var(--primitive-brand-950); /* Dark text on light teal buttons — 7.6:1 contrast */
   --text-inverted: var(--primitive-gray-900);
 
-  /* Border */
-  --border-default: var(--primitive-gray-700);
-  --border-strong: var(--primitive-gray-600);
-  --border-subtle: var(--primitive-gray-800);
+  /* Border — semi-transparent for natural shadow blending */
+  --border-default: rgb(248 250 252 / 0.10);
+  --border-strong: rgb(248 250 252 / 0.15);
+  --border-subtle: rgb(248 250 252 / 0.05);
 
   /* Accent (brand — shifted lighter for dark surfaces) */
   --accent: var(--primitive-brand-400);
