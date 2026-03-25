@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
 import { ThemeContext, useThemeProvider } from "./hooks/use-theme.js";
-import { Header, BottomTabs } from "./components/layout.js";
+import { Sidebar, MobileHeader, AssemblyContentHeader, BottomTabs } from "./components/layout.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
 import { Dashboard } from "./pages/dashboard.js";
 import { AssemblyList } from "./pages/assembly-list.js";
@@ -33,14 +33,28 @@ import { DevClock } from "./components/dev-clock.js";
 
 function Layout() {
   return (
-    <div className="min-h-screen bg-surface">
-      <Header />
-      <main className="py-6 px-4 sm:py-8 sm:px-6 lg:px-8 pb-20 lg:pb-8 animate-page-in">
-        <ErrorBoundary>
-          <Outlet />
-        </ErrorBoundary>
-      </main>
-      <BottomTabs />
+    <div className="flex h-screen bg-surface">
+      {/* Desktop sidebar (lg and above) */}
+      <Sidebar />
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header (below lg) */}
+        <MobileHeader />
+
+        {/* Assembly tab bar (desktop only, when inside an assembly) */}
+        <AssemblyContentHeader />
+
+        {/* Scrollable content */}
+        <main className="flex-1 overflow-y-auto py-6 px-4 sm:py-8 sm:px-6 lg:px-8 pb-20 lg:pb-8 animate-page-in">
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
+        </main>
+
+        {/* Mobile bottom tabs (below lg) */}
+        <BottomTabs />
+      </div>
     </div>
   );
 }
