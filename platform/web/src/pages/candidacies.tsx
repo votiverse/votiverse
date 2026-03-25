@@ -7,9 +7,10 @@ import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
 import type { Candidacy } from "../api/types.js";
-import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
+import { Card, CardBody, Button, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
+import { TopicPicker } from "../components/topic-picker.js";
 import { FileText, MessageSquareText, ExternalLink, Pencil } from "lucide-react";
 import { lazy, Suspense } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
@@ -153,6 +154,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, isOwn, on
         candidacyId={candidacy.id}
         initialMarkdown={fullContent?.content?.markdown ?? candidacy.content?.markdown ?? ""}
         initialWebsiteUrl={fullContent?.content?.websiteUrl ?? candidacy.websiteUrl ?? ""}
+        initialTopicScope={candidacy.topicScope}
         initialVoteTransparency={candidacy.voteTransparencyOptIn}
         onDone={() => { setEditing(false); setFullContent(null); onChanged(); }}
         onCancel={() => setEditing(false)}
@@ -263,6 +265,7 @@ function CandidacyForm({
   candidacyId,
   initialMarkdown = "",
   initialWebsiteUrl = "",
+  initialTopicScope = [],
   initialVoteTransparency = false,
   onDone,
   onCancel,
@@ -271,6 +274,7 @@ function CandidacyForm({
   candidacyId?: string;
   initialMarkdown?: string;
   initialWebsiteUrl?: string;
+  initialTopicScope?: string[];
   initialVoteTransparency?: boolean;
   onDone: () => void;
   onCancel?: () => void;
@@ -279,6 +283,7 @@ function CandidacyForm({
   const isEdit = !!candidacyId;
   const [markdown, setMarkdown] = useState(initialMarkdown);
   const [websiteUrl, setWebsiteUrl] = useState(initialWebsiteUrl || "");
+  const [topicScope, setTopicScope] = useState<string[]>(initialTopicScope);
   const [voteTransparency, setVoteTransparency] = useState(initialVoteTransparency);
   const [submitting, setSubmitting] = useState(false);
 
@@ -289,12 +294,13 @@ function CandidacyForm({
       if (isEdit) {
         await api.createCandidacyVersion(assemblyId, candidacyId, {
           markdown,
+          topicScope: topicScope.length > 0 ? topicScope : undefined,
           voteTransparencyOptIn: voteTransparency,
           websiteUrl: websiteUrl.trim() || undefined,
         });
       } else {
         await api.declareCandidacy(assemblyId, {
-          topicScope: [],
+          topicScope,
           voteTransparencyOptIn: voteTransparency,
           markdown,
           websiteUrl: websiteUrl.trim() || undefined,
@@ -348,6 +354,11 @@ function CandidacyForm({
               </a>
             </p>
           )}
+        </div>
+        <div className="mb-4">
+          <Label>{t("candidacies.topicScopeLabel")}</Label>
+          <p className="text-xs text-text-tertiary mb-2">{t("candidacies.topicScopeHint")}</p>
+          <TopicPicker assemblyId={assemblyId} value={topicScope} onChange={setTopicScope} />
         </div>
         <label className="flex items-center gap-2 text-sm text-text-secondary mb-4">
           <input
