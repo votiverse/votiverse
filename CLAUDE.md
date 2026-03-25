@@ -200,6 +200,14 @@ cli → engine → [awareness, voting, survey, prediction, integrity, content]
 - All public APIs must have JSDoc comments.
 - No default exports. Use named exports only.
 
+### Security — Authorization Enforcement
+
+**Every access control check in the web UI MUST be enforced server-side in the backend (or VCP).** A frontend gate (hiding a button, disabling a form) is a cosmetic convenience, not a security boundary. It must always be possible to remove every frontend check and still have the system reject unauthorized requests.
+
+**Concretely:** If the web UI hides "Create Vote" from non-admins, the backend proxy MUST reject `POST /events` from non-admins with 403. If the web UI hides "New Topic" from non-admins, the backend MUST reject `POST /topics` from non-admins with 403. It should not be possible to bypass any access gate using `curl` or similar tools.
+
+**Pattern:** Use the shared `isAdminOf()` helper in `platform/backend/src/lib/admin-check.ts` for backend-side admin checks. Use `useAssemblyRole()` hook in `platform/web/src/hooks/use-assembly-role.ts` for frontend display gating. Both must agree — if one checks, the other must check too.
+
 ### Naming
 - Packages: `@votiverse/<name>` (lowercase, single word)
 - Files: `kebab-case.ts`
