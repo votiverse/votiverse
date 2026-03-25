@@ -6,6 +6,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useSignal } from "./use-mutation-signal.js";
 import * as auth from "../api/auth.js";
 import { registerForPushNotifications } from "../lib/push.js";
 import { registerDevice } from "../api/client.js";
@@ -117,6 +118,29 @@ export function useIdentityProvider(): IdentityCtx {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Re-fetch profile when assemblies change (new membership after group creation)
+  const assemblySignal = useSignal("assemblies");
+  useEffect(() => {
+    if (assemblySignal === 0 || !user) return; // skip initial render
+    let cancelled = false;
+    auth.getMe().then((me) => {
+      if (!cancelled && me) {
+        setUser({
+          id: me.id,
+          name: me.name,
+          handle: me.handle ?? null,
+          email: me.email,
+          memberships: me.memberships.map((m) => ({
+            assemblyId: m.assemblyId,
+            assemblyName: m.assemblyName,
+            participantId: m.participantId,
+          })),
+        });
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [assemblySignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for auth-expired events (fired by API client when refresh fails)
   useEffect(() => {

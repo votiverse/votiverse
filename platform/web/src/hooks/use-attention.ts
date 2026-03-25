@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useSignal } from "./use-mutation-signal.js";
 import * as api from "../api/client.js";
 import type { Assembly, VotingEvent } from "../api/types.js";
 import { deriveEventStatus, deriveSurveyStatus } from "../lib/status.js";
@@ -74,6 +75,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
   const [state, setState] = useState<AttentionState>(defaultState);
   const versionRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const assemblySignal = useSignal("assemblies");
 
   const fetchData = useCallback(async () => {
     // null = identity still loading, keep spinner. [] = loaded but no memberships.
@@ -234,7 +236,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
     }
   }, [memberships]);
 
-  // Initial fetch + polling
+  // Initial fetch + polling + mutation signal
   useEffect(() => {
     fetchData();
 
@@ -252,7 +254,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [fetchData]);
+  }, [fetchData, assemblySignal]);
 
   return { ...state, refresh: fetchData };
 }

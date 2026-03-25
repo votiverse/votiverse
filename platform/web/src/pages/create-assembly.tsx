@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, ErrorBox } from "../components/ui.js";
+import { signal } from "../hooks/use-mutation-signal.js";
 
 // ── Preset definitions ───────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ export function CreateAssembly() {
         params.preset = config.preset;
       }
       const assembly = await api.createAssembly(params);
+      signal("assemblies");
       navigate(`/assembly/${assembly.id}/members`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("assemblyList.createError"));

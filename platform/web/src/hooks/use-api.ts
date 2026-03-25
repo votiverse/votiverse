@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSignal } from "./use-mutation-signal.js";
 
 interface UseApiResult<T> {
   data: T | null;
@@ -10,13 +11,24 @@ interface UseApiResult<T> {
   refetch: () => void;
 }
 
-export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): UseApiResult<T> {
+/**
+ * Fetch data from the API with automatic refetching on dependency changes.
+ *
+ * @param fetcher — async function that returns data
+ * @param deps — dependency array (refetch when these change)
+ * @param signalKey — optional mutation signal key; when signal(key) is called
+ *                     anywhere in the app, this hook automatically refetches
+ */
+export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = [], signalKey?: string): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const hasData = useRef(false);
+
+  // Subscribe to mutation signals — version changes trigger refetch
+  const signalVersion = useSignal(signalKey ?? "");
 
   const refetch = useCallback(() => setVersion((v) => v + 1), []);
 
@@ -49,7 +61,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): UseA
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [version, ...deps]);
+  }, [version, signalVersion, ...deps]);
 
   return { data, loading, refreshing, error, refetch };
 }
