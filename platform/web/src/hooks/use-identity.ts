@@ -83,6 +83,8 @@ function tryPushRegistration(): void {
   })();
 }
 
+const EMPTY_MEMBERSHIPS: IdentityMembership[] = [];
+
 export function useIdentityProvider(): IdentityCtx {
   const [user, setUser] = useState<UserState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,7 +174,7 @@ export function useIdentityProvider(): IdentityCtx {
     participantName: user?.name ?? null,
     handle: user?.handle ?? null,
     email: user?.email ?? null,
-    memberships: user?.memberships ?? [],
+    memberships: user?.memberships ?? EMPTY_MEMBERSHIPS,
     getParticipantId,
     loading,
     login,
