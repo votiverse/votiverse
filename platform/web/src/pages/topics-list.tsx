@@ -1,11 +1,12 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
+import { useIdentity } from "../hooks/use-identity.js";
 import { useMyDelegations, resolveRootTopicDelegation } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
 import type { Topic, VotingEvent, Delegation } from "../api/types.js";
-import { Card, CardBody, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
+import { Card, CardBody, Button, Input, Select, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { DelegatedIcon } from "../components/delegated-icon.js";
 import type { TopicDelegationStatus } from "../hooks/use-my-delegations.js";
 
@@ -50,6 +51,8 @@ function buildTree(
 export function TopicsList() {
   const { t } = useTranslation("governance");
   const { assemblyId } = useParams();
+  const { getParticipantId } = useIdentity();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const { data: topicsData, loading, error, refetch } = useApi(
     () => api.listTopics(assemblyId!),
     [assemblyId],
@@ -62,9 +65,14 @@ export function TopicsList() {
     () => api.listDelegations(assemblyId!),
     [assemblyId],
   );
+  const { data: profileData } = useApi(
+    () => api.getAssemblyProfile(assemblyId!),
+    [assemblyId],
+  );
   const { myDelegations, participantNames } = useMyDelegations();
 
   const topics = topicsData?.topics ?? [];
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const tree = useMemo(
     () => buildTree(
@@ -75,42 +83,141 @@ export function TopicsList() {
     [topics, eventsData, delegationsData],
   );
 
+  // Check if current user is an admin or owner
+  const isAdmin = useMemo(() => {
+    if (!participantId || !profileData) return false;
+    return [...(profileData.owners ?? []), ...(profileData.admins ?? [])].some(
+      (r) => r.participantId === participantId,
+    );
+  }, [participantId, profileData]);
+
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
 
-  if (tree.length === 0) {
-    return (
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("topicsList.title")}</h1>
-        <EmptyState title={t("topicsList.noTopics")} description={t("topicsList.noTopicsDesc")} />
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("topicsList.title")}</h1>
-        <p className="text-sm text-text-muted mt-1">
-          {t("topicsList.subtitle")}
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("topicsList.title")}</h1>
+          <p className="text-sm text-text-muted mt-1">
+            {t("topicsList.subtitle")}
+          </p>
+        </div>
+        {isAdmin && (
+          <Button onClick={() => setShowCreateForm(!showCreateForm)} variant={showCreateForm ? "secondary" : undefined}>
+            {showCreateForm ? t("common:cancel") : t("topicsList.newTopic")}
+          </Button>
+        )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {tree.map((node) => (
-          <TopicCard
-            key={node.topic.id}
-            node={node}
-            assemblyId={assemblyId!}
-            delegationStatus={
-              myDelegations.length > 0
-                ? resolveRootTopicDelegation(node.topic.id, topics, myDelegations, participantNames)
-                : null
-            }
-          />
-        ))}
-      </div>
+      {showCreateForm && (
+        <CreateTopicForm
+          assemblyId={assemblyId!}
+          rootTopics={topics.filter((t) => !t.parentId)}
+          onCreated={() => { setShowCreateForm(false); refetch(); }}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      )}
+
+      {tree.length === 0 ? (
+        <EmptyState title={t("topicsList.noTopics")} description={t("topicsList.noTopicsDesc")} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {tree.map((node) => (
+            <TopicCard
+              key={node.topic.id}
+              node={node}
+              assemblyId={assemblyId!}
+              delegationStatus={
+                myDelegations.length > 0
+                  ? resolveRootTopicDelegation(node.topic.id, topics, myDelegations, participantNames)
+                  : null
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function CreateTopicForm({
+  assemblyId,
+  rootTopics,
+  onCreated,
+  onCancel,
+}: {
+  assemblyId: string;
+  rootTopics: Topic[];
+  onCreated: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation("governance");
+  const [name, setName] = useState("");
+  const [parentId, setParentId] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await api.createTopic(assemblyId, {
+        name: name.trim(),
+        parentId: parentId || null,
+      });
+      onCreated();
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : t("topicsList.createError"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardBody>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <h3 className="text-sm font-medium text-text-primary">{t("topicsList.newTopicTitle")}</h3>
+          {formError && <ErrorBox message={formError} />}
+          <div>
+            <Label>{t("topicsList.topicName")}</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("topicsList.topicNamePlaceholder")}
+              autoFocus
+            />
+          </div>
+          {rootTopics.length > 0 && (
+            <div>
+              <Label>{t("topicsList.parentTopic")}</Label>
+              <Select value={parentId} onChange={(e) => setParentId(e.target.value)}>
+                <option value="">{t("topicsList.noParent")}</option>
+                {rootTopics.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </Select>
+              <p className="text-xs text-text-tertiary mt-1">{t("topicsList.parentHint")}</p>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Button type="submit" disabled={submitting || !name.trim()}>
+              {submitting ? t("topicsList.creating") : t("topicsList.createBtn")}
+            </Button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-sm text-text-muted hover:text-text-secondary min-h-[36px] px-2"
+            >
+              {t("common:cancel")}
+            </button>
+          </div>
+        </form>
+      </CardBody>
+    </Card>
   );
 }
 

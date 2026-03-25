@@ -240,6 +240,13 @@ export function listTopics(assemblyId: string): Promise<{ topics: Topic[] }> {
   return request("GET", `/assemblies/${assemblyId}/topics`);
 }
 
+export function createTopic(
+  assemblyId: string,
+  params: { name: string; parentId?: string | null },
+): Promise<Topic> {
+  return request("POST", `/assemblies/${assemblyId}/topics`, params);
+}
+
 export function getTopicIssues(assemblyId: string, topicId: string): Promise<{
   issues: import("./types.js").TopicIssueItem[];
   pagination: import("./types.js").PaginationMeta;
