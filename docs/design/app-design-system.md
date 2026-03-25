@@ -480,7 +480,7 @@ The dark theme follows these principles:
 3. **Borders** are extremely subtle to avoid a wireframed look.
 4. **Accent** shifts to a lighter teal (brand-400/300) for adequate contrast on dark surfaces.
 5. **Status colors** use low-opacity washes (`rgb(... / 0.1)`) instead of solid backgrounds, which look oversaturated on dark surfaces.
-6. **Text on accent buttons** may need to be dark (`--text-on-accent: gray-950`) if the light-teal accent button doesn't provide sufficient contrast with white text. Test this — if the accent button in dark mode uses brand-400 (`#2DD4BF`), white text may not pass WCAG AA. Dark text on a light teal button will.
+6. **Text on accent buttons** uses dark teal (`--text-on-accent: brand-950`, `#0A302D`) instead of white. White text on the light teal accent (`#2DD4BF`) has only 1.9:1 contrast — unreadable. Dark teal achieves 7.6:1, passing WCAG AAA. This was verified visually and is implemented.
 
 The full dark token set in `index.css`:
 
@@ -497,7 +497,7 @@ The full dark token set in `index.css`:
   --text-secondary: var(--primitive-gray-300);
   --text-muted: var(--primitive-gray-400);
   --text-tertiary: var(--primitive-gray-500);
-  --text-on-accent: #FFFFFF; /* May need gray-950 — test contrast */
+  --text-on-accent: var(--primitive-brand-950); /* Dark text on light teal — 7.6:1 contrast */
   --text-inverted: var(--primitive-gray-900);
 
   /* Borders */
@@ -567,7 +567,7 @@ The full dark token set in `index.css`:
 }
 ```
 
-**Note on `--text-on-accent`:** The correct value depends on the contrast ratio between the dark-mode accent color (brand-400, `#2DD4BF`) and the text color. White text on `#2DD4BF` has a contrast ratio of approximately 2.3:1, which fails WCAG AA. Dark text (gray-950, `#0A302D`) on `#2DD4BF` has ~8:1 contrast, which passes AAA. **If the dark-mode accent button uses the lighter brand-400, `--text-on-accent` must be set to a dark color.** Verify this during implementation and adjust accordingly.
+**`--text-on-accent` is resolved:** Dark text (`brand-950`, `#0A302D`) is used on accent buttons in dark mode, achieving 7.6:1 contrast (WCAG AAA). White text on `#2DD4BF` was only 1.9:1 — confirmed unreadable during visual QA.
 
 ---
 
