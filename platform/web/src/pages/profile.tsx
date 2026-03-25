@@ -8,7 +8,7 @@ import * as oauthApi from "../api/oauth.js";
 import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Spinner, ErrorBox } from "../components/ui.js";
 import { Avatar, AVATAR_STYLES, AVATAR_STYLE_LABELS, avatarUrl, type AvatarStyle } from "../components/avatar.js";
-import { Sun, Monitor, Moon, Globe, Palette, User, Link2 } from "lucide-react";
+import { Sun, Monitor, Moon, Globe, Palette, User, Link2, LogOut } from "lucide-react";
 import { useTheme, type ThemeMode } from "../hooks/use-theme.js";
 import { ALL_LOCALES, LOCALE_NAMES } from "../locales.js";
 
@@ -33,7 +33,7 @@ interface AssemblyProfileData {
 
 export function Profile() {
   const { t } = useTranslation("governance");
-  const { storeUserId, participantName, handle, email, memberships } = useIdentity();
+  const { storeUserId, participantName, handle, email, memberships, clearIdentity } = useIdentity();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<AssemblyProfileData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +110,16 @@ export function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-4">{t("profile.title")}</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("profile.title")}</h1>
+        <button
+          onClick={() => clearIdentity()}
+          className="flex items-center gap-1.5 text-sm text-text-muted hover:text-error-text transition-colors"
+        >
+          <LogOut size={15} />
+          {t("profile.logout")}
+        </button>
+      </div>
 
       {/* Identity card — always visible above tabs */}
       <Card className="mb-4">
@@ -184,7 +193,6 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
   totalOutbound: number;
 }) {
   const { t } = useTranslation("governance");
-  const { clearIdentity } = useIdentity();
 
   return (
     <>
@@ -296,16 +304,6 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
           </CardBody>
         </Card>
       ))}
-
-      {/* Logout */}
-      <div className="mt-8 pt-6 border-t border-border-subtle">
-        <button
-          onClick={() => clearIdentity()}
-          className="text-sm text-text-muted hover:text-error-text transition-colors"
-        >
-          {t("profile.logout")}
-        </button>
-      </div>
     </>
   );
 }
