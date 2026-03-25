@@ -199,6 +199,23 @@ export class ContentService {
     );
   }
 
+  /** Get website URLs for all candidacies in an assembly (latest version per candidacy). */
+  async getCandidacyWebsiteUrls(assemblyId: string): Promise<Map<string, string>> {
+    const rows = await this.db.query<{ candidacy_id: string; website_url: string }>(
+      `SELECT c.candidacy_id, c.website_url
+       FROM candidacy_content c
+       INNER JOIN (
+         SELECT candidacy_id, MAX(version_number) AS max_ver
+         FROM candidacy_content
+         WHERE assembly_id = ?
+         GROUP BY candidacy_id
+       ) latest ON c.candidacy_id = latest.candidacy_id AND c.version_number = latest.max_ver
+       WHERE c.assembly_id = ? AND c.website_url IS NOT NULL`,
+      [assemblyId, assemblyId],
+    );
+    return new Map(rows.map((r) => [r.candidacy_id, r.website_url]));
+  }
+
   // -----------------------------------------------------------------------
   // Note content (immutable, single version)
   // -----------------------------------------------------------------------

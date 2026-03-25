@@ -94,7 +94,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId }: {
 
   const name = nameMap.get(candidacy.participantId) ?? candidacy.participantId;
   const topics = candidacy.topicScope.map((t) => topicNameMap.get(t) ?? t);
-  const websiteUrl = fullContent?.content?.websiteUrl ?? candidacy.content?.websiteUrl;
+  const websiteUrl = fullContent?.content?.websiteUrl ?? candidacy.websiteUrl ?? candidacy.content?.websiteUrl;
   const websiteHostname = websiteUrl ? (() => { try { return new URL(websiteUrl).hostname; } catch { return websiteUrl; } })() : null;
 
   const handleExpand = async () => {

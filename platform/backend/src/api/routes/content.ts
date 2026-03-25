@@ -289,6 +289,29 @@ export function contentRoutes(
     return c.json({ ...vcpData, contentHash }, 201);
   });
 
+  /** GET candidacy list — enriched with websiteUrl from backend content. */
+  app.get("/assemblies/:assemblyId/candidacies", async (c) => {
+    const assemblyId = c.req.param("assemblyId");
+    const user = getUser(c);
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    const url = new URL(c.req.url);
+    const vcpPath = `/assemblies/${assemblyId}/candidacies${url.search}`;
+    const vcpRes = await callVcp(config, "GET", vcpPath, undefined, participantId);
+    if (!vcpRes.ok) {
+      return new Response(await vcpRes.text(), { status: vcpRes.status, headers: vcpRes.headers });
+    }
+    const data = await vcpRes.json() as { candidacies: Array<Record<string, unknown>> };
+
+    const websiteUrls = await contentService.getCandidacyWebsiteUrls(assemblyId);
+    for (const c of data.candidacies) {
+      const url = websiteUrls.get(c["id"] as string);
+      if (url) (c as Record<string, unknown>)["websiteUrl"] = url;
+    }
+
+    return c.json(data);
+  });
+
   /** GET candidacy with full content. */
   app.get("/assemblies/:assemblyId/candidacies/:candidacyId", async (c) => {
     const assemblyId = c.req.param("assemblyId");

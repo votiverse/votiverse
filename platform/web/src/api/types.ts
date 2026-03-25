@@ -390,6 +390,8 @@ export interface Candidacy {
   status: "active" | "withdrawn";
   declaredAt: number;
   withdrawnAt?: number;
+  /** Website URL — available on list (from backend enrichment) and detail (from content). */
+  websiteUrl?: string | null;
   content?: {
     markdown: string;
     assets: string[];
