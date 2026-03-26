@@ -48,7 +48,7 @@ async function main() {
   const server = spawn("node_modules/.bin/tsx", ["src/main.ts"], {
     cwd: ROOT,
     stdio: "pipe",
-    env: { ...process.env, BACKEND_LOG_LEVEL: "warn", BACKEND_RATE_LIMIT_ENABLED: "false" },
+    env: { ...process.env, NODE_ENV: "development", BACKEND_LOG_LEVEL: "warn", BACKEND_RATE_LIMIT_ENABLED: "false" },
   });
 
   // Wait for health check
