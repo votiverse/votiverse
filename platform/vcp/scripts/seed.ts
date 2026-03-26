@@ -12,6 +12,7 @@ import { createHash } from "node:crypto";
 import {
   post,
   postAs,
+  putAs,
   get,
   fromNow,
   setDevClock,
@@ -434,7 +435,64 @@ export async function main() {
   }
   console.log(`\n  Created ${NOTES.length} notes with ${evalCount} evaluations\n`);
 
-  // ── Step 11: Cancel misclassified issues ────────────────────────────
+  // ── Step 11: Endorse candidates ──────────────────────────────────────
+  // Seed endorsements from non-candidate participants on candidacies.
+
+  console.log("═══ ENDORSEMENTS ═══\n");
+  let endorseCount = 0;
+
+  // Youth assembly endorsements
+  const youthId = aid("youth");
+  const youthCandidacyIds = candidacyIds.filter((_, i) => CANDIDACIES[i]?.assemblyKey === "youth");
+  const youthNonCandidates = ["Jin Park", "Chloe Beaumont", "Nina Kowalski", "Ravi Gupta", "Emilia Strand"];
+
+  for (const cId of youthCandidacyIds) {
+    // Each candidate gets 2-4 random endorsements and 0-1 disputes
+    const shuffled = youthNonCandidates.sort(() => Math.random() - 0.5);
+    const endorseN = 2 + Math.floor(Math.random() * 3); // 2-4
+    for (let i = 0; i < Math.min(endorseN, shuffled.length); i++) {
+      try {
+        const pId = pid("youth", shuffled[i]!);
+        await putAs(`/assemblies/${youthId}/endorsements`, {
+          targetType: "candidacy", targetId: cId, value: "endorse",
+        }, pId);
+        endorseCount++;
+      } catch { /* skip */ }
+    }
+    // Occasional dispute
+    if (Math.random() > 0.6 && shuffled.length > endorseN) {
+      try {
+        const pId = pid("youth", shuffled[endorseN]!);
+        await putAs(`/assemblies/${youthId}/endorsements`, {
+          targetType: "candidacy", targetId: cId, value: "dispute",
+        }, pId);
+        endorseCount++;
+      } catch { /* skip */ }
+    }
+  }
+
+  // Maple assembly endorsements
+  const mapleId = aid("maple");
+  const mapleCandidacyIds = candidacyIds.filter((_, i) => CANDIDACIES[i]?.assemblyKey === "maple");
+  const mapleNonCandidates = ["Elena Vasquez", "Kai Andersen", "Sofia Reyes"];
+
+  for (const cId of mapleCandidacyIds) {
+    const shuffled = mapleNonCandidates.sort(() => Math.random() - 0.5);
+    const endorseN = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < Math.min(endorseN, shuffled.length); i++) {
+      try {
+        const pId = pid("maple", shuffled[i]!);
+        await putAs(`/assemblies/${mapleId}/endorsements`, {
+          targetType: "candidacy", targetId: cId, value: "endorse",
+        }, pId);
+        endorseCount++;
+      } catch { /* skip */ }
+    }
+  }
+
+  console.log(`  Endorsements: ${endorseCount}\n`);
+
+  // ── Step 12: Cancel misclassified issues ────────────────────────────
   // The Riverside "Summer Camp Registration Fees" issue was classified
   // under Budget / Fees but should be Programs / Youth. Cancel it during
   // deliberation to demonstrate the correction workflow.

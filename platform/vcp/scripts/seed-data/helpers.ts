@@ -59,6 +59,20 @@ export async function postAs(path: string, body: unknown, participantId: string)
   return res.json() as Promise<Record<string, unknown>>;
 }
 
+/** PUT with X-Participant-Id header for authenticated participant actions. */
+export async function putAs(path: string, body: unknown, participantId: string): Promise<Record<string, unknown>> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "PUT",
+    headers: { ...headers, "X-Participant-Id": participantId },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`PUT ${path} failed (${res.status}): ${err}`);
+  }
+  return res.json() as Promise<Record<string, unknown>>;
+}
+
 /** DELETE with X-Participant-Id header. */
 export async function deleteAs(path: string, participantId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}${path}`, {
