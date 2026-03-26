@@ -8,7 +8,7 @@ import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-statu
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy } from "../api/types.js";
-import { FileText, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
 import { formatDateTime } from "../lib/format.js";
@@ -532,17 +532,30 @@ function IssueVotingCard({
             <Badge color="blue">{t("eventDetail.nCandidates", { count: choices.length })}</Badge>
           )}
         </div>
-        {/* Description */}
-        {description && <p className="text-sm text-text-muted mt-0.5">{description}</p>}
-        {/* Voting booklet — informational, shown in header */}
-        {proposals.length > 0 && eventStatus !== "deliberation" && (
+        {/* Description + inline arguments link */}
+        {description && (
+          <p className="text-sm text-text-muted mt-0.5">
+            {description}
+            {proposals.length > 0 && eventStatus !== "deliberation" && (
+              <>
+                {" "}
+                <button
+                  onClick={() => setBookletOpen(true)}
+                  className="text-accent-text hover:underline whitespace-nowrap"
+                >
+                  {t("eventDetail.readArguments")} →
+                </button>
+              </>
+            )}
+          </p>
+        )}
+        {/* Arguments link when no description */}
+        {!description && proposals.length > 0 && eventStatus !== "deliberation" && (
           <button
             onClick={() => setBookletOpen(true)}
-            className="inline-flex items-center gap-1.5 mt-2 text-sm text-info-text hover:text-info-text transition-colors"
+            className="text-sm text-accent-text hover:underline mt-0.5"
           >
-            <FileText size={14} />
-            {t("eventDetail.votingBooklet")}
-            <span className="text-xs text-text-tertiary">({proposals.length})</span>
+            {t("eventDetail.readArguments")} →
           </button>
         )}
       </CardHeader>

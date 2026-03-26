@@ -117,6 +117,7 @@
   "eventDetail.votingOpen": "Voting open",
   "eventDetail.liveBreakdown": "Live Breakdown",
   "eventDetail.showBreakdown": "Show breakdown",
+  "eventDetail.readArguments": "Read the arguments",
   "eventDetail.results": "Results",
   "eventDetail.voteBreakdown": "Vote breakdown",
   "eventDetail.noVotesCast": "No votes cast yet.",
