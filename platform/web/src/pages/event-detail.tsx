@@ -844,7 +844,7 @@ function VotingSection({
             issueId={issueId}
             delegationConfig={delegationConfig}
             isDelegated={issueStatus.isDelegated}
-            hasVoted={issueStatus.hasVoted}
+            hasVoted={effectiveHasVoted}
             chainNames={chainNames}
             terminalVoterName={terminalVoterName}
             issueTopicIds={issueTopicIds}
@@ -911,7 +911,7 @@ function DelegationCard({
           </svg>
           {delegateName && <Avatar name={delegateName} size="xs" />}
           <span className="text-sm text-info-text truncate">
-            {t("eventDetail.delegatedTo", { name: delegateName })}
+            Delegated to <span className="font-semibold">{delegateName}</span>
             {chainNames.length > 1 && (
               <span className="text-info-text ml-1">{t("eventDetail.delegatedVia", { chain: chainDisplay })}</span>
             )}

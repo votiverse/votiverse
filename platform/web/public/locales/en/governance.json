@@ -122,7 +122,7 @@
   "eventDetail.changeVote": "Change vote",
   "eventDetail.letDelegateDecide": "Delegate",
   "eventDetail.voteFinal": "Final",
-  "eventDetail.delegatedTo": "Delegated to <bold>{{name}}</bold>",
+  "eventDetail.delegatedTo": "Delegated to {{name}}",
   "eventDetail.delegatedVia": "via {{chain}}",
   "eventDetail.manageDelegation": "Manage",
   "eventDetail.noDelegateForTopic": "No delegate for this topic",
