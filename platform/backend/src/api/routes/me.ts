@@ -12,7 +12,7 @@ import type { NotificationService } from "../../services/notification-service.js
 import { getUser } from "../middleware/auth.js";
 import { ValidationError, NotFoundError, BadGatewayError } from "../middleware/error-handler.js";
 import { v7 as uuidv7 } from "uuid";
-import { UpdateProfileBody, NotificationPrefBody, DeviceTokenBody, parseBody } from "../../lib/validation.js";
+import { UpdateProfileBody, UpdateMemberProfileBody, NotificationPrefBody, DeviceTokenBody, parseBody } from "../../lib/validation.js";
 
 import type { NotificationHubService } from "../../services/notification-hub.js";
 import type { DatabaseAdapter } from "../../adapters/database/interface.js";
@@ -338,6 +338,21 @@ export function meRoutes(
 
     const membership = await membershipService.joinAssembly(id, assemblyId, name);
     return c.json(membership, 201);
+  });
+
+  /** PUT /me/assemblies/:assemblyId/profile — update per-membership profile (title, avatar, banner). */
+  app.put("/me/assemblies/:assemblyId/profile", async (c) => {
+    const { id } = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const body = parseBody(UpdateMemberProfileBody, await c.req.json());
+
+    await membershipService.updateMemberProfile(id, assemblyId, {
+      title: body.title,
+      avatarUrl: body.avatarUrl,
+      bannerUrl: body.bannerUrl,
+    });
+
+    return c.json({ ok: true });
   });
 
   // ── Notification preferences (renamed from /me/notifications) ────

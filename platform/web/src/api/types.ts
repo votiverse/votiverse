@@ -395,6 +395,8 @@ export interface Candidacy {
   withdrawnAt?: number;
   /** Website URL — available on list (from backend enrichment) and detail (from content). */
   websiteUrl?: string | null;
+  /** Per-membership title (e.g., "Structural Engineer") — enriched from backend. */
+  title?: string | null;
   content?: {
     markdown: string;
     assets: string[];

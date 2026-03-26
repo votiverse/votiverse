@@ -61,6 +61,16 @@ export const UpdateProfileBody = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Membership profile
+// ---------------------------------------------------------------------------
+
+export const UpdateMemberProfileBody = z.object({
+  title: z.string().max(100).nullable().optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  bannerUrl: z.string().url().nullable().optional(),
+});
+
+// ---------------------------------------------------------------------------
 // Notification preferences
 // ---------------------------------------------------------------------------
 

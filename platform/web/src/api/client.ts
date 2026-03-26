@@ -194,6 +194,10 @@ export function updateProfile(updates: { handle?: string; name?: string; bio?: s
   return request("PUT", "/me/profile", updates);
 }
 
+export function updateMemberProfile(assemblyId: string, updates: { title?: string | null; avatarUrl?: string | null; bannerUrl?: string | null }): Promise<{ ok: true }> {
+  return request("PUT", `/me/assemblies/${assemblyId}/profile`, updates);
+}
+
 // ---- Participants ----
 
 export function listParticipants(assemblyId: string): Promise<{ participants: Participant[] }> {

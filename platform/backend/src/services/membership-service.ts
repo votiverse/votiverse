@@ -13,6 +13,9 @@ interface MembershipRow {
   participant_id: string;
   assembly_name: string;
   joined_at: string;
+  title: string | null;
+  avatar_url: string | null;
+  banner_url: string | null;
 }
 
 export interface Membership {
@@ -20,6 +23,9 @@ export interface Membership {
   participantId: string;
   assemblyName: string;
   joinedAt: string;
+  title?: string | null;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
 }
 
 export class MembershipService {
@@ -109,6 +115,9 @@ export class MembershipService {
       participantId: r.participant_id,
       assemblyName: r.assembly_name,
       joinedAt: r.joined_at,
+      title: r.title ?? null,
+      avatarUrl: r.avatar_url ?? null,
+      bannerUrl: r.banner_url ?? null,
     }));
   }
 
@@ -172,5 +181,57 @@ export class MembershipService {
       "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING",
       [userId, assemblyId, participantId, assemblyName],
     );
+  }
+
+  /** Update per-membership profile fields (title, avatar, banner). */
+  async updateMemberProfile(
+    userId: string,
+    assemblyId: string,
+    updates: { title?: string | null; avatarUrl?: string | null; bannerUrl?: string | null },
+  ): Promise<void> {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+
+    if (updates.title !== undefined) {
+      sets.push("title = ?");
+      values.push(updates.title);
+    }
+    if (updates.avatarUrl !== undefined) {
+      sets.push("avatar_url = ?");
+      values.push(updates.avatarUrl);
+    }
+    if (updates.bannerUrl !== undefined) {
+      sets.push("banner_url = ?");
+      values.push(updates.bannerUrl);
+    }
+
+    if (sets.length === 0) return;
+
+    values.push(userId, assemblyId);
+    const result = await this.db.run(
+      `UPDATE memberships SET ${sets.join(", ")} WHERE user_id = ? AND assembly_id = ?`,
+      values,
+    );
+    if (result.changes === 0) throw new NotFoundError("Not a member of this assembly");
+  }
+
+  /**
+   * Get membership titles for a list of participant IDs in an assembly.
+   * Returns a Map from participantId to title (only entries with non-null title).
+   */
+  async getMembershipTitles(assemblyId: string, participantIds: string[]): Promise<Map<string, string>> {
+    if (participantIds.length === 0) return new Map();
+
+    const placeholders = participantIds.map(() => "?").join(",");
+    const rows = await this.db.query<{ participant_id: string; title: string }>(
+      `SELECT participant_id, title FROM memberships WHERE assembly_id = ? AND participant_id IN (${placeholders}) AND title IS NOT NULL`,
+      [assemblyId, ...participantIds],
+    );
+
+    const result = new Map<string, string>();
+    for (const row of rows) {
+      result.set(row.participant_id, row.title);
+    }
+    return result;
   }
 }

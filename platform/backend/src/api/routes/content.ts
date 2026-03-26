@@ -327,9 +327,13 @@ export function contentRoutes(
     const data = await vcpRes.json() as { candidacies: Array<Record<string, unknown>> };
 
     const websiteUrls = await contentService.getCandidacyWebsiteUrls(assemblyId);
+    const participantIds = data.candidacies.map((c) => c["participantId"] as string);
+    const titles = await membershipService.getMembershipTitles(assemblyId, participantIds);
     for (const c of data.candidacies) {
       const url = websiteUrls.get(c["id"] as string);
       if (url) (c as Record<string, unknown>)["websiteUrl"] = url;
+      const title = titles.get(c["participantId"] as string);
+      if (title) (c as Record<string, unknown>)["title"] = title;
     }
 
     return c.json(data);
@@ -349,8 +353,11 @@ export function contentRoutes(
     const metadata = await vcpRes.json() as Record<string, unknown>;
 
     const content = await contentService.getCandidacyContent(assemblyId, candidacyId);
+    const pId = metadata["participantId"] as string;
+    const titleMap = await membershipService.getMembershipTitles(assemblyId, [pId]);
+    const title = titleMap.get(pId) ?? null;
 
-    return c.json({ ...metadata, content: content ? mapContentRow(content) : null });
+    return c.json({ ...metadata, title, content: content ? mapContentRow(content) : null });
   });
 
   /** POST candidacy version — update profile with new version. */
