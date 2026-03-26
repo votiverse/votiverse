@@ -171,21 +171,19 @@ export function AssemblyContentHeader() {
           </Link>
         </div>
         {/* Scrollable tab bar */}
-        <div className="flex overflow-x-auto hide-scrollbar gap-1">
+        <div className="flex overflow-x-auto hide-scrollbar gap-2 sm:gap-5">
           {tabs.map((tab) => {
             const active = location.pathname.startsWith(tab.to);
-            const Icon = NAV_ICONS[tab.key];
             return (
               <Link
                 key={tab.to}
                 to={tab.to}
-                className={`flex items-center gap-1.5 px-3 pb-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                className={`flex items-center pb-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors min-h-[44px] ${
                   active
                     ? "border-accent text-accent-text"
                     : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
                 }`}
               >
-                {Icon && <Icon size={15} strokeWidth={1.5} />}
                 {tab.label}
               </Link>
             );
@@ -455,19 +453,8 @@ function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNav
 }
 
 // ============================================================================
-// Icon mappings
+// Icon mappings (mobile bottom tabs)
 // ============================================================================
-
-const NAV_ICONS: Record<string, typeof Home> = {
-  Votes: Vote,
-  Delegates: Users,
-  Candidates: UserCheck,
-  Surveys: BarChart3,
-  Notes: MessageSquareText,
-  Topics: Tags,
-  Members: UserPlus,
-  About: Info,
-};
 
 const TAB_ICONS: Record<string, (props: { active: boolean }) => React.JSX.Element> = {
   Votes: TabVote,
