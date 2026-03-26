@@ -705,6 +705,7 @@ function VotingSection({
   onDelegationCreated: () => void;
 }) {
   const { t } = useTranslation("governance");
+  const [showDelegateForm, setShowDelegateForm] = useState(false);
   const isMultiOption = choices && choices.length > 0;
 
   // Voted state (not changing): show selected choice with change option
@@ -741,8 +742,6 @@ function VotingSection({
       </div>
     );
   }
-
-  const [showDelegateForm, setShowDelegateForm] = useState(false);
 
   // Voting state: show vote buttons OR delegation form (mutually exclusive per v13 design)
   return (
