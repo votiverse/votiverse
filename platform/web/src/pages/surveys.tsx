@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { useTranslation } from "react-i18next";
+import { ChevronLeft } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useAttention } from "../hooks/use-attention.js";
@@ -10,9 +11,13 @@ import { deriveSurveyStatus } from "../lib/status.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
 
 type SurveyTab = "open" | "closed";
+type ViewState =
+  | { level: "list" }
+  | { level: "detail"; surveyId: string }
+  | { level: "create" };
 
 // ---------------------------------------------------------------------------
-// Colors for result bars (consistent with tally bars in event-detail.tsx)
+// Colors for result bars
 // ---------------------------------------------------------------------------
 
 const RESULT_COLORS = [
@@ -26,7 +31,7 @@ const RESULT_COLORS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Surveys page
+// Root component — state machine
 // ---------------------------------------------------------------------------
 
 export function Surveys() {
@@ -35,10 +40,10 @@ export function Surveys() {
   const { assembly } = useAssembly(assemblyId);
   const { getParticipantId } = useParticipant();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
-  const [creating, setCreating] = useState(false);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<SurveyTab>("open");
+  const [view, setView] = useState<ViewState>({ level: "list" });
 
   const surveysEnabled = assembly?.config.features.surveys ?? false;
 
@@ -47,100 +52,136 @@ export function Surveys() {
     setLoading(true);
     api.listSurveys(assemblyId, participantId ?? undefined)
       .then((data) => setSurveys(data.surveys))
-      .catch(() => {/* ignore — falls back to empty list */})
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [assemblyId, participantId]);
 
   const openSurveys = useMemo(() => {
     const open = surveys.filter((p) => deriveSurveyStatus(p.schedule, p.closesAt) !== "closed");
-    // Sort: unanswered first (by closest deadline), then answered
     return open.sort((a, b) => {
-      const aResponded = a.hasResponded ? 1 : 0;
-      const bResponded = b.hasResponded ? 1 : 0;
-      if (aResponded !== bResponded) return aResponded - bResponded;
-      // Within same group, closest deadline first
+      const aR = a.hasResponded ? 1 : 0;
+      const bR = b.hasResponded ? 1 : 0;
+      if (aR !== bR) return aR - bR;
       return a.closesAt - b.closesAt;
     });
   }, [surveys]);
+
   const closedSurveys = useMemo(() => {
     const closed = surveys.filter((p) => deriveSurveyStatus(p.schedule, p.closesAt) === "closed");
-    // Most recently closed first
     return closed.sort((a, b) => b.closesAt - a.closesAt);
   }, [surveys]);
+
   const visibleSurveys = tab === "open" ? openSurveys : closedSurveys;
+  const activeSurvey = view.level === "detail" ? surveys.find((s) => s.id === view.surveyId) : null;
 
   if (!surveysEnabled && !loading) {
     return (
       <div className="max-w-3xl mx-auto">
         <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("surveys.title")}</h1>
-        <EmptyState
-          title={t("surveys.notEnabled")}
-          description={t("surveys.notEnabledDesc")}
-        />
+        <EmptyState title={t("surveys.notEnabled")} description={t("surveys.notEnabledDesc")} />
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("surveys.title")}</h1>
-          <p className="text-sm text-text-muted mt-1">{t("surveys.subtitle")}</p>
+    <div className="max-w-3xl mx-auto" key={view.level}>
+      {/* LEVEL 1: Survey list */}
+      {view.level === "list" && (
+        <div className="animate-page-in">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("surveys.title")}</h1>
+              <p className="text-sm text-text-muted mt-1">{t("surveys.subtitle")}</p>
+            </div>
+            {surveysEnabled && (
+              <Button onClick={() => setView({ level: "create" })}>{t("surveys.newSurvey")}</Button>
+            )}
+          </div>
+
+          {/* Open / Closed sub-tabs */}
+          <div className="flex gap-4 mb-4 border-b border-border-default">
+            {([["open", t("surveys.tabOpen")], ["closed", t("surveys.tabClosed")]] as [SurveyTab, string][]).map(([key, label]) => {
+              const count = key === "open" ? openSurveys.length : closedSurveys.length;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTab(key)}
+                  className={`pb-3 text-sm font-bold border-b-2 -mb-px transition-colors min-h-[44px] ${
+                    tab === key
+                      ? "border-accent text-accent-text"
+                      : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
+                  }`}
+                >
+                  {label}
+                  {!loading && <span className="ml-1.5 text-xs text-text-tertiary">({count})</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {loading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-24" />
+              <Skeleton className="h-24" />
+            </div>
+          ) : visibleSurveys.length === 0 ? (
+            <EmptyState
+              title={tab === "open" ? t("surveys.noOpenSurveys") : t("surveys.noClosedSurveys")}
+              description={tab === "open" ? t("surveys.noOpenSurveysDesc") : t("surveys.noClosedSurveysDesc")}
+            />
+          ) : (
+            <div className="space-y-3">
+              {visibleSurveys.map((survey) => (
+                <SurveySummaryCard
+                  key={survey.id}
+                  survey={survey}
+                  onClick={() => setView({ level: "detail", surveyId: survey.id })}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        {surveysEnabled && <Button onClick={() => setCreating(true)}>{t("surveys.newSurvey")}</Button>}
-      </div>
-
-      {/* Open / Closed sub-tabs */}
-      <div className="flex gap-4 mb-4 border-b border-border-default">
-        {([["open", t("surveys.tabOpen")], ["closed", t("surveys.tabClosed")]] as [SurveyTab, string][]).map(([key, label]) => {
-          const count = key === "open" ? openSurveys.length : closedSurveys.length;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className={`pb-3 text-sm font-bold border-b-2 -mb-px transition-colors min-h-[44px] ${
-                tab === key
-                  ? "border-accent text-accent-text"
-                  : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
-              }`}
-            >
-              {label}
-              {!loading && <span className="ml-1.5 text-xs text-text-tertiary">({count})</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      {creating && (
-        <CreateSurveyForm
-          assemblyId={assemblyId!}
-          onClose={() => setCreating(false)}
-          onCreated={(survey) => {
-            setSurveys([...surveys, survey]);
-            setCreating(false);
-          }}
-        />
       )}
 
-      {loading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+      {/* LEVEL 2: Survey detail — take or view results */}
+      {view.level === "detail" && activeSurvey && (
+        <div className="animate-page-in">
+          <SurveyDetail
+            assemblyId={assemblyId!}
+            survey={activeSurvey}
+            onBack={() => setView({ level: "list" })}
+            onResponded={() => {
+              // Refresh the survey list to reflect hasResponded
+              if (assemblyId) {
+                api.listSurveys(assemblyId, participantId ?? undefined)
+                  .then((data) => setSurveys(data.surveys))
+                  .catch(() => {});
+              }
+            }}
+          />
         </div>
-      ) : visibleSurveys.length === 0 && !creating ? (
-        <EmptyState
-          title={tab === "open" ? t("surveys.noOpenSurveys") : t("surveys.noClosedSurveys")}
-          description={tab === "open"
-            ? t("surveys.noOpenSurveysDesc")
-            : t("surveys.noClosedSurveysDesc")}
-        />
-      ) : (
-        <div className="space-y-4">
-          {visibleSurveys.map((survey) => (
-            <SurveyCard key={survey.id} assemblyId={assemblyId!} survey={survey} />
-          ))}
+      )}
+
+      {/* LEVEL 3: Create survey */}
+      {view.level === "create" && (
+        <div className="animate-page-in">
+          <button
+            onClick={() => setView({ level: "list" })}
+            className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-6"
+          >
+            <ChevronLeft size={16} />
+            {t("surveys.backToSurveys")}
+          </button>
+
+          <CreateSurveyForm
+            assemblyId={assemblyId!}
+            onClose={() => setView({ level: "list" })}
+            onCreated={(survey) => {
+              setSurveys([...surveys, survey]);
+              setView({ level: "list" });
+            }}
+          />
         </div>
       )}
     </div>
@@ -148,236 +189,70 @@ export function Surveys() {
 }
 
 // ---------------------------------------------------------------------------
-// Question draft type for the create form
+// Summary card — shown in the list view
 // ---------------------------------------------------------------------------
 
-interface QuestionDraft {
-  text: string;
-  type: string;
-  options: string[];
-}
-
-function emptyQuestion(): QuestionDraft {
-  return { text: "", type: "yes-no", options: ["", ""] };
-}
-
-// ---------------------------------------------------------------------------
-// Create survey form — supports multiple questions and multiple-choice
-// ---------------------------------------------------------------------------
-
-function CreateSurveyForm({
-  assemblyId,
-  onClose,
-  onCreated,
-}: {
-  assemblyId: string;
-  onClose: () => void;
-  onCreated: (survey: Survey) => void;
-}) {
+function SurveySummaryCard({ survey, onClick }: { survey: Survey; onClick: () => void }) {
   const { t } = useTranslation("governance");
-  const { getParticipantId } = useParticipant();
-  const participantId = getParticipantId(assemblyId);
-  const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion()]);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  const updateQuestion = (idx: number, update: Partial<QuestionDraft>) => {
-    setQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, ...update } : q)));
-  };
-
-  const addQuestion = () => setQuestions((prev) => [...prev, emptyQuestion()]);
-
-  const removeQuestion = (idx: number) => {
-    setQuestions((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const updateOption = (qIdx: number, oIdx: number, value: string) => {
-    setQuestions((prev) =>
-      prev.map((q, i) => {
-        if (i !== qIdx) return q;
-        const opts = [...q.options];
-        opts[oIdx] = value;
-        return { ...q, options: opts };
-      }),
-    );
-  };
-
-  const addOption = (qIdx: number) => {
-    setQuestions((prev) =>
-      prev.map((q, i) => (i === qIdx ? { ...q, options: [...q.options, ""] } : q)),
-    );
-  };
-
-  const removeOption = (qIdx: number, oIdx: number) => {
-    setQuestions((prev) =>
-      prev.map((q, i) => {
-        if (i !== qIdx) return q;
-        return { ...q, options: q.options.filter((_, j) => j !== oIdx) };
-      }),
-    );
-  };
-
-  const isValid = () => {
-    if (!title.trim()) return false;
-    return questions.every((q) => {
-      if (!q.text.trim()) return false;
-      if (q.type === "multiple-choice") {
-        const filled = q.options.filter((o) => o.trim());
-        return filled.length >= 2;
-      }
-      return true;
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValid()) return;
-    setSubmitting(true);
-    setFormError(null);
-
-    const now = Date.now();
-    try {
-      const survey = await api.createSurvey(assemblyId, {
-        title: title.trim(),
-        topicScope: [],
-        questions: questions.map((q) => ({
-          text: q.text.trim(),
-          questionType: buildQuestionType(q.type, q.options),
-          topicIds: [],
-          tags: [],
-        })),
-        schedule: now,
-        closesAt: now + 86400000 * 7,
-        createdBy: participantId ?? "unknown",
-      });
-      onCreated(survey);
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : t("surveys.createError"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const isClosed = deriveSurveyStatus(survey.schedule, survey.closesAt) === "closed";
+  const closesIn = survey.closesAt - Date.now();
+  const closesLabel = closesIn > 0
+    ? t("surveys.closesIn", { days: Math.ceil(closesIn / 86400000) })
+    : undefined;
 
   return (
-    <Card className="mb-4 sm:mb-6">
-      <CardBody>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-bold text-text-primary text-lg font-display">{t("surveys.newSurveyTitle")}</h3>
-          <p className="text-sm text-text-muted -mt-2">{t("surveys.newSurveyDesc")}</p>
-          {formError && <ErrorBox message={formError} />}
-
-          <div>
-            <Label>{t("surveys.surveyTitleLabel")}</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("surveys.surveyTitlePlaceholder")} autoFocus />
+    <Card
+      className="group cursor-pointer hover:border-accent-border transition-colors"
+      onClick={onClick}
+    >
+      <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
+            <span className="text-xs font-medium text-text-tertiary">
+              {t("surveys.question", { count: survey.questions.length })}
+            </span>
           </div>
-
-          {questions.map((q, qIdx) => (
-            <div key={qIdx} className="bg-surface rounded-xl p-3 sm:p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-text-secondary">{t("surveys.questionN", { n: qIdx + 1 })}</span>
-                {questions.length > 1 && (
-                  <button type="button" onClick={() => removeQuestion(qIdx)} className="text-xs text-error hover:text-error-text">
-                    {t("surveys.removeQuestion")}
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <Input
-                  value={q.text}
-                  onChange={(e) => updateQuestion(qIdx, { text: e.target.value })}
-                  placeholder={t("surveys.questionPlaceholder")}
-                />
-              </div>
-
-              <div>
-                <Label>{t("surveys.typeLabel")}</Label>
-                <Select
-                  value={q.type}
-                  onChange={(e) => updateQuestion(qIdx, { type: e.target.value, options: ["", ""] })}
-                >
-                  <option value="yes-no">{t("surveys.typeYesNo")}</option>
-                  <option value="likert">{t("surveys.typeLikert")}</option>
-                  <option value="direction">{t("surveys.typeDirection")}</option>
-                  <option value="multiple-choice">{t("surveys.typeMultipleChoice")}</option>
-                </Select>
-              </div>
-
-              {q.type === "multiple-choice" && (
-                <div className="space-y-2">
-                  <Label>{t("surveys.optionsLabel")}</Label>
-                  {q.options.map((opt, oIdx) => (
-                    <div key={oIdx} className="flex gap-2 items-center">
-                      <Input
-                        value={opt}
-                        onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
-                        placeholder={t("surveys.optionPlaceholder", { n: oIdx + 1 })}
-                        className="flex-1"
-                      />
-                      {q.options.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => removeOption(qIdx, oIdx)}
-                          className="text-text-tertiary hover:text-error text-lg px-1"
-                          aria-label="Remove option"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addOption(qIdx)}
-                    className="text-sm text-info-text hover:text-info-text"
-                  >
-                    {t("surveys.addOption")}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-
-          <button
-            type="button"
-            onClick={addQuestion}
-            className="text-sm text-info-text hover:text-info-text font-medium"
-          >
-            {t("surveys.addQuestion")}
-          </button>
-
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
-            <Button type="submit" disabled={submitting || !isValid()}>
-              {submitting ? t("surveys.creating") : t("surveys.createSurvey")}
-            </Button>
+          <h3 className="font-bold text-text-primary text-base sm:text-lg leading-tight truncate">
+            {survey.title}
+          </h3>
+          <div className="flex items-center gap-2 mt-1 text-sm text-text-muted">
+            {closesLabel && !isClosed && <span>{closesLabel}</span>}
+            {survey.responseCount !== undefined && survey.responseCount > 0 && (
+              <>
+                {closesLabel && !isClosed && <span className="text-border-strong">·</span>}
+                <span>{t("surveys.response", { count: survey.responseCount })}</span>
+              </>
+            )}
           </div>
-        </form>
+        </div>
+        <div className="shrink-0">
+          {isClosed || survey.hasResponded ? (
+            <Button variant="secondary" size="sm">{t("surveys.viewResults")}</Button>
+          ) : (
+            <Button size="sm">{t("surveys.takeSurvey")}</Button>
+          )}
+        </div>
       </CardBody>
     </Card>
   );
 }
 
-function buildQuestionType(type: string, options: string[]): { type: string; [key: string]: unknown } {
-  switch (type) {
-    case "likert":
-      return { type: "likert", scale: 5, labels: ["Strongly Disagree", "Strongly Agree"] }; 
-    case "direction":
-      return { type: "direction" };
-    case "multiple-choice":
-      return { type: "multiple-choice", options: options.filter((o) => o.trim()) };
-    case "yes-no":
-    default:
-      return { type: "yes-no" };
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Survey card — shows questions, response buttons, and results
+// Survey detail — full survey with questions, responses, and results
 // ---------------------------------------------------------------------------
 
-function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey }) {
+function SurveyDetail({
+  assemblyId,
+  survey,
+  onBack,
+  onResponded,
+}: {
+  assemblyId: string;
+  survey: Survey;
+  onBack: () => void;
+  onResponded: () => void;
+}) {
   const { t } = useTranslation("governance");
   const { getParticipantId } = useParticipant();
   const participantId = getParticipantId(assemblyId);
@@ -392,13 +267,15 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
   const isClosed = deriveSurveyStatus(survey.schedule, survey.closesAt) === "closed";
   const showButtons = !isClosed && !responded && participantId;
   const allAnswered = survey.questions.every((q) => q.id in selected);
+  const answeredCount = Object.keys(selected).length;
+  const closesIn = survey.closesAt - Date.now();
+  const closesLabel = closesIn > 0
+    ? t("surveys.closesIn", { days: Math.ceil(closesIn / 86400000) })
+    : undefined;
 
-  // Auto-load results for closed surveys or already-responded surveys
+  // Auto-load results for closed or responded surveys
   useEffect(() => {
-    if (isClosed || responded) {
-      loadResults();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (isClosed || responded) loadResults();
   }, [isClosed, responded]);
 
   const loadResults = useCallback(async () => {
@@ -427,18 +304,17 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
         questionId: q.id,
         value: selected[q.id],
       }));
-      await api.submitSurveyResponse(assemblyId, survey.id, {
-        participantId,
-        answers,
-      });
+      await api.submitSurveyResponse(assemblyId, survey.id, { participantId, answers });
       setResponded(true);
       attention.refresh();
+      onResponded();
       await loadResults();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to submit";
       if (msg.includes("already responded")) {
         setResponded(true);
         attention.refresh();
+        onResponded();
         await loadResults();
       } else {
         setResponseError(msg);
@@ -448,89 +324,322 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
     }
   };
 
-  const closesIn = survey.closesAt - Date.now();
-  const closesLabel = closesIn > 0
-    ? t("surveys.closesIn", { days: Math.ceil(closesIn / 86400000) })
-    : undefined;
+  return (
+    <div className="space-y-5">
+      {/* Back navigation */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
+      >
+        <ChevronLeft size={16} />
+        {t("surveys.backToSurveys")}
+      </button>
 
-  const answeredCount = Object.keys(selected).length;
+      {/* Survey header */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
+          {closesLabel && !isClosed && (
+            <span className="text-xs font-medium text-text-tertiary">{closesLabel}</span>
+          )}
+        </div>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary leading-tight mb-1">
+          {survey.title}
+        </h1>
+        {showButtons && (
+          <p className="text-sm text-text-muted">{t("surveys.detailInstructions")}</p>
+        )}
+        {responded && !results && (
+          <p className="text-sm text-success-text">{t("surveys.responseRecorded")}</p>
+        )}
+      </div>
+
+      {responseError && <ErrorBox message={responseError} />}
+      {resultsError && <ErrorBox message={resultsError} />}
+
+      {/* Questions */}
+      <div className="space-y-4">
+        {survey.questions.map((q, qIdx) => (
+          <Card key={q.id}>
+            <CardBody className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-7 h-7 rounded-full bg-surface-sunken border border-border-strong flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-text-muted">{qIdx + 1}</span>
+                </div>
+                <p className="text-sm sm:text-base font-medium text-text-primary pt-0.5">{q.text}</p>
+              </div>
+
+              {showButtons && (
+                <QuestionButtons
+                  question={q}
+                  responding={responding}
+                  selectedValue={selected[q.id]}
+                  onSelect={(value) => selectAnswer(q.id, value)}
+                />
+              )}
+
+              {/* Per-question results */}
+              {results && (
+                <QuestionResult
+                  questionId={q.id}
+                  question={q}
+                  results={results}
+                />
+              )}
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+
+      {/* Submit action bar */}
+      {showButtons && answeredCount > 0 && (
+        <div className="flex items-center gap-3 pt-2">
+          <Button onClick={submitAll} disabled={responding || !allAnswered}>
+            {responding ? t("surveys.submitting") : t("surveys.submitResponse", { count: survey.questions.length, answered: answeredCount, total: survey.questions.length })}
+          </Button>
+          <button
+            type="button"
+            onClick={clearAnswers}
+            disabled={responding}
+            className="text-sm text-text-muted hover:text-text-secondary disabled:opacity-50"
+          >
+            {t("surveys.clear")}
+          </button>
+        </div>
+      )}
+
+      {/* Results summary */}
+      {results && (
+        <div className="flex items-center gap-2 text-sm text-text-muted pt-2">
+          <span>{t("surveys.response", { count: results.responseCount })}</span>
+          {results.responseRate > 0 && (
+            <span>· {t("surveys.responseRate", { rate: (results.responseRate * 100).toFixed(0) })}</span>
+          )}
+        </div>
+      )}
+
+      {/* View results button for unanswered open surveys */}
+      {!results && !isClosed && !showButtons && (
+        <Button variant="ghost" onClick={loadResults}>{t("surveys.viewResults")}</Button>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Question result — per-question distribution bars
+// ---------------------------------------------------------------------------
+
+function QuestionResult({
+  questionId,
+  question,
+  results,
+}: {
+  questionId: string;
+  question: SurveyQuestion;
+  results: SurveyResults;
+}) {
+  const { t } = useTranslation("governance");
+  const qr = results.questionResults.find((r) => r.questionId === questionId);
+  if (!qr) return null;
+
+  const qType = question.questionType.type;
+  const entries = Object.entries(qr.distribution).sort(([, a], [, b]) => b - a);
+  const total = entries.reduce((sum, [, count]) => sum + count, 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
-              <span className="text-xs font-medium text-text-tertiary">{t("surveys.question", { count: survey.questions.length })}</span>
-            </div>
-            <h3 className="font-bold text-text-primary text-lg leading-tight truncate">{survey.title}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              {closesLabel && !isClosed && (
-                <span className="text-sm text-text-muted">{closesLabel}</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      <CardBody className="space-y-3">
-        {responseError && <ErrorBox message={responseError} />}
-        {resultsError && <ErrorBox message={resultsError} />}
-
-        {survey.questions.map((q, qIdx) => (
-          <div key={q.id} className="bg-surface rounded-xl p-3 sm:p-4">
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-6 h-6 rounded-full bg-surface-sunken border border-border-strong flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-bold text-text-muted">{qIdx + 1}</span>
+    <div className="mt-4 pt-4 border-t border-border-subtle">
+      {entries.length > 0 ? (
+        <div className="space-y-2.5">
+          {entries.map(([key, count], idx) => {
+            const pct = total > 0 ? (count / total) * 100 : 0;
+            const color = RESULT_COLORS[idx % RESULT_COLORS.length];
+            return (
+              <div key={key}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-text-secondary font-medium">{humanizeKey(key, qType, t)}</span>
+                  <span className="text-text-muted">{count} ({pct.toFixed(0)}%)</span>
+                </div>
+                <div className="h-2.5 bg-skeleton rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                </div>
               </div>
-              <p className="text-sm font-medium text-text-secondary">{q.text}</p>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-text-tertiary italic">{t("surveys.noResponses")}</p>
+      )}
+      {qr.mean !== undefined && qr.mean !== null && (
+        <p className="text-xs text-text-muted mt-2">
+          {t("surveys.mean", { mean: qr.mean.toFixed(2) })}
+          {qr.median !== undefined && ` · ${t("surveys.median", { median: qr.median.toFixed(1) })}`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Create survey form
+// ---------------------------------------------------------------------------
+
+interface QuestionDraft {
+  text: string;
+  type: string;
+  options: string[];
+}
+
+function emptyQuestion(): QuestionDraft {
+  return { text: "", type: "yes-no", options: ["", ""] };
+}
+
+function CreateSurveyForm({
+  assemblyId,
+  onClose,
+  onCreated,
+}: {
+  assemblyId: string;
+  onClose: () => void;
+  onCreated: (survey: Survey) => void;
+}) {
+  const { t } = useTranslation("governance");
+  const { getParticipantId } = useParticipant();
+  const participantId = getParticipantId(assemblyId);
+  const [title, setTitle] = useState("");
+  const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion()]);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const updateQuestion = (idx: number, update: Partial<QuestionDraft>) => {
+    setQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, ...update } : q)));
+  };
+  const addQuestion = () => setQuestions((prev) => [...prev, emptyQuestion()]);
+  const removeQuestion = (idx: number) => setQuestions((prev) => prev.filter((_, i) => i !== idx));
+  const updateOption = (qIdx: number, oIdx: number, value: string) => {
+    setQuestions((prev) =>
+      prev.map((q, i) => {
+        if (i !== qIdx) return q;
+        const opts = [...q.options];
+        opts[oIdx] = value;
+        return { ...q, options: opts };
+      }),
+    );
+  };
+  const addOption = (qIdx: number) => {
+    setQuestions((prev) => prev.map((q, i) => (i === qIdx ? { ...q, options: [...q.options, ""] } : q)));
+  };
+  const removeOption = (qIdx: number, oIdx: number) => {
+    setQuestions((prev) =>
+      prev.map((q, i) => (i !== qIdx ? q : { ...q, options: q.options.filter((_, j) => j !== oIdx) })),
+    );
+  };
+
+  const isValid = () => {
+    if (!title.trim()) return false;
+    return questions.every((q) => {
+      if (!q.text.trim()) return false;
+      if (q.type === "multiple-choice") return q.options.filter((o) => o.trim()).length >= 2;
+      return true;
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValid()) return;
+    setSubmitting(true);
+    setFormError(null);
+    const now = Date.now();
+    try {
+      const survey = await api.createSurvey(assemblyId, {
+        title: title.trim(),
+        topicScope: [],
+        questions: questions.map((q) => ({
+          text: q.text.trim(),
+          questionType: buildQuestionType(q.type, q.options),
+          topicIds: [],
+          tags: [],
+        })),
+        schedule: now,
+        closesAt: now + 86400000 * 7,
+        createdBy: participantId ?? "unknown",
+      });
+      onCreated(survey);
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : t("surveys.createError"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary leading-tight mb-1">
+          {t("surveys.newSurveyTitle")}
+        </h1>
+        <p className="text-sm text-text-muted">{t("surveys.newSurveyDesc")}</p>
+      </div>
+
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {formError && <ErrorBox message={formError} />}
+
+            <div>
+              <Label>{t("surveys.surveyTitleLabel")}</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("surveys.surveyTitlePlaceholder")} autoFocus />
             </div>
 
-            {showButtons && (
-              <QuestionButtons
-                question={q}
-                responding={responding}
-                selectedValue={selected[q.id]}
-                onSelect={(value) => selectAnswer(q.id, value)}
-              />
-            )}
+            {questions.map((q, qIdx) => (
+              <div key={qIdx} className="bg-surface rounded-xl p-3 sm:p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-text-secondary">{t("surveys.questionN", { n: qIdx + 1 })}</span>
+                  {questions.length > 1 && (
+                    <button type="button" onClick={() => removeQuestion(qIdx)} className="text-xs text-error hover:text-error-text">
+                      {t("surveys.removeQuestion")}
+                    </button>
+                  )}
+                </div>
+                <Input value={q.text} onChange={(e) => updateQuestion(qIdx, { text: e.target.value })} placeholder={t("surveys.questionPlaceholder")} />
+                <div>
+                  <Label>{t("surveys.typeLabel")}</Label>
+                  <Select value={q.type} onChange={(e) => updateQuestion(qIdx, { type: e.target.value, options: ["", ""] })}>
+                    <option value="yes-no">{t("surveys.typeYesNo")}</option>
+                    <option value="likert">{t("surveys.typeLikert")}</option>
+                    <option value="direction">{t("surveys.typeDirection")}</option>
+                    <option value="multiple-choice">{t("surveys.typeMultipleChoice")}</option>
+                  </Select>
+                </div>
+                {q.type === "multiple-choice" && (
+                  <div className="space-y-2">
+                    <Label>{t("surveys.optionsLabel")}</Label>
+                    {q.options.map((opt, oIdx) => (
+                      <div key={oIdx} className="flex gap-2 items-center">
+                        <Input value={opt} onChange={(e) => updateOption(qIdx, oIdx, e.target.value)} placeholder={t("surveys.optionPlaceholder", { n: oIdx + 1 })} className="flex-1" />
+                        {q.options.length > 2 && (
+                          <button type="button" onClick={() => removeOption(qIdx, oIdx)} className="text-text-tertiary hover:text-error text-lg px-1" aria-label="Remove option">×</button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addOption(qIdx)} className="text-sm text-info-text hover:text-info-text">{t("surveys.addOption")}</button>
+                  </div>
+                )}
+              </div>
+            ))}
 
-            {responded && !results && (
-              <p className="text-sm text-success-text">{t("surveys.responseRecorded")}</p>
-            )}
-          </div>
-        ))}
+            <button type="button" onClick={addQuestion} className="text-sm text-info-text hover:text-info-text font-medium">{t("surveys.addQuestion")}</button>
 
-        {/* Actions row */}
-        {!results && !isClosed && (
-          <div className="flex items-center gap-3 pt-1">
-            {showButtons && answeredCount > 0 ? (
-              <>
-                <Button onClick={submitAll} disabled={responding || !allAnswered}>
-                  {responding ? t("surveys.submitting") : (survey.questions.length > 1 ? t("surveys.submitResponse", { count: survey.questions.length, answered: answeredCount, total: survey.questions.length }) : t("surveys.submitResponse", { count: 1 }))}
-                </Button>
-                <button
-                  type="button"
-                  onClick={clearAnswers}
-                  disabled={responding}
-                  className="text-sm text-text-muted hover:text-text-secondary disabled:opacity-50"
-                >
-                  {t("surveys.clear")}
-                </button>
-              </>
-            ) : (
-              <Button variant="ghost" onClick={loadResults}>
-                {t("surveys.viewResults")}
+            <div className="flex gap-2 justify-end pt-4 border-t border-border-subtle">
+              <Button type="button" variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
+              <Button type="submit" disabled={submitting || !isValid()}>
+                {submitting ? t("surveys.creating") : t("surveys.createSurvey")}
               </Button>
-            )}
-          </div>
-        )}
-
-        {results && (
-          <ResultsDisplay results={results} questions={survey.questions} />
-        )}
-      </CardBody>
-    </Card>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+    </div>
   );
 }
 
@@ -551,8 +660,6 @@ function QuestionButtons({
 }) {
   const { t } = useTranslation("governance");
   const { type } = question.questionType;
-
-  /** Return variant based on whether the value is currently selected. */
   const variant = (value: unknown) =>
     selectedValue === value ? "primary" as const : "secondary" as const;
 
@@ -594,15 +701,9 @@ function QuestionButtons({
   if (type === "direction") {
     return (
       <div className="flex flex-wrap gap-2">
-        <Button size="lg" variant={variant("improved")} onClick={() => onSelect("improved")} disabled={responding} className="flex-1 sm:flex-none">
-          {t("surveys.improved")}
-        </Button>
-        <Button size="lg" variant={variant("same")} onClick={() => onSelect("same")} disabled={responding} className="flex-1 sm:flex-none">
-          {t("surveys.same")}
-        </Button>
-        <Button size="lg" variant={variant("worsened")} onClick={() => onSelect("worsened")} disabled={responding} className="flex-1 sm:flex-none">
-          {t("surveys.worsened")}
-        </Button>
+        <Button size="lg" variant={variant("improved")} onClick={() => onSelect("improved")} disabled={responding} className="flex-1 sm:flex-none">{t("surveys.improved")}</Button>
+        <Button size="lg" variant={variant("same")} onClick={() => onSelect("same")} disabled={responding} className="flex-1 sm:flex-none">{t("surveys.same")}</Button>
+        <Button size="lg" variant={variant("worsened")} onClick={() => onSelect("worsened")} disabled={responding} className="flex-1 sm:flex-none">{t("surveys.worsened")}</Button>
       </div>
     );
   }
@@ -612,16 +713,7 @@ function QuestionButtons({
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {options.map((opt) => (
-          <Button
-            key={opt}
-            size="lg"
-            variant={variant(opt)}
-            onClick={() => onSelect(opt)}
-            disabled={responding}
-            className="w-full justify-center"
-          >
-            {opt}
-          </Button>
+          <Button key={opt} size="lg" variant={variant(opt)} onClick={() => onSelect(opt)} disabled={responding} className="w-full justify-center">{opt}</Button>
         ))}
       </div>
     );
@@ -631,10 +723,19 @@ function QuestionButtons({
 }
 
 // ---------------------------------------------------------------------------
-// Results display with distribution bars
+// Helpers
 // ---------------------------------------------------------------------------
 
-/** Humanize distribution keys for display. */
+function buildQuestionType(type: string, options: string[]): { type: string; [key: string]: unknown } {
+  switch (type) {
+    case "likert": return { type: "likert", scale: 5, labels: ["Strongly Disagree", "Strongly Agree"] };
+    case "direction": return { type: "direction" };
+    case "multiple-choice": return { type: "multiple-choice", options: options.filter((o) => o.trim()) };
+    case "yes-no":
+    default: return { type: "yes-no" };
+  }
+}
+
 function humanizeKey(key: string, questionType: string, t: (k: string) => string): string {
   if (questionType === "yes-no") {
     if (key === "true") return t("surveys.yes");
@@ -646,74 +747,4 @@ function humanizeKey(key: string, questionType: string, t: (k: string) => string
     if (key === "worsened") return t("surveys.worsened");
   }
   return key;
-}
-
-function ResultsDisplay({
-  results,
-  questions,
-}: {
-  results: SurveyResults;
-  questions: SurveyQuestion[];
-}) {
-  const { t } = useTranslation("governance");
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-text-secondary">{t("surveys.results")}</h4>
-        <span className="text-xs text-text-muted">
-          {t("surveys.response", { count: results.responseCount })}
-          {results.responseRate > 0 && ` ${t("surveys.responseRate", { rate: (results.responseRate * 100).toFixed(0) })}`}
-        </span>
-      </div>
-
-      {results.questionResults.map((qr) => {
-        const question = questions.find((q) => q.id === qr.questionId);
-        const qType = question?.questionType.type ?? "";
-        const entries = Object.entries(qr.distribution).sort(([, a], [, b]) => b - a);
-        const total = entries.reduce((sum, [, count]) => sum + count, 0);
-
-        return (
-          <div key={qr.questionId} className="bg-surface rounded-md p-3 sm:p-4">
-            {question && (
-              <p className="text-sm text-text-secondary mb-2">{question.text}</p>
-            )}
-
-            {entries.length > 0 ? (
-              <div className="space-y-2">
-                {entries.map(([key, count], idx) => {
-                  const pct = total > 0 ? (count / total) * 100 : 0;
-                  const color = RESULT_COLORS[idx % RESULT_COLORS.length];
-                  return (
-                    <div key={key}>
-                      <div className="flex justify-between text-sm mb-0.5">
-                        <span className="text-text-secondary">{humanizeKey(key, qType, t)}</span>
-                        <span className="text-text-muted">
-                          {count} ({pct.toFixed(0)}%)
-                        </span>
-                      </div>
-                      <div className="h-2.5 bg-skeleton rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${color}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-text-tertiary italic">{t("surveys.noResponses")}</p>
-            )}
-
-            {qr.mean !== undefined && qr.mean !== null && (
-              <p className="text-xs text-text-muted mt-2">
-                {t("surveys.mean", { mean: qr.mean.toFixed(2) })}
-                {qr.median !== undefined && ` · ${t("surveys.median", { median: qr.median.toFixed(1) })}`}
-              </p>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
