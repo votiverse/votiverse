@@ -194,6 +194,8 @@
   "delegations.revokeOwnOnly": "Only the delegator can remove their own delegation.",
   "delegations.revokeFailed": "Failed to remove delegation.",
 
+  "delegates.findDelegate": "Find a Delegate",
+
   "proposals.title": "Proposals",
   "proposals.subtitle": "Documents arguing for or against each choice.",
   "proposals.newDraft": "New Draft",

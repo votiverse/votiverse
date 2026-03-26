@@ -12,7 +12,7 @@ import { AssemblyDashboard } from "./pages/assembly-dashboard.js";
 import { Members } from "./pages/members.js";
 import { EventsList } from "./pages/events-list.js";
 import { EventDetail } from "./pages/event-detail.js";
-import { Delegations } from "./pages/delegations.js";
+import { Delegations } from "./pages/delegates/index.js";
 import { Surveys } from "./pages/surveys.js";
 import { Predictions } from "./pages/predictions.js";
 import { Notes } from "./pages/notes.js";
