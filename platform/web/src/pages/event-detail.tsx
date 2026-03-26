@@ -149,6 +149,18 @@ export function EventDetail() {
     });
   }, [event?.issues, initialVotedIds]);
 
+  // Scroll to a specific issue if the URL has a hash (e.g., #issue-<id>)
+  useEffect(() => {
+    if (loading || !event) return;
+    const hash = window.location.hash;
+    if (hash) {
+      setTimeout(() => {
+        const el = document.querySelector(hash);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 200);
+    }
+  }, [loading, event?.id]);
+
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? t("eventDetail.voteNotFound")} onRetry={refetch} />;
 
@@ -156,28 +168,12 @@ export function EventDetail() {
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
   const candidates = candidaciesData?.candidacies ?? [];
-  // After voting: only refresh vote-related data (tally + history).
-  // The event itself hasn't changed, and optimistic UI handles the immediate
-  // visual update — avoid refetching the full event to prevent layout shifts.
   const onVoteChange = () => {
     invalidateHistoryCache();
     refetchTally();
     refetchHistory();
-    // Refresh sidebar attention counts in the background (doesn't affect this page)
     attention.refresh();
   };
-
-  // Scroll to a specific issue if the URL has a hash (e.g., #issue-<id>)
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      // Small delay to let cards render
-      setTimeout(() => {
-        const el = document.querySelector(hash);
-        el?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 200);
-    }
-  }, [event?.id]);
 
   return (
     <div className="max-w-3xl mx-auto">
