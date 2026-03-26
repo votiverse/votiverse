@@ -798,7 +798,7 @@ function VotingSection({
                       key={choice}
                       onClick={() => onVote(choice)}
                       disabled={voting}
-                      className="w-full px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                      className="w-full px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl shadow-sm hover:shadow hover:border-border-strong active:scale-[0.97] transition-all disabled:opacity-50"
                     >
                       {choice}
                     </button>
@@ -817,14 +817,14 @@ function VotingSection({
                 <button
                   onClick={() => onVote("for")}
                   disabled={voting}
-                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl shadow-sm hover:shadow hover:border-border-strong active:scale-[0.97] transition-all disabled:opacity-50"
                 >
                   {t("eventDetail.voteFor")}
                 </button>
                 <button
                   onClick={() => onVote("against")}
                   disabled={voting}
-                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl shadow-sm hover:shadow hover:border-border-strong active:scale-[0.97] transition-all disabled:opacity-50"
                 >
                   {t("eventDetail.voteAgainst")}
                 </button>
