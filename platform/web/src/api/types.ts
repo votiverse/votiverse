@@ -406,6 +406,14 @@ export interface Candidacy {
   };
 }
 
+// ---- Entity Endorsements ----
+
+export interface EndorsementCounts {
+  endorse: number;
+  dispute: number;
+  my: "endorse" | "dispute" | null;
+}
+
 // ---- Community Notes ----
 
 export interface CommunityNote {

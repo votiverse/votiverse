@@ -615,6 +615,30 @@ export function withdrawCandidacy(
   return request("POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/withdraw`, {});
 }
 
+// ---- Entity Endorsements ----
+
+export function upsertEndorsement(
+  assemblyId: string,
+  params: { targetType: "candidacy" | "proposal"; targetId: string; value: "endorse" | "dispute" },
+): Promise<{ targetType: string; targetId: string; value: string }> {
+  return request("PUT", `/assemblies/${assemblyId}/endorsements`, params);
+}
+
+export function retractEndorsement(
+  assemblyId: string,
+  params: { targetType: "candidacy" | "proposal"; targetId: string },
+): Promise<{ ok: true }> {
+  return request("DELETE", `/assemblies/${assemblyId}/endorsements`, params);
+}
+
+export function getEndorsements(
+  assemblyId: string,
+  targetType: "candidacy" | "proposal",
+  targetIds: string[],
+): Promise<{ endorsements: Record<string, import("./types.js").EndorsementCounts> }> {
+  return request("GET", `/assemblies/${assemblyId}/endorsements?targetType=${targetType}&targetIds=${targetIds.join(",")}`);
+}
+
 // ---- Community Notes ----
 
 export function createNote(

@@ -770,6 +770,41 @@ export function contentRoutes(
     return c.json({ status: "ok", stored }, 201);
   });
 
+  // ── Entity Endorsements (proxy to VCP) ──────────────────────────────
+
+  /** PUT /assemblies/:assemblyId/endorsements — upsert endorsement. */
+  app.put("/assemblies/:assemblyId/endorsements", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const body = await c.req.json();
+
+    const vcpRes = await callVcp(config, "PUT", `/assemblies/${assemblyId}/endorsements`, body, participantId);
+    return new Response(await vcpRes.text(), { status: vcpRes.status, headers: { "Content-Type": "application/json" } });
+  });
+
+  /** DELETE /assemblies/:assemblyId/endorsements — retract endorsement. */
+  app.delete("/assemblies/:assemblyId/endorsements", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const body = await c.req.json();
+
+    const vcpRes = await callVcp(config, "DELETE", `/assemblies/${assemblyId}/endorsements`, body, participantId);
+    return new Response(await vcpRes.text(), { status: vcpRes.status, headers: { "Content-Type": "application/json" } });
+  });
+
+  /** GET /assemblies/:assemblyId/endorsements — get endorsement counts + caller's state. */
+  app.get("/assemblies/:assemblyId/endorsements", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    const url = new URL(c.req.url);
+    const vcpRes = await callVcp(config, "GET", `/assemblies/${assemblyId}/endorsements${url.search}`, undefined, participantId);
+    return new Response(await vcpRes.text(), { status: vcpRes.status, headers: { "Content-Type": "application/json" } });
+  });
+
   return app;
 }
 
