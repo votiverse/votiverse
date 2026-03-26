@@ -1,22 +1,24 @@
 import { useTranslation } from "react-i18next";
-import type { Candidacy } from "../../api/types.js";
+import type { Candidacy, EndorsementCounts } from "../../api/types.js";
 import { Card, CardBody, Badge } from "../../components/ui.js";
 import { Avatar } from "../../components/avatar.js";
+import { EndorseScore } from "../../components/endorse-button.js";
 
 export function CandidateCard({
   candidacy,
   name,
   topicNameMap,
+  endorsement,
   onClick,
 }: {
   candidacy: Candidacy;
   name: string;
   topicNameMap: Map<string, string>;
+  endorsement?: EndorsementCounts;
   onClick: () => void;
 }) {
   const { t } = useTranslation("governance");
   const title = candidacy.title ?? null;
-  const websiteHost = candidacy.websiteUrl ? safeHostname(candidacy.websiteUrl) : null;
 
   return (
     <Card
@@ -42,14 +44,9 @@ export function CandidateCard({
           <Badge color="blue" className="shrink-0">{t("delegates.candidateLabel")}</Badge>
         </div>
 
-        {/* Website hostname (if available) */}
-        {websiteHost && (
-          <p className="text-xs text-info-text mb-3 truncate">{websiteHost}</p>
-        )}
-
-        {/* Footer: topic badges */}
-        {candidacy.topicScope.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border-subtle">
+        {/* Footer: topic badges + endorsement score */}
+        <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+          <div className="flex flex-wrap gap-1.5">
             {candidacy.topicScope.slice(0, 3).map((tId) => (
               <span
                 key={tId}
@@ -64,23 +61,11 @@ export function CandidateCard({
               </span>
             )}
           </div>
-        )}
-
-        {/* Public votes badge */}
-        {candidacy.voteTransparencyOptIn && (
-          <div className="mt-2">
-            <Badge color="green" className="text-[10px]">{t("publicVotes")}</Badge>
-          </div>
-        )}
+          {endorsement && (endorsement.endorse > 0 || endorsement.dispute > 0) && (
+            <EndorseScore counts={endorsement} />
+          )}
+        </div>
       </CardBody>
     </Card>
   );
-}
-
-function safeHostname(url: string): string | null {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return null;
-  }
 }

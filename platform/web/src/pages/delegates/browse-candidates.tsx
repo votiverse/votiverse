@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Candidacy } from "../../api/types.js";
+import type { Candidacy, EndorsementCounts } from "../../api/types.js";
 import { Button } from "../../components/ui.js";
 import { MemberSearch } from "../../components/member-search.js";
 import { CandidateCard } from "./candidate-card.js";
@@ -13,6 +13,7 @@ export function BrowseCandidates({
   participants,
   nameMap,
   topicNameMap,
+  endorsementMap,
   onSelectCandidate,
   onSearchSelect,
   onBack,
@@ -23,6 +24,7 @@ export function BrowseCandidates({
   participants: Array<{ id: string; name: string }>;
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
+  endorsementMap: Record<string, EndorsementCounts>;
   onSelectCandidate: (candidacyId: string) => void;
   onSearchSelect: (targetId: string, targetName: string) => void;
   onBack: () => void;
@@ -60,6 +62,7 @@ export function BrowseCandidates({
               candidacy={c}
               name={nameMap.get(c.participantId) ?? c.participantId.slice(0, 8)}
               topicNameMap={topicNameMap}
+              endorsement={endorsementMap[c.id]}
               onClick={() => onSelectCandidate(c.id)}
             />
           ))}

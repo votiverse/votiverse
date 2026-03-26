@@ -1,11 +1,12 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../../hooks/use-api.js";
 import * as api from "../../api/client.js";
-import type { Candidacy } from "../../api/types.js";
+import type { Candidacy, EndorsementCounts } from "../../api/types.js";
 import { Card, CardBody, CardHeader, Badge, Button, Spinner } from "../../components/ui.js";
 import { Avatar } from "../../components/avatar.js";
 import { NotesList } from "../../components/community-notes.js";
+import { EndorseButton } from "../../components/endorse-button.js";
 import { ChevronLeft, ExternalLink, Link2 } from "lucide-react";
 import { CandidateNavigator } from "./candidate-navigator.js";
 import { bannerGradient } from "./utils.js";
@@ -34,6 +35,16 @@ export function CandidateProfile({
   onBack: () => void;
 }) {
   const { t } = useTranslation("governance");
+
+  // Endorsement state — fetched per candidacy, with optimistic local updates
+  const { data: endorsementData } = useApi(
+    () => api.getEndorsements(assemblyId, "candidacy", [candidacyId]),
+    [assemblyId, candidacyId],
+  );
+  const [localEndorsement, setLocalEndorsement] = useState<EndorsementCounts | null>(null);
+  const endorsement: EndorsementCounts = localEndorsement
+    ?? endorsementData?.endorsements?.[candidacyId]
+    ?? { endorse: 0, dispute: 0, my: null };
 
   // List-level candidacy data (immediate — from parent)
   const listCandidacy = candidacies.find((c) => c.id === candidacyId);
@@ -174,12 +185,20 @@ export function CandidateProfile({
 
       {/* Sticky action footer */}
       <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-surface-raised/95 backdrop-blur-md border-t border-border-default z-40">
-        <div className="max-w-3xl mx-auto flex gap-3">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          <EndorseButton
+            assemblyId={assemblyId}
+            targetType="candidacy"
+            targetId={candidacyId}
+            counts={endorsement}
+            onUpdate={setLocalEndorsement}
+          />
+          <div className="flex-1" />
           <Button variant="secondary" onClick={handleCopyLink} className="flex items-center gap-1.5">
             <Link2 size={14} />
             {t("delegates.copyLink")}
           </Button>
-          <Button className="flex-1 sm:flex-none" onClick={() => onDelegate(participantId, name, topicScope)}>
+          <Button onClick={() => onDelegate(participantId, name, topicScope)}>
             {t("delegates.delegateTo", { name: firstName })}
           </Button>
         </div>

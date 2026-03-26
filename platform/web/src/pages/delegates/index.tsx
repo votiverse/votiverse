@@ -5,7 +5,7 @@ import { useApi } from "../../hooks/use-api.js";
 import { useIdentity } from "../../hooks/use-identity.js";
 import { useAssembly } from "../../hooks/use-assembly.js";
 import * as api from "../../api/client.js";
-import type { Topic, Candidacy } from "../../api/types.js";
+import type { Topic, Candidacy, EndorsementCounts } from "../../api/types.js";
 import { Spinner, ErrorBox, EmptyState } from "../../components/ui.js";
 import { DelegatesList } from "./delegates-list.js";
 import { BrowseCandidates } from "./browse-candidates.js";
@@ -46,6 +46,14 @@ export function Delegations() {
     () => delegationCandidacy ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
     [assemblyId, delegationCandidacy],
   );
+
+  // Fetch endorsement counts for all candidacies
+  const candidacyIds = (candidaciesData?.candidacies ?? []).map((c) => c.id);
+  const { data: endorsementData, refetch: refetchEndorsements } = useApi(
+    () => candidacyIds.length > 0 ? api.getEndorsements(assemblyId!, "candidacy", candidacyIds) : Promise.resolve({ endorsements: {} }),
+    [assemblyId, candidacyIds.join(",")],
+  );
+  const endorsementMap: Record<string, EndorsementCounts> = endorsementData?.endorsements ?? {};
 
   const isTopicScoped = delegationEnabled;
 
@@ -123,6 +131,7 @@ export function Delegations() {
           participants={participants}
           nameMap={nameMap}
           topicNameMap={topicNameMap}
+          endorsementMap={endorsementMap}
           onSelectCandidate={goDetail}
           onSearchSelect={(targetId, targetName) => goForm(targetId, targetName, undefined, true)}
           onBack={goList}
