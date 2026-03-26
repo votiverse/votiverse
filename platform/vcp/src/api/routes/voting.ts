@@ -4,7 +4,7 @@
 
 import { Hono } from "hono";
 import type { ParticipantId, IssueId, VotingEventId, VoteChoice } from "@votiverse/core";
-import { ValidationError } from "@votiverse/core";
+import { ValidationError, GovernanceRuleViolation } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { requireParticipant, getParticipantId } from "../middleware/auth.js";
 import { getDelegationVisibility } from "./shared.js";
@@ -49,6 +49,33 @@ export function votingRoutes(manager: AssemblyManager) {
       }
 
       return c.json({ status: "ok", participantId, issueId: body.issueId });
+    },
+  );
+
+  /** DELETE /assemblies/:id/votes/:issueId — retract vote. Allows delegation to resume. */
+  app.delete(
+    "/assemblies/:id/votes/:issueId",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const issueId = c.req.param("issueId");
+      const participantId = c.get("participantId") as string;
+      const { engine } = await manager.getEngine(assemblyId);
+      try {
+        await engine.voting.retract(
+          participantId as ParticipantId,
+          issueId as IssueId,
+        );
+      } catch (err) {
+        if (err instanceof ValidationError || err instanceof GovernanceRuleViolation) {
+          return c.json(
+            { error: { code: "VALIDATION_ERROR", message: (err as Error).message } },
+            400,
+          );
+        }
+        throw err;
+      }
+      return c.json({ status: "retracted", participantId, issueId });
     },
   );
 

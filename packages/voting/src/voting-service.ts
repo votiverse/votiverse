@@ -4,7 +4,7 @@
  * High-level service for vote casting and tallying.
  */
 
-import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteChoice } from "@votiverse/core";
+import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteRetractedEvent, VoteChoice } from "@votiverse/core";
 import { createEvent, generateEventId, now, ValidationError, GovernanceRuleViolation } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
@@ -71,6 +71,30 @@ export class VotingService {
   }
 
   /**
+   * Retract a previously cast vote. Records a VoteRetracted event.
+   *
+   * After retraction, the participant is no longer a direct voter — their
+   * delegation chain (if any) becomes active again. Requires allowVoteChange.
+   */
+  async retract(participantId: ParticipantId, issueId: IssueId): Promise<void> {
+    if (!this.config.ballot.allowVoteChange) {
+      throw new GovernanceRuleViolation(
+        "Vote changes are not allowed in this assembly",
+        "VOTE_CHANGE_DISABLED",
+      );
+    }
+
+    const event = createEvent<VoteRetractedEvent>(
+      "VoteRetracted",
+      { participantId, issueId },
+      generateEventId(),
+      now(),
+    );
+
+    await this.eventStore.append(event);
+  }
+
+  /**
    * Validates that a vote choice is compatible with the issue's declared choices.
    * "abstain" is always accepted.
    */
@@ -99,21 +123,29 @@ export class VotingService {
   }
 
   /**
-   * Get all direct votes for an issue.
+   * Get all active direct votes for an issue.
+   * Excludes votes that were subsequently retracted.
    */
   async getVotes(issueId: IssueId): Promise<readonly VoteRecord[]> {
-    const events = await this.eventStore.query({ types: ["VoteCast"] });
-    // Use a map to keep only the latest vote per participant
+    const events = await this.eventStore.query({ types: ["VoteCast", "VoteRetracted"] });
+    // Use a map to keep only the latest vote per participant; remove on retraction
     const latestVotes = new Map<ParticipantId, VoteRecord>();
 
     for (const event of events) {
-      const e = event as VoteCastEvent;
-      if (e.payload.issueId === issueId) {
-        latestVotes.set(e.payload.participantId, {
-          participantId: e.payload.participantId,
-          issueId: e.payload.issueId,
-          choice: e.payload.choice,
-        });
+      if (event.type === "VoteCast") {
+        const e = event as VoteCastEvent;
+        if (e.payload.issueId === issueId) {
+          latestVotes.set(e.payload.participantId, {
+            participantId: e.payload.participantId,
+            issueId: e.payload.issueId,
+            choice: e.payload.choice,
+          });
+        }
+      } else if (event.type === "VoteRetracted") {
+        const e = event as VoteRetractedEvent;
+        if (e.payload.issueId === issueId) {
+          latestVotes.delete(e.payload.participantId);
+        }
       }
     }
 

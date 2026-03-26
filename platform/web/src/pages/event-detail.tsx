@@ -406,6 +406,8 @@ function IssueVotingCard({
   const [voteError, setVoteError] = useState<string | null>(null);
   // Optimistic vote choice — shown immediately after voting, before refetch completes
   const [optimisticChoice, setOptimisticChoice] = useState<string | null>(null);
+  // Optimistic retraction — clears voted state immediately
+  const [optimisticRetracted, setOptimisticRetracted] = useState(false);
   // null = derive from issueStatus; boolean = user override (e.g. "Change vote" click)
   const [expandedOverride, setExpandedOverride] = useState<boolean | null>(null);
   const [bookletOpen, setBookletOpen] = useState(false);
@@ -417,10 +419,13 @@ function IssueVotingCard({
     if (optimisticRef.current && issueStatus.myVoteChoice === optimisticRef.current) {
       setOptimisticChoice(null);
     }
-  }, [issueStatus.myVoteChoice]);
+    if (optimisticRetracted && !issueStatus.hasVoted) {
+      setOptimisticRetracted(false);
+    }
+  }, [issueStatus.myVoteChoice, issueStatus.hasVoted, optimisticRetracted]);
 
-  const effectiveHasVoted = issueStatus.hasVoted || optimisticChoice !== null;
-  const effectiveChoice = optimisticChoice ?? issueStatus.myVoteChoice;
+  const effectiveHasVoted = optimisticRetracted ? false : (issueStatus.hasVoted || optimisticChoice !== null);
+  const effectiveChoice = optimisticRetracted ? null : (optimisticChoice ?? issueStatus.myVoteChoice);
   const expanded = expandedOverride ?? !effectiveHasVoted;
 
   const votingOpen = eventStatus === "voting";
@@ -432,11 +437,30 @@ function IssueVotingCard({
     try {
       await api.castVote(assemblyId, { participantId, issueId, choice });
       setOptimisticChoice(choice);
+      setOptimisticRetracted(false);
       setExpandedOverride(false);
       issueStatus.refetch();
       onVoted();
     } catch (err: unknown) {
       setVoteError(err instanceof Error ? err.message : "Vote failed");
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  const handleRetract = async () => {
+    if (!participantId) return;
+    setVoting(true);
+    setVoteError(null);
+    try {
+      await api.retractVote(assemblyId, issueId);
+      setOptimisticChoice(null);
+      setOptimisticRetracted(true);
+      setExpandedOverride(null);
+      issueStatus.refetch();
+      onVoted();
+    } catch (err: unknown) {
+      setVoteError(err instanceof Error ? err.message : "Retraction failed");
     } finally {
       setVoting(false);
     }
@@ -549,6 +573,7 @@ function IssueVotingCard({
             allowVoteChange={allowVoteChange}
             onSetExpanded={setExpandedOverride}
             onVote={handleVote}
+            onRetract={handleRetract}
             onDelegationCreated={() => { issueStatus.refetch(); onVoted(); }}
           />
         )}
@@ -636,6 +661,7 @@ function VotingSection({
   allowVoteChange,
   onSetExpanded,
   onVote,
+  onRetract,
   onDelegationCreated,
 }: {
   assemblyId: string;
@@ -659,6 +685,7 @@ function VotingSection({
   allowVoteChange: boolean;
   onSetExpanded: (v: boolean | null) => void;
   onVote: (choice: string) => void;
+  onRetract: () => void;
   onDelegationCreated: () => void;
 }) {
   const { t } = useTranslation("governance");
@@ -677,12 +704,23 @@ function VotingSection({
           </span>
         </div>
         {allowVoteChange && (
-          <button
-            onClick={() => onSetExpanded(true)}
-            className="text-xs text-text-muted hover:text-text-secondary underline"
-          >
-            {t("eventDetail.changeVote")}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onSetExpanded(true)}
+              className="text-xs text-text-muted hover:text-text-secondary underline"
+            >
+              {t("eventDetail.changeVote")}
+            </button>
+            {delegationConfig.enabled && (
+              <button
+                onClick={onRetract}
+                disabled={voting}
+                className="text-xs text-text-muted hover:text-text-secondary underline disabled:opacity-50"
+              >
+                {t("eventDetail.letDelegateDecide")}
+              </button>
+            )}
+          </div>
         )}
       </div>
     );

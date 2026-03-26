@@ -16,6 +16,7 @@ import type {
   DelegationCreatedEvent,
   DelegationRevokedEvent,
   VoteCastEvent,
+  VoteRetractedEvent,
 } from "@votiverse/core";
 import type {
   Delegation,
@@ -74,6 +75,7 @@ export async function buildActiveDelegations(
 
 /**
  * Get the set of participants who cast a direct vote on an issue.
+ * Excludes participants whose most recent action was a VoteRetracted event.
  */
 export async function getDirectVoters(
   eventStore: EventStore,
@@ -81,15 +83,22 @@ export async function getDirectVoters(
   before?: Timestamp,
 ): Promise<Set<ParticipantId>> {
   const events = await eventStore.query({
-    types: ["VoteCast"],
+    types: ["VoteCast", "VoteRetracted"],
     ...(before !== undefined ? { before } : {}),
   });
 
   const voters = new Set<ParticipantId>();
   for (const event of events) {
-    const e = event as VoteCastEvent;
-    if (e.payload.issueId === issueId) {
-      voters.add(e.payload.participantId);
+    if (event.type === "VoteCast") {
+      const e = event as VoteCastEvent;
+      if (e.payload.issueId === issueId) {
+        voters.add(e.payload.participantId);
+      }
+    } else if (event.type === "VoteRetracted") {
+      const e = event as VoteRetractedEvent;
+      if (e.payload.issueId === issueId) {
+        voters.delete(e.payload.participantId);
+      }
     }
   }
   return voters;

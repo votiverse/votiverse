@@ -309,6 +309,13 @@ export function castVote(
   return request("POST", `/assemblies/${assemblyId}/votes`, params);
 }
 
+export function retractVote(
+  assemblyId: string,
+  issueId: string,
+): Promise<{ status: string }> {
+  return request("DELETE", `/assemblies/${assemblyId}/votes/${issueId}`);
+}
+
 export function getTally(
   assemblyId: string,
   eventId: string,
