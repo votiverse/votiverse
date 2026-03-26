@@ -507,6 +507,17 @@ function IssueVotingCard({
         </div>
         {/* Description */}
         {description && <p className="text-sm text-text-muted mt-0.5">{description}</p>}
+        {/* Voting booklet — informational, shown in header */}
+        {proposals.length > 0 && eventStatus !== "deliberation" && (
+          <button
+            onClick={() => setBookletOpen(true)}
+            className="inline-flex items-center gap-1.5 mt-2 text-sm text-info-text hover:text-info-text transition-colors"
+          >
+            <FileText size={14} />
+            {t("eventDetail.votingBooklet")}
+            <span className="text-xs text-text-tertiary">({proposals.length})</span>
+          </button>
+        )}
       </CardHeader>
       <CardBody className="space-y-4">
         {/* Closed event: historical participation record */}
@@ -558,18 +569,16 @@ function IssueVotingCard({
           resultsVisibility={resultsVisibility}
         />
 
-        {/* Action buttons — proposals & booklet */}
-        {(proposals.length > 0 || eventStatus === "deliberation") && (
+        {/* Action buttons — proposals (deliberation only) */}
+        {eventStatus === "deliberation" && (
           <div className="flex items-center gap-2 flex-wrap pt-2">
-            {eventStatus === "deliberation" && (
-              <Link
-                to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-accent-text bg-accent-subtle border border-accent-muted rounded-lg hover:bg-accent-muted transition-colors"
-              >
-                {t("eventDetail.writeProposal")}
-              </Link>
-            )}
-            {eventStatus === "deliberation" && proposals.length > 0 && (
+            <Link
+              to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-accent-text bg-accent-subtle border border-accent-muted rounded-lg hover:bg-accent-muted transition-colors"
+            >
+              {t("eventDetail.writeProposal")}
+            </Link>
+            {proposals.length > 0 && (
               <Link
                 to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary border border-border-default rounded-lg hover:bg-interactive-hover transition-colors"
@@ -577,16 +586,6 @@ function IssueVotingCard({
                 {t("eventDetail.viewAllProposals")}
                 <Badge color="gray">{proposals.length}</Badge>
               </Link>
-            )}
-            {proposals.length > 0 && eventStatus !== "deliberation" && (
-              <button
-                onClick={() => setBookletOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-info-text bg-info-subtle border border-info-border rounded-lg hover:bg-info-border transition-colors"
-              >
-                <FileText size={14} />
-                {t("eventDetail.votingBooklet")}
-                <Badge color="blue">{proposals.length}</Badge>
-              </button>
             )}
           </div>
         )}
@@ -668,44 +667,23 @@ function VotingSection({
   // Voted state (not changing): show selected choice with change option
   if (effectiveHasVoted && !expanded) {
     return (
-      <div className="space-y-3">
-        {/* Selected vote — inline with change button */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-success-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-sm text-text-primary">
-              <Trans i18nKey="eventDetail.youVoted" ns="governance" values={{ choice: effectiveChoice }} components={{ bold: <span className="font-semibold" /> }} />
-            </span>
-          </div>
-          {allowVoteChange && (
-            <button
-              onClick={() => onSetExpanded(true)}
-              className="text-xs text-text-muted hover:text-text-secondary underline"
-            >
-              {t("eventDetail.changeVote")}
-            </button>
-          )}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-success-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-sm text-text-primary">
+            <Trans i18nKey="eventDetail.youVoted" ns="governance" values={{ choice: effectiveChoice }} components={{ bold: <span className="font-semibold" /> }} />
+          </span>
         </div>
-
-        {/* Delegation info — below voted state */}
-        <DelegationCard
-          assemblyId={assemblyId}
-          issueId={issueId}
-          delegationConfig={delegationConfig}
-          isDelegated={issueStatus.isDelegated}
-          hasVoted={issueStatus.hasVoted}
-          chainNames={chainNames}
-          terminalVoterName={terminalVoterName}
-          issueTopicIds={issueTopicIds}
-          participants={participants}
-          topics={topics}
-          candidates={candidates}
-          topicNameMap={topicNameMap}
-          participantId={participantId}
-          onDelegationCreated={onDelegationCreated}
-        />
+        {allowVoteChange && (
+          <button
+            onClick={() => onSetExpanded(true)}
+            className="text-xs text-text-muted hover:text-text-secondary underline"
+          >
+            {t("eventDetail.changeVote")}
+          </button>
+        )}
       </div>
     );
   }
