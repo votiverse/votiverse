@@ -831,7 +831,7 @@ function VotingSection({
                 <button
                   onClick={() => onVote("abstain")}
                   disabled={voting}
-                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-muted bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl shadow-sm hover:bg-accent hover:text-text-on-accent hover:border-accent hover:shadow-md active:scale-[0.97] transition-all disabled:opacity-50"
                 >
                   {t("eventDetail.voteAbstain")}
                 </button>
