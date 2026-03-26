@@ -578,6 +578,23 @@ export class VotiverseEngine {
       });
     },
 
+    retract: async (participantId: ParticipantId, issueId: IssueId): Promise<void> => {
+      if (this.cancelledIssues.has(issueId)) {
+        throw new GovernanceRuleViolation("Issue has been cancelled", "ISSUE_CANCELLED");
+      }
+      const issue = this.issues.get(issueId);
+      if (issue) {
+        const votingEvent = this.votingEvents.get(issue.votingEventId);
+        if (votingEvent) {
+          const currentTime = this.timeProvider.now();
+          if (currentTime >= votingEvent.timeline.votingEnd) {
+            throw new GovernanceRuleViolation("Voting has closed", "VOTING_CLOSED");
+          }
+        }
+      }
+      return this.votingService.retract(participantId, issueId);
+    },
+
     getVotes: (issueId: IssueId): Promise<readonly VoteRecord[]> =>
       this.votingService.getVotes(issueId),
 
