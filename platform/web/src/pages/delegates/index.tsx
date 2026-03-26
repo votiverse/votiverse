@@ -108,8 +108,10 @@ export function Delegations() {
           myOutgoing={myOutgoing}
           nameMap={nameMap}
           topics={topics}
+          candidacies={candidacies}
           refetch={refetch}
           onBrowse={goBrowse}
+          onViewProfile={goDetail}
         />
       )}
 

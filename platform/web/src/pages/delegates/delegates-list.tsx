@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import * as api from "../../api/client.js";
-import type { Delegation, Topic } from "../../api/types.js";
+import type { Delegation, Topic, Candidacy } from "../../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState } from "../../components/ui.js";
 import { Avatar } from "../../components/avatar.js";
 import { formatDate } from "../../lib/format.js";
@@ -31,17 +31,22 @@ export function DelegatesList({
   myOutgoing,
   nameMap,
   topics,
+  candidacies,
   refetch,
   onBrowse,
+  onViewProfile,
 }: {
   assemblyId: string;
   participantId: string;
   myOutgoing: Delegation[];
   nameMap: Map<string, string>;
   topics: Topic[];
+  candidacies: Candidacy[];
   refetch: () => void;
   onBrowse: () => void;
+  onViewProfile: (candidacyId: string) => void;
 }) {
+  const candidacyByParticipant = new Map(candidacies.map((c) => [c.participantId, c.id]));
   const { t } = useTranslation("governance");
 
   return (
@@ -73,16 +78,20 @@ export function DelegatesList({
       ) : (
         <Card>
           <CardBody className="divide-y divide-border-subtle">
-            {myOutgoing.map((d) => (
-              <DelegationRow
-                key={d.id}
-                delegation={d}
-                nameMap={nameMap}
-                topics={topics}
-                assemblyId={assemblyId}
-                revokeSlot={<RevokeButton assemblyId={assemblyId} delegationId={d.id} onRevoked={refetch} />}
-              />
-            ))}
+            {myOutgoing.map((d) => {
+              const candidacyId = candidacyByParticipant.get(d.targetId);
+              return (
+                <DelegationRow
+                  key={d.id}
+                  delegation={d}
+                  nameMap={nameMap}
+                  topics={topics}
+                  assemblyId={assemblyId}
+                  onClickProfile={candidacyId ? () => onViewProfile(candidacyId) : undefined}
+                  revokeSlot={<RevokeButton assemblyId={assemblyId} delegationId={d.id} onRevoked={refetch} />}
+                />
+              );
+            })}
           </CardBody>
         </Card>
       )}
@@ -99,12 +108,14 @@ function DelegationRow({
   nameMap,
   topics,
   assemblyId,
+  onClickProfile,
   revokeSlot,
 }: {
   delegation: Delegation;
   nameMap: Map<string, string>;
   topics: Topic[];
   assemblyId?: string;
+  onClickProfile?: () => void;
   revokeSlot?: React.ReactNode;
 }) {
   const targetName = nameMap.get(d.targetId) ?? d.targetId.slice(0, 8);
@@ -121,23 +132,38 @@ function DelegationRow({
       ? `/assembly/${assemblyId}/topics`
       : null;
 
+  const nameContent = (
+    <>
+      <Avatar name={targetName} size="sm" className={onClickProfile ? "group-hover/profile:ring-2 group-hover/profile:ring-accent-border transition-shadow" : ""} />
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-text-primary truncate">
+          {scopeLink ? (
+            <Link to={scopeLink} className="hover:text-accent-text transition-colors" onClick={(e) => e.stopPropagation()}>
+              {scopeLabel}
+            </Link>
+          ) : scopeLabel}
+        </p>
+        <p className={`text-xs text-text-tertiary truncate ${onClickProfile ? "group-hover/profile:text-accent-text transition-colors" : ""}`}>
+          {targetName} · {since}
+        </p>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex items-center justify-between py-3 gap-3 min-h-[56px]">
-      <div className="flex items-center gap-3 min-w-0">
-        <Avatar name={targetName} size="sm" />
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-text-primary truncate">
-            {scopeLink ? (
-              <Link to={scopeLink} className="hover:text-accent-text transition-colors">
-                {scopeLabel}
-              </Link>
-            ) : scopeLabel}
-          </p>
-          <p className="text-xs text-text-tertiary truncate">
-            {targetName} · {since}
-          </p>
+      {onClickProfile ? (
+        <button
+          onClick={onClickProfile}
+          className="group/profile flex items-center gap-3 min-w-0 text-left cursor-pointer"
+        >
+          {nameContent}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 min-w-0">
+          {nameContent}
         </div>
-      </div>
+      )}
       {revokeSlot}
     </div>
   );
