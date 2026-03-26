@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
@@ -104,6 +104,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, endorseme
   endorsement?: EndorsementCounts;
 }) {
   const { t } = useTranslation("governance");
+  const navigate = useNavigate();
   const name = nameMap.get(candidacy.participantId) ?? candidacy.participantId;
   const title = candidacy.title ?? null;
   const topics = candidacy.topicScope.map((tt) => topicNameMap.get(tt) ?? tt);
@@ -112,7 +113,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, endorseme
   return (
     <Card
       className="group cursor-pointer hover:border-accent-border transition-colors"
-      onClick={() => window.open(profileUrl, "_blank")}
+      onClick={() => navigate(profileUrl)}
     >
       <CardBody className="p-5">
         {/* Header: avatar + name + title + badge */}
