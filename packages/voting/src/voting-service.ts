@@ -4,7 +4,7 @@
  * High-level service for vote casting and tallying.
  */
 
-import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteRetractedEvent, VoteChoice } from "@votiverse/core";
+import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteChoice } from "@votiverse/core";
 import { createEvent, generateEventId, now, ValidationError, GovernanceRuleViolation } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@votiverse/delegation";
 import type { CastVoteParams, TallyResult, VoteRecord, WeightedVote, ParticipationRecord } from "./types.js";
 import { createBallotMethod } from "./ballot-methods.js";
+import { getActiveVotes, hasActiveVote } from "./vote-queries.js";
 
 /**
  * Service for casting votes and computing tallies.
@@ -41,14 +42,11 @@ export class VotingService {
       this.validateChoice(params.choice, params.issueChoices);
     }
 
-    // Enforce allowVoteChange — reject re-votes when disabled
+    // Enforce allowVoteChange — reject re-votes when disabled.
+    // Uses getActiveVotes to correctly exclude retracted votes:
+    // a participant who voted then retracted should be able to vote again.
     if (!this.config.ballot.allowVoteChange) {
-      const existing = await this.eventStore.query({ types: ["VoteCast"] });
-      const hasVoted = existing.some(
-        (e) => (e as VoteCastEvent).payload.participantId === params.participantId &&
-               (e as VoteCastEvent).payload.issueId === params.issueId,
-      );
-      if (hasVoted) {
+      if (await hasActiveVote(this.eventStore, params.participantId, params.issueId)) {
         throw new GovernanceRuleViolation(
           "Vote changes are not allowed in this assembly",
           "VOTE_CHANGE_DISABLED",
@@ -125,31 +123,15 @@ export class VotingService {
   /**
    * Get all active direct votes for an issue.
    * Excludes votes that were subsequently retracted.
+   * Delegates to getActiveVotes() — the single source of truth.
    */
   async getVotes(issueId: IssueId): Promise<readonly VoteRecord[]> {
-    const events = await this.eventStore.query({ types: ["VoteCast", "VoteRetracted"] });
-    // Use a map to keep only the latest vote per participant; remove on retraction
-    const latestVotes = new Map<ParticipantId, VoteRecord>();
-
-    for (const event of events) {
-      if (event.type === "VoteCast") {
-        const e = event as VoteCastEvent;
-        if (e.payload.issueId === issueId) {
-          latestVotes.set(e.payload.participantId, {
-            participantId: e.payload.participantId,
-            issueId: e.payload.issueId,
-            choice: e.payload.choice,
-          });
-        }
-      } else if (event.type === "VoteRetracted") {
-        const e = event as VoteRetractedEvent;
-        if (e.payload.issueId === issueId) {
-          latestVotes.delete(e.payload.participantId);
-        }
-      }
-    }
-
-    return [...latestVotes.values()];
+    const active = await getActiveVotes(this.eventStore, { issueId });
+    return active.map((v) => ({
+      participantId: v.participantId,
+      issueId: v.issueId,
+      choice: v.choice,
+    }));
   }
 
   /**

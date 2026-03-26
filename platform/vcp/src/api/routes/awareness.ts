@@ -3,10 +3,11 @@
  */
 
 import { Hono } from "hono";
-import type { IssueId, ParticipantId } from "@votiverse/core";
+import type { ParticipantId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { getParticipantId } from "../middleware/auth.js";
 import { getDelegationVisibility } from "./shared.js";
+import { getActiveVotes } from "@votiverse/voting";
 
 export function awarenessRoutes(manager: AssemblyManager) {
   const app = new Hono();
@@ -98,29 +99,17 @@ export function awarenessRoutes(manager: AssemblyManager) {
       }
     }
 
-    // Query vote events for this participant, excluding retracted votes
-    const voteEvents = await store.query({ types: ["VoteCast", "VoteRetracted"] });
+    // Query active votes using shared utility (single source of truth)
+    const votes = await getActiveVotes(store, { participantId: pid as ParticipantId });
 
-    // Build a set of (participantId, issueId) pairs that have been retracted.
-    // Process events in order — a VoteCast after a retraction re-establishes the vote.
-    const activeVotes = new Map<string, { choice: string; timestamp: number }>();
-    for (const e of voteEvents) {
-      const payload = e.payload as { participantId: string; issueId: string; choice?: string };
-      if (payload.participantId !== pid) continue;
-      if (e.type === "VoteCast") {
-        activeVotes.set(payload.issueId, { choice: payload.choice!, timestamp: e.timestamp });
-      } else if (e.type === "VoteRetracted") {
-        activeVotes.delete(payload.issueId);
-      }
-    }
-
-    const history = [...activeVotes.entries()].map(([issueId, { choice, timestamp }]) => {
+    const history = votes.map((v) => {
       const includeChoice = !isSecretBallot || isOwnHistory;
+      const choice = typeof v.choice === "string" ? v.choice : (v.choice as string[]).join(",");
       return {
-        issueId,
-        issueTitle: issueTitles.get(issueId) ?? null,
+        issueId: v.issueId,
+        issueTitle: issueTitles.get(v.issueId) ?? null,
         ...(includeChoice ? { choice } : {}),
-        votedAt: new Date(timestamp).toISOString(),
+        votedAt: new Date(v.timestamp).toISOString(),
       };
     });
 

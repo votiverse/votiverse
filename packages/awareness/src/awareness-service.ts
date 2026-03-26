@@ -8,7 +8,7 @@
  * remove, or modify awareness features without risk to governance logic.
  */
 
-import type { EventStore, ParticipantId, IssueId, TopicId, Timestamp, VoteCastEvent } from "@votiverse/core";
+import type { EventStore, ParticipantId, IssueId, TopicId, Timestamp } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
   buildActiveDelegations,
@@ -19,6 +19,7 @@ import {
   computeConcentrationMetrics,
 } from "@votiverse/delegation";
 import type { DelegationChain } from "@votiverse/delegation";
+import { getActiveVotes, getActiveVoteChoice, getActiveVoteCounts } from "@votiverse/voting";
 import { PredictionService } from "@votiverse/prediction";
 import { SurveyService } from "@votiverse/survey";
 import { ProposalService, CandidacyService, NoteService } from "@votiverse/content";
@@ -157,11 +158,8 @@ export class AwarenessService {
     // Prediction track record
     const trackRecord = await this.predictionService.trackRecord(delegateId);
 
-    // Voting participation
-    const allVoteEvents = await this.eventStore.query({ types: ["VoteCast"] });
-    const delegateVotes = allVoteEvents.filter(
-      (e) => (e as VoteCastEvent).payload.participantId === delegateId,
-    );
+    // Voting participation (uses getActiveVotes — excludes retracted votes)
+    const delegateVotes = await getActiveVotes(this.eventStore, { participantId: delegateId });
     const eligibleIssueCount = allIssueContexts.filter((ctx) =>
       ctx.eligibleParticipantIds.includes(delegateId),
     ).length;
@@ -257,7 +255,7 @@ export class AwarenessService {
     const eligible = new Set(ctx.eligibleParticipantIds);
     const weightDist = computeWeights(graph, voters, eligible);
     if (weightDist.totalWeight > 0) {
-      const voteCounts = await this.getVoteCounts(ctx.issueId);
+      const voteCounts = await getActiveVoteCounts(this.eventStore, ctx.issueId);
       if (voteCounts.size >= 2) {
         const sorted = [...voteCounts.values()].sort((a, b) => b - a);
         if (sorted.length >= 2) {
@@ -315,11 +313,12 @@ export class AwarenessService {
         }
       }
 
-      // Get the effective vote choice
-      const effectiveChoice = await this.getEffectiveChoice(
-        votedDirectly ? participantId : (terminalVoterId ?? participantId),
-        ctx.issueId,
-      );
+      // Get the effective vote choice (uses shared getActiveVoteChoice)
+      const effectiveVoter = votedDirectly ? participantId : (terminalVoterId ?? participantId);
+      const rawChoice = await getActiveVoteChoice(this.eventStore, effectiveVoter, ctx.issueId);
+      const effectiveChoice = rawChoice !== null
+        ? (typeof rawChoice === "string" ? rawChoice : (rawChoice as string[]).join(","))
+        : null;
 
       // Get prediction summaries for this issue
       const predictions = await this.getPredictionSummariesForIssue(ctx.issueId);
@@ -407,36 +406,6 @@ export class AwarenessService {
   // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
-
-  private async getVoteCounts(issueId: IssueId): Promise<Map<string, number>> {
-    const events = await this.eventStore.query({ types: ["VoteCast"] });
-    const counts = new Map<string, number>();
-    for (const event of events) {
-      const e = event as VoteCastEvent;
-      if (e.payload.issueId === issueId) {
-        const choice =
-          typeof e.payload.choice === "string" ? e.payload.choice : e.payload.choice.join(",");
-        counts.set(choice, (counts.get(choice) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }
-
-  private async getEffectiveChoice(
-    participantId: ParticipantId,
-    issueId: IssueId,
-  ): Promise<string | null> {
-    const events = await this.eventStore.query({ types: ["VoteCast"] });
-    let latest: string | null = null;
-    for (const event of events) {
-      const e = event as VoteCastEvent;
-      if (e.payload.issueId === issueId && e.payload.participantId === participantId) {
-        latest =
-          typeof e.payload.choice === "string" ? e.payload.choice : e.payload.choice.join(",");
-      }
-    }
-    return latest;
-  }
 
   private async getPredictionSummariesForIssue(
     issueId: IssueId,
