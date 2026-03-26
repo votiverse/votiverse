@@ -611,6 +611,26 @@ curl -X POST http://localhost:3000/dev/clock/reset
 
 **Fix:** If you need to verify delegations exist, test with a participant who is a delegation source or target (check `seed-data/delegations.ts`), or query the VCP database directly.
 
+### 8. Awareness history must account for VoteRetracted events
+
+**Symptom:** After retracting a vote (either explicitly or via delegation), the voting history API still shows the retracted vote. The UI displays "You voted For" even though the vote was retracted.
+
+**Cause:** The awareness history endpoint (`GET /assemblies/:id/awareness/history/:pid`) historically only queried `VoteCast` events. It did not filter out votes that were subsequently retracted via `VoteRetracted` events.
+
+**Fix (already applied):** The endpoint now queries both `VoteCast` and `VoteRetracted` events, processes them in sequence order, and builds a map of active votes. A `VoteRetracted` event removes the corresponding `VoteCast` entry.
+
+**Prevention:** When adding new event types that negate or modify existing events, audit all query sites that consume the original event type. The voting service's `getVotes()` already handled this correctly, but the awareness route had its own query that did not.
+
+### 9. Delegation creation must retract conflicting direct votes
+
+**Symptom:** User votes on an issue, then delegates to someone on that issue. After page refresh, the direct vote is still shown and the delegation has no effect.
+
+**Cause:** The engine's override rule says "direct votes always win over delegations." When a user creates a delegation without retracting their direct vote, the delegation is created but ignored during tally computation.
+
+**Fix (already applied):** The VCP delegation POST route now accepts an optional `retractVoteOnIssue` field. When provided (or when `issueScope` is set), it calls `engine.voting.retract()` before creating the delegation. The QuickDelegateForm passes the issue ID for retraction.
+
+**Note:** This only applies to delegations created from an issue context (QuickDelegateForm). The Delegates tab creates topic-scoped delegations without issue context and does not trigger vote retraction.
+
 ### Troubleshooting Routine
 
 When something breaks at runtime, follow this checklist in order:
