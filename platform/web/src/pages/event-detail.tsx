@@ -14,7 +14,7 @@ import { deriveEventStatus } from "../lib/status.js";
 import { formatDateTime } from "../lib/format.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { QuickDelegateForm } from "../components/quick-delegate-form.js";
+import { QuickDelegateForm, QuickDelegateTrigger } from "../components/quick-delegate-form.js";
 
 /** Neutral color rotation for tally bars — no choice is visually privileged. */
 const TALLY_COLORS = [
@@ -742,96 +742,122 @@ function VotingSection({
     );
   }
 
-  // Voting state: show vote buttons, then delegation
+  const [showDelegateForm, setShowDelegateForm] = useState(false);
+
+  // Voting state: show vote buttons OR delegation form (mutually exclusive per v13 design)
   return (
     <div className="space-y-3">
-      {/* Vote buttons — full width, prominent */}
-      <div>
-        {effectiveHasVoted && (
-          <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.changeYourVote")}</span>
-        )}
-        {issueStatus.isDelegated && !effectiveHasVoted && (
-          <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.orVoteDirectly")}</span>
-        )}
-
-        {isMultiOption ? (
+      {showDelegateForm ? (
+        /* Delegation form replaces voting buttons */
+        <QuickDelegateForm
+          assemblyId={assemblyId}
+          participantId={participantId}
+          participants={participants}
+          preselectedTopicIds={issueTopicIds}
+          topics={topics}
+          isTopicScoped={delegationConfig.topicScoped}
+          issueId={issueId}
+          candidates={candidates}
+          topicNameMap={topicNameMap}
+          onCreated={() => { setShowDelegateForm(false); onDelegationCreated(); }}
+          onClose={() => setShowDelegateForm(false)}
+        />
+      ) : (
+        <>
+          {/* Vote buttons — full width, prominent */}
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {choices.map((choice) => (
+            {effectiveHasVoted && (
+              <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.changeYourVote")}</span>
+            )}
+            {issueStatus.isDelegated && !effectiveHasVoted && (
+              <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.orVoteDirectly")}</span>
+            )}
+
+            {isMultiOption ? (
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {choices.map((choice) => (
+                    <button
+                      key={choice}
+                      onClick={() => onVote(choice)}
+                      disabled={voting}
+                      className="w-full px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                </div>
                 <button
-                  key={choice}
-                  onClick={() => onVote(choice)}
+                  onClick={() => onVote("abstain")}
                   disabled={voting}
-                  className="w-full px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                  className="mt-2 text-sm text-text-muted hover:text-text-secondary underline disabled:opacity-50 min-h-[36px] flex items-center"
                 >
-                  {choice}
+                  {t("eventDetail.voteAbstain")}
                 </button>
-              ))}
-            </div>
-            <button
-              onClick={() => onVote("abstain")}
-              disabled={voting}
-              className="mt-2 text-sm text-text-muted hover:text-text-secondary underline disabled:opacity-50 min-h-[36px] flex items-center"
-            >
-              {t("eventDetail.voteAbstain")}
-            </button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={() => onVote("for")}
+                  disabled={voting}
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                >
+                  {t("eventDetail.voteFor")}
+                </button>
+                <button
+                  onClick={() => onVote("against")}
+                  disabled={voting}
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                >
+                  {t("eventDetail.voteAgainst")}
+                </button>
+                <button
+                  onClick={() => onVote("abstain")}
+                  disabled={voting}
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-text-muted bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                >
+                  {t("eventDetail.voteAbstain")}
+                </button>
+              </div>
+            )}
+
+            {voteError && <p className="text-sm text-error-text mt-2">{voteError}</p>}
+
+            {/* Cancel button when changing an existing vote */}
+            {effectiveHasVoted && (
+              <button
+                onClick={() => onSetExpanded(false)}
+                className="text-xs text-text-muted hover:text-text-secondary underline mt-2"
+              >
+                {t("common:cancel")}
+              </button>
+            )}
+
+            {/* "Trust someone else" trigger — centered below vote buttons */}
+            {delegationConfig.enabled && !issueStatus.isDelegated && (
+              <QuickDelegateTrigger onClick={() => setShowDelegateForm(true)} />
+            )}
           </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={() => onVote("for")}
-              disabled={voting}
-              className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
-            >
-              {t("eventDetail.voteFor")}
-            </button>
-            <button
-              onClick={() => onVote("against")}
-              disabled={voting}
-              className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
-            >
-              {t("eventDetail.voteAgainst")}
-            </button>
-            <button
-              onClick={() => onVote("abstain")}
-              disabled={voting}
-              className="flex-1 px-4 py-3 text-sm font-semibold text-text-muted bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
-            >
-              {t("eventDetail.voteAbstain")}
-            </button>
-          </div>
-        )}
 
-        {voteError && <p className="text-sm text-error-text mt-2">{voteError}</p>}
-
-        {/* Cancel button when changing an existing vote */}
-        {effectiveHasVoted && (
-          <button
-            onClick={() => onSetExpanded(false)}
-            className="text-xs text-text-muted hover:text-text-secondary underline mt-2"
-          >
-            {t("common:cancel")}
-          </button>
-        )}
-      </div>
-
-      {/* Delegation info — after vote buttons */}
-      <DelegationCard
-        assemblyId={assemblyId}
-        issueId={issueId}
-        delegationConfig={delegationConfig}
-        isDelegated={issueStatus.isDelegated}
-        hasVoted={issueStatus.hasVoted}
-        chainNames={chainNames}
-        terminalVoterName={terminalVoterName}
-        issueTopicIds={issueTopicIds}
-        participants={participants}
-        topics={topics}
-        candidates={candidates}
-        topicNameMap={topicNameMap}
-        participantId={participantId}
-        onDelegationCreated={onDelegationCreated}
-      />
+          {/* Delegation info (already delegated state) */}
+          <DelegationCard
+            assemblyId={assemblyId}
+            issueId={issueId}
+            delegationConfig={delegationConfig}
+            isDelegated={issueStatus.isDelegated}
+            hasVoted={issueStatus.hasVoted}
+            chainNames={chainNames}
+            terminalVoterName={terminalVoterName}
+            issueTopicIds={issueTopicIds}
+            participants={participants}
+            topics={topics}
+            candidates={candidates}
+            topicNameMap={topicNameMap}
+            participantId={participantId}
+            onDelegationCreated={onDelegationCreated}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -902,41 +928,10 @@ function DelegationCard({
     );
   }
 
-  // State 2: Delegation enabled but not set up (or user voted directly, overriding delegation)
+  // State 2: Delegation enabled but not set up — trigger is now in VotingSection
+  // (the "Trust someone else with this vote" button below vote buttons)
   if (delegationConfig.enabled) {
-    return (
-      <div>
-        <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-surface border border-border-default border-dashed">
-          <div className="flex items-center gap-2 min-w-0">
-            <svg className="w-4 h-4 text-text-tertiary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-            <span className="text-sm text-text-muted">{t("eventDetail.noDelegateForTopic")}</span>
-          </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="text-xs text-accent-text hover:text-accent-strong-text font-medium min-h-[32px] flex items-center shrink-0"
-          >
-            Delegate
-          </button>
-        </div>
-        {showForm && (
-          <QuickDelegateForm
-            assemblyId={assemblyId}
-            participantId={participantId}
-            participants={participants}
-            preselectedTopicIds={issueTopicIds}
-            topics={topics}
-            isTopicScoped={delegationConfig.topicScoped}
-            issueId={issueId}
-            candidates={candidates}
-            topicNameMap={topicNameMap}
-            onCreated={() => { setShowForm(false); onDelegationCreated(); }}
-            onClose={() => setShowForm(false)}
-          />
-        )}
-      </div>
-    );
+    return null;
   }
 
   // State 3: Delegation not available for this assembly
