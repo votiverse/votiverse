@@ -318,8 +318,8 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
     return (
       <Badge color="blue">
         <span className="flex items-center gap-1.5">
-          {vote.delegateTargetName && <Avatar name={vote.delegateTargetName} size="xs" className="!w-3.5 !h-3.5" />}
-          {vote.delegateTargetName ? t("dashboard.delegatedTo", { name: vote.delegateTargetName }) : t("dashboard.delegated")}
+          {vote.delegateTargetName && <Avatar name={vote.delegateTargetName} size="xs" className="border-none !w-4 !h-4 text-[8px]" />}
+          {t("dashboard.delegated")}
         </span>
       </Badge>
     );
