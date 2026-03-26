@@ -71,7 +71,7 @@ export function Surveys() {
 
   if (!surveysEnabled && !loading) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("surveys.title")}</h1>
         <EmptyState
           title={t("surveys.notEnabled")}
@@ -82,14 +82,17 @@ export function Surveys() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("surveys.title")}</h1>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("surveys.title")}</h1>
+          <p className="text-sm text-text-muted mt-1">{t("surveys.subtitle")}</p>
+        </div>
         {surveysEnabled && <Button onClick={() => setCreating(true)}>{t("surveys.newSurvey")}</Button>}
       </div>
 
-      {/* Open / Closed tabs */}
-      <div className="flex gap-1 mb-4 border-b border-border-default">
+      {/* Open / Closed sub-tabs */}
+      <div className="flex gap-4 mb-4 border-b border-border-default">
         {([["open", t("surveys.tabOpen")], ["closed", t("surveys.tabClosed")]] as [SurveyTab, string][]).map(([key, label]) => {
           const count = key === "open" ? openSurveys.length : closedSurveys.length;
           return (
@@ -97,10 +100,10 @@ export function Surveys() {
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`pb-3 text-sm font-bold border-b-2 -mb-px transition-colors min-h-[44px] ${
                 tab === key
                   ? "border-accent text-accent-text"
-                  : "border-transparent text-text-muted hover:text-text-secondary hover:border-border-strong"
+                  : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
               }`}
             >
               {label}
@@ -260,7 +263,8 @@ function CreateSurveyForm({
     <Card className="mb-4 sm:mb-6">
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h3 className="font-medium text-text-primary">{t("surveys.newSurveyTitle")}</h3>
+          <h3 className="font-bold text-text-primary text-lg font-display">{t("surveys.newSurveyTitle")}</h3>
+          <p className="text-sm text-text-muted -mt-2">{t("surveys.newSurveyDesc")}</p>
           {formError && <ErrorBox message={formError} />}
 
           <div>
@@ -454,16 +458,18 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-text-primary">{survey.title}</h3>
-            <span className="text-xs text-text-tertiary">{t("surveys.question", { count: survey.questions.length })}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {closesLabel && !isClosed && (
-              <span className="text-xs text-text-muted">{closesLabel}</span>
-            )}
-            <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
+              <span className="text-xs font-medium text-text-tertiary">{t("surveys.question", { count: survey.questions.length })}</span>
+            </div>
+            <h3 className="font-bold text-text-primary text-lg leading-tight truncate">{survey.title}</h3>
+            <div className="flex items-center gap-2 mt-1">
+              {closesLabel && !isClosed && (
+                <span className="text-sm text-text-muted">{closesLabel}</span>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -471,9 +477,14 @@ function SurveyCard({ assemblyId, survey }: { assemblyId: string; survey: Survey
         {responseError && <ErrorBox message={responseError} />}
         {resultsError && <ErrorBox message={resultsError} />}
 
-        {survey.questions.map((q) => (
-          <div key={q.id} className="bg-surface rounded-md p-3 sm:p-4">
-            <p className="text-sm font-medium text-text-secondary mb-3">{q.text}</p>
+        {survey.questions.map((q, qIdx) => (
+          <div key={q.id} className="bg-surface rounded-xl p-3 sm:p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-6 h-6 rounded-full bg-surface-sunken border border-border-strong flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold text-text-muted">{qIdx + 1}</span>
+              </div>
+              <p className="text-sm font-medium text-text-secondary">{q.text}</p>
+            </div>
 
             {showButtons && (
               <QuestionButtons

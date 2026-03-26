@@ -313,6 +313,7 @@
   "candidacies.withdrawFailed": "Failed to withdraw candidacy",
 
   "surveys.title": "Surveys",
+  "surveys.subtitle": "Gather community sentiment before formal votes.",
   "surveys.notEnabled": "Surveys not enabled",
   "surveys.notEnabledDesc": "This group's settings do not include surveys. Surveys are available in groups using the accountability or mixed approach models.",
   "surveys.newSurvey": "New Survey",
@@ -339,7 +340,8 @@
   "surveys.mean": "Mean: {{mean}}",
   "surveys.median": "Median: {{median}}",
   "surveys.unsupported": "Unsupported question type",
-  "surveys.newSurveyTitle": "New Survey",
+  "surveys.newSurveyTitle": "Create a Survey",
+  "surveys.newSurveyDesc": "Gather non-binding community sentiment to inform future decisions.",
   "surveys.surveyTitleLabel": "Title",
   "surveys.surveyTitlePlaceholder": "Survey title",
   "surveys.questionN": "Question {{n}}",
