@@ -1,12 +1,15 @@
-import { lazy, Suspense } from "react";
-import { useParams, Link } from "react-router";
+import { lazy, Suspense, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
+import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
-import { Card, CardBody, CardHeader, Badge, Spinner, ErrorBox } from "../components/ui.js";
+import type { EndorsementCounts } from "../api/types.js";
+import { Card, CardBody, CardHeader, Badge, Button, Spinner, ErrorBox } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
-import { ChevronLeft, ExternalLink } from "lucide-react";
+import { EndorseButton } from "../components/endorse-button.js";
+import { ChevronLeft, ExternalLink, Pencil } from "lucide-react";
 import { bannerGradient } from "./delegates/utils.js";
 
 const MarkdownViewer = lazy(() =>
@@ -20,6 +23,9 @@ const MarkdownViewer = lazy(() =>
 export function CandidacyProfile() {
   const { t } = useTranslation("governance");
   const { assemblyId, candidacyId } = useParams();
+  const { getParticipantId } = useIdentity();
+  const navigate = useNavigate();
+  const myParticipantId = assemblyId ? getParticipantId(assemblyId) : null;
 
   const { data: candidacy, loading, error } = useApi(
     () => api.getCandidacy(assemblyId!, candidacyId!),
@@ -27,6 +33,18 @@ export function CandidacyProfile() {
   );
   const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
   const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
+
+  // Endorsement state
+  const { data: endorsementData } = useApi(
+    () => api.getEndorsements(assemblyId!, "candidacy", [candidacyId!]),
+    [assemblyId, candidacyId],
+  );
+  const [localEndorsement, setLocalEndorsement] = useState<EndorsementCounts | null>(null);
+  const endorsement: EndorsementCounts = localEndorsement
+    ?? endorsementData?.endorsements?.[candidacyId!]
+    ?? { endorse: 0, dispute: 0, my: null };
+
+  const [withdrawing, setWithdrawing] = useState(false);
 
   if (loading) return <div className="max-w-3xl mx-auto py-8"><Spinner /></div>;
   if (error) return <div className="max-w-3xl mx-auto py-8"><ErrorBox message={error} /></div>;
@@ -38,6 +56,20 @@ export function CandidacyProfile() {
   const name = nameMap.get(candidacy.participantId) ?? "";
   const title = candidacy.title ?? null;
   const websiteUrl = candidacy.websiteUrl ?? candidacy.content?.websiteUrl ?? null;
+  const isOwn = myParticipantId === candidacy.participantId;
+
+  const handleWithdraw = async () => {
+    if (!confirm(t("candidacies.withdrawConfirm"))) return;
+    setWithdrawing(true);
+    try {
+      await api.withdrawCandidacy(assemblyId!, candidacyId!);
+      navigate(`/assembly/${assemblyId}/candidacies`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t("candidacies.withdrawFailed"));
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-5 animate-page-in">
@@ -136,6 +168,49 @@ export function CandidacyProfile() {
           <NotesList assemblyId={assemblyId!} targetType="candidacy" targetId={candidacyId!} />
         </CardBody>
       </Card>
+
+      {/* Spacer for sticky footer */}
+      <div className="h-16" />
+
+      {/* Sticky action footer */}
+      <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-surface-raised/95 backdrop-blur-md border-t border-border-default z-40">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          <EndorseButton
+            assemblyId={assemblyId!}
+            targetType="candidacy"
+            targetId={candidacyId!}
+            counts={endorsement}
+            onUpdate={setLocalEndorsement}
+          />
+          <div className="flex-1" />
+          {isOwn ? (
+            <>
+              <Link
+                to={`/assembly/${assemblyId}/candidacies`}
+                className="text-sm text-accent-text hover:text-accent-strong-text inline-flex items-center gap-1.5 min-h-[36px]"
+              >
+                <Pencil size={14} />
+                {t("candidacies.editProfile")}
+              </Link>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleWithdraw}
+                disabled={withdrawing}
+              >
+                {withdrawing ? t("candidacies.withdrawing") : t("candidacies.withdraw")}
+              </Button>
+            </>
+          ) : (
+            <Link
+              to={`/assembly/${assemblyId}/delegations`}
+              className="inline-flex"
+            >
+              <Button>{t("delegates.findDelegate")}</Button>
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

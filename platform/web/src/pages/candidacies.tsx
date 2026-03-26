@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { formatDate } from "../lib/format.js";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
@@ -9,13 +8,10 @@ import * as api from "../api/client.js";
 import type { Candidacy, EndorsementCounts } from "../api/types.js";
 import { Card, CardBody, Button, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { NotesList } from "../components/community-notes.js";
 import { EndorseScore } from "../components/endorse-button.js";
 import { TopicPicker } from "../components/topic-picker.js";
-import { FileText, MessageSquareText, ExternalLink, Pencil } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { lazy } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
-const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
 
 export function Candidacies() {
   const { t } = useTranslation("governance");
@@ -91,9 +87,7 @@ export function Candidacies() {
               nameMap={nameMap}
               topicNameMap={topicNameMap}
               assemblyId={assemblyId!}
-              isOwn={c.participantId === participantId}
               endorsement={endorsementMap[c.id]}
-              onChanged={refetch}
             />
           ))}
         </div>
@@ -102,61 +96,18 @@ export function Candidacies() {
   );
 }
 
-function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, isOwn, endorsement, onChanged }: {
+function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, endorsement }: {
   candidacy: Candidacy;
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
   assemblyId: string;
-  isOwn: boolean;
   endorsement?: EndorsementCounts;
-  onChanged: () => void;
 }) {
   const { t } = useTranslation("governance");
-  const [editing, setEditing] = useState(false);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [fullContent, setFullContent] = useState<Candidacy | null>(null);
-
   const name = nameMap.get(candidacy.participantId) ?? candidacy.participantId;
   const title = candidacy.title ?? null;
   const topics = candidacy.topicScope.map((tt) => topicNameMap.get(tt) ?? tt);
   const profileUrl = `/assembly/${assemblyId}/candidacies/${candidacy.id}`;
-
-  const handleEdit = async () => {
-    if (!fullContent) {
-      try {
-        const full = await api.getCandidacy(assemblyId, candidacy.id);
-        setFullContent(full);
-      } catch { /* proceed with what we have */ }
-    }
-    setEditing(true);
-  };
-
-  const handleWithdraw = async () => {
-    setWithdrawing(true);
-    try {
-      await api.withdrawCandidacy(assemblyId, candidacy.id);
-      onChanged();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : t("candidacies.withdrawFailed"));
-    } finally {
-      setWithdrawing(false);
-    }
-  };
-
-  if (editing) {
-    return (
-      <CandidacyForm
-        assemblyId={assemblyId}
-        candidacyId={candidacy.id}
-        initialMarkdown={fullContent?.content?.markdown ?? candidacy.content?.markdown ?? ""}
-        initialWebsiteUrl={fullContent?.content?.websiteUrl ?? candidacy.websiteUrl ?? ""}
-        initialTopicScope={candidacy.topicScope}
-        initialVoteTransparency={candidacy.voteTransparencyOptIn}
-        onDone={() => { setEditing(false); setFullContent(null); onChanged(); }}
-        onCancel={() => setEditing(false)}
-      />
-    );
-  }
 
   return (
     <Card
@@ -197,26 +148,6 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, isOwn, en
             <EndorseScore counts={endorsement} />
           )}
         </div>
-
-        {/* Own card: edit/withdraw actions */}
-        {isOwn && (
-          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border-subtle">
-            <button
-              className="text-xs text-accent-text hover:text-accent-strong-text inline-flex items-center gap-1"
-              onClick={(e) => { e.stopPropagation(); handleEdit(); }}
-            >
-              <Pencil size={12} />
-              {t("candidacies.editProfile")}
-            </button>
-            <button
-              className="text-xs text-error-text hover:text-error-text"
-              onClick={(e) => { e.stopPropagation(); if (confirm(t("candidacies.withdrawConfirm"))) handleWithdraw(); }}
-              disabled={withdrawing}
-            >
-              {withdrawing ? t("candidacies.withdrawing") : t("candidacies.withdraw")}
-            </button>
-          </div>
-        )}
       </CardBody>
     </Card>
   );
