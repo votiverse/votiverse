@@ -75,7 +75,7 @@ export function Proposals() {
       {showDraftForm && !effectiveIssueId && deliberationIssues.length > 0 && (
         <Card className="mb-6">
           <CardBody>
-            <h3 className="font-medium text-text-primary mb-3">{t("proposals.selectQuestion")}</h3>
+            <h3 className="font-bold text-text-primary mb-3">{t("proposals.selectQuestion")}</h3>
             <div className="space-y-2">
               {deliberationIssues.map((issue) => (
                 <button
@@ -101,7 +101,7 @@ export function Proposals() {
 
       {drafts.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-lg font-medium text-text-primary mb-3">{t("proposals.yourDrafts")}</h2>
+          <h2 className="text-lg font-bold font-display text-text-primary mb-3">{t("proposals.yourDrafts")}</h2>
           {drafts.map((d) => (
             <DraftCard key={d.id} draft={d} assemblyId={assemblyId!} onAction={() => { refetchDrafts(); refetch(); }} />
           ))}
@@ -167,7 +167,7 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
           <div className="flex items-center gap-2 min-w-0">
             <Avatar name={nameMap.get(proposal.authorId) ?? "?"} size="sm" />
             <div className="min-w-0">
-              <h3 className="font-medium text-text-primary truncate">{proposal.title}</h3>
+              <h3 className="font-bold text-text-primary truncate">{proposal.title}</h3>
               <p className="text-xs text-text-muted">
                 by {nameMap.get(proposal.authorId) ?? proposal.authorId}
                 {proposal.choiceKey && <> &middot; advocates <strong>{proposal.choiceKey}</strong></>}

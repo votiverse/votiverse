@@ -223,7 +223,7 @@ function TopicCard({
 
   return (
     <Card
-      className="cursor-pointer hover:border-border-strong transition-colors"
+      className="cursor-pointer hover:border-accent-border transition-colors"
       onClick={() => navigate(`/assembly/${assemblyId}/topics/${topic.id}`)}
     >
       <CardBody>
