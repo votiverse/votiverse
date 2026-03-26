@@ -56,6 +56,7 @@
   "quickDelegate.viewProfile": "View Full Profile",
   "quickDelegate.selectDelegate": "Select as Delegate",
   "quickDelegate.deselect": "Deselect",
+  "quickDelegate.communityNotes": "Community notes",
   "quickDelegate.trustCta": "Trust someone else with this vote",
   "booklet.title": "Voting Booklet",
   "booklet.deliberationPhase": "Deliberation Phase",

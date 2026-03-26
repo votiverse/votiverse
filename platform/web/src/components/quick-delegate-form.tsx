@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Star, Search, ChevronDown, ExternalLink, Users } from "lucide-react";
+import { Link } from "react-router";
+import { X, Star, Search, ChevronDown, ExternalLink, MessageSquareText, Users } from "lucide-react";
 import * as api from "../api/client.js";
 import type { Topic, Candidacy } from "../api/types.js";
 import { Button, Badge, ErrorBox } from "./ui.js";
@@ -94,12 +95,7 @@ export function QuickDelegateForm({
     (c) => !recommendedCandidates.includes(c),
   );
 
-  // Auto-expand first recommended candidate when entering candidates mode
-  useEffect(() => {
-    if (selectionMode === "candidates" && recommendedCandidates.length > 0 && !expandedCandidateId) {
-      setExpandedCandidateId(recommendedCandidates[0]!.id);
-    }
-  }, [selectionMode]);
+  // Don't auto-expand any candidate — all start collapsed to avoid bias.
 
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
   const selectedName = selectedTargetId ? nameMap.get(selectedTargetId) ?? "" : "";
@@ -306,6 +302,7 @@ export function QuickDelegateForm({
                     {/* Expanded detail */}
                     {isExpanded && (
                       <div className="px-3.5 pb-3.5 pt-0 animate-in fade-in slide-in-from-top-1 duration-200">
+                        {/* Topic badges */}
                         {candidate.topicScope.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-3">
                             {candidate.topicScope.map((tId) => (
@@ -315,19 +312,32 @@ export function QuickDelegateForm({
                             ))}
                           </div>
                         )}
-                        {candidate.voteTransparencyOptIn && (
-                          <div className="mb-3">
-                            <Badge color="green" className="text-[10px]">{t("publicVotes")}</Badge>
-                          </div>
+
+                        {/* Statement excerpt — more informative than badges */}
+                        {candidate.content?.markdown && (
+                          <p className="text-sm text-text-secondary leading-relaxed line-clamp-2 mb-3">
+                            {extractPlainText(candidate.content.markdown)}
+                          </p>
                         )}
+
+                        {/* Links + action */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border-subtle">
-                          <button
-                            type="button"
-                            className="text-xs font-medium text-info-text hover:underline flex items-center gap-1 min-h-[36px]"
-                            onClick={(e) => { e.stopPropagation(); /* TODO: navigate to profile */ }}
-                          >
-                            {t("quickDelegate.viewProfile")} <ExternalLink size={10} />
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <Link
+                              to={`/assembly/${assemblyId}/candidacies#${candidate.id}`}
+                              className="text-xs font-medium text-info-text hover:underline flex items-center gap-1 min-h-[36px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {t("quickDelegate.viewProfile")} <ExternalLink size={10} />
+                            </Link>
+                            <Link
+                              to={`/assembly/${assemblyId}/candidacies#${candidate.id}-notes`}
+                              className="text-xs font-medium text-text-muted hover:text-text-secondary flex items-center gap-1 min-h-[36px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MessageSquareText size={10} /> {t("quickDelegate.communityNotes")}
+                            </Link>
+                          </div>
                           <Button
                             size="sm"
                             variant={isSelected ? "secondary" : "primary"}
@@ -420,4 +430,17 @@ function scopeCardClass(selected: boolean): string {
       ? "border-accent bg-surface-raised shadow-sm ring-1 ring-accent"
       : "border-border-default bg-surface-raised hover:border-border-strong"
   }`;
+}
+
+/** Strip markdown formatting to get a plain text excerpt. */
+function extractPlainText(markdown: string): string {
+  return markdown
+    .replace(/^#{1,6}\s+.*$/gm, "") // remove headings
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // bold
+    .replace(/\*([^*]+)\*/g, "$1") // italic
+    .replace(/^[-*]\s+/gm, "") // list markers
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+    .replace(/\n{2,}/g, " ") // collapse multiple newlines
+    .replace(/\n/g, " ") // single newlines to spaces
+    .trim();
 }
