@@ -126,7 +126,7 @@
 
   /* Status: Error */
   --error: var(--primitive-red-600);
-  --error-subtle: var(--primitive-red-50);
+  --error-subtle: var(--primitive-red-100);
   --error-text: var(--primitive-red-700);
   --error-border: var(--primitive-red-200);
   --error-hover: var(--primitive-red-700);

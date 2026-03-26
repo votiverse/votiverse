@@ -922,7 +922,7 @@ function DelegationCard({
     const delegateName = terminalVoterName ?? chainNames[chainNames.length - 1];
     const chainDisplay = chainNames.join(" \u2192 ");
     return (
-      <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-info-subtle border border-info-border">
+      <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-surface-raised border border-info-border">
         <div className="flex items-center gap-2 min-w-0">
           <svg className="w-4 h-4 text-info-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
