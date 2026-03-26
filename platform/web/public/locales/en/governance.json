@@ -95,7 +95,7 @@
   "eventDetail.youVoted": "You voted <bold>{{choice}}</bold>",
   "eventDetail.youVotedOn": "on {{date}}",
   "eventDetail.changeVote": "Change vote",
-  "eventDetail.letDelegateDecide": "Let my delegate decide",
+  "eventDetail.letDelegateDecide": "Delegate",
   "eventDetail.voteFinal": "Final",
   "eventDetail.delegatedTo": "Delegated to <bold>{{name}}</bold>",
   "eventDetail.delegatedVia": "via {{chain}}",
