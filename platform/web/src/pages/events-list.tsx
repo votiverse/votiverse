@@ -130,31 +130,33 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
     : null;
   const votingEnd = evt.timeline?.votingEnd;
 
+  // Show voted progress during voting/closed, plain issue count otherwise
+  const showProgress = votedCount !== null && issueCount > 0 && (status === "voting" || status === "closed");
+
   return (
     <Link to={`/assembly/${assemblyId}/events/${evt.id}`} className="block">
       <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
         <CardBody>
-          <div className="flex items-start sm:items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-medium text-text-primary">{evt.title}</h3>
                 {status && <StatusBadge status={status} />}
+                {status === "voting" && votingEnd && (
+                  <Countdown target={votingEnd} className="text-[10px]" />
+                )}
               </div>
               {evt.description && (
                 <p className="text-sm text-text-muted mt-0.5 line-clamp-1">{evt.description}</p>
               )}
             </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              <div className="flex items-center gap-2">
-                <Badge color="gray">{t("eventsList.question", { count: issueCount })}</Badge>
-              </div>
-              {votedCount !== null && issueCount > 0 && (status === "voting" || status === "closed") && (
-                <span className={`text-[10px] font-medium ${votedCount === issueCount ? "text-success-text" : votedCount > 0 ? "text-warning-text" : "text-text-tertiary"}`}>
+            <div className="shrink-0">
+              {showProgress ? (
+                <span className={`text-xs font-medium ${votedCount === issueCount ? "text-success-text" : "text-warning-text"}`}>
                   {t("eventsList.votedCount", { voted: votedCount, total: issueCount })}
                 </span>
-              )}
-              {status === "voting" && votingEnd && (
-                <Countdown target={votingEnd} className="text-[10px]" />
+              ) : (
+                <Badge color="gray">{t("eventsList.question", { count: issueCount })}</Badge>
               )}
             </div>
           </div>

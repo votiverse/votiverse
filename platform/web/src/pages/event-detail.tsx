@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router";
 import { useTranslation, Trans } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
@@ -8,7 +8,7 @@ import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-statu
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy } from "../api/types.js";
-import { FileText } from "lucide-react";
+import { FileText, Lock } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
 import { formatDateTime } from "../lib/format.js";
@@ -133,9 +133,26 @@ export function EventDetail() {
 
   const topicNameMap = useMemo(() => new Map((topicsData?.topics ?? []).map((t) => [t.id, t.name])), [topicsData]);
 
+  // Stable sort: capture initial voted IDs so cards don't reshuffle while voting.
+  // Must be before early returns to satisfy React hooks rules.
+  const [initialVotedIds] = useState(() => new Set<string>());
+  // Update initial set once history loads (only on first load)
+  if (initialVotedIds.size === 0 && votedIssueIds.size > 0) {
+    for (const id of votedIssueIds) initialVotedIds.add(id);
+  }
+  const sortedIssues = useMemo(() => {
+    const issues = event?.issues ?? [];
+    return [...issues.map((issue, idx) => ({ issue, idx }))].sort((a, b) => {
+      const aVoted = initialVotedIds.has(a.issue.id) ? 1 : 0;
+      const bVoted = initialVotedIds.has(b.issue.id) ? 1 : 0;
+      return aVoted - bVoted;
+    });
+  }, [event?.issues, initialVotedIds]);
+
   if (loading) return <Spinner />;
   if (error || !event) return <ErrorBox message={error ?? t("eventDetail.voteNotFound")} onRetry={refetch} />;
 
+  const issues = event.issues ?? [];
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
   const candidates = candidaciesData?.candidacies ?? [];
@@ -147,22 +164,26 @@ export function EventDetail() {
     refetchHistory();
   };
 
-  const issues = event.issues ?? [];
-
-  // Sort issues: un-voted first, then voted — so items needing attention are at the top
-  const sortedIssues = [...issues.map((issue, idx) => ({ issue, idx }))].sort((a, b) => {
-    const aVoted = votedIssueIds.has(a.issue.id) ? 1 : 0;
-    const bVoted = votedIssueIds.has(b.issue.id) ? 1 : 0;
-    return aVoted - bVoted;
-  });
-
   return (
     <div className="max-w-5xl mx-auto">
       {/* Event header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 flex-wrap mb-1">
-          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{event.title}</h1>
-          <EventStatusBadge status={status} />
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="flex items-center gap-3 flex-wrap min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{event.title}</h1>
+            <EventStatusBadge status={status} />
+            {resultsVisibility === "sealed" && status !== "closed" && (
+              <Tooltip text={t("eventDetail.resultsSealedUntilEnd")}>
+                <Lock size={14} className="text-text-tertiary" />
+              </Tooltip>
+            )}
+          </div>
+          {participantId && issues.length > 0 && (
+            <VoteProgress
+              votedCount={issues.filter((i) => votedIssueIds.has(i.id)).length}
+              totalCount={issues.length}
+            />
+          )}
         </div>
         {event.description && <p className="text-sm text-text-muted">{event.description}</p>}
       </div>
@@ -172,14 +193,6 @@ export function EventDetail() {
         timeline={event.timeline}
         status={status}
       />
-
-      {/* Issue summary for current user */}
-      {participantId && issues.length > 0 && (
-        <IssueSummary
-          votedCount={issues.filter((i) => votedIssueIds.has(i.id)).length}
-          totalCount={issues.length}
-        />
-      )}
 
       {/* Issue cards — sorted: un-voted first, voted last */}
       <div className="space-y-4 sm:space-y-6">
@@ -276,31 +289,16 @@ function EventTimeline({ timeline, status }: {
   );
 }
 
-function IssueSummary({ votedCount, totalCount }: {
+function VoteProgress({ votedCount, totalCount }: {
   votedCount: number;
   totalCount: number;
 }) {
   const { t } = useTranslation("governance");
-  if (votedCount === totalCount) {
-    return (
-      <div className="mb-6 px-4 py-3 bg-success-subtle border border-success-border rounded-lg flex items-center gap-2">
-        <svg className="w-5 h-5 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span className="text-sm text-success-text font-medium">{t("eventDetail.votedAllQuestions", { count: totalCount })}</span>
-      </div>
-    );
-  }
-
+  const allDone = votedCount === totalCount;
   return (
-    <div className="mb-6 px-4 py-3 bg-warning-subtle border border-warning-border rounded-lg flex items-center gap-2">
-      <svg className="w-5 h-5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-      </svg>
-      <span className="text-sm text-warning-text font-medium">
-        {t("eventDetail.votedSummary", { voted: votedCount, total: totalCount })}
-      </span>
-    </div>
+    <span className={`text-xs font-medium shrink-0 ${allDone ? "text-success-text" : "text-warning-text"}`}>
+      {t("eventDetail.votedSummary", { voted: votedCount, total: totalCount })}
+    </span>
   );
 }
 
@@ -406,10 +404,24 @@ function IssueVotingCard({
   const issueStatus = useIssueStatus(assemblyId, participantId, issueId);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+  // Optimistic vote choice — shown immediately after voting, before refetch completes
+  const [optimisticChoice, setOptimisticChoice] = useState<string | null>(null);
   // null = derive from issueStatus; boolean = user override (e.g. "Change vote" click)
   const [expandedOverride, setExpandedOverride] = useState<boolean | null>(null);
   const [bookletOpen, setBookletOpen] = useState(false);
-  const expanded = expandedOverride ?? !issueStatus.hasVoted;
+
+  // Clear optimistic state once the real data catches up
+  const optimisticRef = useRef(optimisticChoice);
+  optimisticRef.current = optimisticChoice;
+  useEffect(() => {
+    if (optimisticRef.current && issueStatus.myVoteChoice === optimisticRef.current) {
+      setOptimisticChoice(null);
+    }
+  }, [issueStatus.myVoteChoice]);
+
+  const effectiveHasVoted = issueStatus.hasVoted || optimisticChoice !== null;
+  const effectiveChoice = optimisticChoice ?? issueStatus.myVoteChoice;
+  const expanded = expandedOverride ?? !effectiveHasVoted;
 
   const votingOpen = eventStatus === "voting";
 
@@ -419,6 +431,7 @@ function IssueVotingCard({
     setVoteError(null);
     try {
       await api.castVote(assemblyId, { participantId, issueId, choice });
+      setOptimisticChoice(choice);
       setExpandedOverride(false);
       issueStatus.refetch();
       onVoted();
@@ -438,7 +451,7 @@ function IssueVotingCard({
   }, [issueStatus.delegateChain, nameMap]);
 
   // Determine if the "needs your vote" indicator should show
-  const needsVote = votingOpen && !!participantId && !issueStatus.hasVoted && !issueStatus.isDelegated && !issueStatus.loading;
+  const needsVote = votingOpen && !!participantId && !effectiveHasVoted && !issueStatus.isDelegated && !issueStatus.loading;
 
   const topicMap = useMemo(() => new Map(topics.map((t) => [t.id, t])), [topics]);
 
@@ -494,33 +507,6 @@ function IssueVotingCard({
         </div>
         {/* Description */}
         {description && <p className="text-sm text-text-muted mt-0.5">{description}</p>}
-        {/* Voting booklet link — when proposals exist */}
-        {proposals.length > 0 && (
-          <div className="mt-2">
-            <button
-              onClick={() => setBookletOpen(true)}
-              className="inline-flex items-center gap-1.5 text-sm text-info-text hover:text-info-text transition-colors"
-            >
-              <FileText size={14} />
-              {t("eventDetail.votingBooklet")}
-              <span className="text-xs text-text-tertiary font-normal">
-                ({t("eventDetail.argument", { count: proposals.length })})
-              </span>
-            </button>
-          </div>
-        )}
-        {/* View/write proposals link during deliberation */}
-        {eventStatus === "deliberation" && (
-          <div className={proposals.length > 0 ? "" : "mt-2"}>
-            <Link
-              to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
-              className="inline-flex items-center gap-1.5 text-sm text-accent-text hover:text-accent-text transition-colors"
-            >
-              <FileText size={14} />
-              {proposals.length > 0 ? t("eventDetail.viewAllProposals") : t("eventDetail.writeProposal")}
-            </Link>
-          </div>
-        )}
       </CardHeader>
       <CardBody className="space-y-4">
         {/* Closed event: historical participation record */}
@@ -547,6 +533,8 @@ function IssueVotingCard({
             voting={voting}
             voteError={voteError}
             expanded={expanded}
+            effectiveHasVoted={effectiveHasVoted}
+            effectiveChoice={effectiveChoice}
             allowVoteChange={allowVoteChange}
             onSetExpanded={setExpandedOverride}
             onVote={handleVote}
@@ -554,13 +542,6 @@ function IssueVotingCard({
           />
         )}
 
-        {/* Deliberation phase message */}
-        {eventStatus === "deliberation" && participantId && (
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-surface border border-border-default">
-            <div className="w-2 h-2 rounded-full bg-text-tertiary" />
-            <span className="text-sm text-text-muted">{t("eventDetail.votingNotStarted")}</span>
-          </div>
-        )}
 
         {/* No identity selected */}
         {!participantId && votingOpen && (
@@ -576,6 +557,39 @@ function IssueVotingCard({
           eventStatus={eventStatus}
           resultsVisibility={resultsVisibility}
         />
+
+        {/* Action buttons — proposals & booklet */}
+        {(proposals.length > 0 || eventStatus === "deliberation") && (
+          <div className="flex items-center gap-2 flex-wrap pt-2">
+            {eventStatus === "deliberation" && (
+              <Link
+                to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-accent-text bg-accent-subtle border border-accent-muted rounded-lg hover:bg-accent-muted transition-colors"
+              >
+                {t("eventDetail.writeProposal")}
+              </Link>
+            )}
+            {eventStatus === "deliberation" && proposals.length > 0 && (
+              <Link
+                to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary border border-border-default rounded-lg hover:bg-interactive-hover transition-colors"
+              >
+                {t("eventDetail.viewAllProposals")}
+                <Badge color="gray">{proposals.length}</Badge>
+              </Link>
+            )}
+            {proposals.length > 0 && eventStatus !== "deliberation" && (
+              <button
+                onClick={() => setBookletOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-info-text bg-info-subtle border border-info-border rounded-lg hover:bg-info-border transition-colors"
+              >
+                <FileText size={14} />
+                {t("eventDetail.votingBooklet")}
+                <Badge color="blue">{proposals.length}</Badge>
+              </button>
+            )}
+          </div>
+        )}
       </CardBody>
 
       {/* Voting booklet modal */}
@@ -618,6 +632,8 @@ function VotingSection({
   voting,
   voteError,
   expanded,
+  effectiveHasVoted,
+  effectiveChoice,
   allowVoteChange,
   onSetExpanded,
   onVote,
@@ -639,6 +655,8 @@ function VotingSection({
   voting: boolean;
   voteError: string | null;
   expanded: boolean;
+  effectiveHasVoted: boolean;
+  effectiveChoice: string | null;
   allowVoteChange: boolean;
   onSetExpanded: (v: boolean | null) => void;
   onVote: (choice: string) => void;
@@ -647,46 +665,125 @@ function VotingSection({
   const { t } = useTranslation("governance");
   const isMultiOption = choices && choices.length > 0;
 
-  // Collapsed state: user has already voted, show compact summary
-  if (issueStatus.hasVoted && !expanded) {
+  // Voted state (not changing): show selected choice with change option
+  if (effectiveHasVoted && !expanded) {
     return (
-      <div>
-        <span className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2 block">{t("eventDetail.yourVote")}</span>
-        <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-success-subtle border border-success-border">
+      <div className="space-y-3">
+        {/* Selected vote — inline with change button */}
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-success-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-sm text-success-text">
-              <Trans i18nKey="eventDetail.youVoted" ns="governance" values={{ choice: issueStatus.myVoteChoice }} components={{ bold: <span className="font-semibold" /> }} />
-              {issueStatus.myVoteDate && (
-                <span className="text-success ml-1">
-                  {t("eventDetail.youVotedOn", { date: formatDateTime(issueStatus.myVoteDate) })}
-                </span>
-              )}
+            <span className="text-sm text-text-primary">
+              <Trans i18nKey="eventDetail.youVoted" ns="governance" values={{ choice: effectiveChoice }} components={{ bold: <span className="font-semibold" /> }} />
             </span>
           </div>
-          {allowVoteChange ? (
+          {allowVoteChange && (
             <button
               onClick={() => onSetExpanded(true)}
-              className="text-xs text-success-text hover:text-success-text underline min-h-[32px] flex items-center"
+              className="text-xs text-text-muted hover:text-text-secondary underline"
             >
               {t("eventDetail.changeVote")}
             </button>
-          ) : (
-            <span className="text-xs text-text-tertiary min-h-[32px] flex items-center">{t("eventDetail.voteFinal")}</span>
           )}
         </div>
+
+        {/* Delegation info — below voted state */}
+        <DelegationCard
+          assemblyId={assemblyId}
+          issueId={issueId}
+          delegationConfig={delegationConfig}
+          isDelegated={issueStatus.isDelegated}
+          hasVoted={issueStatus.hasVoted}
+          chainNames={chainNames}
+          terminalVoterName={terminalVoterName}
+          issueTopicIds={issueTopicIds}
+          participants={participants}
+          topics={topics}
+          candidates={candidates}
+          topicNameMap={topicNameMap}
+          participantId={participantId}
+          onDelegationCreated={onDelegationCreated}
+        />
       </div>
     );
   }
 
-  // Expanded state: show delegation card + vote buttons
+  // Voting state: show vote buttons, then delegation
   return (
-    <div>
-      <span className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2 block">{t("eventDetail.yourVote")}</span>
+    <div className="space-y-3">
+      {/* Vote buttons — full width, prominent */}
+      <div>
+        {effectiveHasVoted && (
+          <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.changeYourVote")}</span>
+        )}
+        {issueStatus.isDelegated && !effectiveHasVoted && (
+          <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.orVoteDirectly")}</span>
+        )}
 
-      {/* Delegation card */}
+        {isMultiOption ? (
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {choices.map((choice) => (
+                <button
+                  key={choice}
+                  onClick={() => onVote(choice)}
+                  disabled={voting}
+                  className="w-full px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                >
+                  {choice}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => onVote("abstain")}
+              disabled={voting}
+              className="mt-2 text-sm text-text-muted hover:text-text-secondary underline disabled:opacity-50 min-h-[36px] flex items-center"
+            >
+              {t("eventDetail.voteAbstain")}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => onVote("for")}
+              disabled={voting}
+              className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+            >
+              {t("eventDetail.voteFor")}
+            </button>
+            <button
+              onClick={() => onVote("against")}
+              disabled={voting}
+              className="flex-1 px-4 py-3 text-sm font-semibold text-text-primary bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+            >
+              {t("eventDetail.voteAgainst")}
+            </button>
+            <button
+              onClick={() => onVote("abstain")}
+              disabled={voting}
+              className="flex-1 px-4 py-3 text-sm font-semibold text-text-muted bg-surface-raised border border-border-default rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all disabled:opacity-50"
+            >
+              {t("eventDetail.voteAbstain")}
+            </button>
+          </div>
+        )}
+
+        {voteError && <p className="text-sm text-error-text mt-2">{voteError}</p>}
+
+        {/* Cancel button when changing an existing vote */}
+        {effectiveHasVoted && (
+          <button
+            onClick={() => onSetExpanded(false)}
+            className="text-xs text-text-muted hover:text-text-secondary underline mt-2"
+          >
+            {t("common:cancel")}
+          </button>
+        )}
+      </div>
+
+      {/* Delegation info — after vote buttons */}
       <DelegationCard
         assemblyId={assemblyId}
         issueId={issueId}
@@ -703,75 +800,6 @@ function VotingSection({
         participantId={participantId}
         onDelegationCreated={onDelegationCreated}
       />
-
-      {/* Direct vote buttons */}
-      <div className="mt-3">
-        {issueStatus.isDelegated && !issueStatus.hasVoted ? (
-          <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.orVoteDirectly")}</span>
-        ) : issueStatus.hasVoted ? (
-          <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.changeYourVote")}</span>
-        ) : null}
-
-        {isMultiOption ? (
-          <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {choices.map((choice) => (
-                <Button
-                  key={choice}
-                  size="lg"
-                  variant="secondary"
-                  onClick={() => onVote(choice)}
-                  disabled={voting}
-                  className="w-full justify-center"
-                >
-                  {choice}
-                </Button>
-              ))}
-            </div>
-            <div className="mt-2">
-              <button
-                onClick={() => onVote("abstain")}
-                disabled={voting}
-                className="text-sm text-text-muted hover:text-text-secondary underline disabled:opacity-50 min-h-[36px] flex items-center"
-              >
-                {t("eventDetail.voteAbstain")}
-                {delegationConfig.enabled && (
-                  <span className="text-xs text-text-tertiary ml-1 no-underline">{t("eventDetail.abstainWontDelegate")}</span>
-                )}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button size="lg" variant="secondary" onClick={() => onVote("for")} disabled={voting} className="flex-1 sm:flex-none">
-                {t("eventDetail.voteFor")}
-              </Button>
-              <Button size="lg" variant="secondary" onClick={() => onVote("against")} disabled={voting} className="flex-1 sm:flex-none">
-                {t("eventDetail.voteAgainst")}
-              </Button>
-              <Button size="lg" variant="secondary" onClick={() => onVote("abstain")} disabled={voting} className="flex-1 sm:flex-none">
-                {t("eventDetail.voteAbstain")}
-              </Button>
-            </div>
-            {delegationConfig.enabled && (
-              <p className="text-xs text-text-tertiary mt-1.5">{t("eventDetail.abstainNote")}</p>
-            )}
-          </div>
-        )}
-
-        {voteError && <p className="text-sm text-error-text mt-2">{voteError}</p>}
-
-        {/* Cancel button when changing an existing vote */}
-        {issueStatus.hasVoted && (
-          <button
-            onClick={() => onSetExpanded(false)}
-            className="text-xs text-text-muted hover:text-text-secondary underline mt-2 min-h-[32px] flex items-center"
-          >
-            Cancel
-          </button>
-        )}
-      </div>
     </div>
   );
 }
@@ -921,30 +949,17 @@ function ResultsSection({
   const isSealed = tally?.sealed === true;
   const isLive = resultsVisibility === "live" && votingOpen && !isSealed;
 
-  // Sealed results — show lock icon + participation count
+  // Sealed results — indicator is shown in the event header, nothing per-issue
   if (isSealed) {
-    return (
-      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-surface border border-border-default">
-        <svg className="w-4 h-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-        </svg>
-        <span className="text-sm text-text-muted">
-          {t("eventDetail.resultsSealedUntilEnd")}
-          {tally && tally.participatingCount > 0 && (
-            <span className="ml-1">
-              {" \u00b7 "}{t("eventDetail.membersVoted", { participating: tally.participatingCount, eligible: tally.eligibleCount })}
-            </span>
-          )}
-        </span>
-      </div>
-    );
+    return null;
   }
 
   // Live results during open voting — behind a click
   if (isLive) {
+    const hasWeights = weightDist && Object.keys(weightDist.weights).length > 0;
+
     return (
       <div className="space-y-2">
-        {/* Toggle buttons */}
         {!showLiveResults && totalVotes > 0 && (
           <button
             onClick={() => setShowLiveResults(true)}
@@ -957,19 +972,6 @@ function ResultsSection({
           </button>
         )}
 
-        {!showLiveWeights && weightDist && Object.keys(weightDist.weights).length > 0 && !showLiveResults && (
-          <button
-            onClick={() => { setShowLiveWeights(true); setShowLiveResults(true); }}
-            className="text-sm text-text-muted hover:text-text-secondary flex items-center gap-1.5"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-            {t("eventDetail.viewLiveBreakdown")}
-          </button>
-        )}
-
-        {/* Live results (revealed) */}
         {showLiveResults && tally && totalVotes > 0 && (
           <div className="rounded-lg border border-warning-border bg-warning-subtle p-4">
             <div className="flex items-center justify-between mb-3">
@@ -984,43 +986,38 @@ function ResultsSection({
                 onClick={() => { setShowLiveResults(false); setShowLiveWeights(false); }}
                 className="text-xs text-warning-text hover:text-warning-text underline"
               >
-                Hide
+                {t("common:hide")}
               </button>
             </div>
             <TallyBars tally={tally} choices={choices} totalVotes={totalVotes} />
-          </div>
-        )}
 
-        {/* Live weights (revealed) */}
-        {showLiveResults && weightDist && Object.keys(weightDist.weights).length > 0 && (
-          <div className={showLiveWeights ? "" : "mt-1"}>
-            {!showLiveWeights ? (
-              <button
-                onClick={() => setShowLiveWeights(true)}
-                className="text-sm text-text-muted hover:text-text-secondary flex items-center gap-1.5"
-              >
-                <svg className={`w-4 h-4`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-                {t("eventDetail.viewLiveBreakdown")}
-              </button>
-            ) : (
-              <div className="rounded-lg border border-warning-border bg-warning-subtle p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                    </svg>
-                    <span className="text-sm font-medium text-warning-text">{t("eventDetail.liveBreakdown")}</span>
-                  </div>
+            {/* Optional weight breakdown inside the results panel */}
+            {hasWeights && (
+              <div className="mt-3 pt-3 border-t border-warning-border">
+                {!showLiveWeights ? (
                   <button
-                    onClick={() => setShowLiveWeights(false)}
-                    className="text-xs text-warning-text hover:text-warning-text underline"
+                    onClick={() => setShowLiveWeights(true)}
+                    className="text-xs text-warning-text hover:text-warning-text flex items-center gap-1"
                   >
-                    Hide
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                    {t("eventDetail.showBreakdown")}
                   </button>
-                </div>
-                <WeightBreakdown weightDist={weightDist} nameMap={nameMap} />
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-warning-text">{t("eventDetail.liveBreakdown")}</span>
+                      <button
+                        onClick={() => setShowLiveWeights(false)}
+                        className="text-xs text-warning-text hover:text-warning-text underline"
+                      >
+                        {t("common:hide")}
+                      </button>
+                    </div>
+                    <WeightBreakdown weightDist={weightDist} nameMap={nameMap} />
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -1,18 +1,16 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
-import type { GovernanceConfig } from "../api/types.js";
-import { Card, CardHeader, CardBody, Spinner, ErrorBox, StatusBadge, Badge } from "../components/ui.js";
+import { Card, CardHeader, CardBody, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { ExternalLink } from "lucide-react";
 import {
   presetLabel,
   humanizeBoolean,
   isDelegationEnabled,
-  summarizeRules,
 } from "../lib/presets.js";
 import { OnboardingDialog, shouldShowOnboarding } from "../components/onboarding-dialog.js";
 
@@ -63,27 +61,19 @@ export function AssemblyDashboard() {
         />
       )}
 
-      <div className="mb-6">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{assembly.name}</h1>
-          <StatusBadge status={assembly.status} />
-        </div>
-        <p className="mt-1 text-sm text-text-muted">{config.description}</p>
-        {assembly.websiteUrl && (
+      {assembly.websiteUrl && (
+        <div className="mb-4">
           <a
             href={assembly.websiteUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 text-sm text-accent-text hover:underline inline-flex items-center gap-1"
+            className="text-sm text-accent-text hover:underline inline-flex items-center gap-1"
           >
             {(() => { try { return new URL(assembly.websiteUrl).hostname; } catch { return assembly.websiteUrl; } })()}
             <ExternalLink size={13} />
           </a>
-        )}
-      </div>
-
-      {/* Onboarding rules summary — shown once per assembly (suppressed if onboarding dialog was shown) */}
-      {!showOnboarding && <WelcomeCard assemblyId={assemblyId!} assemblyName={assembly.name} config={config} />}
+        </div>
+      )}
 
       {/* Stats row — participant-centric */}
       <div className={`grid grid-cols-2 ${isDelegationEnabled(config) ? "sm:grid-cols-4" : "sm:grid-cols-3"} gap-3 sm:gap-4 mb-8`}>
@@ -279,50 +269,3 @@ function ConfigRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function WelcomeCard({ assemblyId, assemblyName, config }: { assemblyId: string; assemblyName: string; config: GovernanceConfig }) {
-  const { t } = useTranslation("governance");
-  const storageKey = `votiverse:welcome-dismissed:${assemblyId}`;
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem(storageKey) === "1");
-
-  const dismiss = useCallback(() => {
-    localStorage.setItem(storageKey, "1");
-    setDismissed(true);
-  }, [storageKey]);
-
-  if (dismissed) return null;
-
-  const rules = summarizeRules(config, t);
-
-  return (
-    <Card className="mb-6 border-accent-muted bg-accent-subtle">
-      <CardBody>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-text-primary">{t("assemblyDashboard.welcomeTo", { name: assemblyName })}</h3>
-            <p className="text-xs text-text-muted mt-0.5 mb-2">
-              {t("assemblyDashboard.usesGovernance", { preset: presetLabel(config.name, t) })}
-            </p>
-            <ul className="space-y-1">
-              {rules.map((rule, i) => (
-                <li key={i} className="text-xs text-text-secondary flex items-start gap-1.5">
-                  <span className="text-accent-text mt-0.5 shrink-0">-</span>
-                  <span>{rule}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-xs text-text-tertiary mt-2">{t("assemblyDashboard.rulesPermanent")}</p>
-          </div>
-          <button
-            onClick={dismiss}
-            className="p-1 text-text-tertiary hover:text-text-secondary rounded shrink-0"
-            aria-label="Dismiss"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </CardBody>
-    </Card>
-  );
-}
