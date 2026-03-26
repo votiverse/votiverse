@@ -91,9 +91,12 @@ export function EventsList() {
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("eventsList.title")}</h1>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("eventsList.title")}</h1>
+          <p className="text-sm text-text-muted mt-1">{t("eventsList.subtitle")}</p>
+        </div>
         {canCreateVote && (
           <Button onClick={() => setCreating(true)}>{t("eventsList.createVote")}</Button>
         )}
@@ -140,7 +143,7 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-medium text-text-primary">{evt.title}</h3>
+                <h3 className="font-bold text-text-primary">{evt.title}</h3>
                 {status && <StatusBadge status={status} />}
                 {status === "voting" && votingEnd && (
                   <Countdown target={votingEnd} className="text-[10px]" />

@@ -8,7 +8,7 @@ import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-statu
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy } from "../api/types.js";
-import { Lock } from "lucide-react";
+import { Lock, ChevronLeft } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
 import { formatDateTime } from "../lib/format.js";
@@ -168,7 +168,16 @@ export function EventDetail() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-3xl mx-auto">
+      {/* Back navigation */}
+      <Link
+        to={`/assembly/${assemblyId}/events`}
+        className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-4"
+      >
+        <ChevronLeft size={16} />
+        {t("eventDetail.backToVotes")}
+      </Link>
+
       {/* Event header */}
       <div className="mb-6">
         <div className="flex items-center justify-between gap-3 mb-1">

@@ -95,6 +95,7 @@
   "booklet.saveRec": "Save Recommendation",
   "booklet.updateRec": "Update Recommendation",
 
+  "eventDetail.backToVotes": "Back to Votes",
   "eventDetail.statusVoting": "Voting Open",
   "eventDetail.statusDiscussion": "Discussion",
   "eventDetail.statusUpcoming": "Upcoming",
@@ -163,6 +164,7 @@
   "eventDetail.weightDisplay": "(1+{{delegated}})",
 
   "eventsList.title": "Votes",
+  "eventsList.subtitle": "Active and past voting events in this group.",
   "eventsList.createVote": "Create a Vote",
   "eventsList.noVotes": "No votes yet",
   "eventsList.noVotesDesc": "Create a vote to start making decisions.",
