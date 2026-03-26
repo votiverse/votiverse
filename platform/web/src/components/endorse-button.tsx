@@ -52,7 +52,8 @@ export function EndorseButton({
   };
 
   return (
-    <div className="flex items-center gap-1 bg-surface-sunken p-1 rounded-lg border border-border-default">
+    <div className="flex items-center gap-2 bg-surface-sunken p-1 pl-2.5 rounded-lg border border-border-default">
+      <span className="text-xs font-medium text-text-muted">Endorse?</span>
       <button
         onClick={(e) => { e.stopPropagation(); handleClick("endorse"); }}
         disabled={submitting}
