@@ -4,6 +4,7 @@ import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Button, Badge } from "./ui.js";
+import { Avatar } from "./avatar.js";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 
 /** Sort notes by relevance: visible first, then by endorsement count, then recent. */
@@ -77,10 +78,11 @@ export function NoteContent({ text }: { text: string }) {
   );
 }
 
-export function NotesList({ assemblyId, targetType, targetId }: {
+export function NotesList({ assemblyId, targetType, targetId, nameMap }: {
   assemblyId: string;
   targetType: string;
   targetId: string;
+  nameMap?: Map<string, string>;
 }) {
   const { t } = useTranslation("governance");
   const { data, loading, refetch } = useApi(
@@ -121,18 +123,19 @@ export function NotesList({ assemblyId, targetType, targetId }: {
         <p className="text-sm text-text-tertiary">{t("notes.empty")}</p>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {notes.map((note) => (
-          <NoteCard key={note.id} note={note} assemblyId={assemblyId} onEvaluated={refetch} />
+          <NoteCard key={note.id} note={note} assemblyId={assemblyId} authorName={nameMap?.get(note.authorId)} onEvaluated={refetch} />
         ))}
       </div>
     </div>
   );
 }
 
-function NoteCard({ note, assemblyId, onEvaluated }: {
+function NoteCard({ note, assemblyId, authorName, onEvaluated }: {
   note: CommunityNote;
   assemblyId: string;
+  authorName?: string;
   onEvaluated: () => void;
 }) {
   const { t } = useTranslation("governance");
@@ -153,47 +156,61 @@ function NoteCard({ note, assemblyId, onEvaluated }: {
   const total = note.endorsementCount + note.disputeCount;
   const ratio = total > 0 ? note.endorsementCount / total : 0;
   const isVisible = note.visibility?.visible;
+  const displayName = authorName ?? note.authorId.slice(0, 8);
 
   return (
-    <div className={`border-l-[3px] rounded-r-lg pl-3 pr-3 py-2.5 text-sm ${
-      note.status === "withdrawn" ? "border-l-border-default bg-surface/50 opacity-60" :
-      isVisible ? "border-l-green-400 bg-success-subtle/40" :
-      total > 0 ? "border-l-warning-border bg-warning-subtle/30" :
-      "border-l-border-default bg-surface/30"
+    <div className={`bg-surface-raised rounded-lg p-4 sm:p-5 border-l-[3px] shadow-sm ${
+      note.status === "withdrawn" ? "border-l-border-default border-y border-r border-border-default opacity-60" :
+      isVisible ? "border-l-success-text border-y border-r border-border-default" :
+      total > 0 ? "border-l-warning-border border-y border-r border-border-default" :
+      "border-l-border-strong border-y border-r border-border-default"
     }`}>
-      {note.content?.markdown && (
-        <p className="text-text-secondary"><NoteContent text={note.content.markdown} /></p>
-      )}
-      {!note.content?.markdown && (
-        <p className="text-text-tertiary italic">{t("notes.unavailable")}</p>
-      )}
-
-      <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
-        <span>{note.endorsementCount} {t("notes.helpful")}</span>
-        <span>{note.disputeCount} {t("notes.disputed")}</span>
-        {total > 0 && <span>{t("notes.helpfulPercent", { percent: Math.round(ratio * 100) })}</span>}
+      {/* Author header */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <Avatar name={displayName} size="xs" />
+          <span className="text-sm font-semibold text-text-primary">{displayName}</span>
+        </div>
         {note.status === "withdrawn" && <Badge color="gray">{t("notes.withdrawn")}</Badge>}
         {isVisible && <Badge color="green">{t("notes.visible")}</Badge>}
       </div>
 
-      {note.status !== "withdrawn" && (
-        <div className="flex gap-3 mt-2">
-          <button
-            className="text-xs text-success-text hover:text-success-text disabled:opacity-50 inline-flex items-center gap-1"
-            onClick={() => handleEvaluate("endorse")}
-            disabled={evaluating}
-          >
-            <ThumbsUp size={12} /> {t("notes.endorseBtn")}
-          </button>
-          <button
-            className="text-xs text-error-text hover:text-error-text disabled:opacity-50 inline-flex items-center gap-1"
-            onClick={() => handleEvaluate("dispute")}
-            disabled={evaluating}
-          >
-            <ThumbsDown size={12} /> {t("notes.disputeBtn")}
-          </button>
-        </div>
+      {/* Note text — shown directly, clamped for long notes */}
+      {note.content?.markdown ? (
+        <p className="text-sm text-text-secondary font-normal leading-relaxed my-3 line-clamp-4">
+          <NoteContent text={note.content.markdown} />
+        </p>
+      ) : (
+        <p className="text-sm text-text-tertiary italic my-3">{t("notes.unavailable")}</p>
       )}
+
+      {/* Footer: stats + evaluation buttons */}
+      <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+        <div className="flex items-center gap-3 text-xs text-text-muted">
+          <span>{note.endorsementCount} {t("notes.helpful")}</span>
+          {note.disputeCount > 0 && <span>{note.disputeCount} {t("notes.disputed")}</span>}
+          {total > 0 && <span className="text-text-tertiary">({Math.round(ratio * 100)}%)</span>}
+        </div>
+
+        {note.status !== "withdrawn" && (
+          <div className="flex items-center gap-1 bg-surface-sunken p-0.5 rounded-md border border-border-default">
+            <button
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-text-tertiary hover:bg-success-subtle hover:text-success-text transition-colors disabled:opacity-50"
+              onClick={() => handleEvaluate("endorse")}
+              disabled={evaluating}
+            >
+              <ThumbsUp size={11} />
+            </button>
+            <button
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-text-tertiary hover:bg-error-subtle hover:text-error-text transition-colors disabled:opacity-50"
+              onClick={() => handleEvaluate("dispute")}
+              disabled={evaluating}
+            >
+              <ThumbsDown size={11} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
