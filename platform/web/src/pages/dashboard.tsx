@@ -156,10 +156,13 @@ function DashboardContent({ participantName }: { participantName: string | null 
           <div className="mb-8 sm:mb-10">
             <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-3 sm:mb-4">{t("dashboard.activeVotes")}</h2>
             <div className="space-y-4">
-              {groups.map((group) => (
+              {groups.map((group) => {
+                const firstPending = group.questions.find((q) => !q.hasVoted && !q.isDelegated);
+                const hash = firstPending ? `#issue-${firstPending.issueId}` : "";
+                return (
                 <Link
                   key={`${group.assemblyId}-${group.eventId}`}
-                  to={`/assembly/${group.assemblyId}/events/${group.eventId}`}
+                  to={`/assembly/${group.assemblyId}/events/${group.eventId}${hash}`}
                   className="block"
                 >
                   <Card className="overflow-hidden hover:border-accent-muted transition-all">
@@ -196,7 +199,8 @@ function DashboardContent({ participantName }: { participantName: string | null 
                     </div>
                   </Card>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

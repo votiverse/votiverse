@@ -167,6 +167,18 @@ export function EventDetail() {
     attention.refresh();
   };
 
+  // Scroll to a specific issue if the URL has a hash (e.g., #issue-<id>)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      // Small delay to let cards render
+      setTimeout(() => {
+        const el = document.querySelector(hash);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 200);
+    }
+  }, [event?.id]);
+
   return (
     <div className="max-w-3xl mx-auto">
       {/* Back navigation */}
@@ -212,8 +224,8 @@ export function EventDetail() {
           const tally = tallyData?.tallies?.[idx];
           const weightDist = weightsData?.weights?.[idx];
           return (
+            <div key={issue.id} id={`issue-${issue.id}`}>
             <IssueVotingCard
-              key={issue.id}
               assemblyId={assemblyId!}
               eventId={eventId!}
               issueId={issue.id}
@@ -238,6 +250,7 @@ export function EventDetail() {
               isCreator={participantId === event?.createdBy}
               onVoted={onVoteChange}
             />
+            </div>
           );
         })}
       </div>
