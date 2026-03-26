@@ -18,6 +18,7 @@ import { Predictions } from "./pages/predictions.js";
 import { Notes } from "./pages/notes.js";
 import { Proposals } from "./pages/proposals.js";
 import { Candidacies } from "./pages/candidacies.js";
+import { CandidacyProfile } from "./pages/candidacy-profile.js";
 import { TopicsList } from "./pages/topics-list.js";
 import { TopicPage } from "./pages/topic-page.js";
 import { Profile } from "./pages/profile.js";
@@ -105,6 +106,7 @@ export function App() {
               <Route path="assembly/:assemblyId/notes" element={<Notes />} />
               <Route path="assembly/:assemblyId/proposals" element={<Proposals />} />
               <Route path="assembly/:assemblyId/candidacies" element={<Candidacies />} />
+              <Route path="assembly/:assemblyId/candidacies/:candidacyId" element={<CandidacyProfile />} />
               <Route path="assembly/:assemblyId/topics" element={<TopicsList />} />
               <Route path="assembly/:assemblyId/topics/:topicId" element={<TopicPage />} />
             </Route>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
 import { X, Star, Search, ChevronDown, ExternalLink, MessageSquareText, Users } from "lucide-react";
 import * as api from "../api/client.js";
 import type { Topic, Candidacy } from "../api/types.js";
@@ -323,20 +322,24 @@ export function QuickDelegateForm({
                         {/* Links + action */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border-subtle">
                           <div className="flex items-center gap-3">
-                            <Link
-                              to={`/assembly/${assemblyId}/candidacies#${candidate.id}`}
+                            <a
+                              href={`/assembly/${assemblyId}/candidacies/${candidate.id}`}
+                              target="_blank"
+                              rel="noreferrer"
                               className="text-xs font-medium text-info-text hover:underline flex items-center gap-1 min-h-[36px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {t("quickDelegate.viewProfile")} <ExternalLink size={10} />
-                            </Link>
-                            <Link
-                              to={`/assembly/${assemblyId}/candidacies#${candidate.id}-notes`}
+                            </a>
+                            <a
+                              href={`/assembly/${assemblyId}/candidacies/${candidate.id}#notes`}
+                              target="_blank"
+                              rel="noreferrer"
                               className="text-xs font-medium text-text-muted hover:text-text-secondary flex items-center gap-1 min-h-[36px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MessageSquareText size={10} /> {t("quickDelegate.communityNotes")}
-                            </Link>
+                            </a>
                           </div>
                           <Button
                             size="sm"

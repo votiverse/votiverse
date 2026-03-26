@@ -53,7 +53,7 @@ export function CandidateProfile({
   const linkCopiedKey = `link-copied-${candidacyId}`;
 
   const handleCopyLink = async () => {
-    const url = `${window.location.origin}/assembly/${assemblyId}/candidacies#${candidacyId}`;
+    const url = `${window.location.origin}/assembly/${assemblyId}/candidacies/${candidacyId}`;
     await navigator.clipboard.writeText(url);
     // Brief visual feedback via button text change handled by state if needed
   };
