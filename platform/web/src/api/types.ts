@@ -66,6 +66,7 @@ export interface GovernanceConfig {
 export interface Participant {
   id: string;
   name: string;
+  handle?: string | null;
   status?: ParticipantStatus;
   registeredAt?: string;
 }

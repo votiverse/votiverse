@@ -266,6 +266,37 @@ export function proxyRoutes(
   });
 
   /**
+   * GET /assemblies/:assemblyId/participants — proxy to VCP + enrich with handles.
+   * Handles are user-level data (backend-owned), not VCP data. We enrich the
+   * VCP response so the frontend can search members by @handle.
+   */
+  app.get("/assemblies/:assemblyId/participants", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    const url = new URL(c.req.url);
+    const path = url.pathname + url.search;
+    const response = await proxyToVcp(c, config, "GET", path, participantId);
+
+    if (response.status !== 200) return response;
+
+    try {
+      const data = await response.json() as { participants: Array<{ id: string; name: string }> };
+      const pids = data.participants.map((p) => p.id);
+      const handleMap = await membershipService.getHandlesForParticipants(assemblyId, pids);
+      const enriched = data.participants.map((p) => ({
+        ...p,
+        handle: handleMap.get(p.id) ?? null,
+      }));
+      return c.json({ participants: enriched });
+    } catch {
+      // Enrichment failed — return original response shape
+      return response;
+    }
+  });
+
+  /**
    * Assembly-scoped routes — resolve user → participant, then proxy.
    * Catches all methods and paths under /assemblies/:assemblyId/
    *

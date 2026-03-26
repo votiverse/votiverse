@@ -53,7 +53,11 @@ export function QuickDelegateForm({
 }: QuickDelegateFormProps) {
   const { t } = useTranslation("governance");
   const [scopeMode, setScopeMode] = useState<ScopeMode>("issue");
-  const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
+  // Skip the choice step when there are no candidates — go straight to search
+  const hasCandidates = (candidates ?? []).some(
+    (c) => c.status === "active" && c.participantId !== participantId,
+  );
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>(hasCandidates ? null : "search");
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [expandedCandidateId, setExpandedCandidateId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -367,12 +371,14 @@ export function QuickDelegateForm({
           <div className="animate-in slide-in-from-right-2 duration-200">
             <div className="flex justify-between items-center mb-3">
               <p className="text-xs font-semibold text-text-secondary">{t("quickDelegate.searchDirectory")}</p>
-              <button
-                onClick={() => { setSelectionMode(null); setSelectedTargetId(null); }}
-                className="text-xs font-medium text-text-muted hover:text-text-primary min-h-[36px] flex items-center"
-              >
-                {t("quickDelegate.changeMethod")}
-              </button>
+              {hasCandidates && (
+                <button
+                  onClick={() => { setSelectionMode(null); setSelectedTargetId(null); }}
+                  className="text-xs font-medium text-text-muted hover:text-text-primary min-h-[36px] flex items-center"
+                >
+                  {t("quickDelegate.changeMethod")}
+                </button>
+              )}
             </div>
             {selectedTargetId ? (
               <div className="flex items-center gap-3 bg-surface-raised border border-accent rounded-xl px-4 py-3">

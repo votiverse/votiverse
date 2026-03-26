@@ -234,4 +234,24 @@ export class MembershipService {
     }
     return result;
   }
+
+  /**
+   * Get user handles for a list of participant IDs in an assembly.
+   * Returns a Map from participantId to handle (only entries with non-null handle).
+   */
+  async getHandlesForParticipants(assemblyId: string, participantIds: string[]): Promise<Map<string, string>> {
+    if (participantIds.length === 0) return new Map();
+
+    const placeholders = participantIds.map(() => "?").join(",");
+    const rows = await this.db.query<{ participant_id: string; handle: string }>(
+      `SELECT m.participant_id, u.handle FROM memberships m JOIN users u ON m.user_id = u.id WHERE m.assembly_id = ? AND m.participant_id IN (${placeholders}) AND u.handle IS NOT NULL`,
+      [assemblyId, ...participantIds],
+    );
+
+    const result = new Map<string, string>();
+    for (const row of rows) {
+      result.set(row.participant_id, row.handle);
+    }
+    return result;
+  }
 }

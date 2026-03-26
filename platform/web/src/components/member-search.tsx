@@ -43,11 +43,17 @@ export function MemberSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Filter participants by search query
+  // Filter participants by search query (name or @handle)
   const filteredResults = query.length >= 2
     ? participants
         .filter((p) => p.id !== currentParticipantId)
-        .filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+        .filter((p) => {
+          const q = query.toLowerCase();
+          const qNoAt = q.startsWith("@") ? q.slice(1) : q;
+          if (p.name.toLowerCase().includes(q)) return true;
+          if (p.handle && p.handle.toLowerCase().includes(qNoAt)) return true;
+          return false;
+        })
         .slice(0, 8) // Limit results
     : [];
 
@@ -150,6 +156,7 @@ export function MemberSearch({
                     <MemberRow
                       key={p.id}
                       name={p.name}
+                      handle={p.handle}
                       isCandidate={isCandidate(p.id)}
                       onClick={() => handleSelect(p.id)}
                     />
@@ -211,10 +218,12 @@ function CandidateRow({
 
 function MemberRow({
   name,
+  handle,
   isCandidate,
   onClick,
 }: {
   name: string;
+  handle?: string | null;
   isCandidate: boolean;
   onClick: () => void;
 }) {
@@ -226,7 +235,10 @@ function MemberRow({
       className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-info-subtle text-left transition-colors"
     >
       <Avatar name={name} size="sm" />
-      <span className="text-sm text-text-primary truncate">{name}</span>
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <span className="text-sm text-text-primary truncate">{name}</span>
+        {handle && <span className="text-xs text-text-muted truncate">@{handle}</span>}
+      </div>
       {isCandidate && <Badge color="blue">{t("governance:candidate")}</Badge>}
     </button>
   );
