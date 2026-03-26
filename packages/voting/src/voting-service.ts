@@ -4,7 +4,7 @@
  * High-level service for vote casting and tallying.
  */
 
-import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteChoice } from "@votiverse/core";
+import type { EventStore, ParticipantId, IssueId, TopicId, VoteCastEvent, VoteRetractedEvent, VoteChoice } from "@votiverse/core";
 import { createEvent, generateEventId, now, ValidationError, GovernanceRuleViolation } from "@votiverse/core";
 import type { GovernanceConfig } from "@votiverse/config";
 import {
@@ -16,7 +16,7 @@ import {
 } from "@votiverse/delegation";
 import type { CastVoteParams, TallyResult, VoteRecord, WeightedVote, ParticipationRecord } from "./types.js";
 import { createBallotMethod } from "./ballot-methods.js";
-import { getActiveVotes, hasActiveVote } from "./vote-queries.js";
+import { getActiveVotes, hasActiveVote } from "@votiverse/core";
 
 /**
  * Service for casting votes and computing tallies.
@@ -72,10 +72,21 @@ export class VotingService {
    * Retract a previously cast vote. Records a VoteRetracted event.
    *
    * After retraction, the participant is no longer a direct voter — their
-   * delegation chain (if any) becomes active again. Requires allowVoteChange.
+   * delegation chain (if any) becomes active again.
+   *
+   * @param options.reason - Why the retraction is happening:
+   *   - `'user'` (default): explicit user action — requires allowVoteChange.
+   *   - `'delegation'`: system retraction because user created a delegation
+   *     that covers this issue — bypasses allowVoteChange since the user's
+   *     intent is to delegate, not to change their vote value.
    */
-  async retract(participantId: ParticipantId, issueId: IssueId): Promise<void> {
-    if (!this.config.ballot.allowVoteChange) {
+  async retract(
+    participantId: ParticipantId,
+    issueId: IssueId,
+    options?: { reason?: "user" | "delegation" },
+  ): Promise<void> {
+    const reason = options?.reason ?? "user";
+    if (reason === "user" && !this.config.ballot.allowVoteChange) {
       throw new GovernanceRuleViolation(
         "Vote changes are not allowed in this assembly",
         "VOTE_CHANGE_DISABLED",

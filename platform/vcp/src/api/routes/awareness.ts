@@ -7,7 +7,7 @@ import type { ParticipantId } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { getParticipantId } from "../middleware/auth.js";
 import { getDelegationVisibility } from "./shared.js";
-import { getActiveVotes } from "@votiverse/voting";
+import { getActiveVotes } from "@votiverse/core";
 
 export function awarenessRoutes(manager: AssemblyManager) {
   const app = new Hono();

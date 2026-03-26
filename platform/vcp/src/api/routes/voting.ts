@@ -220,16 +220,31 @@ export function votingRoutes(manager: AssemblyManager) {
       }
     }
 
-    // Materialize if not yet done (idempotent)
-    for (const issueId of votingEvent.issueIds) {
-      await manager.materializeParticipation(assemblyId, issueId);
-    }
+    // For open events, compute participation live (votes/delegations can change).
+    // For closed events, use materialized records (cached, idempotent).
+    const now = manager.timeProvider.now();
+    const votingEnded = votingEvent.timeline.votingEnd <= now;
 
-    // Collect raw records
     const rawRecords = [];
-    for (const issueId of votingEvent.issueIds) {
-      const records = await manager.getParticipation(assemblyId, issueId, participantId);
-      rawRecords.push(...records);
+    if (votingEnded) {
+      // Materialize if not yet done (idempotent — closed data never changes)
+      for (const issueId of votingEvent.issueIds) {
+        await manager.materializeParticipation(assemblyId, issueId);
+      }
+      for (const issueId of votingEvent.issueIds) {
+        const records = await manager.getParticipation(assemblyId, issueId, participantId);
+        rawRecords.push(...records);
+      }
+    } else {
+      // Open: compute live from engine (reflects retractions and new delegations)
+      for (const issueId of votingEvent.issueIds) {
+        const records = await engine.voting.participation(issueId);
+        if (participantId) {
+          rawRecords.push(...records.filter((r) => r.participantId === participantId));
+        } else {
+          rawRecords.push(...records);
+        }
+      }
     }
 
     // Build a set of participant IDs that the caller delegates to (for vote transparency)

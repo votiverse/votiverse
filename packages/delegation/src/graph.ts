@@ -15,8 +15,6 @@ import type {
   Timestamp,
   DelegationCreatedEvent,
   DelegationRevokedEvent,
-  VoteCastEvent,
-  VoteRetractedEvent,
 } from "@votiverse/core";
 import type {
   Delegation,
@@ -73,36 +71,8 @@ export async function buildActiveDelegations(
   return [...delegations.values()].filter((d) => d.active);
 }
 
-/**
- * Get the set of participants who cast a direct vote on an issue.
- * Excludes participants whose most recent action was a VoteRetracted event.
- */
-export async function getDirectVoters(
-  eventStore: EventStore,
-  issueId: IssueId,
-  before?: Timestamp,
-): Promise<Set<ParticipantId>> {
-  const events = await eventStore.query({
-    types: ["VoteCast", "VoteRetracted"],
-    ...(before !== undefined ? { before } : {}),
-  });
-
-  const voters = new Set<ParticipantId>();
-  for (const event of events) {
-    if (event.type === "VoteCast") {
-      const e = event as VoteCastEvent;
-      if (e.payload.issueId === issueId) {
-        voters.add(e.payload.participantId);
-      }
-    } else if (event.type === "VoteRetracted") {
-      const e = event as VoteRetractedEvent;
-      if (e.payload.issueId === issueId) {
-        voters.delete(e.payload.participantId);
-      }
-    }
-  }
-  return voters;
-}
+// Re-export getDirectVoters from core (canonical implementation lives there)
+export { getDirectVoters } from "@votiverse/core";
 
 // ---------------------------------------------------------------------------
 // Scope resolution

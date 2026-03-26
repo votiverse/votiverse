@@ -578,7 +578,11 @@ export class VotiverseEngine {
       });
     },
 
-    retract: async (participantId: ParticipantId, issueId: IssueId): Promise<void> => {
+    retract: async (
+      participantId: ParticipantId,
+      issueId: IssueId,
+      options?: { reason?: "user" | "delegation" },
+    ): Promise<void> => {
       if (this.cancelledIssues.has(issueId)) {
         throw new GovernanceRuleViolation("Issue has been cancelled", "ISSUE_CANCELLED");
       }
@@ -592,7 +596,7 @@ export class VotiverseEngine {
           }
         }
       }
-      return this.votingService.retract(participantId, issueId);
+      return this.votingService.retract(participantId, issueId, options);
     },
 
     getVotes: (issueId: IssueId): Promise<readonly VoteRecord[]> =>

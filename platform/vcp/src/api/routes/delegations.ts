@@ -43,15 +43,18 @@ export function delegationRoutes(manager: AssemblyManager) {
       // Auto-retract direct vote: when creating a delegation that covers an issue
       // the user has voted on, the direct vote must be retracted so the delegation
       // takes effect (otherwise the override rule keeps the direct vote).
+      // Uses reason: "delegation" to bypass allowVoteChange — the user's intent
+      // is to delegate, not to change their vote value.
       const issueToRetract = body.retractVoteOnIssue ?? body.issueScope;
       if (issueToRetract) {
         try {
           await engine.voting.retract(
             authenticatedPid as ParticipantId,
             issueToRetract as IssueId,
+            { reason: "delegation" },
           );
         } catch {
-          // Swallow: no vote to retract, or allowVoteChange disabled — proceed with delegation
+          // Swallow: no vote to retract, or voting window closed — proceed with delegation
         }
       }
 

@@ -1,15 +1,16 @@
 /**
- * @votiverse/voting — Vote query utilities
+ * @votiverse/core — Vote event query utilities
  *
  * Single source of truth for computing active votes from the event log.
  * Replays VoteCast + VoteRetracted events and returns deduplicated results.
  *
- * Used by: VotingService, AwarenessService, VCP awareness routes.
- * The delegation package's getDirectVoters() has its own implementation
- * because delegation cannot depend on voting (would create circular dep).
+ * Lives in core so that both @votiverse/voting and @votiverse/delegation
+ * can share the same implementation without circular dependencies.
  */
 
-import type { EventStore, ParticipantId, IssueId, VoteCastEvent, VoteRetractedEvent, VoteChoice } from "@votiverse/core";
+import type { EventStore } from "./event-store.js";
+import type { ParticipantId, IssueId, VoteChoice, Timestamp } from "./types.js";
+import type { VoteCastEvent } from "./events.js";
 
 /** An active (non-retracted) vote from the event log. */
 export interface ActiveVote {
@@ -27,13 +28,16 @@ export interface ActiveVote {
  *
  * @param eventStore - The event store to query.
  * @param filter - Optional filters. All filters are ANDed.
+ *   - `before`: only consider events with timestamp < before (point-in-time snapshot)
  */
 export async function getActiveVotes(
   eventStore: EventStore,
-  filter?: { issueId?: IssueId; participantId?: ParticipantId },
+  filter?: { issueId?: IssueId; participantId?: ParticipantId; before?: Timestamp },
 ): Promise<readonly ActiveVote[]> {
-  const events = await eventStore.query({ types: ["VoteCast", "VoteRetracted"] });
-  // Composite key: participantId:issueId → latest active vote
+  const events = await eventStore.query({
+    types: ["VoteCast", "VoteRetracted"],
+    ...(filter?.before !== undefined ? { before: filter.before } : {}),
+  });
   const active = new Map<string, ActiveVote>();
 
   for (const e of events) {
@@ -95,4 +99,20 @@ export async function getActiveVoteCounts(
     counts.set(choiceKey, (counts.get(choiceKey) ?? 0) + 1);
   }
   return counts;
+}
+
+/**
+ * Get the set of participant IDs who have an active direct vote on an issue.
+ * This is the "direct voters" set used by delegation graph resolution and
+ * weight computation.
+ *
+ * @param before - Optional timestamp for point-in-time snapshots.
+ */
+export async function getDirectVoters(
+  eventStore: EventStore,
+  issueId: IssueId,
+  before?: Timestamp,
+): Promise<Set<ParticipantId>> {
+  const votes = await getActiveVotes(eventStore, { issueId, before });
+  return new Set(votes.map((v) => v.participantId));
 }

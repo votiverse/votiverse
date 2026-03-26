@@ -27,6 +27,6 @@ export {
 // Service
 export { VotingService } from "./voting-service.js";
 
-// Vote queries — single source of truth for active vote computation
-export { getActiveVotes, hasActiveVote, getActiveVoteChoice, getActiveVoteCounts } from "./vote-queries.js";
-export type { ActiveVote } from "./vote-queries.js";
+// Vote queries — re-exported from core (canonical implementation)
+export { getActiveVotes, hasActiveVote, getActiveVoteChoice, getActiveVoteCounts, getDirectVoters } from "@votiverse/core";
+export type { ActiveVote } from "@votiverse/core";

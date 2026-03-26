@@ -151,5 +151,9 @@ export {
   systemTime,
 } from "./utils.js";
 
+// Vote event queries — shared by voting, delegation, and awareness packages
+export type { ActiveVote } from "./vote-event-queries.js";
+export { getActiveVotes, hasActiveVote, getActiveVoteChoice, getActiveVoteCounts, getDirectVoters } from "./vote-event-queries.js";
+
 // Test Clock
 export { TestClock } from "./test-clock.js";
