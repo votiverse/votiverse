@@ -98,24 +98,31 @@ export function awarenessRoutes(manager: AssemblyManager) {
       }
     }
 
-    // Query vote events for this participant
-    const voteEvents = await store.query({ types: ["VoteCast"] });
-    const history = voteEvents
-      .filter((e) => {
-        const payload = e.payload as { participantId: string };
-        return payload.participantId === pid;
-      })
-      .map((e) => {
-        const payload = e.payload as { participantId: string; issueId: string; choice: string };
-        // Under secret ballot, only the participant sees their own choices
-        const includeChoice = !isSecretBallot || isOwnHistory;
-        return {
-          issueId: payload.issueId,
-          issueTitle: issueTitles.get(payload.issueId) ?? null,
-          ...(includeChoice ? { choice: payload.choice } : {}),
-          votedAt: new Date(e.timestamp).toISOString(),
-        };
-      });
+    // Query vote events for this participant, excluding retracted votes
+    const voteEvents = await store.query({ types: ["VoteCast", "VoteRetracted"] });
+
+    // Build a set of (participantId, issueId) pairs that have been retracted.
+    // Process events in order — a VoteCast after a retraction re-establishes the vote.
+    const activeVotes = new Map<string, { choice: string; timestamp: number }>();
+    for (const e of voteEvents) {
+      const payload = e.payload as { participantId: string; issueId: string; choice?: string };
+      if (payload.participantId !== pid) continue;
+      if (e.type === "VoteCast") {
+        activeVotes.set(payload.issueId, { choice: payload.choice!, timestamp: e.timestamp });
+      } else if (e.type === "VoteRetracted") {
+        activeVotes.delete(payload.issueId);
+      }
+    }
+
+    const history = [...activeVotes.entries()].map(([issueId, { choice, timestamp }]) => {
+      const includeChoice = !isSecretBallot || isOwnHistory;
+      return {
+        issueId,
+        issueTitle: issueTitles.get(issueId) ?? null,
+        ...(includeChoice ? { choice } : {}),
+        votedAt: new Date(timestamp).toISOString(),
+      };
+    });
 
     return c.json({ participantId: pid, history });
   });

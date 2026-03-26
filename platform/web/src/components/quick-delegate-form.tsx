@@ -114,7 +114,7 @@ export function QuickDelegateForm({
     setSubmitting(true);
     setFormError(null);
     try {
-      await api.createDelegation(assemblyId, { targetId: selectedTargetId, ...resolveScope() });
+      await api.createDelegation(assemblyId, { targetId: selectedTargetId, ...resolveScope(), retractVoteOnIssue: issueId });
       onCreated();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {

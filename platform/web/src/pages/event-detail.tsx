@@ -559,7 +559,7 @@ function IssueVotingCard({
                 {" "}
                 <button
                   onClick={() => setBookletOpen(true)}
-                  className="text-accent-text hover:underline whitespace-nowrap"
+                  className="text-accent-text hover:underline whitespace-nowrap font-semibold"
                 >
                   {t("eventDetail.readArguments")} →
                 </button>
@@ -571,7 +571,7 @@ function IssueVotingCard({
         {!description && proposals.length > 0 && eventStatus !== "deliberation" && (
           <button
             onClick={() => setBookletOpen(true)}
-            className="text-sm text-accent-text hover:underline mt-0.5"
+            className="text-sm text-accent-text hover:underline mt-0.5 font-semibold"
           >
             {t("eventDetail.readArguments")} →
           </button>
@@ -608,7 +608,7 @@ function IssueVotingCard({
             onSetExpanded={setExpandedOverride}
             onVote={handleVote}
             onRetract={handleRetract}
-            onDelegationCreated={() => { issueStatus.refetch(); onVoted(); }}
+            onDelegationCreated={() => { setOptimisticChoice(null); setOptimisticRetracted(true); setExpandedOverride(null); issueStatus.refetch(); onVoted(); }}
           />
         )}
 

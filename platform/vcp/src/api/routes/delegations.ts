@@ -23,6 +23,8 @@ export function delegationRoutes(manager: AssemblyManager) {
         targetId: string;
         topicScope?: string[];
         issueScope?: string;
+        /** When delegating from an issue context, retract the user's direct vote on this issue. */
+        retractVoteOnIssue?: string;
       }>();
 
       if (!body.targetId) {
@@ -37,6 +39,21 @@ export function delegationRoutes(manager: AssemblyManager) {
       const topicScope = (body.topicScope ?? []) as TopicId[];
 
       const { engine } = await manager.getEngine(assemblyId);
+
+      // Auto-retract direct vote: when creating a delegation that covers an issue
+      // the user has voted on, the direct vote must be retracted so the delegation
+      // takes effect (otherwise the override rule keeps the direct vote).
+      const issueToRetract = body.retractVoteOnIssue ?? body.issueScope;
+      if (issueToRetract) {
+        try {
+          await engine.voting.retract(
+            authenticatedPid as ParticipantId,
+            issueToRetract as IssueId,
+          );
+        } catch {
+          // Swallow: no vote to retract, or allowVoteChange disabled — proceed with delegation
+        }
+      }
 
       // Auto-replace: if there's already an active delegation from this source
       // with the exact same topic scope, revoke it first.

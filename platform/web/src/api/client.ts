@@ -277,7 +277,7 @@ export function listDelegations(
 
 export function createDelegation(
   assemblyId: string,
-  params: { targetId: string; topicScope?: string[]; issueScope?: string },
+  params: { targetId: string; topicScope?: string[]; issueScope?: string; retractVoteOnIssue?: string },
 ): Promise<Delegation> {
   return request("POST", `/assemblies/${assemblyId}/delegations`, params);
 }
