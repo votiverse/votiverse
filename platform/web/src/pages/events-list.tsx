@@ -8,7 +8,7 @@ import { useAssemblyRole } from "../hooks/use-assembly-role.js";
 import * as api from "../api/client.js";
 import type { VotingEvent } from "../api/types.js";
 import { Card, CardBody, Button, Input, Select, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
-import { X } from "lucide-react";
+import { X, ChevronRight } from "lucide-react";
 import { Countdown } from "../components/countdown.js";
 import { deriveEventStatus } from "../lib/status.js";
 
@@ -137,31 +137,32 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
   const showProgress = votedCount !== null && issueCount > 0 && (status === "voting" || status === "closed");
 
   return (
-    <Link to={`/assembly/${assemblyId}/events/${evt.id}`} className="block">
-      <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
-        <CardBody>
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-text-primary">{evt.title}</h3>
-                {status && <StatusBadge status={status} />}
-                {status === "voting" && votingEnd && (
-                  <Countdown target={votingEnd} className="text-[10px]" />
-                )}
-              </div>
-              {evt.description && (
-                <p className="text-sm text-text-muted mt-0.5 line-clamp-1">{evt.description}</p>
+    <Link to={`/assembly/${assemblyId}/events/${evt.id}`} className="block group">
+      <Card className="hover:border-accent-muted hover:shadow transition-all">
+        <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 className="font-bold text-text-primary">{evt.title}</h3>
+              {status && <StatusBadge status={status} />}
+              {status === "voting" && votingEnd && (
+                <Countdown target={votingEnd} className="text-[10px]" />
               )}
             </div>
-            <div className="shrink-0">
-              {showProgress ? (
-                <span className={`text-xs font-medium ${votedCount === issueCount ? "text-success-text" : "text-warning-text"}`}>
-                  {t("eventsList.votedCount", { voted: votedCount, total: issueCount })}
-                </span>
-              ) : (
-                <Badge color="gray">{t("eventsList.question", { count: issueCount })}</Badge>
-              )}
-            </div>
+            {evt.description && (
+              <p className="text-sm text-text-muted line-clamp-1">{evt.description}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {showProgress ? (
+              <span className={`text-xs font-bold ${votedCount === issueCount ? "text-success-text" : "text-warning-text"}`}>
+                {t("eventsList.votedCount", { voted: votedCount, total: issueCount })}
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-text-tertiary">
+                {t("eventsList.question", { count: issueCount })}
+              </span>
+            )}
+            <ChevronRight size={16} className="text-text-tertiary group-hover:text-accent-text transition-colors" />
           </div>
         </CardBody>
       </Card>
