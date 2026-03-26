@@ -356,6 +356,144 @@ Active in coding clubs and peer tutoring since grade 10.
 I opt into transparent voting so my delegators can hold me accountable.
 `,
   },
+  {
+    assemblyKey: "youth",
+    participantName: "Sofia Reyes",
+    topicKeys: ["wellness", "mental-health"],
+    voteTransparencyOptIn: true,
+    markdown: `# Sofia Reyes — Delegate Candidate
+
+## Topics: Health & Wellness, Mental Health
+
+### About Me
+I've been involved in youth wellness initiatives for 4 years, organizing peer support
+groups and partnering with local therapists to bring free counseling to our community.
+
+### Positions
+- **Mental Health**: Every young person deserves access to free, stigma-free mental
+  health support. I will advocate for expanding our partnership with local clinics.
+- **Sports & Recreation**: Physical activity is mental health. I support accessible
+  programs that meet youth where they are, not just competitive athletics.
+
+### Vote Transparency
+I believe in open governance. You can see how I vote on every issue.
+`,
+  },
+  {
+    assemblyKey: "youth",
+    participantName: "Liam Torres",
+    topicKeys: ["community", "events", "environment"],
+    voteTransparencyOptIn: false,
+    markdown: `# Liam Torres — Delegate Candidate
+
+## Topics: Community, Events, Environment
+
+### About Me
+Student council president at Lincoln High. I've organized fundraisers, community
+clean-ups, and our annual youth leadership conference for the past two years.
+
+### Positions
+- **Community Events**: We need more intergenerational events that bring youth and
+  adults together — not just youth-only programming.
+- **Environment**: Every decision we make should consider environmental impact.
+  I'll push for sustainability criteria in all budget allocations.
+
+### Note on Privacy
+I prefer to vote my conscience without social pressure on individual decisions.
+Judge me by the outcomes and my track record, not individual votes.
+`,
+  },
+  {
+    assemblyKey: "youth",
+    participantName: "Tariq Hassan",
+    topicKeys: ["education", "stem"],
+    voteTransparencyOptIn: true,
+    markdown: `# Tariq Hassan — Delegate Candidate
+
+## Topics: Education, STEM Programs
+
+### About Me
+Robotics team captain and coding bootcamp graduate. I teach introductory
+programming workshops at the community center every Saturday.
+
+### Positions
+- **STEM Programs**: We should invest in equipment and mentorship, not just
+  curriculum. Students need access to real tools — 3D printers, microcontrollers,
+  cloud computing credits.
+- **Education**: I support project-based assessment over standardized testing.
+  Show what you built, not what you memorized.
+
+### Vote Transparency
+Full transparency. Ask me about any vote and I'll explain my reasoning.
+`,
+  },
+  // ── Maple Heights Condo Board candidates ──────────────────────────────
+  {
+    assemblyKey: "maple",
+    participantName: "Marcus Chen",
+    topicKeys: [],
+    voteTransparencyOptIn: true,
+    markdown: `# Marcus Chen — Delegate Candidate
+
+### About Me
+As a CPA, I want to ensure our association's financial health remains strong without
+unnecessary fee hikes. I will critically evaluate every spending proposal against
+our reserve fund projections and long-term maintenance schedule.
+
+### Positions
+- **Reserve Fund**: We should maintain 6+ months of operating expenses in reserve.
+  Emergency assessments hurt everyone — preventive budgeting is better governance.
+- **Vendor Contracts**: I'll review every contract renewal against market rates.
+
+### Vote Transparency
+I opt into transparent voting. Financial decisions should be fully auditable.
+`,
+  },
+  {
+    assemblyKey: "maple",
+    participantName: "Thomas Wright",
+    topicKeys: [],
+    voteTransparencyOptIn: false,
+    markdown: `# Thomas Wright — Delegate Candidate
+
+### About Me
+I've managed residential and commercial properties for 15 years. I understand
+building systems, maintenance cycles, and what it takes to keep a property
+running smoothly without overspending.
+
+### Positions
+- **Maintenance**: Proactive maintenance saves money. I'll push for a 5-year
+  capital improvement plan so we stop making reactive emergency decisions.
+- **Renovations**: Any renovation should increase property value proportionally
+  to its cost. Aesthetics matter, but ROI matters more.
+
+### Note
+I vote privately to avoid lobbying pressure from neighbors on specific issues.
+`,
+  },
+  {
+    assemblyKey: "maple",
+    participantName: "Amara Johnson",
+    topicKeys: [],
+    voteTransparencyOptIn: true,
+    markdown: `# Amara Johnson — Delegate Candidate
+
+### About Me
+As a designer, I focus on how our shared spaces affect daily life. Good design
+isn't about luxury — it's about functionality, accessibility, and creating spaces
+where people actually want to spend time.
+
+### Positions
+- **Common Areas**: The lobby, hallways, and outdoor spaces should be welcoming and
+  accessible. I'll advocate for design choices that serve all residents, not just
+  the loudest voices.
+- **Sustainability**: I support energy-efficient upgrades that reduce our long-term
+  operating costs and environmental footprint.
+
+### Vote Transparency
+I believe in open governance and will explain my votes publicly.
+`,
+  },
 ];
 
 // ── Community Notes ──────────────────────────────────────────────────────

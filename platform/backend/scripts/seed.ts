@@ -426,6 +426,38 @@ This recommendation does not bind your vote — consider both arguments carefull
     console.log(`  (Recommendation seeding skipped: ${err instanceof Error ? err.message : String(err)})`);
   }
 
+  // 10. Seed membership titles for candidates
+  const candidateTitles: Record<string, string> = {
+    "aisha-moyo": "High School Senior · STEM Advocate",
+    "sofia-reyes": "Youth Program Director",
+    "liam-torres": "Student Council President",
+    "tariq-hassan": "Robotics Team Captain",
+    "marcus-chen": "Certified Public Accountant",
+    "thomas-wright": "Property Manager",
+    "amara-johnson": "Interior Designer",
+    "mei-ling-wu": "Senior Software Architect",
+    "leo-fernandez": "Community Manager",
+  };
+
+  let titlesSet = 0;
+  for (const [slug, title] of Object.entries(candidateTitles)) {
+    const user = userMap.get(slug);
+    if (!user) continue;
+    try {
+      const loginRes = await backendPost<{ accessToken: string }>(
+        "/auth/login",
+        { email: `${slug}@example.com`, password: DEFAULT_PASSWORD },
+      );
+      if (loginRes.status !== 200) continue;
+      const token = loginRes.body.accessToken;
+      for (const m of user.memberships) {
+        await backendPut("/me/assemblies/" + m.assemblyId + "/profile", { title }, token);
+      }
+      titlesSet++;
+    } catch { /* skip on error */ }
+  }
+  if (titlesSet > 0) console.log(`  Membership titles: ${titlesSet} users`);
+
   console.log(`\n═══ SEED COMPLETE ═══\n`);
   console.log(`  Users:            ${created}`);
   console.log(`  Cross-assembly:   ${crossAssembly}`);
