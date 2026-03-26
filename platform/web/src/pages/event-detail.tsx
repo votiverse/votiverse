@@ -758,7 +758,7 @@ function VotingSection({
           issueId={issueId}
           candidates={candidates}
           topicNameMap={topicNameMap}
-          onCreated={() => { setShowDelegateForm(false); onDelegationCreated(); }}
+          onCreated={() => { onDelegationCreated(); setShowDelegateForm(false); }}
           onClose={() => setShowDelegateForm(false)}
         />
       ) : (
