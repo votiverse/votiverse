@@ -353,6 +353,7 @@ export async function main() {
           "Municipal Budget Committee": "municipal",
           "Greenfield Community Council": "greenfield",
           "Board of Directors": "board",
+          "Riverside Community Center": "riverside",
         };
         const asmNotes = (NOTES as Array<{ assemblyKey: string; markdown: string }>).filter((n) => {
           return n.assemblyKey === (nameToKey[asm.name] ?? "");

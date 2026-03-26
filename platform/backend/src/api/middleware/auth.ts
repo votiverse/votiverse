@@ -24,6 +24,14 @@ export function createAuthMiddleware(jwtSecret: string) {
       return next();
     }
     if (!isProduction && DEV_PREFIXES.some((p) => c.req.path.startsWith(p))) {
+      // Still extract user if a token is present (dev seed endpoints need it)
+      const devCookie = getAccessTokenFromCookie(c);
+      const devHeader = c.req.header("Authorization");
+      const devToken = devCookie ?? (devHeader ? /^Bearer\s+(.+)$/i.exec(devHeader)?.[1] ?? null : null);
+      if (devToken) {
+        const p = await verifyAccessToken(devToken, jwtSecret);
+        if (p) c.set("user", { id: p.sub, email: p.email, name: p.name });
+      }
       return next();
     }
 

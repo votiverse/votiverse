@@ -47,6 +47,9 @@ const EN_FALLBACK: Record<string, string> = {
   "common:presets.ballotVoteChange": "You can change your vote any time before voting closes",
   "common:presets.featureNotes": "Community notes help verify claims in proposals and candidate profiles",
   "common:presets.featureSurveys": "Surveys capture member observations as evidence for accountability",
+  "common:presets.timelineDeliberation": "{{days}} days for deliberation",
+  "common:presets.timelineCuration": "{{days}} days for curation",
+  "common:presets.timelineVoting": "{{days}} days to vote",
   "common:presets.timelineThen": "then",
 };
 
