@@ -713,3 +713,161 @@ When adding new pages or components to the app, follow these rules to stay align
 8. **Section labels** for groups of cards use the micro-label pattern: `text-xs font-semibold text-text-muted uppercase tracking-wide`.
 9. **Don't add raw CSS or inline styles.** Everything goes through Tailwind utilities mapped to semantic tokens.
 10. **Respect the layout.** On desktop, your page renders inside the sidebar layout's content area. Don't set full-viewport widths or fixed positions that break the sidebar context.
+
+---
+
+## 13. Navigation Patterns & Page Structure
+
+### List–Detail Pattern
+
+Most assembly pages follow a **list–detail** structure: a list view showing cards, and a detail view showing the full entity. These are implemented as in-page state machines (not separate routes), with consistent navigation affordances.
+
+**State machine pattern:**
+```tsx
+type ViewState = "list" | "detail" | "create" | "form";
+const [view, setView] = useState<ViewState>("list");
+```
+
+**List view:**
+- Page heading: `text-xl sm:text-2xl font-bold font-display text-text-primary`
+- Subtitle: `text-sm text-text-muted mt-1`
+- Action button (top-right): `<Button>` for primary action (e.g., "New Survey", "Find a Delegate")
+- Card grid: `grid grid-cols-1 sm:grid-cols-2 gap-4` for entity cards, or `space-y-3` for stacked cards
+- Cards are fully clickable (`cursor-pointer`, `hover:border-accent-border`)
+
+**Detail view:**
+- Always starts with a **back link**: `< Back to [List Name]`
+- Content constrained to `max-w-3xl mx-auto` (detail views should not be too wide)
+- Slide-in animation: `animate-in fade-in slide-in-from-right-2 duration-300` (or from-bottom for first load)
+
+### Back Navigation
+
+Every detail or sub-page **must** include a back link as its first element. This provides predictable navigation without relying on the browser back button.
+
+```tsx
+<button
+  onClick={onBack}
+  className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
+>
+  <ChevronLeft size={16} />
+  Back to Surveys
+</button>
+```
+
+**Rules:**
+- Always use `ChevronLeft` icon (from lucide-react), not an arrow or custom icon
+- Label format: "Back to [Parent Page Name]" — not "Go back" or just "Back"
+- `min-h-[36px]` for touch-friendly tap target
+- `text-text-muted` default, `hover:text-text-primary` on hover
+- `font-medium` weight (not bold — it's a navigation affordance, not a heading)
+
+### Assembly Tabs
+
+Assembly tabs use text-only labels (no icons) with bold weight and generous spacing:
+
+```tsx
+<div className="flex overflow-x-auto hide-scrollbar gap-2 sm:gap-5">
+  <Link
+    to={tab.to}
+    className={`pb-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors min-h-[44px] ${
+      active
+        ? "border-accent text-accent-text"
+        : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
+    }`}
+  >
+    {tab.label}
+  </Link>
+</div>
+```
+
+**Sub-tabs** within a page (e.g., Open/Closed filter) follow the same style but with `gap-4` and `border-b border-border-default` on the container.
+
+### Card Design
+
+Cards follow the component guidelines from Section 7, with these content conventions:
+
+**Entity cards** (candidates, surveys, proposals):
+- Avatar + name/title as header row
+- Badge for status/type (top-right)
+- Key metadata in the body (truncated with `line-clamp-2` or `line-clamp-4`)
+- Footer: tags/badges on the left, score/action on the right, separated by `border-t border-border-subtle`
+- Whole card is clickable (no separate "View" button)
+
+**Note cards** (community notes):
+- White background (`bg-surface-raised`) with `shadow-sm`
+- Colored left border (`border-l-[3px]`): green for visible, amber for rated, gray for unrated
+- Avatar + author name header
+- Note text shown directly (no expand click) with `line-clamp-4` for long content
+- Footer: stats on left, evaluation buttons on right
+
+### Content Area Max Widths
+
+| Context | Class | Pixels | When to use |
+|---------|-------|--------|-------------|
+| Detail views | `max-w-3xl mx-auto` | 768px | Candidate profile, survey detail, delegation config |
+| List views | `max-w-3xl mx-auto` | 768px | Most list pages within assemblies |
+| Wide lists | `max-w-4xl mx-auto` | 896px | Dashboard, notes list with filters |
+| Assembly header | `max-w-5xl mx-auto` | 1024px | Tab bar container |
+
+Always include `mx-auto` for centering.
+
+### Sticky Footers
+
+Action-heavy detail pages (candidate profile, delegation config) use a sticky footer for primary actions:
+
+```tsx
+<div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-surface-raised/95 backdrop-blur-md border-t border-border-default z-40">
+  <div className="max-w-3xl mx-auto flex items-center gap-3">
+    {/* Actions */}
+  </div>
+</div>
+```
+
+**Rules:**
+- `lg:left-64` accounts for the desktop sidebar width
+- `bg-surface-raised/95 backdrop-blur-md` for frosted-glass effect
+- Content inside must respect the same `max-w` as the page content
+- Add `pb-20` or a spacer `<div className="h-16" />` at the bottom of the page to prevent content from being hidden behind the footer
+
+### Inline Forms
+
+Forms that replace content (e.g., quick delegation replacing voting buttons) use a sunken container to visually distinguish them from the surrounding content:
+
+```tsx
+<div className="bg-surface-sunken p-4 sm:p-6 rounded-2xl border border-border-strong animate-in fade-in slide-in-from-top-2 duration-300 shadow-inner">
+  {/* Form content */}
+</div>
+```
+
+**Stepped forms** use numbered step labels:
+```tsx
+<span className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary mb-2.5 block">
+  1. What are you delegating?
+</span>
+```
+
+### Scope/Option Cards
+
+Radio-based selections (delegation scope, survey question options) use card-style radio buttons:
+
+```tsx
+<label className={`flex flex-col gap-1 p-3.5 rounded-xl border cursor-pointer transition-all ${
+  selected
+    ? "border-accent bg-surface-raised shadow-sm ring-1 ring-accent"
+    : "border-border-default bg-surface-raised hover:border-border-strong"
+}`}>
+  <input type="radio" className="sr-only" />
+  <span className="text-sm font-semibold text-text-primary">Option title</span>
+  <span className="text-xs text-text-muted leading-snug">Description</span>
+</label>
+```
+
+The `sr-only` radio input is hidden visually but remains accessible. The card border and ring provide the selected state feedback.
+
+### Endorsement Pattern
+
+Entities that support community endorsement (candidacies, proposals) show:
+- **On cards** (read-only): net score with `ThumbsUp` icon — `EndorseScore` component
+- **On profile pages** (interactive): `EndorseButton` component with "Endorse?" label, thumbs up/down buttons with counts, active state highlighting
+
+Endorsement is a user-level signal. Community notes are the group-level deliberation layer on top.
