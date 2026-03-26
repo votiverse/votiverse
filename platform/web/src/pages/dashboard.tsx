@@ -191,7 +191,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <FileText size={15} className="text-text-tertiary shrink-0" />
-                            <span className="text-sm text-text-secondary truncate">{q.issueTitle}</span>
+                            <span className="text-sm text-text-secondary truncate font-semibold">{q.issueTitle}</span>
                           </div>
                           <VoteStatusChip vote={q} />
                         </div>
