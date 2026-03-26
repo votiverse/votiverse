@@ -20,6 +20,7 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  LogOut,
   Menu,
   X,
   Tags,
@@ -38,7 +39,7 @@ export function Sidebar() {
   const { assemblyId } = useParams();
   const location = useLocation();
   const { t } = useTranslation();
-  const { storeUserId, participantName, handle, memberships } = useIdentity();
+  const { storeUserId, participantName, handle, memberships, logout } = useIdentity();
   const { pendingByAssembly, totalPending, totalPendingSurveys } = useAttention();
 
   if (!storeUserId) return null;
@@ -105,19 +106,27 @@ export function Sidebar() {
 
       {/* User footer */}
       <div className="p-3 border-t border-border-subtle shrink-0">
-        <Link
-          to="/profile"
-          className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-surface-sunken transition-colors"
-        >
-          <Avatar name={participantName ?? "?"} size="sm" />
-          <div className="flex-1 min-w-0">
-            {handle
-              ? <div className="text-sm font-medium text-text-primary truncate">@{handle}</div>
-              : <div className="text-sm font-medium text-text-primary truncate">{participantName}</div>
-            }
-          </div>
-          <ChevronRight size={14} className="text-text-tertiary shrink-0" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/profile"
+            className="flex items-center gap-3 flex-1 min-w-0 px-2 py-2 rounded-xl hover:bg-surface-sunken transition-colors"
+          >
+            <Avatar name={participantName ?? "?"} size="sm" />
+            <div className="flex-1 min-w-0">
+              {handle
+                ? <div className="text-sm font-medium text-text-primary truncate">@{handle}</div>
+                : <div className="text-sm font-medium text-text-primary truncate">{participantName}</div>
+              }
+            </div>
+          </Link>
+          <button
+            onClick={logout}
+            className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors shrink-0"
+            title={t("nav.logout")}
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
     </aside>
   );
