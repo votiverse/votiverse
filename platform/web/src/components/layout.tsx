@@ -85,7 +85,7 @@ export function Sidebar() {
                 <Link
                   key={m.assemblyId}
                   to={`/assembly/${m.assemblyId}/events`}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
                     isActive
                       ? "bg-accent-subtle text-accent-text"
                       : "text-text-secondary hover:bg-surface-sunken"
@@ -142,7 +142,7 @@ function SidebarLink({ to, icon: Icon, label, active, badge = 0 }: {
   return (
     <Link
       to={to}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
         active
           ? "bg-accent-subtle text-accent-text"
           : "text-text-secondary hover:bg-surface-sunken"
