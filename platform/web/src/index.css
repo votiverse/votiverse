@@ -195,7 +195,7 @@
   --text-primary: var(--primitive-gray-50);
   --text-secondary: var(--primitive-gray-300);
   --text-muted: var(--primitive-gray-450);
-  --text-tertiary: var(--primitive-gray-500);
+  --text-tertiary: var(--primitive-gray-550);
   --text-on-accent: var(--primitive-brand-950); /* Dark text on light teal buttons — 7.6:1 contrast */
   --text-inverted: var(--primitive-gray-900);
 
