@@ -167,26 +167,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
   onChanged: () => void;
 }) {
   const { t } = useTranslation("governance");
-  const [expanded, setExpanded] = useState(false);
-  const [fullNote, setFullNote] = useState<CommunityNote | null>(null);
-  const [loadingContent, setLoadingContent] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
-
-  const handleExpand = async () => {
-    if (expanded) { setExpanded(false); return; }
-    setExpanded(true);
-    if (!fullNote && !note.content?.markdown) {
-      setLoadingContent(true);
-      try {
-        const full = await api.getNote(assemblyId, note.id);
-        setFullNote(full);
-      } catch {
-        // Content unavailable
-      } finally {
-        setLoadingContent(false);
-      }
-    }
-  };
 
   const handleWithdraw = async () => {
     setWithdrawing(true);
@@ -207,85 +188,72 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
   const isVisible = note.visibility?.visible;
   const isWithdrawn = note.status === "withdrawn";
   const isOwnNote = note.authorId === participantId;
-  const markdown = note.content?.markdown ?? fullNote?.content?.markdown;
-
-  const accentClass = isWithdrawn ? "border-l-border-default bg-surface/50 opacity-60"
-    : isVisible ? "border-l-success bg-success-subtle"
-    : total > 0 ? "border-l-warning bg-warning-subtle"
-    : "border-l-border-default bg-surface";
 
   return (
-    <div className={`border-l-[3px] rounded-xl border border-border-default bg-surface-raised pl-4 pr-4 py-3 ${accentClass}`}>
-        {/* Header: author + linked target + metadata */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Avatar name={authorName} size="xs" />
-            <span className="text-sm font-medium text-text-primary">{authorName}</span>
-            <span className="text-xs text-text-tertiary">{t("notesPage.on")}</span>
-            <Link to={targetLink(assemblyId, note.target)} className="hover:opacity-80 transition-opacity">
-              <Badge color="gray">{targetLabel}</Badge>
-            </Link>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {isVisible && <Badge color="green">{t("notes.visible")}</Badge>}
-            {isWithdrawn && <Badge color="gray">{t("notes.withdrawn")}</Badge>}
-            {note.visibility?.belowMinEvaluations && !isWithdrawn && (
-              <Badge color="yellow">{t("notesPage.needsReviews")}</Badge>
-            )}
-            <span className="text-[10px] text-text-tertiary">
-              {formatDate(note.createdAt)}
+    <div className={`bg-surface-raised rounded-lg p-4 sm:p-5 border-l-[3px] shadow-sm ${
+      isWithdrawn ? "border-l-border-default border-y border-r border-border-default opacity-60" :
+      isVisible ? "border-l-success-text border-y border-r border-border-default" :
+      total > 0 ? "border-l-warning-border border-y border-r border-border-default" :
+      "border-l-border-strong border-y border-r border-border-default"
+    }`}>
+      {/* Header: author + target badge + status */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar name={authorName} size="xs" />
+          <span className="text-sm font-semibold text-text-primary">{authorName}</span>
+          <span className="text-xs text-text-tertiary">{t("notesPage.on")}</span>
+          <Link to={targetLink(assemblyId, note.target)} className="hover:opacity-80 transition-opacity">
+            <Badge color="gray">{targetLabel}</Badge>
+          </Link>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isVisible && <Badge color="green">{t("notes.visible")}</Badge>}
+          {isWithdrawn && <Badge color="gray">{t("notes.withdrawn")}</Badge>}
+          {note.visibility?.belowMinEvaluations && !isWithdrawn && (
+            <Badge color="yellow">{t("notesPage.needsReviews")}</Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Note text — shown directly, clamped for long notes */}
+      {note.content?.markdown ? (
+        <p className="text-sm text-text-secondary font-normal leading-relaxed my-3 line-clamp-4">
+          <NoteContent text={note.content.markdown} />
+        </p>
+      ) : (
+        <p className="text-sm text-text-tertiary italic my-3">{t("notesPage.contentNotAvailable")}</p>
+      )}
+
+      {/* Footer: stats + context link + author actions */}
+      <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+        <div className="flex items-center gap-3 text-xs text-text-muted">
+          <span>{note.endorsementCount} {t("notes.helpful")}</span>
+          {note.disputeCount > 0 && <span>{note.disputeCount} {t("notes.disputed")}</span>}
+          {total > 0 && (
+            <span className={ratio >= 0.7 ? "text-success-text" : ratio <= 0.3 ? "text-error" : "text-text-tertiary"}>
+              ({Math.round(ratio * 100)}%)
             </span>
-          </div>
+          )}
         </div>
 
-        {/* Expandable content */}
-        {expanded && (
-          <div className="mt-2">
-            {loadingContent && <p className="text-sm text-text-tertiary">{t("notesPage.loading")}</p>}
-            {markdown ? (
-              <p className="text-sm text-text-secondary"><NoteContent text={markdown} /></p>
-            ) : !loadingContent ? (
-              <p className="text-sm text-text-tertiary italic">{t("notesPage.contentNotAvailable")}</p>
-            ) : null}
-          </div>
-        )}
-
-        {/* Footer: read toggle + stats + author actions */}
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle">
-          <div className="flex items-center gap-3 text-xs text-text-muted">
-            <button onClick={handleExpand} className="text-xs text-text-muted hover:text-text-secondary">
-              {expanded ? t("notesPage.collapse") : t("notesPage.read")}
-            </button>
-            <span className="text-border-default">|</span>
-            <span>{t("notesPage.nHelpful", { count: note.endorsementCount })}</span>
-            <span>{t("notesPage.nNotHelpful", { count: note.disputeCount })}</span>
-            {total > 0 && (
-              <span className={ratio >= 0.7 ? "text-success-text" : ratio <= 0.3 ? "text-error" : ""}>
-                {t("notesPage.helpfulPercent", { percent: Math.round(ratio * 100) })}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Link to context page */}
-            <Link
-              to={targetLink(assemblyId, note.target)}
-              className="text-xs text-text-tertiary hover:text-text-secondary"
+        <div className="flex items-center gap-3">
+          <Link
+            to={targetLink(assemblyId, note.target)}
+            className="text-xs font-medium text-text-tertiary hover:text-text-secondary"
+          >
+            {t("notesPage.viewInContext")}
+          </Link>
+          {isOwnNote && !isWithdrawn && (
+            <button
+              onClick={handleWithdraw}
+              disabled={withdrawing}
+              className="text-xs text-error hover:text-error-text disabled:opacity-50"
             >
-              {t("notesPage.viewInContext")}
-            </Link>
-            {/* Author can withdraw their own note */}
-            {isOwnNote && !isWithdrawn && (
-              <button
-                onClick={handleWithdraw}
-                disabled={withdrawing}
-                className="text-xs text-error hover:text-error-text disabled:opacity-50"
-              >
-                {withdrawing ? t("notesPage.withdrawing") : t("notesPage.withdraw")}
-              </button>
-            )}
-          </div>
+              {withdrawing ? t("notesPage.withdrawing") : t("notesPage.withdraw")}
+            </button>
+          )}
         </div>
+      </div>
     </div>
   );
 }
