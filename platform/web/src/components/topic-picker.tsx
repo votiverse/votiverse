@@ -8,6 +8,8 @@ interface TopicPickerProps {
   value: string[];
   onChange: (topicIds: string[]) => void;
   disabled?: boolean;
+  /** Topic IDs to highlight with an expertise badge (e.g., candidate declared topics). */
+  highlightTopics?: string[];
 }
 
 /** Build a tree from flat topic list: roots first, children nested under parent. */
@@ -27,7 +29,7 @@ function buildTree(topics: Topic[]): Array<{ topic: Topic; children: Topic[] }> 
   }));
 }
 
-export function TopicPicker({ assemblyId, value, onChange, disabled }: TopicPickerProps) {
+export function TopicPicker({ assemblyId, value, onChange, disabled, highlightTopics }: TopicPickerProps) {
   const { data, loading } = useApi(() => api.listTopics(assemblyId), [assemblyId]);
 
   if (loading) return <Spinner />;
@@ -52,6 +54,8 @@ export function TopicPicker({ assemblyId, value, onChange, disabled }: TopicPick
 
   const tree = buildTree(topics);
 
+  const highlighted = new Set(highlightTopics ?? []);
+
   return (
     <div className="space-y-1">
       {tree.map(({ topic, children }) => (
@@ -61,6 +65,7 @@ export function TopicPicker({ assemblyId, value, onChange, disabled }: TopicPick
             checked={selected.has(topic.id)}
             onToggle={toggle}
             disabled={disabled}
+            highlighted={highlighted.has(topic.id)}
             isRoot
           />
           {children.length > 0 && (
@@ -72,6 +77,7 @@ export function TopicPicker({ assemblyId, value, onChange, disabled }: TopicPick
                   checked={selected.has(child.id)}
                   onToggle={toggle}
                   disabled={disabled}
+                  highlighted={highlighted.has(child.id)}
                 />
               ))}
             </div>
@@ -88,12 +94,14 @@ function TopicCheckbox({
   onToggle,
   disabled,
   isRoot,
+  highlighted,
 }: {
   topic: Topic;
   checked: boolean;
   onToggle: (id: string) => void;
   disabled?: boolean;
   isRoot?: boolean;
+  highlighted?: boolean;
 }) {
   return (
     <label
@@ -108,9 +116,14 @@ function TopicCheckbox({
         disabled={disabled}
         className="rounded border-border-strong text-accent focus:ring-focus-ring"
       />
-      <span className={`text-sm ${isRoot ? "font-medium text-text-primary" : "text-text-secondary"}`}>
+      <span className={`text-sm flex-1 ${isRoot ? "font-medium text-text-primary" : "text-text-secondary"}`}>
         {topic.name}
       </span>
+      {highlighted && (
+        <span className="text-[10px] font-medium text-info-text bg-info-subtle px-1.5 py-0.5 rounded border border-info-border shrink-0">
+          Expertise
+        </span>
+      )}
     </label>
   );
 }
