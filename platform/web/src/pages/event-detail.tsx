@@ -156,12 +156,15 @@ export function EventDetail() {
   const participants = participantsData?.participants ?? [];
   const nameMap = new Map(participants.map((p) => [p.id, p.name]));
   const candidates = candidaciesData?.candidacies ?? [];
-  const refreshAll = () => {
+  // After voting: only refresh vote-related data (tally + history).
+  // The event itself hasn't changed, and optimistic UI handles the immediate
+  // visual update — avoid refetching the full event to prevent layout shifts.
+  const onVoteChange = () => {
     invalidateHistoryCache();
-    attention.refresh();
-    refetch();
     refetchTally();
     refetchHistory();
+    // Refresh sidebar attention counts in the background (doesn't affect this page)
+    attention.refresh();
   };
 
   return (
@@ -224,7 +227,7 @@ export function EventDetail() {
               candidates={delegationCandidacy ? candidates : undefined}
               topicNameMap={topicNameMap}
               isCreator={participantId === event?.createdBy}
-              onVoted={refreshAll}
+              onVoted={onVoteChange}
             />
           );
         })}
