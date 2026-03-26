@@ -183,7 +183,7 @@ export function CandidacyProfile() {
             onUpdate={setLocalEndorsement}
           />
           <div className="flex-1" />
-          {isOwn ? (
+          {isOwn && (
             <>
               <Link
                 to={`/assembly/${assemblyId}/candidacies`}
@@ -201,13 +201,6 @@ export function CandidacyProfile() {
                 {withdrawing ? t("candidacies.withdrawing") : t("candidacies.withdraw")}
               </Button>
             </>
-          ) : (
-            <Link
-              to={`/assembly/${assemblyId}/delegations`}
-              className="inline-flex"
-            >
-              <Button>{t("delegates.findDelegate")}</Button>
-            </Link>
           )}
         </div>
       </div>

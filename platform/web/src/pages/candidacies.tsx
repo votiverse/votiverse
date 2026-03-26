@@ -128,7 +128,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, endorseme
               {title && <p className="text-xs text-text-muted truncate">{title}</p>}
             </div>
           </div>
-          <Badge color="blue" className="shrink-0">{t("delegates.candidateLabel")}</Badge>
+          {/* No badge — all cards on this page are candidates */}
         </div>
 
         {/* Footer: topic badges + endorsement score */}
