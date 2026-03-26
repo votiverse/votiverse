@@ -577,7 +577,7 @@ function IssueVotingCard({
           </button>
         )}
       </CardHeader>
-      <CardBody className="space-y-4">
+      <CardBody className="space-y-4 bg-surface-sunken/40 !py-4 sm:!py-5 rounded-b-2xl">
         {/* Closed event: historical participation record */}
         {eventStatus === "closed" && participantId && (
           <ClosedEventParticipation participation={participation} nameMap={nameMap} />
