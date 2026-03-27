@@ -40,8 +40,10 @@ export function MemberSearch({
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Filter participants by search query (name or @handle)
   const filteredResults = query.length >= 2
@@ -82,13 +84,54 @@ export function MemberSearch({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // Build flat list of selectable IDs for keyboard navigation
+  const selectableIds: string[] = [];
+  if (query.length < 2 && activeCandidates.length > 0) {
+    for (const c of activeCandidates) selectableIds.push(c.participantId);
+  }
+  if (query.length >= 2) {
+    for (const p of filteredResults) selectableIds.push(p.id);
+  }
+
+  // Reset highlight when results change
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [query, focused]);
+
   const handleSelect = (participantId: string) => {
     onSelect(participantId);
     setQuery("");
     setFocused(false);
+    setHighlightedIndex(-1);
   };
 
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex < 0 || !dropdownRef.current) return;
+    const items = dropdownRef.current.querySelectorAll("[data-selectable]");
+    items[highlightedIndex]?.scrollIntoView({ block: "nearest" });
+  }, [highlightedIndex]);
+
   const showDropdown = focused && (query.length >= 2 || activeCandidates.length > 0);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showDropdown || selectableIds.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev + 1) % selectableIds.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev <= 0 ? selectableIds.length - 1 : prev - 1));
+    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+      e.preventDefault();
+      handleSelect(selectableIds[highlightedIndex]!);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setQuery("");
+      setFocused(false);
+      setHighlightedIndex(-1);
+    }
+  };
 
   return (
     <div ref={containerRef} className="relative">
@@ -100,6 +143,7 @@ export function MemberSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder ?? t("search.byName")}
           className="w-full border border-border-strong rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-accent bg-surface-raised"
         />
@@ -116,19 +160,20 @@ export function MemberSearch({
 
       {/* Dropdown */}
       {showDropdown && (
-        <div className="absolute z-10 w-full mt-1 bg-surface-raised border border-border-default rounded-xl shadow-lg max-h-80 overflow-y-auto">
+        <div ref={dropdownRef} className="absolute z-10 w-full mt-1 bg-surface-raised border border-border-default rounded-xl shadow-lg max-h-80 overflow-y-auto">
           {/* Featured candidates section (candidacy mode) */}
           {activeCandidates.length > 0 && query.length < 2 && (
             <div>
               <div className="px-3 py-2 text-xs font-medium text-text-muted uppercase tracking-wider bg-surface border-b">
                 {t("governance:candidates.declared")}
               </div>
-              {activeCandidates.map((c) => (
+              {activeCandidates.map((c, i) => (
                 <CandidateRow
                   key={c.id}
                   candidacy={c}
                   name={getName(c.participantId)}
                   topicNameMap={topicNameMap}
+                  highlighted={highlightedIndex === i}
                   onClick={() => handleSelect(c.participantId)}
                 />
               ))}
@@ -152,12 +197,13 @@ export function MemberSearch({
                       {t("search.results")}
                     </div>
                   )}
-                  {filteredResults.map((p) => (
+                  {filteredResults.map((p, i) => (
                     <MemberRow
                       key={p.id}
                       name={p.name}
                       handle={p.handle}
                       isCandidate={isCandidate(p.id)}
+                      highlighted={highlightedIndex === i}
                       onClick={() => handleSelect(p.id)}
                     />
                   ))}
@@ -179,11 +225,13 @@ function CandidateRow({
   candidacy,
   name,
   topicNameMap,
+  highlighted,
   onClick,
 }: {
   candidacy: Candidacy;
   name: string;
   topicNameMap?: Map<string, string>;
+  highlighted?: boolean;
   onClick: () => void;
 }) {
   const { t } = useTranslation();
@@ -194,8 +242,9 @@ function CandidateRow({
   return (
     <button
       type="button"
+      data-selectable
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-info-subtle text-left transition-colors"
+      className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-info-subtle text-left transition-colors ${highlighted ? "bg-info-subtle" : ""}`}
     >
       <Avatar name={name} size="sm" />
       <div className="flex-1 min-w-0">
@@ -220,19 +269,22 @@ function MemberRow({
   name,
   handle,
   isCandidate,
+  highlighted,
   onClick,
 }: {
   name: string;
   handle?: string | null;
   isCandidate: boolean;
+  highlighted?: boolean;
   onClick: () => void;
 }) {
   const { t } = useTranslation();
   return (
     <button
       type="button"
+      data-selectable
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-info-subtle text-left transition-colors"
+      className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-info-subtle text-left transition-colors ${highlighted ? "bg-info-subtle" : ""}`}
     >
       <Avatar name={name} size="sm" />
       <div className="flex items-center gap-2 min-w-0 flex-1">
