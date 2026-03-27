@@ -5,6 +5,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import * as api from "../api/client.js";
+import { signal } from "../hooks/use-mutation-signal.js";
 import type { Delegation, Topic } from "../api/types.js";
 import { Card, CardBody, Button, Label, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
@@ -320,6 +321,7 @@ function CreateDelegationForm({
     try {
       const resolvedScope = scopeMode === "topics" ? topicScope : [];
       await api.createDelegation(assemblyId, { targetId, topicScope: resolvedScope });
+      signal("attention");
       onCreated();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {

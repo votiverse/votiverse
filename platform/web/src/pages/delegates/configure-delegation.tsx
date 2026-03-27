@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as api from "../../api/client.js";
+import { signal } from "../../hooks/use-mutation-signal.js";
 import { Card, CardBody, Button, ErrorBox } from "../../components/ui.js";
 import { Avatar } from "../../components/avatar.js";
 import { TopicPicker } from "../../components/topic-picker.js";
@@ -37,6 +38,7 @@ export function ConfigureDelegation({
     try {
       const resolvedScope = scopeMode === "specific" ? topicScope : [];
       await api.createDelegation(assemblyId, { targetId, topicScope: resolvedScope });
+      signal("attention");
       onConfirm();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {

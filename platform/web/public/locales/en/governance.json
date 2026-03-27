@@ -649,6 +649,7 @@
   "dashboard.activeVotes": "Active Votes",
   "dashboard.pendingSurveysSection": "Pending Surveys",
   "dashboard.surveyOpen": "Survey open",
+  "dashboard.dismissSurvey": "Dismiss",
   "dashboard.yourGroups": "Your Groups",
   "dashboard.activeVote_one": "{{count}} active vote",
   "dashboard.activeVote_other": "{{count}} active votes",

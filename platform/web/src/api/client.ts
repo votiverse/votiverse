@@ -394,6 +394,13 @@ export function submitSurveyResponse(
   });
 }
 
+export function dismissSurvey(
+  assemblyId: string,
+  surveyId: string,
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/surveys/${surveyId}/dismiss`);
+}
+
 export function getSurveyResults(
   assemblyId: string,
   surveyId: string,

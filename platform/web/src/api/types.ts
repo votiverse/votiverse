@@ -203,6 +203,7 @@ export interface Survey {
   closesAt: number;
   createdBy: string;
   hasResponded?: boolean;
+  dismissed?: boolean;
 }
 
 export interface SurveyQuestion {

@@ -248,7 +248,10 @@ export function proxyRoutes(
         await surveyCacheService.markParticipantChecked(assemblyId, participantId);
       }
 
-      const respondedIds = await surveyCacheService.respondedSurveyIds(assemblyId, participantId);
+      const [respondedIds, dismissedIds] = await Promise.all([
+        surveyCacheService.respondedSurveyIds(assemblyId, participantId),
+        surveyCacheService.dismissedSurveyIds(assemblyId, participantId),
+      ]);
       const surveys = cachedSurveys.map((p) => ({
         id: p.id,
         title: p.title,
@@ -258,6 +261,7 @@ export function proxyRoutes(
         closesAt: p.closesAt,
         createdBy: p.createdBy,
         hasResponded: respondedIds.has(p.id),
+        dismissed: dismissedIds.has(p.id),
       }));
       return c.json({ surveys });
     }
@@ -287,6 +291,19 @@ export function proxyRoutes(
     }
 
     return response;
+  });
+
+  /**
+   * POST /assemblies/:assemblyId/surveys/:surveyId/dismiss — dismiss a survey from pending list.
+   * Backend-owned: this is user preference state, not governance data.
+   */
+  app.post("/assemblies/:assemblyId/surveys/:surveyId/dismiss", async (c) => {
+    const assemblyId = c.req.param("assemblyId");
+    const surveyId = c.req.param("surveyId");
+    const user = getUser(c);
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    await surveyCacheService.recordDismissal(assemblyId, surveyId, participantId);
+    return c.json({ status: "ok" });
   });
 
   /**

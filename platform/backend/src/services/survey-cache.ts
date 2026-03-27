@@ -136,4 +136,23 @@ export class SurveyCacheService {
       [assemblyId, participantId],
     );
   }
+
+  /** Dismiss a survey for a participant (hides from pending list). */
+  async recordDismissal(assemblyId: string, surveyId: string, participantId: string): Promise<void> {
+    await this.db.run(
+      `INSERT INTO survey_dismissals (assembly_id, survey_id, participant_id)
+       VALUES (?, ?, ?)
+       ON CONFLICT (assembly_id, survey_id, participant_id) DO NOTHING`,
+      [assemblyId, surveyId, participantId],
+    );
+  }
+
+  /** Batch query dismissed survey IDs for a participant in an assembly. */
+  async dismissedSurveyIds(assemblyId: string, participantId: string): Promise<Set<string>> {
+    const rows = await this.db.query<{ survey_id: string }>(
+      "SELECT survey_id FROM survey_dismissals WHERE assembly_id = ? AND participant_id = ?",
+      [assemblyId, participantId],
+    );
+    return new Set(rows.map((r) => r.survey_id));
+  }
 }

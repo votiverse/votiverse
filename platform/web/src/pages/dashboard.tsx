@@ -3,14 +3,15 @@ import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
-import { useAttention, type PendingVote } from "../hooks/use-attention.js";
+import { useAttention, type PendingVote, type PendingSurvey } from "../hooks/use-attention.js";
 import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
 import { Countdown } from "../components/countdown.js";
 import { Card, CardBody, Button, Badge, Skeleton } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { presetLabel } from "../lib/presets.js";
-import { FileText, Clock, Building2, CheckCircle2 } from "lucide-react";
+import { signal } from "../hooks/use-mutation-signal.js";
+import { FileText, Clock, Building2, CheckCircle2, X } from "lucide-react";
 
 interface VoteGroup {
   assemblyId: string;
@@ -212,32 +213,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
           <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-3 sm:mb-4">{t("dashboard.pendingSurveysSection")}</h2>
           <div className="space-y-4">
             {pendingSurveys.map((survey) => (
-              <Link
-                key={survey.surveyId}
-                to={`/assembly/${survey.assemblyId}/surveys`}
-                className="block"
-              >
-                <Card className="hover:border-accent-muted transition-all">
-                  <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-accent-text uppercase tracking-widest bg-accent-subtle px-2 py-0.5 rounded-md">
-                        {survey.assemblyName}
-                      </span>
-                      <p className="text-base font-bold font-display text-text-primary mt-1 truncate">{survey.surveyTitle}</p>
-                      <p className="text-sm text-text-muted mt-0.5">{t("surveys.question", { count: survey.questionCount })}</p>
-                    </div>
-                    <div className="flex items-center sm:flex-col sm:items-end gap-1.5 shrink-0">
-                      <Badge color="blue">{t("dashboard.surveyOpen")}</Badge>
-                      {survey.closesAt > 0 && (
-                        <span className="text-xs text-text-muted flex items-center gap-1">
-                          <Clock size={12} />
-                          <Countdown target={new Date(survey.closesAt).toISOString()} className="text-xs" />
-                        </span>
-                      )}
-                    </div>
-                  </CardBody>
-                </Card>
-              </Link>
+              <SurveyCard key={survey.surveyId} survey={survey} />
             ))}
           </div>
         </div>
@@ -325,6 +301,65 @@ function VoteStatusChip({ vote }: { vote: { hasVoted: boolean; isDelegated: bool
     );
   }
   return <Button size="sm">{t("dashboard.voteNow")}</Button>;
+}
+
+function SurveyCard({ survey }: { survey: PendingSurvey }) {
+  const { t } = useTranslation("governance");
+  const [dismissing, setDismissing] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  const handleDismiss = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDismissing(true);
+    try {
+      await api.dismissSurvey(survey.assemblyId, survey.surveyId);
+      setDismissed(true);
+      signal("attention");
+    } catch {
+      // silently fail — user can try again
+    } finally {
+      setDismissing(false);
+    }
+  };
+
+  if (dismissed) return null;
+
+  return (
+    <div className="relative group">
+      <Link to={`/assembly/${survey.assemblyId}/surveys`} className="block">
+        <Card className="hover:border-accent-muted transition-all">
+          <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-accent-text uppercase tracking-widest bg-accent-subtle px-2 py-0.5 rounded-md">
+                {survey.assemblyName}
+              </span>
+              <p className="text-base font-bold font-display text-text-primary mt-1 truncate">{survey.surveyTitle}</p>
+              <p className="text-sm text-text-muted mt-0.5">{t("surveys.question", { count: survey.questionCount })}</p>
+            </div>
+            <div className="flex items-center sm:flex-col sm:items-end gap-1.5 shrink-0">
+              <Badge color="blue">{t("dashboard.surveyOpen")}</Badge>
+              {survey.closesAt > 0 && (
+                <span className="text-xs text-text-muted flex items-center gap-1">
+                  <Clock size={12} />
+                  <Countdown target={new Date(survey.closesAt).toISOString()} className="text-xs" />
+                </span>
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      </Link>
+      <button
+        onClick={handleDismiss}
+        disabled={dismissing}
+        className="absolute top-3 right-3 p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-sunken transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+        title={t("dashboard.dismissSurvey")}
+        aria-label={t("dashboard.dismissSurvey")}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
 }
 
 function PendingJoinRequests() {

@@ -6,6 +6,7 @@ import { useIdentity } from "../hooks/use-identity.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
 import { useAttention } from "../hooks/use-attention.js";
+import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy } from "../api/types.js";
 import { Lock, ChevronLeft } from "lucide-react";
@@ -461,6 +462,7 @@ function IssueVotingCard({
       setOptimisticRetracted(false);
       setExpandedOverride(false);
       issueStatus.refetch();
+      signal("attention");
       onVoted();
     } catch (err: unknown) {
       setVoteError(err instanceof Error ? err.message : "Vote failed");
@@ -479,6 +481,7 @@ function IssueVotingCard({
       setOptimisticRetracted(true);
       setExpandedOverride(null);
       issueStatus.refetch();
+      signal("attention");
       onVoted();
     } catch (err: unknown) {
       setVoteError(err instanceof Error ? err.message : "Retraction failed");

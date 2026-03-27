@@ -76,6 +76,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
   const versionRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const assemblySignal = useSignal("assemblies");
+  const attentionSignal = useSignal("attention");
 
   const fetchData = useCallback(async () => {
     // null = identity still loading, keep spinner. [] = loaded but no memberships.
@@ -181,7 +182,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
           if (surveysRes.status === "fulfilled") {
             const surveys = surveysRes.value.surveys ?? [];
             for (const survey of surveys) {
-              if (deriveSurveyStatus(survey.schedule, survey.closesAt) === "open" && survey.hasResponded === false) {
+              if (deriveSurveyStatus(survey.schedule, survey.closesAt) === "open" && survey.hasResponded === false && !survey.dismissed) {
                 pendingSurveyCount++;
                 allPendingSurveys.push({
                   assemblyId: asm.id,
@@ -217,6 +218,11 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
 
       // Sort surveys by closest deadline first
       allPendingSurveys.sort((a, b) => a.closesAt - b.closesAt);
+
+      // Include surveys in per-assembly counts
+      for (const s of allPendingSurveys) {
+        pendingByAssembly[s.assemblyId] = (pendingByAssembly[s.assemblyId] ?? 0) + 1;
+      }
 
       setState({
         pendingVotes: allPending,
@@ -254,7 +260,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [fetchData, assemblySignal]);
+  }, [fetchData, assemblySignal, attentionSignal]);
 
   return { ...state, refresh: fetchData };
 }

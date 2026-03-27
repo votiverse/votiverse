@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronLeft, LinkIcon, Check } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
-import { useAttention } from "../hooks/use-attention.js";
+import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
 import type { Survey, SurveyQuestion, SurveyResults } from "../api/types.js";
 import { deriveSurveyStatus } from "../lib/status.js";
@@ -258,7 +258,6 @@ function SurveyDetail({
   const { t } = useTranslation("governance");
   const { getParticipantId } = useParticipant();
   const participantId = getParticipantId(assemblyId);
-  const attention = useAttention();
   const [results, setResults] = useState<SurveyResults | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
@@ -309,13 +308,13 @@ function SurveyDetail({
       }));
       await api.submitSurveyResponse(assemblyId, survey.id, { participantId, answers });
       setResponded(true);
-      attention.refresh();
+      signal("attention");
       await loadResults();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to submit";
       if (msg.includes("already responded")) {
         setResponded(true);
-        attention.refresh();
+        signal("attention");
         await loadResults();
       } else {
         setResponseError(msg);

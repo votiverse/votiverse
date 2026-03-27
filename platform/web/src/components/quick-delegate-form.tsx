@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Star, Search, ChevronDown, ExternalLink, MessageSquareText, Users } from "lucide-react";
 import * as api from "../api/client.js";
+import { signal } from "../hooks/use-mutation-signal.js";
 import type { Topic, Candidacy } from "../api/types.js";
 import { Button, Badge, ErrorBox } from "./ui.js";
 import { Avatar } from "./avatar.js";
@@ -119,6 +120,7 @@ export function QuickDelegateForm({
     setFormError(null);
     try {
       await api.createDelegation(assemblyId, { targetId: selectedTargetId, ...resolveScope(), retractVoteOnIssue: issueId });
+      signal("attention");
       onCreated();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {
