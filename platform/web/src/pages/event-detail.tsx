@@ -856,7 +856,7 @@ function VotingSection({
                 <button
                   onClick={() => onVote("abstain")}
                   disabled={voting}
-                  className="mt-2 text-sm text-text-muted hover:text-text-secondary underline disabled:opacity-50 min-h-[36px] flex items-center"
+                  className="w-full mt-2 px-4 py-3 text-sm font-semibold text-text-secondary bg-surface-raised border border-border-subtle rounded-xl hover:border-border-strong active:scale-[0.97] transition-all disabled:opacity-50"
                 >
                   {t("eventDetail.voteAbstain")}
                 </button>
