@@ -8,7 +8,7 @@ import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-statu
 import { useAttention } from "../hooks/use-attention.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
-import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy } from "../api/types.js";
+import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy, Delegation } from "../api/types.js";
 import { Lock, ChevronLeft } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
@@ -32,6 +32,35 @@ const TALLY_COLORS = [
 interface DelegationConfig {
   enabled: boolean;
   topicScoped: boolean;
+}
+
+/**
+ * Resolves the most specific active delegation for a given issue.
+ * Priority: issue-scoped → child-topic → parent-topic → global.
+ */
+function findApplicableDelegation(
+  issueId: string,
+  topicId: string | null | undefined,
+  delegations: Delegation[],
+  topics: Array<{ id: string; parentId: string | null }>,
+): Delegation | null {
+  const active = delegations.filter((d) => d.active);
+  // 1. Issue-scoped
+  const issueDel = active.find((d) => d.issueScope === issueId);
+  if (issueDel) return issueDel;
+  if (topicId) {
+    // 2. Child-topic scoped
+    const topicDel = active.find((d) => !d.issueScope && d.topicScope.includes(topicId));
+    if (topicDel) return topicDel;
+    // 3. Parent-topic scoped
+    const topic = topics.find((t) => t.id === topicId);
+    if (topic?.parentId) {
+      const parentDel = active.find((d) => !d.issueScope && d.topicScope.includes(topic.parentId!));
+      if (parentDel) return parentDel;
+    }
+  }
+  // 4. Global delegation
+  return active.find((d) => !d.issueScope && d.topicScope.length === 0) ?? null;
 }
 
 export function EventDetail() {
@@ -70,6 +99,13 @@ export function EventDetail() {
     () => delegationCandidacy ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
     [assemblyId, delegationCandidacy],
   );
+
+  // Fetch outgoing delegations for the current user (used for inline delegation management)
+  const { data: delegationsData, refetch: refetchDelegations } = useApi(
+    () => participantId ? api.listDelegations(assemblyId!, participantId) : Promise.resolve({ delegations: [] }),
+    [assemblyId, participantId],
+  );
+  const myDelegations = useMemo(() => delegationsData?.delegations ?? [], [delegationsData]);
 
   // Fetch all proposals in the assembly (one call, grouped per issue client-side)
   const { data: proposalsData } = useApi(
@@ -173,6 +209,7 @@ export function EventDetail() {
     invalidateHistoryCache();
     refetchTally();
     refetchHistory();
+    refetchDelegations();
     attention.refresh();
   };
 
@@ -244,6 +281,7 @@ export function EventDetail() {
               topics={topicsData?.topics ?? []}
               candidates={delegationCandidacy ? candidates : undefined}
               topicNameMap={topicNameMap}
+              activeDelegation={findApplicableDelegation(issue.id, issue.topicId, myDelegations, topicsData?.topics ?? [])}
               isCreator={participantId === event?.createdBy}
               onVoted={onVoteChange}
             />
@@ -393,6 +431,7 @@ function IssueVotingCard({
   topics,
   candidates,
   topicNameMap,
+  activeDelegation,
   isCreator,
   onVoted,
 }: {
@@ -417,6 +456,7 @@ function IssueVotingCard({
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
   candidates?: Candidacy[];
   topicNameMap?: Map<string, string>;
+  activeDelegation: Delegation | null;
   isCreator: boolean;
   onVoted: () => void;
 }) {
@@ -608,10 +648,12 @@ function IssueVotingCard({
             effectiveHasVoted={effectiveHasVoted}
             effectiveChoice={effectiveChoice}
             allowVoteChange={allowVoteChange}
+            activeDelegation={activeDelegation}
             onSetExpanded={setExpandedOverride}
             onVote={handleVote}
             onRetract={handleRetract}
             onDelegationCreated={() => { setOptimisticChoice(null); setOptimisticRetracted(true); setExpandedOverride(null); issueStatus.refetch(); onVoted(); }}
+            onDelegationRevoked={() => { setOptimisticChoice(null); setOptimisticRetracted(true); setExpandedOverride(null); issueStatus.refetch(); onVoted(); }}
           />
         )}
 
@@ -698,8 +740,10 @@ function VotingSection({
   allowVoteChange,
   onSetExpanded,
   onVote,
+  activeDelegation,
   onRetract,
   onDelegationCreated,
+  onDelegationRevoked,
 }: {
   assemblyId: string;
   issueId: string;
@@ -713,6 +757,7 @@ function VotingSection({
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
   candidates?: Candidacy[];
   topicNameMap?: Map<string, string>;
+  activeDelegation: Delegation | null;
   participantId: string;
   voting: boolean;
   voteError: string | null;
@@ -724,6 +769,7 @@ function VotingSection({
   onVote: (choice: string) => void;
   onRetract: () => void;
   onDelegationCreated: () => void;
+  onDelegationRevoked: () => void;
 }) {
   const { t } = useTranslation("governance");
   const [showDelegateForm, setShowDelegateForm] = useState(false);
@@ -873,8 +919,10 @@ function VotingSection({
             topics={topics}
             candidates={candidates}
             topicNameMap={topicNameMap}
+            activeDelegation={activeDelegation}
             participantId={participantId}
             onDelegationCreated={onDelegationCreated}
+            onDelegationRevoked={onDelegationRevoked}
           />
         </>
       )}
@@ -899,8 +947,10 @@ function DelegationCard({
   topics,
   candidates,
   topicNameMap,
+  activeDelegation,
   participantId,
   onDelegationCreated,
+  onDelegationRevoked,
 }: {
   assemblyId: string;
   issueId: string;
@@ -914,8 +964,10 @@ function DelegationCard({
   topics: Array<{ id: string; name: string; parentId: string | null; sortOrder: number }>;
   candidates?: Candidacy[];
   topicNameMap?: Map<string, string>;
+  activeDelegation: Delegation | null;
   participantId: string;
   onDelegationCreated: () => void;
+  onDelegationRevoked: () => void;
 }) {
   const { t } = useTranslation("governance");
   const [showForm, setShowForm] = useState(false);
