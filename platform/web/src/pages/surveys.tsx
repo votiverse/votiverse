@@ -10,7 +10,7 @@ import type { Survey, SurveyQuestion, SurveyResults } from "../api/types.js";
 import { deriveSurveyStatus } from "../lib/status.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
 
-type SurveyTab = "open" | "closed";
+type SurveyTab = "todo" | "results";
 type ViewState =
   | { level: "list" }
   | { level: "detail"; surveyId: string }
@@ -42,7 +42,7 @@ export function Surveys() {
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<SurveyTab>("open");
+  const [tab, setTab] = useState<SurveyTab>("todo");
   const [view, setView] = useState<ViewState>({ level: "list" });
 
   const surveysEnabled = assembly?.config.features.surveys ?? false;
@@ -56,22 +56,21 @@ export function Surveys() {
       .finally(() => setLoading(false));
   }, [assemblyId, participantId]);
 
-  const openSurveys = useMemo(() => {
-    const open = surveys.filter((p) => deriveSurveyStatus(p.schedule, p.closesAt) !== "closed");
-    return open.sort((a, b) => {
-      const aR = a.hasResponded ? 1 : 0;
-      const bR = b.hasResponded ? 1 : 0;
-      if (aR !== bR) return aR - bR;
-      return a.closesAt - b.closesAt;
-    });
+  // To Do: open surveys the user hasn't responded to, sorted by closest deadline
+  const todoSurveys = useMemo(() => {
+    return surveys
+      .filter((s) => deriveSurveyStatus(s.schedule, s.closesAt) !== "closed" && !s.hasResponded)
+      .sort((a, b) => a.closesAt - b.closesAt);
   }, [surveys]);
 
-  const closedSurveys = useMemo(() => {
-    const closed = surveys.filter((p) => deriveSurveyStatus(p.schedule, p.closesAt) === "closed");
-    return closed.sort((a, b) => b.closesAt - a.closesAt);
+  // Results: surveys the user has responded to (open or closed) + closed surveys they skipped
+  const resultsSurveys = useMemo(() => {
+    return surveys
+      .filter((s) => s.hasResponded || deriveSurveyStatus(s.schedule, s.closesAt) === "closed")
+      .sort((a, b) => b.closesAt - a.closesAt);
   }, [surveys]);
 
-  const visibleSurveys = tab === "open" ? openSurveys : closedSurveys;
+  const visibleSurveys = tab === "todo" ? todoSurveys : resultsSurveys;
   const activeSurvey = view.level === "detail" ? surveys.find((s) => s.id === view.surveyId) : null;
 
   if (!surveysEnabled && !loading) {
@@ -98,10 +97,10 @@ export function Surveys() {
             )}
           </div>
 
-          {/* Open / Closed sub-tabs */}
+          {/* To Do / Results sub-tabs */}
           <div className="flex gap-4 mb-4 border-b border-border-default">
-            {([["open", t("surveys.tabOpen")], ["closed", t("surveys.tabClosed")]] as [SurveyTab, string][]).map(([key, label]) => {
-              const count = key === "open" ? openSurveys.length : closedSurveys.length;
+            {([["todo", t("surveys.tabTodo")], ["results", t("surveys.tabResults")]] as [SurveyTab, string][]).map(([key, label]) => {
+              const count = key === "todo" ? todoSurveys.length : resultsSurveys.length;
               return (
                 <button
                   key={key}
@@ -127,8 +126,8 @@ export function Surveys() {
             </div>
           ) : visibleSurveys.length === 0 ? (
             <EmptyState
-              title={tab === "open" ? t("surveys.noOpenSurveys") : t("surveys.noClosedSurveys")}
-              description={tab === "open" ? t("surveys.noOpenSurveysDesc") : t("surveys.noClosedSurveysDesc")}
+              title={tab === "todo" ? t("surveys.noTodoSurveys") : t("surveys.noResultsSurveys")}
+              description={tab === "todo" ? t("surveys.noTodoSurveysDesc") : t("surveys.noResultsSurveysDesc")}
             />
           ) : (
             <div className="space-y-3">
@@ -194,7 +193,9 @@ export function Surveys() {
 
 function SurveySummaryCard({ survey, onClick }: { survey: Survey; onClick: () => void }) {
   const { t } = useTranslation("governance");
-  const isClosed = deriveSurveyStatus(survey.schedule, survey.closesAt) === "closed";
+  const status = deriveSurveyStatus(survey.schedule, survey.closesAt);
+  const isClosed = status === "closed";
+  const isOpen = status === "open";
   const closesIn = survey.closesAt - Date.now();
   const closesLabel = closesIn > 0
     ? t("surveys.closesIn", { days: Math.ceil(closesIn / 86400000) })
@@ -208,7 +209,13 @@ function SurveySummaryCard({ survey, onClick }: { survey: Survey; onClick: () =>
       <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <StatusBadge status={deriveSurveyStatus(survey.schedule, survey.closesAt)} />
+            {survey.hasResponded && isOpen ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full bg-info-bg text-info-text">
+                {t("surveys.stillCollecting")}
+              </span>
+            ) : (
+              <StatusBadge status={status} />
+            )}
             <span className="text-xs font-medium text-text-tertiary">
               {t("surveys.question", { count: survey.questions.length })}
             </span>

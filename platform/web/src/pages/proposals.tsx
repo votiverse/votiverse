@@ -295,7 +295,7 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="w-full border border-border-default rounded px-3 py-2 text-sm"
               placeholder={t("proposals.titlePlaceholder")}
             />
             <Suspense fallback={<p className="text-sm text-text-tertiary">{t("proposals.loadingEditor")}</p>}>

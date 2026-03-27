@@ -240,12 +240,12 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
   };
 
   return (
-    <div className="mb-4 border rounded-lg p-3 bg-info-subtle">
+    <div className="mb-4 border border-border-default rounded-lg p-3 bg-info-subtle">
       <textarea
         value={markdown}
         onChange={(e) => setMarkdown(e.target.value)}
         rows={3}
-        className="w-full border rounded px-3 py-2 text-sm"
+        className="w-full border border-border-default rounded px-3 py-2 text-sm bg-white"
         placeholder={t("notes.placeholder")}
       />
       <div className="mt-2">
