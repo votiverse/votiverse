@@ -29,6 +29,8 @@ export function DelegatesList({
   assemblyId,
   participantId: _participantId,
   myOutgoing,
+  issueDelegations,
+  issueEventMap,
   nameMap,
   topics,
   candidacies,
@@ -39,6 +41,8 @@ export function DelegatesList({
   assemblyId: string;
   participantId: string;
   myOutgoing: Delegation[];
+  issueDelegations?: Delegation[];
+  issueEventMap?: Map<string, { issueTitle: string; eventTitle: string }>;
   nameMap: Map<string, string>;
   topics: Topic[];
   candidacies: Candidacy[];
@@ -94,6 +98,36 @@ export function DelegatesList({
             })}
           </CardBody>
         </Card>
+      )}
+
+      {/* Issue-scoped delegations */}
+      {issueDelegations && issueDelegations.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold text-text-secondary mb-1">{t("delegations.issueDelegationsTitle")}</h2>
+          <p className="text-xs text-text-muted mb-3">{t("delegations.issueDelegationsDesc")}</p>
+          <Card>
+            <CardBody className="divide-y divide-border-subtle">
+              {issueDelegations.map((d) => {
+                const info = issueEventMap?.get(d.issueScope!);
+                const delegateName = nameMap.get(d.targetId) ?? d.targetId.slice(0, 8);
+                return (
+                  <div key={d.id} className="flex items-center justify-between py-3 gap-3 min-h-[56px]">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar name={delegateName} size="sm" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">{info?.issueTitle ?? d.issueScope!.slice(0, 8)}</p>
+                        <p className="text-xs text-text-tertiary truncate">
+                          {delegateName}{info?.eventTitle ? ` \u00B7 ${info.eventTitle}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <RevokeButton assemblyId={assemblyId} delegationId={d.id} onRevoked={refetch} />
+                  </div>
+                );
+              })}
+            </CardBody>
+          </Card>
+        </div>
       )}
     </div>
   );

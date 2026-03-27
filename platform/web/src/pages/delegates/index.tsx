@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../../hooks/use-api.js";
@@ -55,6 +55,18 @@ export function Delegations() {
   );
   const endorsementMap: Record<string, EndorsementCounts> = endorsementData?.endorsements ?? {};
 
+  // Fetch events to resolve issue titles for issue-scoped delegations
+  const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
+  const issueEventMap = useMemo(() => {
+    const map = new Map<string, { issueTitle: string; eventTitle: string }>();
+    for (const evt of eventsData?.events ?? []) {
+      for (const issue of evt.issues ?? []) {
+        map.set(issue.id, { issueTitle: issue.title, eventTitle: evt.title });
+      }
+    }
+    return map;
+  }, [eventsData]);
+
   const isTopicScoped = delegationEnabled;
 
   if (loading) return <Spinner />;
@@ -81,7 +93,7 @@ export function Delegations() {
   const topicNameMap = new Map(topics.map((t) => [t.id, t.name]));
   const topicParentMap = new Map(topics.map((t) => [t.id, t.parentId]));
 
-  // Filter to topic-scoped delegations (exclude issue-scoped), sorted broadest first
+  // Split into topic/global delegations and issue-scoped delegations
   const myOutgoing = allDelegations
     .filter((d) => d.sourceId === participantId && !d.issueScope)
     .sort((a, b) => {
@@ -95,6 +107,9 @@ export function Delegations() {
       const bName = b.topicScope.map((id) => topicNameMap.get(id) ?? "").join(",");
       return aName.localeCompare(bName);
     });
+
+  const myIssueDelegations = allDelegations
+    .filter((d) => d.sourceId === participantId && !!d.issueScope);
 
   // Navigation callbacks
   const goList = () => setView({ level: "list" });
@@ -114,6 +129,8 @@ export function Delegations() {
           assemblyId={assemblyId!}
           participantId={participantId}
           myOutgoing={myOutgoing}
+          issueDelegations={myIssueDelegations}
+          issueEventMap={issueEventMap}
           nameMap={nameMap}
           topics={topics}
           candidacies={candidacies}

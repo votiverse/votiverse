@@ -227,6 +227,8 @@
   "delegations.confirmNo": "No",
   "delegations.revokeOwnOnly": "Only the delegator can remove their own delegation.",
   "delegations.revokeFailed": "Failed to remove delegation.",
+  "delegations.issueDelegationsTitle": "Issue Delegations",
+  "delegations.issueDelegationsDesc": "These delegations apply to specific issues and expire when the vote closes.",
 
   "delegates.goToDelegates": "Go to Delegates",
   "delegates.findDelegate": "Find a Delegate",
