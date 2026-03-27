@@ -35,7 +35,7 @@ type SelectionMode = null | "candidates" | "search";
 /**
  * Inline delegation form with scope-first flow.
  * Step 1: Choose scope (issue / subtopic / broader category — no global).
- * Step 2: Choose delegate (recommended experts accordion OR search all members).
+ * Step 2: Choose delegate (candidates accordion OR search all members).
  */
 export function QuickDelegateForm({
   assemblyId,
@@ -220,19 +220,19 @@ export function QuickDelegateForm({
               {activeCandidates.length > 0 && (
                 <Button
                   variant="secondary"
-                  className="flex-1"
+                  className="flex-1 font-semibold"
                   onClick={() => setSelectionMode("candidates")}
                 >
-                  <Star size={16} className="text-accent-text" />
+                  <Star size={16} className="text-text-muted mr-1.5" />
                   {t("quickDelegate.viewExperts")}
                 </Button>
               )}
               <Button
                 variant="secondary"
-                className="flex-1"
+                className="flex-1 font-semibold"
                 onClick={() => setSelectionMode("search")}
               >
-                <Search size={16} className="text-text-muted" />
+                <Search size={16} className="text-text-muted mr-1.5" />
                 {t("quickDelegate.searchAll")}
               </Button>
             </div>

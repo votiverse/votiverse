@@ -101,7 +101,7 @@ export function MemberSearch({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
           placeholder={placeholder ?? t("search.byName")}
-          className="w-full border border-border-strong rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-accent"
+          className="w-full border border-border-strong rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-accent bg-surface-raised"
         />
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary"
