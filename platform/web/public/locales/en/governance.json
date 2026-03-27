@@ -39,6 +39,7 @@
   "quickDelegate.whatDelegating": "What are you delegating?",
   "quickDelegate.scopeIssue": "This issue only",
   "quickDelegate.scopeIssueDesc": "This specific vote",
+  "quickDelegate.issueScopeLabel": "This delegate will represent you on this specific issue only.",
   "quickDelegate.scopeSubtopic": "This sub-topic",
   "quickDelegate.scopeBroader": "Broader category",
   "quickDelegate.scopeBroaderDesc": "All \"{{topic}}\" issues",

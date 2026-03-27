@@ -185,6 +185,11 @@ export function QuickDelegateForm({
 
       <div className="h-px w-full bg-border-subtle mb-6" />
 
+      {/* Scope description for issue-only mode */}
+      {(!isTopicScoped || scopeMode === "issue") && (
+        <p className="text-xs text-text-muted mb-4 -mt-2">{t("quickDelegate.issueScopeLabel")}</p>
+      )}
+
       {/* STEP 2: Delegate selection */}
       <div className="mb-4">
         <span className="text-[10px] font-bold uppercase tracking-widest text-text-tertiary mb-2.5 block">
