@@ -158,17 +158,11 @@ function DashboardContent({ participantName }: { participantName: string | null 
             <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-3 sm:mb-4">{t("dashboard.activeVotes")}</h2>
             <div className="space-y-4">
               {groups.map((group) => {
-                const firstPending = group.questions.find((q) => !q.hasVoted && !q.isDelegated);
-                const hash = firstPending ? `#issue-${firstPending.issueId}` : "";
+                const eventPath = `/assembly/${group.assemblyId}/events/${group.eventId}`;
                 return (
-                <Link
-                  key={`${group.assemblyId}-${group.eventId}`}
-                  to={`/assembly/${group.assemblyId}/events/${group.eventId}${hash}`}
-                  className="block"
-                >
-                  <Card className="overflow-hidden hover:border-accent-muted transition-all">
-                    {/* Event header */}
-                    <div className="bg-surface-sunken px-4 sm:px-5 py-3 border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <Card key={`${group.assemblyId}-${group.eventId}`} className="overflow-hidden hover:border-accent-muted transition-all">
+                    {/* Event header — links to event page top */}
+                    <Link to={eventPath} className="block bg-surface-sunken px-4 sm:px-5 py-3 border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-surface-sunken/80 transition-colors">
                       <div className="min-w-0">
                         <span className="text-[10px] font-bold text-accent-text uppercase tracking-widest bg-accent-subtle px-2 py-0.5 rounded-md">
                           {group.assemblyName}
@@ -182,12 +176,13 @@ function DashboardContent({ participantName }: { participantName: string | null 
                           <Countdown target={group.votingEnd} className="text-xs" />
                         </span>
                       </div>
-                    </div>
-                    {/* Issue rows */}
+                    </Link>
+                    {/* Issue rows — each links to its specific issue */}
                     <div className="p-1 sm:p-2">
                       {group.questions.map((q, idx) => (
-                        <div
+                        <Link
                           key={q.issueId}
+                          to={`${eventPath}#issue-${q.issueId}`}
                           className={`flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl hover:bg-surface-sunken transition-colors ${idx < group.questions.length - 1 ? "border-b border-border-subtle sm:border-0" : ""}`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -195,11 +190,10 @@ function DashboardContent({ participantName }: { participantName: string | null 
                             <span className="text-sm text-text-secondary truncate font-semibold">{q.issueTitle}</span>
                           </div>
                           <VoteStatusChip vote={q} />
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </Card>
-                </Link>
                 );
               })}
             </div>
