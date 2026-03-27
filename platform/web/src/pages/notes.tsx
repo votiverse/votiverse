@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "../lib/format.js";
 import { useApi } from "../hooks/use-api.js";
@@ -44,7 +44,11 @@ export function Notes() {
   const { assemblyId } = useParams();
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
-  const [filter, setFilter] = useState<string>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter = searchParams.get("filter") ?? "all";
+  const setFilter = (value: string) => {
+    setSearchParams(value === "all" ? {} : { filter: value }, { replace: true });
+  };
 
   const { data, loading, error, refetch } = useApi(
     () => api.listNotes(assemblyId!),

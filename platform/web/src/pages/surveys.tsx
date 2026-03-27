@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, LinkIcon, Check } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
@@ -38,7 +38,11 @@ export function Surveys() {
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<SurveyTab>("todo");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = (searchParams.get("tab") === "results" ? "results" : "todo") as SurveyTab;
+  const setTab = (value: SurveyTab) => {
+    setSearchParams(value === "todo" ? {} : { tab: value }, { replace: true });
+  };
   const [showCreate, setShowCreate] = useState(false);
 
   const surveysEnabled = assembly?.config.features.surveys ?? false;
