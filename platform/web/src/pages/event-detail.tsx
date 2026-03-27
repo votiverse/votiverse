@@ -773,37 +773,60 @@ function VotingSection({
 }) {
   const { t } = useTranslation("governance");
   const [showDelegateForm, setShowDelegateForm] = useState(false);
+  const [retractConfirming, setRetractConfirming] = useState(false);
   const isMultiOption = choices && choices.length > 0;
+  const changeVoteMode = effectiveHasVoted && expanded;
 
   // Voted state (not changing): show selected choice with change option
   if (effectiveHasVoted && !expanded) {
     return (
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-success-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm text-text-primary">
-            <Trans i18nKey="eventDetail.youVoted" ns="governance" values={{ choice: effectiveChoice }} components={{ bold: <span className="font-semibold" /> }} />
-          </span>
-        </div>
-        {allowVoteChange && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => onSetExpanded(true)}
-              className="text-xs text-text-muted hover:text-text-secondary underline"
-            >
-              {t("eventDetail.changeVote")}
-            </button>
-            {delegationConfig.enabled && (
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-success-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-text-primary">
+              <Trans i18nKey="eventDetail.youVoted" ns="governance" values={{ choice: effectiveChoice }} components={{ bold: <span className="font-semibold" /> }} />
+            </span>
+          </div>
+          {allowVoteChange && !retractConfirming && (
+            <div className="flex items-center gap-3">
               <button
-                onClick={onRetract}
+                onClick={() => onSetExpanded(true)}
+                className="text-xs text-text-muted hover:text-text-secondary underline"
+              >
+                {t("eventDetail.changeVote")}
+              </button>
+              <button
+                onClick={() => setRetractConfirming(true)}
                 disabled={voting}
                 className="text-xs text-text-muted hover:text-text-secondary underline disabled:opacity-50"
               >
-                {t("eventDetail.letDelegateDecide")}
+                {t("eventDetail.retractVote")}
               </button>
-            )}
+            </div>
+          )}
+        </div>
+        {retractConfirming && (
+          <div className="mt-3 p-3 rounded-xl bg-surface-raised border border-border-strong">
+            <p className="text-sm font-semibold text-text-primary">{t("eventDetail.retractConfirmTitle")}</p>
+            <p className="text-xs text-text-muted mt-1">{t("eventDetail.retractConfirmBody")}</p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setRetractConfirming(false)}
+                className="px-3 py-1.5 text-xs font-medium text-text-secondary bg-surface-raised border border-border-default rounded-lg hover:bg-surface-sunken transition-colors"
+              >
+                {t("common:cancel")}
+              </button>
+              <button
+                onClick={() => { onRetract(); setRetractConfirming(false); }}
+                disabled={voting}
+                className="px-3 py-1.5 text-xs font-medium text-error-text bg-error-subtle border border-error-border rounded-lg hover:bg-error-subtle/80 transition-colors disabled:opacity-50"
+              >
+                {t("eventDetail.retractConfirmAction")}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -900,7 +923,7 @@ function VotingSection({
             )}
 
             {/* "Trust someone else" trigger — centered below vote buttons */}
-            {delegationConfig.enabled && !issueStatus.isDelegated && (
+            {delegationConfig.enabled && !issueStatus.isDelegated && !changeVoteMode && (
               <QuickDelegateTrigger onClick={() => setShowDelegateForm(true)} />
             )}
           </div>
