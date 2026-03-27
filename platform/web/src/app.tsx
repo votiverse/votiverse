@@ -1,5 +1,5 @@
-import { Suspense, useEffect, useRef } from "react";
-import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams, useLocation } from "react-router";
+import { Suspense, useEffect, useRef, useCallback } from "react";
+import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams, useLocation, useNavigationType } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
 import { ThemeContext, useThemeProvider } from "./hooks/use-theme.js";
@@ -31,14 +31,69 @@ import { InvitePage } from "./pages/invite.js";
 import { LoginPage } from "./pages/login.js";
 import { DevClock } from "./components/dev-clock.js";
 
+/** In-memory scroll positions keyed by React Router's location.key. */
+const scrollPositions = new Map<string, number>();
+
 function Layout() {
   const location = useLocation();
+  const navigationType = useNavigationType();
   const mainRef = useRef<HTMLElement>(null);
+  const locationKeyRef = useRef(location.key);
 
-  // Scroll to top on forward navigation (new page)
+  // Continuously save scroll position for the current location
+  const handleScroll = useCallback(() => {
+    if (mainRef.current) {
+      scrollPositions.set(locationKeyRef.current, mainRef.current.scrollTop);
+    }
+  }, []);
+
+  // Attach/detach scroll listener
   useEffect(() => {
-    mainRef.current?.scrollTo(0, 0);
-  }, [location.pathname]);
+    const el = mainRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  // On navigation: restore scroll on POP, reset on PUSH/REPLACE
+  useEffect(() => {
+    locationKeyRef.current = location.key;
+    const el = mainRef.current;
+    if (!el) return;
+
+    if (navigationType === "POP") {
+      const saved = scrollPositions.get(location.key);
+      if (!saved) return;
+
+      // Content loads async — watch for the container to become tall enough, then restore
+      const tryRestore = () => {
+        if (el.scrollHeight >= saved + el.clientHeight) {
+          el.scrollTo(0, saved);
+          return true;
+        }
+        return false;
+      };
+
+      // Try immediately (content may already be cached/rendered)
+      if (tryRestore()) return;
+
+      // Otherwise watch for content to grow via ResizeObserver
+      const observer = new ResizeObserver(() => {
+        if (tryRestore()) observer.disconnect();
+      });
+      observer.observe(el);
+
+      // Safety timeout — stop watching after 3s
+      const timeout = setTimeout(() => {
+        observer.disconnect();
+        el.scrollTo(0, saved); // best-effort final attempt
+      }, 3000);
+
+      return () => { observer.disconnect(); clearTimeout(timeout); };
+    } else {
+      el.scrollTo(0, 0);
+    }
+  }, [location.key, navigationType]);
 
   return (
     <div className="flex h-screen bg-surface">
