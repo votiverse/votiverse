@@ -1051,9 +1051,13 @@ function DelegationCard({
             <svg className="w-4 h-4 text-info-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {delegateName && <Avatar name={delegateName} size="xs" />}
             <span className="text-sm text-info-text truncate">
-              {t("eventDetail.delegatedTo", { name: delegateName })}
+              <Trans
+                i18nKey="eventDetail.delegatedTo"
+                ns="governance"
+                values={{ name: delegateName }}
+                components={{ avatar: delegateName ? <Avatar name={delegateName} size="xs" className="inline-block align-text-bottom mx-0.5" /> : <></>, bold: <span className="font-semibold" /> }}
+              />
               {chainNames.length > 1 && (
                 <span className="text-info-text ml-1">{t("eventDetail.delegatedVia", { chain: chainDisplay })}</span>
               )}
