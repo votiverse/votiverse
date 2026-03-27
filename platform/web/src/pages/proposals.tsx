@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
-import type { Proposal, ProposalDraft } from "../api/types.js";
+import type { Proposal, ProposalDraft, EndorsementCounts } from "../api/types.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
-import { FileText, MessageSquareText, ThumbsUp, ThumbsDown } from "lucide-react";
+import { EndorseButton } from "../components/endorse-button.js";
+import { FileText, MessageSquareText } from "lucide-react";
 import { lazy, Suspense } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
@@ -34,6 +35,16 @@ export function Proposals() {
   const nameMap = new Map((participantsData?.participants ?? []).map((p) => [p.id, p.name]));
   const proposals = data?.proposals ?? [];
   const drafts = draftsData?.drafts ?? [];
+
+  // Batch-fetch endorsement data (includes caller's own endorsement state)
+  const proposalIdKey = useMemo(() => proposals.map(p => p.id).join(","), [proposals]);
+  const { data: endorsementData } = useApi(
+    () => proposalIdKey
+      ? api.getEndorsements(assemblyId!, "proposal", proposalIdKey.split(","))
+      : Promise.resolve({ endorsements: {} as Record<string, EndorsementCounts> }),
+    [assemblyId, proposalIdKey],
+  );
+  const [endorsementOverrides, setEndorsementOverrides] = useState<Record<string, EndorsementCounts>>({});
 
   const [showDraftForm, setShowDraftForm] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState<string | undefined>(issueId);
@@ -113,7 +124,14 @@ export function Proposals() {
       ) : (
         <div className="space-y-4">
           {proposals.map((p) => (
-            <ProposalCard key={p.id} proposal={p} nameMap={nameMap} assemblyId={assemblyId!} />
+            <ProposalCard
+              key={p.id}
+              proposal={p}
+              nameMap={nameMap}
+              assemblyId={assemblyId!}
+              endorsement={endorsementOverrides[p.id] ?? endorsementData?.endorsements?.[p.id] ?? { endorse: p.endorsementCount, dispute: p.disputeCount, my: null }}
+              onEndorsementUpdate={(counts) => setEndorsementOverrides(prev => ({ ...prev, [p.id]: counts }))}
+            />
           ))}
         </div>
       )}
@@ -121,20 +139,30 @@ export function Proposals() {
   );
 }
 
-function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; nameMap: Map<string, string>; assemblyId: string }) {
+function ProposalCard({ proposal, nameMap, assemblyId, endorsement, onEndorsementUpdate }: {
+  proposal: Proposal;
+  nameMap: Map<string, string>;
+  assemblyId: string;
+  endorsement: EndorsementCounts;
+  onEndorsementUpdate: (counts: EndorsementCounts) => void;
+}) {
   const { t } = useTranslation("governance");
   const [expanded, setExpanded] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [fullContent, setFullContent] = useState<Proposal | null>(null);
-  const [endorsements, setEndorsements] = useState(proposal.endorsementCount ?? 0);
-  const [disputes, setDisputes] = useState(proposal.disputeCount ?? 0);
-  const [evaluating, setEvaluating] = useState(false);
   const { getParticipantId } = useIdentity();
   const participantId = getParticipantId(assemblyId);
   const isAuthor = participantId === proposal.authorId;
-  const canEndorse = proposal.status === "submitted" && participantId && !isAuthor;
+  const canEndorse = proposal.status === "submitted" && !!participantId && !isAuthor;
 
   const statusColor = proposal.status === "locked" ? "blue" : proposal.status === "withdrawn" ? "gray" : "green";
+
+  // Fetch note count
+  const { data: notesData } = useApi(
+    () => api.listNotes(assemblyId, "proposal", proposal.id),
+    [assemblyId, proposal.id],
+  );
+  const noteCount = notesData?.notes?.length ?? 0;
 
   const handleExpand = async () => {
     if (!expanded && !fullContent) {
@@ -146,19 +174,8 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
     setExpanded(!expanded);
   };
 
-  const handleEvaluate = async (evaluation: "endorse" | "dispute") => {
-    if (!canEndorse || evaluating) return;
-    setEvaluating(true);
-    try {
-      await api.evaluateProposal(assemblyId, proposal.id, evaluation);
-      if (evaluation === "endorse") setEndorsements((n) => n + 1);
-      else setDisputes((n) => n + 1);
-    } catch { /* ignore */ }
-    setEvaluating(false);
-  };
-
   const markdown = fullContent?.content?.markdown ?? proposal.content?.markdown;
-  const score = endorsements - disputes;
+  const score = endorsement.endorse - endorsement.dispute;
 
   return (
     <Card>
@@ -171,12 +188,12 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
               <p className="text-xs text-text-muted">
                 by {nameMap.get(proposal.authorId) ?? proposal.authorId}
                 {proposal.choiceKey && <> &middot; advocates <strong>{proposal.choiceKey}</strong></>}
-                {" "}&middot; v{proposal.currentVersion}
+                {proposal.currentVersion > 1 && <> &middot; v{proposal.currentVersion}</>}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {(endorsements > 0 || disputes > 0) && (
+            {(endorsement.endorse > 0 || endorsement.dispute > 0) && (
               <span className={`text-xs font-medium ${score > 0 ? "text-success-text" : score < 0 ? "text-error-text" : "text-text-muted"}`}>
                 {score > 0 ? "+" : ""}{score}
               </span>
@@ -210,38 +227,28 @@ function ProposalCard({ proposal, nameMap, assemblyId }: { proposal: Proposal; n
           >
             <MessageSquareText size={14} />
             {t("proposals.notesLabel")}
+            {noteCount > 0 && (
+              <span className="bg-surface-sunken text-text-tertiary text-[10px] font-medium rounded-full px-1.5 py-0.5 leading-none">
+                {noteCount}
+              </span>
+            )}
           </button>
           {canEndorse && (
-            <div className="flex items-center gap-1 ml-auto">
-              <button
-                onClick={() => handleEvaluate("endorse")}
-                disabled={evaluating}
-                className="p-1.5 rounded hover:bg-success-subtle text-text-tertiary hover:text-success-text transition-colors disabled:opacity-50"
-                title="Endorse"
-              >
-                <ThumbsUp size={14} />
-              </button>
-              <span className="text-xs text-text-tertiary tabular-nums min-w-[2ch] text-center">
-                {endorsements > 0 ? endorsements : ""}
-              </span>
-              <button
-                onClick={() => handleEvaluate("dispute")}
-                disabled={evaluating}
-                className="p-1.5 rounded hover:bg-error-subtle text-text-tertiary hover:text-error-text transition-colors disabled:opacity-50"
-                title="Dispute"
-              >
-                <ThumbsDown size={14} />
-              </button>
-              <span className="text-xs text-text-tertiary tabular-nums min-w-[2ch] text-center">
-                {disputes > 0 ? disputes : ""}
-              </span>
+            <div className="ml-auto">
+              <EndorseButton
+                assemblyId={assemblyId}
+                targetType="proposal"
+                targetId={proposal.id}
+                counts={endorsement}
+                onUpdate={onEndorsementUpdate}
+              />
             </div>
           )}
         </div>
 
         {showNotes && (
           <div className="mt-4 border-t pt-4">
-            <NotesList assemblyId={assemblyId} targetType="proposal" targetId={proposal.id} />
+            <NotesList assemblyId={assemblyId} targetType="proposal" targetId={proposal.id} nameMap={nameMap} />
           </div>
         )}
       </CardBody>

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
 import { useEntityNames } from "../hooks/use-entity-names.js";
+import { formatDate } from "../lib/format.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Button, Badge } from "./ui.js";
@@ -255,6 +256,7 @@ function NoteCard({ note, assemblyId, authorName, entityNames, onEvaluated }: {
         <div className="flex items-center gap-2">
           <Avatar name={displayName} size="xs" />
           <span className="text-sm font-semibold text-text-primary">{displayName}</span>
+          <span className="text-xs text-text-tertiary">{formatDate(note.createdAt)}</span>
         </div>
         {note.status === "withdrawn" && <Badge color="gray">{t("notes.withdrawn")}</Badge>}
         {isVisible && <Badge color="green">{t("notes.visible")}</Badge>}

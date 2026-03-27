@@ -10,11 +10,13 @@
 
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import { useApi } from "../hooks/use-api.js";
 import * as api from "../api/client.js";
-import type { Proposal, BookletData, BookletRecommendation } from "../api/types.js";
+import type { Proposal, BookletData, BookletRecommendation, EndorsementCounts } from "../api/types.js";
 import { NotesList } from "./community-notes.js";
+import { EndorseButton } from "./endorse-button.js";
 import { Badge } from "./ui.js";
-import { X, FileText, MessageSquareText, ChevronLeft, ChevronRight, ThumbsUp, ThumbsDown, Star, ChevronDown } from "lucide-react";
+import { X, FileText, MessageSquareText, ChevronLeft, ChevronRight, Star, ChevronDown } from "lucide-react";
 
 const MarkdownViewer = lazy(() =>
   import("./markdown-editor.js").then((m) => ({ default: m.MarkdownViewer })),
@@ -381,9 +383,16 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
   const [content, setContent] = useState<string | null>(proposal.content?.markdown ?? null);
   const [loading, setLoading] = useState(!content);
   const [showNotes, setShowNotes] = useState(false);
-  const [endorsements, setEndorsements] = useState(proposal.endorsementCount ?? 0);
-  const [disputes, setDisputes] = useState(proposal.disputeCount ?? 0);
-  const [evaluating, setEvaluating] = useState(false);
+
+  // Endorsement state via entity endorsement system
+  const { data: endorsementData } = useApi(
+    () => api.getEndorsements(assemblyId, "proposal", [proposal.id]),
+    [assemblyId, proposal.id],
+  );
+  const [localEndorsement, setLocalEndorsement] = useState<EndorsementCounts | null>(null);
+  const endorsement: EndorsementCounts = localEndorsement
+    ?? endorsementData?.endorsements?.[proposal.id]
+    ?? { endorse: proposal.endorsementCount ?? 0, dispute: proposal.disputeCount ?? 0, my: null };
 
   useEffect(() => {
     if (content) return;
@@ -397,18 +406,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
     return () => { cancelled = true; };
   }, [assemblyId, proposal.id, content]);
 
-  const handleEvaluate = async (evaluation: "endorse" | "dispute") => {
-    if (evaluating) return;
-    setEvaluating(true);
-    try {
-      await api.evaluateProposal(assemblyId, proposal.id, evaluation);
-      if (evaluation === "endorse") setEndorsements((n) => n + 1);
-      else setDisputes((n) => n + 1);
-    } catch { /* ignore */ }
-    setEvaluating(false);
-  };
-
-  const score = endorsements - disputes;
+  const score = endorsement.endorse - endorsement.dispute;
 
   return (
     <div>
@@ -417,10 +415,10 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
         <div className="flex items-center gap-2 min-w-0">
           <FileText size={16} className="text-text-tertiary shrink-0" />
           <h4 className="text-sm font-semibold text-text-primary">{proposal.title}</h4>
-          <Badge color="gray">v{proposal.currentVersion}</Badge>
+          {proposal.currentVersion > 1 && <Badge color="gray">v{proposal.currentVersion}</Badge>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {(endorsements > 0 || disputes > 0) && (
+          {(endorsement.endorse > 0 || endorsement.dispute > 0) && (
             <span className={`text-xs font-medium ${score > 0 ? "text-success-text" : score < 0 ? "text-error-text" : "text-text-muted"}`}>
               {score > 0 ? "+" : ""}{score}
             </span>
@@ -452,25 +450,14 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
         </button>
 
         {showEndorse && (
-          <div className="flex items-center gap-1 ml-auto">
-            <button
-              onClick={() => handleEvaluate("endorse")}
-              disabled={evaluating}
-              className="p-1.5 rounded hover:bg-success-subtle text-text-tertiary hover:text-success-text transition-colors disabled:opacity-50"
-              title={t("booklet.endorse")}
-            >
-              <ThumbsUp size={13} />
-            </button>
-            <span className="text-xs text-text-tertiary tabular-nums">{endorsements > 0 ? endorsements : ""}</span>
-            <button
-              onClick={() => handleEvaluate("dispute")}
-              disabled={evaluating}
-              className="p-1.5 rounded hover:bg-error-subtle text-text-tertiary hover:text-error-text transition-colors disabled:opacity-50"
-              title={t("booklet.dispute")}
-            >
-              <ThumbsDown size={13} />
-            </button>
-            <span className="text-xs text-text-tertiary tabular-nums">{disputes > 0 ? disputes : ""}</span>
+          <div className="ml-auto">
+            <EndorseButton
+              assemblyId={assemblyId}
+              targetType="proposal"
+              targetId={proposal.id}
+              counts={endorsement}
+              onUpdate={setLocalEndorsement}
+            />
           </div>
         )}
       </div>

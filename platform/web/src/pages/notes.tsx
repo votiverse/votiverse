@@ -209,6 +209,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, entityNames, onCha
         <div className="flex items-center gap-2 min-w-0">
           <Avatar name={authorName} size="xs" />
           <span className="text-sm font-semibold text-text-primary">{authorName}</span>
+          <span className="text-xs text-text-tertiary">{formatDate(note.createdAt)}</span>
           <span className="text-xs text-text-tertiary">{t("notesPage.on")}</span>
           <Link to={targetLink(assemblyId, note.target)} className="hover:opacity-80 transition-opacity">
             <Badge color="gray">{targetLabel}</Badge>
