@@ -65,22 +65,21 @@ function Layout() {
       const saved = scrollPositions.get(location.key);
       if (!saved) return;
 
-      // Restore immediately
-      el.scrollTo(0, saved);
-
-      // Content loads async — retry on each resize until position sticks
-      const observer = new ResizeObserver(() => {
-        if (Math.abs(el.scrollTop - saved) > 5) {
-          el.scrollTo(0, saved);
-        } else {
-          observer.disconnect();
+      // Retry scroll restoration as content loads asynchronously.
+      // ResizeObserver won't work here — <main> is flex-1 overflow-y-auto
+      // so its box size is fixed; only scrollHeight changes.
+      let raf: number;
+      let attempts = 0;
+      const tryRestore = () => {
+        el.scrollTo(0, saved);
+        if (Math.abs(el.scrollTop - saved) > 5 && attempts < 30) {
+          attempts++;
+          raf = requestAnimationFrame(tryRestore);
         }
-      });
-      observer.observe(el);
+      };
+      raf = requestAnimationFrame(tryRestore);
 
-      // Stop watching after 3s regardless
-      const timeout = setTimeout(() => observer.disconnect(), 3000);
-      return () => { observer.disconnect(); clearTimeout(timeout); };
+      return () => cancelAnimationFrame(raf);
     } else {
       el.scrollTo(0, 0);
     }
