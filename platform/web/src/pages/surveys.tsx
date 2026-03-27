@@ -1,20 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, LinkIcon, Check } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import type { Survey, SurveyQuestion, SurveyResults } from "../api/types.js";
 import { deriveSurveyStatus } from "../lib/status.js";
-import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton } from "../components/ui.js";
+import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, EmptyState, StatusBadge, Skeleton, Spinner } from "../components/ui.js";
 
 type SurveyTab = "todo" | "results";
-type ViewState =
-  | { level: "list" }
-  | { level: "detail"; surveyId: string }
-  | { level: "create" };
 
 // ---------------------------------------------------------------------------
 // Colors for result bars
@@ -43,7 +39,7 @@ export function Surveys() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<SurveyTab>("todo");
-  const [view, setView] = useState<ViewState>({ level: "list" });
+  const [showCreate, setShowCreate] = useState(false);
 
   const surveysEnabled = assembly?.config.features.surveys ?? false;
 
@@ -71,7 +67,6 @@ export function Surveys() {
   }, [surveys]);
 
   const visibleSurveys = tab === "todo" ? todoSurveys : resultsSurveys;
-  const activeSurvey = view.level === "detail" ? surveys.find((s) => s.id === view.surveyId) : null;
 
   if (!surveysEnabled && !loading) {
     return (
@@ -82,107 +77,86 @@ export function Surveys() {
     );
   }
 
+  if (showCreate) {
+    return (
+      <div className="max-w-3xl mx-auto animate-page-in">
+        <button
+          onClick={() => setShowCreate(false)}
+          className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-6"
+        >
+          <ChevronLeft size={16} />
+          {t("surveys.backToSurveys")}
+        </button>
+
+        <CreateSurveyForm
+          assemblyId={assemblyId!}
+          onClose={() => setShowCreate(false)}
+          onCreated={(survey) => {
+            setSurveys([...surveys, survey]);
+            setShowCreate(false);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-3xl mx-auto" key={view.level}>
-      {/* LEVEL 1: Survey list */}
-      {view.level === "list" && (
-        <div className="animate-page-in">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("surveys.title")}</h1>
-              <p className="text-sm text-text-muted mt-1">{t("surveys.subtitle")}</p>
-            </div>
-            {surveysEnabled && (
-              <Button onClick={() => setView({ level: "create" })}>{t("surveys.newSurvey")}</Button>
-            )}
+    <div className="max-w-3xl mx-auto">
+      <div className="animate-page-in">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("surveys.title")}</h1>
+            <p className="text-sm text-text-muted mt-1">{t("surveys.subtitle")}</p>
           </div>
-
-          {/* To Do / Results sub-tabs */}
-          <div className="flex gap-4 mb-4 border-b border-border-default">
-            {([["todo", t("surveys.tabTodo")], ["results", t("surveys.tabResults")]] as [SurveyTab, string][]).map(([key, label]) => {
-              const count = key === "todo" ? todoSurveys.length : resultsSurveys.length;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setTab(key)}
-                  className={`pb-3 text-sm font-bold border-b-2 -mb-px transition-colors min-h-[44px] ${
-                    tab === key
-                      ? "border-accent text-accent-text"
-                      : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
-                  }`}
-                >
-                  {label}
-                  {!loading && <span className="ml-1.5 text-xs text-text-tertiary">({count})</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-24" />
-              <Skeleton className="h-24" />
-            </div>
-          ) : visibleSurveys.length === 0 ? (
-            <EmptyState
-              title={tab === "todo" ? t("surveys.noTodoSurveys") : t("surveys.noResultsSurveys")}
-              description={tab === "todo" ? t("surveys.noTodoSurveysDesc") : t("surveys.noResultsSurveysDesc")}
-            />
-          ) : (
-            <div className="space-y-3">
-              {visibleSurveys.map((survey) => (
-                <SurveySummaryCard
-                  key={survey.id}
-                  survey={survey}
-                  onClick={() => setView({ level: "detail", surveyId: survey.id })}
-                />
-              ))}
-            </div>
+          {surveysEnabled && (
+            <Button onClick={() => setShowCreate(true)}>{t("surveys.newSurvey")}</Button>
           )}
         </div>
-      )}
 
-      {/* LEVEL 2: Survey detail — take or view results */}
-      {view.level === "detail" && activeSurvey && (
-        <div className="animate-page-in">
-          <SurveyDetail
-            assemblyId={assemblyId!}
-            survey={activeSurvey}
-            onBack={() => setView({ level: "list" })}
-            onResponded={() => {
-              // Refresh the survey list to reflect hasResponded
-              if (assemblyId) {
-                api.listSurveys(assemblyId, participantId ?? undefined)
-                  .then((data) => setSurveys(data.surveys))
-                  .catch(() => {});
-              }
-            }}
-          />
+        {/* To Do / Results sub-tabs */}
+        <div className="flex gap-4 mb-4 border-b border-border-default">
+          {([["todo", t("surveys.tabTodo")], ["results", t("surveys.tabResults")]] as [SurveyTab, string][]).map(([key, label]) => {
+            const count = key === "todo" ? todoSurveys.length : resultsSurveys.length;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className={`pb-3 text-sm font-bold border-b-2 -mb-px transition-colors min-h-[44px] ${
+                  tab === key
+                    ? "border-accent text-accent-text"
+                    : "border-transparent text-text-muted hover:text-text-primary hover:border-border-strong"
+                }`}
+              >
+                {label}
+                {!loading && <span className="ml-1.5 text-xs text-text-tertiary">({count})</span>}
+              </button>
+            );
+          })}
         </div>
-      )}
 
-      {/* LEVEL 3: Create survey */}
-      {view.level === "create" && (
-        <div className="animate-page-in">
-          <button
-            onClick={() => setView({ level: "list" })}
-            className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-6"
-          >
-            <ChevronLeft size={16} />
-            {t("surveys.backToSurveys")}
-          </button>
-
-          <CreateSurveyForm
-            assemblyId={assemblyId!}
-            onClose={() => setView({ level: "list" })}
-            onCreated={(survey) => {
-              setSurveys([...surveys, survey]);
-              setView({ level: "list" });
-            }}
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        ) : visibleSurveys.length === 0 ? (
+          <EmptyState
+            title={tab === "todo" ? t("surveys.noTodoSurveys") : t("surveys.noResultsSurveys")}
+            description={tab === "todo" ? t("surveys.noTodoSurveysDesc") : t("surveys.noResultsSurveysDesc")}
           />
-        </div>
-      )}
+        ) : (
+          <div className="space-y-3">
+            {visibleSurveys.map((survey) => (
+              <SurveySummaryCard
+                key={survey.id}
+                assemblyId={assemblyId!}
+                survey={survey}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -191,7 +165,7 @@ export function Surveys() {
 // Summary card — shown in the list view
 // ---------------------------------------------------------------------------
 
-function SurveySummaryCard({ survey, onClick }: { survey: Survey; onClick: () => void }) {
+function SurveySummaryCard({ assemblyId, survey }: { assemblyId: string; survey: Survey }) {
   const { t } = useTranslation("governance");
   const status = deriveSurveyStatus(survey.schedule, survey.closesAt);
   const isClosed = status === "closed";
@@ -200,48 +174,69 @@ function SurveySummaryCard({ survey, onClick }: { survey: Survey; onClick: () =>
   const closesLabel = closesIn > 0
     ? t("surveys.closesIn", { days: Math.ceil(closesIn / 86400000) })
     : undefined;
+  const surveyUrl = `/assembly/${assemblyId}/surveys/${survey.id}`;
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const fullUrl = `${window.location.origin}${surveyUrl}`;
+    await navigator.clipboard.writeText(fullUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <Card
-      className="group cursor-pointer hover:border-accent-border transition-colors"
-      onClick={onClick}
+    <Link
+      to={surveyUrl}
+      className="block"
     >
-      <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            {survey.hasResponded && isOpen ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full bg-info-bg text-info-text">
-                {t("surveys.stillCollecting")}
+      <Card className="group cursor-pointer hover:border-accent-border transition-colors">
+        <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              {survey.hasResponded && isOpen ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-full bg-info-bg text-info-text">
+                  {t("surveys.stillCollecting")}
+                </span>
+              ) : (
+                <StatusBadge status={status} />
+              )}
+              <span className="text-xs font-medium text-text-tertiary">
+                {t("surveys.question", { count: survey.questions.length })}
               </span>
+            </div>
+            <h3 className="font-bold text-text-primary text-base sm:text-lg leading-tight truncate">
+              {survey.title}
+            </h3>
+            <div className="flex items-center gap-2 mt-1 text-sm text-text-muted">
+              {closesLabel && !isClosed && <span>{closesLabel}</span>}
+              {survey.responseCount !== undefined && survey.responseCount > 0 && (
+                <>
+                  {closesLabel && !isClosed && <span className="text-border-strong">·</span>}
+                  <span>{t("surveys.response", { count: survey.responseCount })}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={copyLink}
+              className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-raised transition-colors"
+              title={t("surveys.copyLink")}
+            >
+              {copied ? <Check size={16} className="text-success-text" /> : <LinkIcon size={16} />}
+            </button>
+            {isClosed || survey.hasResponded ? (
+              <Button variant="secondary" size="sm">{t("surveys.viewResults")}</Button>
             ) : (
-              <StatusBadge status={status} />
-            )}
-            <span className="text-xs font-medium text-text-tertiary">
-              {t("surveys.question", { count: survey.questions.length })}
-            </span>
-          </div>
-          <h3 className="font-bold text-text-primary text-base sm:text-lg leading-tight truncate">
-            {survey.title}
-          </h3>
-          <div className="flex items-center gap-2 mt-1 text-sm text-text-muted">
-            {closesLabel && !isClosed && <span>{closesLabel}</span>}
-            {survey.responseCount !== undefined && survey.responseCount > 0 && (
-              <>
-                {closesLabel && !isClosed && <span className="text-border-strong">·</span>}
-                <span>{t("surveys.response", { count: survey.responseCount })}</span>
-              </>
+              <Button size="sm">{t("surveys.takeSurvey")}</Button>
             )}
           </div>
-        </div>
-        <div className="shrink-0">
-          {isClosed || survey.hasResponded ? (
-            <Button variant="secondary" size="sm">{t("surveys.viewResults")}</Button>
-          ) : (
-            <Button size="sm">{t("surveys.takeSurvey")}</Button>
-          )}
-        </div>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </Link>
   );
 }
 
@@ -252,13 +247,9 @@ function SurveySummaryCard({ survey, onClick }: { survey: Survey; onClick: () =>
 function SurveyDetail({
   assemblyId,
   survey,
-  onBack,
-  onResponded,
 }: {
   assemblyId: string;
   survey: Survey;
-  onBack: () => void;
-  onResponded: () => void;
 }) {
   const { t } = useTranslation("governance");
   const { getParticipantId } = useParticipant();
@@ -270,6 +261,7 @@ function SurveyDetail({
   const [responded, setResponded] = useState(survey.hasResponded ?? false);
   const [responseError, setResponseError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, unknown>>({});
+  const [copied, setCopied] = useState(false);
 
   const isClosed = deriveSurveyStatus(survey.schedule, survey.closesAt) === "closed";
   const showButtons = !isClosed && !responded && participantId;
@@ -314,14 +306,12 @@ function SurveyDetail({
       await api.submitSurveyResponse(assemblyId, survey.id, { participantId, answers });
       setResponded(true);
       attention.refresh();
-      onResponded();
       await loadResults();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to submit";
       if (msg.includes("already responded")) {
         setResponded(true);
         attention.refresh();
-        onResponded();
         await loadResults();
       } else {
         setResponseError(msg);
@@ -331,16 +321,23 @@ function SurveyDetail({
     }
   };
 
+  const copyLink = async () => {
+    const fullUrl = `${window.location.origin}/assembly/${assemblyId}/surveys/${survey.id}`;
+    await navigator.clipboard.writeText(fullUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-5">
       {/* Back navigation */}
-      <button
-        onClick={onBack}
+      <Link
+        to={`/assembly/${assemblyId}/surveys`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
       >
         <ChevronLeft size={16} />
         {t("surveys.backToSurveys")}
-      </button>
+      </Link>
 
       {/* Survey header */}
       <div>
@@ -350,9 +347,19 @@ function SurveyDetail({
             <span className="text-xs font-medium text-text-tertiary">{closesLabel}</span>
           )}
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary leading-tight mb-1">
-          {survey.title}
-        </h1>
+        <div className="flex items-center gap-2 mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary leading-tight">
+            {survey.title}
+          </h1>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-raised transition-colors shrink-0"
+            title={t("surveys.copyLink")}
+          >
+            {copied ? <Check size={16} className="text-success-text" /> : <LinkIcon size={16} />}
+          </button>
+        </div>
         {showButtons && (
           <p className="text-sm text-text-muted">{t("surveys.detailInstructions")}</p>
         )}
@@ -727,6 +734,59 @@ function QuestionButtons({
   }
 
   return <p className="text-sm text-text-tertiary italic">{t("surveys.unsupported")}</p>;
+}
+
+// ---------------------------------------------------------------------------
+// Standalone survey detail page — mounted at /assembly/:assemblyId/surveys/:surveyId
+// ---------------------------------------------------------------------------
+
+export function SurveyDetailPage() {
+  const { t } = useTranslation("governance");
+  const { assemblyId, surveyId } = useParams();
+  const { getParticipantId } = useParticipant();
+  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!assemblyId) return;
+    setLoading(true);
+    api.listSurveys(assemblyId, participantId ?? undefined)
+      .then((data) => setSurveys(data.surveys))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [assemblyId, participantId]);
+
+  const survey = surveys.find((s) => s.id === surveyId);
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!survey) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <Link
+          to={`/assembly/${assemblyId}/surveys`}
+          className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-6"
+        >
+          <ChevronLeft size={16} />
+          {t("surveys.backToSurveys")}
+        </Link>
+        <EmptyState title={t("surveys.notFound")} description={t("surveys.notFoundDesc")} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto animate-page-in">
+      <SurveyDetail assemblyId={assemblyId!} survey={survey} />
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
