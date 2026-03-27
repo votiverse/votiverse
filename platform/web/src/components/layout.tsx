@@ -85,13 +85,13 @@ export function Sidebar() {
                 <Link
                   key={m.assemblyId}
                   to={`/assembly/${m.assemblyId}/events`}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
                     isActive
                       ? "bg-accent-subtle text-accent-text"
                       : "text-text-secondary hover:bg-surface-sunken"
                   }`}
                 >
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center bg-surface-sunken border border-border-default text-[10px] font-bold text-text-muted shrink-0">
+                  <div className="w-5 h-5 rounded-md flex items-center justify-center bg-surface-sunken border border-border-default text-[10px] font-bold text-text-muted shrink-0">
                     {m.assemblyName[0]}
                   </div>
                   <span className="truncate flex-1">{m.assemblyName}</span>
