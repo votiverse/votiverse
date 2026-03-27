@@ -515,6 +515,22 @@ export function contentRoutes(
     return c.json({ ...metadata, content: content ? mapContentRow(content) : null });
   });
 
+  /** POST note withdraw. */
+  app.post("/assemblies/:assemblyId/notes/:noteId/withdraw", async (c) => {
+    const user = getUser(c);
+    const assemblyId = c.req.param("assemblyId");
+    const noteId = c.req.param("noteId");
+    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/notes/${noteId}/withdraw`, {}, participantId);
+
+    if (!vcpRes.ok) {
+      await throwVcpError(vcpRes, "Failed to withdraw note");
+    }
+
+    return c.json({ status: "withdrawn" });
+  });
+
   // -----------------------------------------------------------------------
   // Booklet recommendations (VCP-first for metadata, backend stores content)
   // -----------------------------------------------------------------------
