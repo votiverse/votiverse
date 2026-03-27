@@ -65,30 +65,21 @@ function Layout() {
       const saved = scrollPositions.get(location.key);
       if (!saved) return;
 
-      // Content loads async — watch for the container to become tall enough, then restore
-      const tryRestore = () => {
-        if (el.scrollHeight >= saved + el.clientHeight) {
-          el.scrollTo(0, saved);
-          return true;
-        }
-        return false;
-      };
+      // Restore immediately
+      el.scrollTo(0, saved);
 
-      // Try immediately (content may already be cached/rendered)
-      if (tryRestore()) return;
-
-      // Otherwise watch for content to grow via ResizeObserver
+      // Content loads async — retry on each resize until position sticks
       const observer = new ResizeObserver(() => {
-        if (tryRestore()) observer.disconnect();
+        if (Math.abs(el.scrollTop - saved) > 5) {
+          el.scrollTo(0, saved);
+        } else {
+          observer.disconnect();
+        }
       });
       observer.observe(el);
 
-      // Safety timeout — stop watching after 3s
-      const timeout = setTimeout(() => {
-        observer.disconnect();
-        el.scrollTo(0, saved); // best-effort final attempt
-      }, 3000);
-
+      // Stop watching after 3s regardless
+      const timeout = setTimeout(() => observer.disconnect(), 3000);
       return () => { observer.disconnect(); clearTimeout(timeout); };
     } else {
       el.scrollTo(0, 0);
