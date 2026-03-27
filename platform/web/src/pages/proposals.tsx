@@ -9,7 +9,7 @@ import { Card, CardBody, CardHeader, Button, Spinner, ErrorBox, EmptyState, Badg
 import { Avatar } from "../components/avatar.js";
 import { NotesList } from "../components/community-notes.js";
 import { EndorseButton, EndorseScore } from "../components/endorse-button.js";
-import { ChevronLeft, LinkIcon, Check } from "lucide-react";
+import { ChevronLeft, LinkIcon, Check, Pencil } from "lucide-react";
 import { lazy, Suspense } from "react";
 const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownEditor })));
 const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").then(m => ({ default: m.MarkdownViewer })));
@@ -67,11 +67,26 @@ export function Proposals() {
 
   const effectiveIssueId = issueId ?? selectedIssueId;
 
+  // Derive parent event for back navigation when filtered by issueId
+  const parentEvent = useMemo(() => {
+    if (!issueId || !eventsData) return null;
+    return (eventsData.events ?? []).find(e => (e.issues ?? []).some(i => i.id === issueId)) ?? null;
+  }, [issueId, eventsData]);
+
   if (loading) return <Spinner />;
   if (error) return <ErrorBox message={error} onRetry={refetch} />;
 
   return (
     <div className="max-w-3xl mx-auto">
+      {issueId && parentEvent && (
+        <Link
+          to={`/assembly/${assemblyId}/events/${parentEvent.id}`}
+          className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-2"
+        >
+          <ChevronLeft size={16} />
+          {t("proposals.backToEvent", { title: parentEvent.title })}
+        </Link>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("proposals.title")}</h1>
@@ -214,7 +229,7 @@ export function ProposalDetailPage() {
   const { getParticipantId } = useIdentity();
   const participantId = assemblyId ? getParticipantId(assemblyId) : null;
 
-  const { data: proposal, loading, error } = useApi(
+  const { data: proposal, loading, error, refetch } = useApi(
     () => api.getProposal(assemblyId!, proposalId!),
     [assemblyId, proposalId],
   );
@@ -242,6 +257,41 @@ export function ProposalDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Version editing state
+  const [editingVersion, setEditingVersion] = useState(false);
+  const [versionMarkdown, setVersionMarkdown] = useState("");
+  const [changeSummary, setChangeSummary] = useState("");
+  const [publishing, setPublishing] = useState(false);
+
+  const startEditing = () => {
+    setVersionMarkdown(proposal?.content?.markdown ?? "");
+    setChangeSummary("");
+    setEditingVersion(true);
+  };
+
+  const cancelEditing = () => {
+    setEditingVersion(false);
+    setVersionMarkdown("");
+    setChangeSummary("");
+  };
+
+  const handlePublishVersion = async () => {
+    if (!versionMarkdown.trim()) return;
+    setPublishing(true);
+    try {
+      await api.createProposalVersion(assemblyId!, proposalId!, {
+        markdown: versionMarkdown,
+        changeSummary: changeSummary.trim() || undefined,
+      });
+      setEditingVersion(false);
+      refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t("proposals.submitFailed"));
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   if (loading) return <div className="max-w-3xl mx-auto py-8"><Spinner /></div>;
   if (error) return <div className="max-w-3xl mx-auto py-8"><ErrorBox message={error} /></div>;
   if (!proposal) {
@@ -262,6 +312,7 @@ export function ProposalDetailPage() {
   const nameMap = new Map((participantsData?.participants ?? []).map((p) => [p.id, p.name]));
   const isAuthor = participantId === proposal.authorId;
   const canEndorse = proposal.status === "submitted" && !!participantId && !isAuthor;
+  const canUpdate = isAuthor && proposal.status === "submitted";
   const statusColor = proposal.status === "locked" ? "blue" : proposal.status === "withdrawn" ? "gray" : "green";
   const score = endorsement.endorse - endorsement.dispute;
 
@@ -281,6 +332,7 @@ export function ProposalDetailPage() {
         <div className="flex items-center gap-2 mb-2">
           <Badge color={statusColor}>{proposal.status}</Badge>
           {proposal.featured && <Badge color="yellow">Featured</Badge>}
+          {proposal.currentVersion > 1 && <Badge color="gray">v{proposal.currentVersion}</Badge>}
           {(endorsement.endorse > 0 || endorsement.dispute > 0) && (
             <span className={`text-xs font-medium ${score > 0 ? "text-success-text" : score < 0 ? "text-error-text" : "text-text-muted"}`}>
               {score > 0 ? "+" : ""}{score}
@@ -305,15 +357,41 @@ export function ProposalDetailPage() {
           <span>
             by {nameMap.get(proposal.authorId) ?? proposal.authorId}
             {proposal.choiceKey && <> &middot; advocates <strong>{proposal.choiceKey}</strong></>}
-            {proposal.currentVersion > 1 && <> &middot; v{proposal.currentVersion}</>}
           </span>
         </div>
       </div>
 
-      {/* Full proposal content */}
+      {/* Full proposal content / version editor */}
       <Card>
         <CardBody>
-          {proposal.content?.markdown ? (
+          {editingVersion ? (
+            <div className="space-y-3">
+              <Suspense fallback={<div className="py-6 flex justify-center"><Spinner /></div>}>
+                <MarkdownEditor
+                  value={versionMarkdown}
+                  onChange={setVersionMarkdown}
+                  placeholder={t("proposals.editorPlaceholder")}
+                  assemblyId={assemblyId!}
+                  minHeight={250}
+                />
+              </Suspense>
+              <input
+                type="text"
+                value={changeSummary}
+                onChange={(e) => setChangeSummary(e.target.value)}
+                className="w-full border border-border-default rounded px-3 py-2 text-sm"
+                placeholder={t("proposals.changeSummaryPlaceholder")}
+              />
+              <div className="flex gap-2">
+                <Button onClick={handlePublishVersion} disabled={publishing || !versionMarkdown.trim()}>
+                  {publishing ? t("proposals.submitting") : t("proposals.publishUpdate")}
+                </Button>
+                <Button variant="secondary" onClick={cancelEditing}>
+                  {t("common:cancel")}
+                </Button>
+              </div>
+            </div>
+          ) : proposal.content?.markdown ? (
             <Suspense fallback={<div className="py-6 flex justify-center"><Spinner /></div>}>
               <div className="prose prose-sm max-w-none text-text-secondary">
                 <MarkdownViewer content={proposal.content.markdown} />
@@ -353,6 +431,16 @@ export function ProposalDetailPage() {
             />
           )}
           <div className="flex-1" />
+          {canUpdate && !editingVersion && (
+            <button
+              type="button"
+              onClick={startEditing}
+              className="flex items-center gap-1.5 text-sm text-accent-text hover:text-accent-strong-text min-h-[36px]"
+            >
+              <Pencil size={14} />
+              {t("proposals.updateProposal")}
+            </button>
+          )}
           <button
             type="button"
             onClick={copyLink}
@@ -373,7 +461,7 @@ export function ProposalDetailPage() {
 
 function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; assemblyId: string; onAction: () => void }) {
   const { t } = useTranslation("governance");
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(!draft.markdown);
   const [title, setTitle] = useState(draft.title);
   const [markdown, setMarkdown] = useState(draft.markdown);
   const [submitting, setSubmitting] = useState(false);

@@ -522,12 +522,12 @@ export function listProposals(
   return request("GET", `/assemblies/${assemblyId}/proposals${qs}`);
 }
 
-export function evaluateProposal(
+export function createProposalVersion(
   assemblyId: string,
   proposalId: string,
-  evaluation: "endorse" | "dispute",
-): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/evaluate`, { evaluation });
+  params: { markdown: string; assets?: string[]; changeSummary?: string },
+): Promise<{ currentVersion: number; contentHash: string }> {
+  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/version`, params);
 }
 
 export function featureProposal(
