@@ -158,26 +158,23 @@ export function QuickDelegateForm({
           </span>
           <div className={`grid grid-cols-1 gap-3 ${hasParent ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
             {/* Issue only */}
-            <label className={scopeCardClass(scopeMode === "issue")}>
-              <input type="radio" className="sr-only" checked={scopeMode === "issue"} onChange={() => setScopeMode("issue")} />
+            <button type="button" className={scopeCardClass(scopeMode === "issue")} onClick={() => setScopeMode("issue")}>
               <span className="text-sm font-semibold text-text-primary">{t("quickDelegate.scopeIssue")}</span>
               <span className="text-xs text-text-muted leading-snug line-clamp-2">
                 {issueTitle ? `"${issueTitle}"` : t("quickDelegate.scopeIssueDesc")}
               </span>
-            </label>
+            </button>
             {/* Sub-topic */}
-            <label className={scopeCardClass(scopeMode === "topic")}>
-              <input type="radio" className="sr-only" checked={scopeMode === "topic"} onChange={() => setScopeMode("topic")} />
+            <button type="button" className={scopeCardClass(scopeMode === "topic")} onClick={() => setScopeMode("topic")}>
               <span className="text-sm font-semibold text-text-primary">{t("quickDelegate.scopeSubtopic")}</span>
               <span className="text-xs text-text-muted leading-snug line-clamp-2">"{topicNames}"</span>
-            </label>
+            </button>
             {/* Broader category */}
             {hasParent && (
-              <label className={scopeCardClass(scopeMode === "parent")}>
-                <input type="radio" className="sr-only" checked={scopeMode === "parent"} onChange={() => setScopeMode("parent")} />
+              <button type="button" className={scopeCardClass(scopeMode === "parent")} onClick={() => setScopeMode("parent")}>
                 <span className="text-sm font-semibold text-text-primary">{t("quickDelegate.scopeBroader")}</span>
                 <span className="text-xs text-text-muted leading-snug line-clamp-2">{t("quickDelegate.scopeBroaderDesc", { topic: parentNames })}</span>
-              </label>
+              </button>
             )}
           </div>
         </div>
