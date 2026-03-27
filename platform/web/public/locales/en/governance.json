@@ -127,7 +127,7 @@
   "eventDetail.retractConfirmBody": "This removes your vote from this issue. This is not the same as abstaining \u2014 abstaining is a recorded choice, retracting is not.",
   "eventDetail.retractConfirmAction": "Retract vote",
   "eventDetail.voteFinal": "Final",
-  "eventDetail.delegatedTo": "Delegated to {{name}}",
+  "eventDetail.delegatedTo": "Delegated to {{name}} as fallback",
   "eventDetail.delegatedVia": "via {{chain}}",
   "eventDetail.manageDelegation": "Manage",
   "eventDetail.delegationScopeIssue": "This issue only",

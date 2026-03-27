@@ -858,9 +858,6 @@ function VotingSection({
             {effectiveHasVoted && (
               <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.changeYourVote")}</span>
             )}
-            {issueStatus.isDelegated && !effectiveHasVoted && (
-              <span className="text-xs text-text-muted mb-2 block">{t("eventDetail.orVoteDirectly")}</span>
-            )}
 
             {isMultiOption ? (
               <div>
