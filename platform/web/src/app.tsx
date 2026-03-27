@@ -16,7 +16,7 @@ import { Delegations } from "./pages/delegates/index.js";
 import { Surveys, SurveyDetailPage } from "./pages/surveys.js";
 import { Predictions } from "./pages/predictions.js";
 import { Notes } from "./pages/notes.js";
-import { Proposals } from "./pages/proposals.js";
+import { Proposals, ProposalDetailPage } from "./pages/proposals.js";
 import { Candidacies } from "./pages/candidacies.js";
 import { CandidacyProfile } from "./pages/candidacy-profile.js";
 import { TopicsList } from "./pages/topics-list.js";
@@ -159,6 +159,7 @@ export function App() {
               <Route path="assembly/:assemblyId/predictions" element={<Predictions />} />
               <Route path="assembly/:assemblyId/notes" element={<Notes />} />
               <Route path="assembly/:assemblyId/proposals" element={<Proposals />} />
+              <Route path="assembly/:assemblyId/proposals/:proposalId" element={<ProposalDetailPage />} />
               <Route path="assembly/:assemblyId/candidacies" element={<Candidacies />} />
               <Route path="assembly/:assemblyId/candidacies/:candidacyId" element={<CandidacyProfile />} />
               <Route path="assembly/:assemblyId/topics" element={<TopicsList />} />
