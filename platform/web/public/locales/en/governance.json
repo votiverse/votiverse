@@ -124,7 +124,7 @@
   "eventDetail.changeVote": "Change vote",
   "eventDetail.retractVote": "Retract",
   "eventDetail.retractConfirmTitle": "Retract your vote?",
-  "eventDetail.retractConfirmBody": "This removes your vote from this issue. This is not the same as abstaining \u2014 abstaining is a recorded choice, retracting is not.",
+  "eventDetail.retractConfirmBody": "This removes your vote from this issue. This is not the same as abstaining \u2014 abstaining is a recorded choice, retracting enables fallback voting if available.",
   "eventDetail.retractConfirmAction": "Retract vote",
   "eventDetail.voteFinal": "Final",
   "eventDetail.delegatedTo": "Fallback: delegated to <avatar/><bold>{{name}}</bold>",
