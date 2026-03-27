@@ -58,7 +58,7 @@ export function DelegatesList({
           <p className="text-sm text-text-muted mt-1">{t("delegations.subtitle")}</p>
         </div>
         {myOutgoing.length > 0 && (
-          <Button onClick={onBrowse} variant="secondary">
+          <Button onClick={onBrowse} variant="primary">
             {t("delegates.findDelegate")}
           </Button>
         )}
