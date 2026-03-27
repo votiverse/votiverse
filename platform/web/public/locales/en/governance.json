@@ -129,6 +129,10 @@
   "eventDetail.delegatedTo": "Delegated to {{name}}",
   "eventDetail.delegatedVia": "via {{chain}}",
   "eventDetail.manageDelegation": "Manage",
+  "eventDetail.delegationScopeIssue": "This issue only",
+  "eventDetail.delegationScopeBroad": "This delegation covers {{scope}}. Changing it will affect other issues too.",
+  "eventDetail.changeDelegate": "Change delegate",
+  "eventDetail.removeDelegation": "Remove delegation",
   "eventDetail.noDelegateForTopic": "No delegate for this topic",
   "eventDetail.delegationNotAvailable": "Delegation is not available in this group",
   "eventDetail.orVoteDirectly": "Or vote directly:",
@@ -224,6 +228,7 @@
   "delegations.revokeOwnOnly": "Only the delegator can remove their own delegation.",
   "delegations.revokeFailed": "Failed to remove delegation.",
 
+  "delegates.goToDelegates": "Go to Delegates",
   "delegates.findDelegate": "Find a Delegate",
   "delegates.candidateLabel": "Candidate",
   "delegates.browseCandidatesTitle": "Browse Candidates",

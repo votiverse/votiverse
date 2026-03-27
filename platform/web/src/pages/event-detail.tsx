@@ -994,37 +994,127 @@ function DelegationCard({
 }) {
   const { t } = useTranslation("governance");
   const [showForm, setShowForm] = useState(false);
+  const [managing, setManaging] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+
+  const handleRevoke = async () => {
+    if (!activeDelegation) return;
+    setRevoking(true);
+    setRevokeError(null);
+    try {
+      await api.revokeDelegation(assemblyId, activeDelegation.id);
+      signal("attention");
+      onDelegationRevoked();
+      setManaging(false);
+    } catch (err: unknown) {
+      setRevokeError(err instanceof Error ? err.message : t("delegations.revokeFailed"));
+    } finally {
+      setRevoking(false);
+    }
+  };
 
   // State 1: Active delegation (and no direct vote override)
   if (isDelegated && !hasVoted) {
     const delegateName = terminalVoterName ?? chainNames[chainNames.length - 1];
     const chainDisplay = chainNames.join(" \u2192 ");
+    const isIssueScoped = !!activeDelegation?.issueScope;
+
+    // Change delegate form (inline)
+    if (showForm) {
+      return (
+        <QuickDelegateForm
+          assemblyId={assemblyId}
+          participantId={participantId}
+          participants={participants}
+          preselectedTopicIds={issueTopicIds}
+          topics={topics}
+          isTopicScoped={delegationConfig.topicScoped}
+          issueId={issueId}
+          candidates={candidates}
+          topicNameMap={topicNameMap}
+          onCreated={() => { onDelegationCreated(); setShowForm(false); setManaging(false); }}
+          onClose={() => { setShowForm(false); setManaging(false); }}
+        />
+      );
+    }
+
+    // Resolve scope label for topic/global delegations
+    const scopeLabel = activeDelegation && !isIssueScoped
+      ? (activeDelegation.topicScope.length === 0
+        ? t("delegations.allTopics")
+        : activeDelegation.topicScope.map((id) => topicNameMap?.get(id) ?? id.slice(0, 8)).join(", "))
+      : null;
+
     return (
-      <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5 rounded-lg bg-surface-raised border border-info-border">
-        <div className="flex items-center gap-2 min-w-0">
-          <svg className="w-4 h-4 text-info-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {delegateName && <Avatar name={delegateName} size="xs" />}
-          <span className="text-sm text-info-text truncate">
-            Delegated to <span className="font-semibold">{delegateName}</span>
-            {chainNames.length > 1 && (
-              <span className="text-info-text ml-1">{t("eventDetail.delegatedVia", { chain: chainDisplay })}</span>
-            )}
-          </span>
+      <div className="rounded-lg bg-surface-raised border border-info-border">
+        {/* Delegate info row */}
+        <div className="flex items-center justify-between flex-wrap gap-2 px-3 py-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg className="w-4 h-4 text-info-text shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {delegateName && <Avatar name={delegateName} size="xs" />}
+            <span className="text-sm text-info-text truncate">
+              {t("eventDetail.delegatedTo", { name: delegateName })}
+              {chainNames.length > 1 && (
+                <span className="text-info-text ml-1">{t("eventDetail.delegatedVia", { chain: chainDisplay })}</span>
+              )}
+            </span>
+          </div>
+          <button
+            onClick={() => setManaging(!managing)}
+            className="text-xs text-info-text hover:text-info-text underline min-h-[32px] flex items-center shrink-0"
+          >
+            {t("eventDetail.manageDelegation")}
+          </button>
         </div>
-        <Link
-          to={`/assembly/${assemblyId}/delegations`}
-          className="text-xs text-info-text hover:text-info-text underline min-h-[32px] flex items-center shrink-0"
-        >
-          {t("eventDetail.manageDelegation")}
-        </Link>
+
+        {/* Inline manage panel */}
+        {managing && (
+          <div className="px-3 pb-3 pt-1 border-t border-info-border/50">
+            {isIssueScoped ? (
+              /* Issue-scoped: inline change/remove */
+              <div>
+                <p className="text-xs text-text-muted mb-2">{t("eventDetail.delegationScopeIssue")}</p>
+                {revokeError && <p className="text-xs text-error-text mb-2">{revokeError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="px-3 py-1.5 text-xs font-medium text-text-secondary bg-surface border border-border-default rounded-lg hover:bg-surface-sunken transition-colors"
+                  >
+                    {t("eventDetail.changeDelegate")}
+                  </button>
+                  <button
+                    onClick={handleRevoke}
+                    disabled={revoking}
+                    className="px-3 py-1.5 text-xs font-medium text-error-text bg-error-subtle border border-error-border rounded-lg hover:bg-error-subtle/80 transition-colors disabled:opacity-50"
+                  >
+                    {t("eventDetail.removeDelegation")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Topic/global-scoped: explanation + link to Delegates tab */
+              <div>
+                <p className="text-xs text-text-muted mb-2">
+                  {t("eventDetail.delegationScopeBroad", { scope: scopeLabel })}
+                </p>
+                <Link
+                  to={`/assembly/${assemblyId}/delegations`}
+                  className="inline-flex px-3 py-1.5 text-xs font-medium text-accent-text bg-accent-subtle border border-accent-muted rounded-lg hover:bg-accent-subtle/80 transition-colors"
+                >
+                  {t("delegates.goToDelegates")}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
 
   // State 2: Delegation enabled but not set up — trigger is now in VotingSection
-  // (the "Trust someone else with this vote" button below vote buttons)
   if (delegationConfig.enabled) {
     return null;
   }
