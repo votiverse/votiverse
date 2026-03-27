@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef } from "react";
-import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams, useLocation, useNavigationType } from "react-router";
+import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams, useLocation } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
 import { ThemeContext, useThemeProvider } from "./hooks/use-theme.js";
@@ -31,46 +31,14 @@ import { InvitePage } from "./pages/invite.js";
 import { LoginPage } from "./pages/login.js";
 import { DevClock } from "./components/dev-clock.js";
 
-/** In-memory scroll position store keyed by history location key. */
-const scrollPositions = new Map<string, number>();
-
 function Layout() {
   const location = useLocation();
-  const navigationType = useNavigationType();
   const mainRef = useRef<HTMLElement>(null);
-  const prevKeyRef = useRef(location.key);
 
-  // Save scroll position before navigating away
+  // Scroll to top on forward navigation (new page)
   useEffect(() => {
-    const prevKey = prevKeyRef.current;
-    prevKeyRef.current = location.key;
-
-    // Save the previous page's scroll position
-    if (prevKey && prevKey !== location.key && mainRef.current) {
-      scrollPositions.set(prevKey, mainRef.current.scrollTop);
-    }
-
-    // On back/forward (POP), restore scroll position after content renders
-    if (navigationType === "POP") {
-      const saved = scrollPositions.get(location.key);
-      if (saved !== undefined) {
-        // Content loads async — retry scroll restoration until it sticks or timeout
-        let attempts = 0;
-        const tryRestore = () => {
-          if (!mainRef.current || attempts > 10) return;
-          mainRef.current.scrollTo(0, saved);
-          if (mainRef.current.scrollTop < saved - 10 && attempts < 10) {
-            attempts++;
-            setTimeout(tryRestore, 100);
-          }
-        };
-        requestAnimationFrame(tryRestore);
-      }
-    } else {
-      // On PUSH/REPLACE, scroll to top
-      mainRef.current?.scrollTo(0, 0);
-    }
-  }, [location.key, navigationType]);
+    mainRef.current?.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="flex h-screen bg-surface">
