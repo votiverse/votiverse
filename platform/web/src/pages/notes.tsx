@@ -8,6 +8,7 @@ import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { NoteContent, sortNotesByRelevance } from "../components/community-notes.js";
+import { useEntityNames } from "../hooks/use-entity-names.js";
 import { Avatar } from "../components/avatar.js";
 
 
@@ -60,6 +61,7 @@ export function Notes() {
   );
 
   const allNotes = data?.notes ?? [];
+  const entityNames = useEntityNames(assemblyId, allNotes);
 
   // Count my notes
   const myNoteCount = useMemo(
@@ -130,6 +132,7 @@ export function Notes() {
               assemblyId={assemblyId!}
               nameMap={nameMap}
               participantId={participantId}
+              entityNames={entityNames}
               onChanged={refetch}
             />
           ))}
@@ -159,11 +162,12 @@ function FilterChip({ label, count, active, onClick }: {
   );
 }
 
-function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
+function NoteCard({ note, assemblyId, nameMap, participantId, entityNames, onChanged }: {
   note: CommunityNote;
   assemblyId: string;
   nameMap: Map<string, string>;
   participantId: string | null;
+  entityNames?: Map<string, string>;
   onChanged: () => void;
 }) {
   const { t } = useTranslation("governance");
@@ -218,7 +222,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, onChanged }: {
       {/* Note text — shown directly, clamped for long notes */}
       {note.content?.markdown ? (
         <p className="text-sm text-text-secondary font-normal leading-relaxed my-3 line-clamp-4">
-          <NoteContent text={note.content.markdown} />
+          <NoteContent text={note.content.markdown} entityNames={entityNames} />
         </p>
       ) : (
         <p className="text-sm text-text-tertiary italic my-3">{t("notesPage.contentNotAvailable")}</p>

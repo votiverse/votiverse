@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { useApi } from "../hooks/use-api.js";
+import { useEntityNames } from "../hooks/use-entity-names.js";
 import * as api from "../api/client.js";
 import type { CommunityNote } from "../api/types.js";
 import { Button, Badge } from "./ui.js";
@@ -24,19 +26,58 @@ export function sortNotesByRelevance(notes: CommunityNote[]): CommunityNote[] {
 }
 
 // ---------------------------------------------------------------------------
-// NoteContent — renders plain text with auto-linked URLs and markdown links
+// NoteContent — renders plain text with auto-linked URLs and markdown links.
+// Internal URLs are rendered as router Links with resolved entity names.
 // ---------------------------------------------------------------------------
+
+/** Entity type labels for internal URLs. */
+const ENTITY_TYPE_LABELS: Record<string, string> = {
+  surveys: "Survey",
+  events: "Vote",
+  candidacies: "Candidate",
+  proposals: "Proposal",
+  topics: "Topic",
+};
+
+/** Extract internal route info from a URL. Returns null for external URLs. */
+function parseInternalUrl(href: string): { path: string; entityType?: string; entityId?: string } | null {
+  // Strip origin if it matches the current app
+  let path = href;
+  if (typeof window !== "undefined" && href.startsWith(window.location.origin)) {
+    path = href.slice(window.location.origin.length);
+  }
+  // Match /assembly/:assemblyId/:type/:entityId
+  const detailMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics)\/([^/?#]+)/.exec(path);
+  if (detailMatch) {
+    return { path, entityType: detailMatch[1], entityId: detailMatch[2] };
+  }
+  // Match /assembly/:assemblyId/:type (list page)
+  const listMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics)\/?$/.exec(path);
+  if (listMatch) {
+    return { path, entityType: listMatch[1] };
+  }
+  // Match any other /assembly/ route
+  if (path.startsWith("/assembly/")) {
+    return { path };
+  }
+  return null;
+}
 
 /**
  * Renders note text with:
- * - Markdown links: [text](url) → <a href="url">text</a>
- * - Bare URLs: https://... → <a href="url">url</a>
+ * - Markdown links: [text](url) → clickable link
+ * - Bare URLs: https://... → clickable link
+ * - Internal URLs: resolved to entity names with router navigation
  * Everything else is plain text with preserved whitespace.
+ *
+ * @param entityNames - optional map of entityId → display name for smart labels
  */
-export function NoteContent({ text }: { text: string }) {
+export function NoteContent({ text, entityNames }: { text: string; entityNames?: Map<string, string> }) {
   // Combined regex: markdown links first (greedy), then bare URLs
   const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g;
-  const parts: Array<{ type: "text" | "link"; value: string; href?: string }> = [];
+
+  type Part = { type: "text"; value: string } | { type: "link"; value: string; href: string; internal?: { path: string; entityType?: string; entityId?: string } };
+  const parts: Part[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -46,10 +87,13 @@ export function NoteContent({ text }: { text: string }) {
     }
     if (match[1] && match[2]) {
       // Markdown link: [text](url)
-      parts.push({ type: "link", value: match[1], href: match[2] });
+      const internal = parseInternalUrl(match[2]);
+      parts.push({ type: "link", value: match[1], href: match[2], internal: internal ?? undefined });
     } else if (match[3]) {
       // Bare URL
-      parts.push({ type: "link", value: match[3], href: match[3] });
+      const internal = parseInternalUrl(match[3]);
+      const label = internal ? formatInternalLabel(internal, entityNames) : match[3];
+      parts.push({ type: "link", value: label, href: match[3], internal: internal ?? undefined });
     }
     lastIndex = match.index + match[0].length;
   }
@@ -61,21 +105,60 @@ export function NoteContent({ text }: { text: string }) {
     <span className="whitespace-pre-wrap">
       {parts.map((part, i) =>
         part.type === "link" ? (
-          <a
-            key={i}
-            href={part.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-info-text hover:text-info-text underline break-all"
-          >
-            {part.value}
-          </a>
+          part.internal ? (
+            <Link
+              key={i}
+              to={part.internal.path}
+              className="text-info-text hover:text-info-text underline"
+            >
+              {part.value}
+            </Link>
+          ) : (
+            <a
+              key={i}
+              href={part.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-info-text hover:text-info-text underline break-all"
+            >
+              {part.value}
+            </a>
+          )
         ) : (
           <span key={i}>{part.value}</span>
         ),
       )}
     </span>
   );
+}
+
+/** Format a display label for an internal link. */
+function formatInternalLabel(
+  internal: { entityType?: string; entityId?: string },
+  entityNames?: Map<string, string>,
+): string {
+  const typeLabel = internal.entityType ? ENTITY_TYPE_LABELS[internal.entityType] ?? internal.entityType : "Link";
+  if (internal.entityId && entityNames?.has(internal.entityId)) {
+    return entityNames.get(internal.entityId)!;
+  }
+  return typeLabel;
+}
+
+/**
+ * Scan note text for internal entity references.
+ * Returns a set of { type, id } pairs that need name resolution.
+ */
+export function extractEntityRefs(text: string): Array<{ type: string; id: string }> {
+  const refs: Array<{ type: string; id: string }> = [];
+  const urlPattern = /https?:\/\/[^\s<)]+/g;
+  let match: RegExpExecArray | null;
+  while ((match = urlPattern.exec(text)) !== null) {
+    const internal = parseInternalUrl(match[0]);
+    if (internal?.entityType && internal.entityId) {
+      refs.push({ type: internal.entityType, id: internal.entityId });
+    }
+  }
+  return refs;
 }
 
 export function NotesList({ assemblyId, targetType, targetId, nameMap }: {
@@ -93,6 +176,7 @@ export function NotesList({ assemblyId, targetType, targetId, nameMap }: {
 
   const rawNotes = data?.notes ?? [];
   const notes = useMemo(() => sortNotesByRelevance(rawNotes), [rawNotes]);
+  const entityNames = useEntityNames(assemblyId, rawNotes);
 
   return (
     <div>
@@ -125,17 +209,18 @@ export function NotesList({ assemblyId, targetType, targetId, nameMap }: {
 
       <div className="space-y-3">
         {notes.map((note) => (
-          <NoteCard key={note.id} note={note} assemblyId={assemblyId} authorName={nameMap?.get(note.authorId)} onEvaluated={refetch} />
+          <NoteCard key={note.id} note={note} assemblyId={assemblyId} authorName={nameMap?.get(note.authorId)} entityNames={entityNames} onEvaluated={refetch} />
         ))}
       </div>
     </div>
   );
 }
 
-function NoteCard({ note, assemblyId, authorName, onEvaluated }: {
+function NoteCard({ note, assemblyId, authorName, entityNames, onEvaluated }: {
   note: CommunityNote;
   assemblyId: string;
   authorName?: string;
+  entityNames?: Map<string, string>;
   onEvaluated: () => void;
 }) {
   const { t } = useTranslation("governance");
@@ -178,7 +263,7 @@ function NoteCard({ note, assemblyId, authorName, onEvaluated }: {
       {/* Note text — shown directly, clamped for long notes */}
       {note.content?.markdown ? (
         <p className="text-sm text-text-secondary font-normal leading-relaxed my-3 line-clamp-4">
-          <NoteContent text={note.content.markdown} />
+          <NoteContent text={note.content.markdown} entityNames={entityNames} />
         </p>
       ) : (
         <p className="text-sm text-text-tertiary italic my-3">{t("notes.unavailable")}</p>
