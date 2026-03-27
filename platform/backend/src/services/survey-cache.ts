@@ -117,4 +117,23 @@ export class SurveyCacheService {
     );
     return new Set(rows.map((r) => r.survey_id));
   }
+
+  /** Check if we've ever synced hasResponded from VCP for this participant in this assembly. */
+  async hasCheckedParticipant(assemblyId: string, participantId: string): Promise<boolean> {
+    const row = await this.db.queryOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM survey_response_checks WHERE assembly_id = ? AND participant_id = ?",
+      [assemblyId, participantId],
+    );
+    return (row?.count ?? 0) > 0;
+  }
+
+  /** Mark that we've synced hasResponded from VCP for this participant in this assembly. */
+  async markParticipantChecked(assemblyId: string, participantId: string): Promise<void> {
+    await this.db.run(
+      `INSERT INTO survey_response_checks (assembly_id, participant_id)
+       VALUES (?, ?)
+       ON CONFLICT (assembly_id, participant_id) DO NOTHING`,
+      [assemblyId, participantId],
+    );
+  }
 }

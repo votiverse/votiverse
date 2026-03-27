@@ -225,6 +225,29 @@ export function proxyRoutes(
     const hasCached = await surveyCacheService.hasSurveys(assemblyId);
     if (hasCached) {
       const cachedSurveys = await surveyCacheService.listByAssembly(assemblyId);
+
+      // If we've never synced hasResponded for this participant, fetch from VCP and cache
+      const checked = await surveyCacheService.hasCheckedParticipant(assemblyId, participantId);
+      if (!checked) {
+        try {
+          const vcpRes = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/surveys?participantId=${participantId}`, participantId);
+          if (vcpRes.status === 200) {
+            const body = (vcpRes as ResponseWithBody).__bufferedBody;
+            if (body) {
+              const vcpData = JSON.parse(body) as { surveys: Array<{ id: string; hasResponded?: boolean }> };
+              for (const s of vcpData.surveys ?? []) {
+                if (s.hasResponded) {
+                  await surveyCacheService.recordResponse(assemblyId, s.id, participantId);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          logger.warn("Failed to sync hasResponded from VCP", { error: String(err) });
+        }
+        await surveyCacheService.markParticipantChecked(assemblyId, participantId);
+      }
+
       const respondedIds = await surveyCacheService.respondedSurveyIds(assemblyId, participantId);
       const surveys = cachedSurveys.map((p) => ({
         id: p.id,
@@ -256,6 +279,7 @@ export function proxyRoutes(
               await surveyCacheService.recordResponse(assemblyId, p.id, participantId);
             }
           }
+          await surveyCacheService.markParticipantChecked(assemblyId, participantId);
         }
       } catch (err) {
         logger.warn("Failed to cache surveys from VCP response", { error: String(err) });
@@ -352,6 +376,23 @@ export function proxyRoutes(
         await interceptForSurveyCache(response, assemblyId, subpath, surveyCacheService);
       }
       await interceptForSurveyResponse(response, assemblyId, subpath, participantId, surveyCacheService);
+    }
+
+    // If VCP rejects a survey response with "already responded", record it in cache
+    if (c.req.method === "POST" && response.status === 400) {
+      const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
+      const match = /^\/surveys\/([^/]+)\/respond\/?$/.exec(subpath);
+      if (match) {
+        try {
+          const body = (response as ResponseWithBody).__bufferedBody;
+          if (body && body.includes("already responded")) {
+            const surveyId = match[1]!;
+            await surveyCacheService.recordResponse(assemblyId, surveyId, participantId);
+          }
+        } catch {
+          // ignore
+        }
+      }
     }
 
     return response;

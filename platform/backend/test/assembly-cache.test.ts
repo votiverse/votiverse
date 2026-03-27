@@ -280,6 +280,45 @@ describe("Survey cache", () => {
     expect(cached).toHaveLength(2);
   });
 
+  it("hasResponded is per-participant: second user sees their own status", async () => {
+    // Simulate the bug scenario: User A populates the cache, User B accesses it.
+    // User B should see their own hasResponded status, not User A's.
+    const PARTICIPANT_B = "p-survey-user-b";
+
+    // Register a second user
+    const authB = await backend.registerAndLogin("survey-b@example.com", TEST_PASSWORD, "Survey Tester B");
+    await backend.db.run(
+      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
+      [authB.userId, ASM_ID, PARTICIPANT_B, "Survey Assembly"],
+    );
+
+    // User A populates the cache and has responded to Survey A
+    await backend.surveyCacheService.upsert(SURVEY_A);
+    await backend.surveyCacheService.upsert(SURVEY_B);
+    await backend.surveyCacheService.recordResponse(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    await backend.surveyCacheService.markParticipantChecked(ASM_ID, PARTICIPANT_ID);
+
+    // User B has responded to Survey B (but not A)
+    await backend.surveyCacheService.recordResponse(ASM_ID, SURVEY_B.id, PARTICIPANT_B);
+    await backend.surveyCacheService.markParticipantChecked(ASM_ID, PARTICIPANT_B);
+
+    // User A should see: Survey A = responded, Survey B = not responded
+    const resA = await backend.request("GET", `/assemblies/${ASM_ID}/surveys`, undefined, {
+      Authorization: `Bearer ${accessToken}`,
+    });
+    const dataA = (await resA.json()) as { surveys: Array<{ id: string; hasResponded: boolean }> };
+    expect(dataA.surveys.find((s) => s.id === SURVEY_A.id)!.hasResponded).toBe(true);
+    expect(dataA.surveys.find((s) => s.id === SURVEY_B.id)!.hasResponded).toBe(false);
+
+    // User B should see: Survey A = not responded, Survey B = responded
+    const resB = await backend.request("GET", `/assemblies/${ASM_ID}/surveys`, undefined, {
+      Authorization: `Bearer ${authB.accessToken}`,
+    });
+    const dataB = (await resB.json()) as { surveys: Array<{ id: string; hasResponded: boolean }> };
+    expect(dataB.surveys.find((s) => s.id === SURVEY_A.id)!.hasResponded).toBe(false);
+    expect(dataB.surveys.find((s) => s.id === SURVEY_B.id)!.hasResponded).toBe(true);
+  });
+
   it("hasResponded is a one-way latch", async () => {
     await backend.surveyCacheService.upsert(SURVEY_A);
 
