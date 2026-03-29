@@ -78,12 +78,37 @@ export type {
 export { computeContentHash, computeNoteVisibility } from "@votiverse/content";
 
 export type {
+  ScoringEvent,
+  ScoringEntry,
+  Scorecard,
+  ScoringResult,
+  ScoringStatus,
+  ScoringSettings,
+  ScoringTimeline,
+  Rubric,
+  RubricCategory,
+  RubricDimension,
+  DimensionScore,
+  EntryResult,
+  CategoryResult,
+  DimensionResult,
+  CreateScoringEventParams,
+  SubmitScorecardParams,
+  ReviseScorecardParams,
+  EvaluatorAggregation,
+  DimensionAggregation,
+} from "@votiverse/scoring";
+
+export type {
   ProposalId,
   CandidacyId,
   NoteId,
   ContentHash,
   NoteTargetType,
   NoteEvaluation,
+  ScoringEventId,
+  EntryId,
+  ScorecardId,
 } from "@votiverse/core";
 
 export { getPreset } from "@votiverse/config";

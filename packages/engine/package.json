@@ -28,7 +28,8 @@
     "@votiverse/voting": "workspace:*",
     "@votiverse/prediction": "workspace:*",
     "@votiverse/survey": "workspace:*",
-    "@votiverse/content": "workspace:*"
+    "@votiverse/content": "workspace:*",
+    "@votiverse/scoring": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

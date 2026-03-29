@@ -68,6 +68,17 @@ import type {
   SurveyResults,
   TrendData,
 } from "@votiverse/survey";
+import { ScoringService } from "@votiverse/scoring";
+import type {
+  CreateScoringEventParams,
+  SubmitScorecardParams,
+  ReviseScorecardParams,
+  ScoringEvent,
+  Scorecard,
+  ScoringResult,
+  ScoringStatus,
+} from "@votiverse/scoring";
+import type { ScoringEventId, EntryId } from "@votiverse/core";
 import { ProposalService, CandidacyService, NoteService } from "@votiverse/content";
 import type {
   ProposalMetadata,
@@ -145,6 +156,7 @@ export class VotiverseEngine {
   private readonly proposalService: ProposalService;
   private readonly candidacyService: CandidacyService;
   private readonly noteService: NoteService;
+  private readonly scoringService: ScoringService;
 
   /** Injectable time source for testing. */
   readonly timeProvider: TimeProvider;
@@ -170,6 +182,7 @@ export class VotiverseEngine {
     this.proposalService = new ProposalService(this.eventStore, this.timeProvider);
     this.candidacyService = new CandidacyService(this.eventStore, this.timeProvider);
     this.noteService = new NoteService(this.eventStore, this.governanceConfig, this.timeProvider);
+    this.scoringService = new ScoringService(this.eventStore, this.governanceConfig, this.timeProvider);
   }
 
   /**
@@ -247,6 +260,9 @@ export class VotiverseEngine {
         this.cancelledIssues.add(payload.issueId);
       }
     }
+
+    // Rehydrate scoring service (replays scoring events from the store)
+    await this.scoringService.rehydrate();
   }
 
   // -----------------------------------------------------------------------
@@ -796,6 +812,47 @@ export class VotiverseEngine {
 
     computeVisibility: (note: NoteMetadata): NoteVisibility =>
       this.noteService.computeVisibility(note),
+  };
+
+  // -----------------------------------------------------------------------
+  // Scoring API
+  // -----------------------------------------------------------------------
+
+  /** Scoring operations (rubric-based multi-criteria scoring). */
+  readonly scoring = {
+    create: (params: CreateScoringEventParams): Promise<ScoringEvent> =>
+      this.scoringService.create(params),
+
+    submitScorecard: (params: SubmitScorecardParams): Promise<Scorecard> =>
+      this.scoringService.submitScorecard(params),
+
+    reviseScorecard: (params: ReviseScorecardParams): Promise<Scorecard> =>
+      this.scoringService.reviseScorecard(params),
+
+    close: (scoringEventId: ScoringEventId): Promise<void> =>
+      this.scoringService.close(scoringEventId),
+
+    get: (scoringEventId: ScoringEventId): ScoringEvent | undefined =>
+      this.scoringService.getScoringEvent(scoringEventId),
+
+    list: (): readonly ScoringEvent[] =>
+      this.scoringService.getAllScoringEvents(),
+
+    getStatus: (scoringEvent: ScoringEvent): ScoringStatus =>
+      this.scoringService.getStatus(scoringEvent),
+
+    getScorecards: (scoringEventId: ScoringEventId): readonly Scorecard[] =>
+      this.scoringService.getScorecards(scoringEventId),
+
+    getScorecard: (
+      scoringEventId: ScoringEventId,
+      evaluatorId: ParticipantId,
+      entryId: EntryId,
+    ): Scorecard | undefined =>
+      this.scoringService.getScorecard(scoringEventId, evaluatorId, entryId),
+
+    computeResults: (scoringEventId: ScoringEventId, eligibleCount: number): ScoringResult =>
+      this.scoringService.computeResults(scoringEventId, eligibleCount),
   };
 
   // -----------------------------------------------------------------------
