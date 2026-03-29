@@ -38,6 +38,7 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   candidacies: "Candidate",
   proposals: "Proposal",
   topics: "Topic",
+  scoring: "Score",
 };
 
 /** Extract internal route info from a URL. Returns null for external URLs. */
@@ -48,12 +49,12 @@ function parseInternalUrl(href: string): { path: string; entityType?: string; en
     path = href.slice(window.location.origin.length);
   }
   // Match /assembly/:assemblyId/:type/:entityId
-  const detailMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics)\/([^/?#]+)/.exec(path);
+  const detailMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics|scoring)\/([^/?#]+)/.exec(path);
   if (detailMatch) {
     return { path, entityType: detailMatch[1], entityId: detailMatch[2] };
   }
   // Match /assembly/:assemblyId/:type (list page)
-  const listMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics)\/?$/.exec(path);
+  const listMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics|scoring)\/?$/.exec(path);
   if (listMatch) {
     return { path, entityType: listMatch[1] };
   }

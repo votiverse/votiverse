@@ -55,6 +55,7 @@ export interface GovernanceConfig {
     communityNotes: boolean;
     predictions: boolean;
     surveys: boolean;
+    scoring: boolean;
   };
   timeline: {
     deliberationDays: number;
@@ -440,4 +441,95 @@ export interface CommunityNote {
     ratio: number;
     belowMinEvaluations: boolean;
   };
+}
+
+// ---- Scoring ----
+
+export interface ScoringDimension {
+  id: string;
+  name: string;
+  min: number;
+  max: number;
+  step: number;
+  weight: number;
+}
+
+export interface ScoringCategory {
+  id: string;
+  name: string;
+  weight: number;
+  dimensions: ScoringDimension[];
+}
+
+export interface ScoringRubric {
+  categories: ScoringCategory[];
+}
+
+export interface ScoringEntry {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+export interface ScoringSettings {
+  allowRevision: boolean;
+  secretScores: boolean;
+  normalizeScores: boolean;
+  evaluatorAggregation: string;
+  dimensionAggregation: string;
+}
+
+export interface ScoringEvent {
+  id: string;
+  title: string;
+  description: string;
+  entries: ScoringEntry[];
+  rubric: ScoringRubric;
+  panelMemberIds: string[] | null;
+  timeline: {
+    opensAt: string;
+    closesAt: string;
+  };
+  settings: ScoringSettings;
+  createdAt: string;
+}
+
+export interface ScorecardScore {
+  dimensionId: string;
+  score: number;
+}
+
+export interface Scorecard {
+  id: string;
+  scoringEventId: string;
+  evaluatorId: string;
+  entryId: string;
+  scores: ScorecardScore[];
+  submittedAt: string;
+}
+
+export interface ScoringDimensionResult {
+  dimensionId: string;
+  aggregatedScore: number;
+}
+
+export interface ScoringCategoryResult {
+  categoryId: string;
+  categoryScore: number;
+  dimensions: ScoringDimensionResult[];
+}
+
+export interface ScoringEntryResult {
+  entryId: string;
+  rank: number;
+  finalScore: number;
+  categories: ScoringCategoryResult[];
+}
+
+export interface ScoringResult {
+  entries: ScoringEntryResult[];
+  eligibleCount: number;
+  participatingCount: number;
+  participationRate: number;
+  computedAt: number;
 }

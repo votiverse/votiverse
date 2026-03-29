@@ -708,4 +708,73 @@ export function unregisterDevice(deviceId: string): Promise<void> {
   return request("DELETE", `/me/devices/${deviceId}`);
 }
 
+// ---- Scoring ----
+
+export function listScoringEvents(
+  assemblyId: string,
+): Promise<{ scoringEvents: import("./types.js").ScoringEvent[] }> {
+  return request("GET", `/assemblies/${assemblyId}/scoring`);
+}
+
+export function getScoringEvent(
+  assemblyId: string,
+  scoringEventId: string,
+): Promise<import("./types.js").ScoringEvent> {
+  return request("GET", `/assemblies/${assemblyId}/scoring/${scoringEventId}`);
+}
+
+export function createScoringEvent(
+  assemblyId: string,
+  params: {
+    title: string;
+    description: string;
+    entries: Array<{ title: string; description?: string }>;
+    rubric: { categories: Array<{ name: string; weight: number; dimensions: Array<{ name: string; min: number; max: number; step: number; weight: number }> }> };
+    panelMemberIds?: string[];
+    opensAt: number;
+    closesAt: number;
+    settings: { allowRevision: boolean; secretScores: boolean; normalizeScores: boolean };
+  },
+): Promise<import("./types.js").ScoringEvent> {
+  return request("POST", `/assemblies/${assemblyId}/scoring`, params);
+}
+
+export function submitScorecard(
+  assemblyId: string,
+  scoringEventId: string,
+  params: { entryId: string; scores: Array<{ dimensionId: string; score: number }> },
+): Promise<import("./types.js").Scorecard> {
+  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/scorecards`, params);
+}
+
+export function reviseScorecard(
+  assemblyId: string,
+  scoringEventId: string,
+  scorecardId: string,
+  params: { entryId: string; scores: Array<{ dimensionId: string; score: number }> },
+): Promise<import("./types.js").Scorecard> {
+  return request("PUT", `/assemblies/${assemblyId}/scoring/${scoringEventId}/scorecards/${scorecardId}`, params);
+}
+
+export function listScorecards(
+  assemblyId: string,
+  scoringEventId: string,
+): Promise<{ scorecards: import("./types.js").Scorecard[] }> {
+  return request("GET", `/assemblies/${assemblyId}/scoring/${scoringEventId}/scorecards`);
+}
+
+export function getScoringResults(
+  assemblyId: string,
+  scoringEventId: string,
+): Promise<import("./types.js").ScoringResult> {
+  return request("GET", `/assemblies/${assemblyId}/scoring/${scoringEventId}/results`);
+}
+
+export function closeScoringEvent(
+  assemblyId: string,
+  scoringEventId: string,
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/close`);
+}
+
 export { ApiError };

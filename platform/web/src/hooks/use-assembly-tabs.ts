@@ -32,6 +32,9 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
       tabs.push({ to: `/assembly/${assemblyId}/delegations`, key: "Delegates", label: t("nav.delegates") });
       tabs.push({ to: `/assembly/${assemblyId}/topics`, key: "Topics", label: t("nav.topics") });
     }
+    if (config?.features.scoring) {
+      tabs.push({ to: `/assembly/${assemblyId}/scoring`, key: "Scores", label: t("nav.scores") });
+    }
     if (config?.features.communityNotes) {
       tabs.push({ to: `/assembly/${assemblyId}/notes`, key: "Notes", label: t("nav.notes") });
     }

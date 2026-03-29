@@ -23,6 +23,7 @@ export function effectiveNow(): number {
 
 export type EventStatus = "upcoming" | "deliberation" | "curation" | "voting" | "closed";
 export type SurveyStatus = "scheduled" | "open" | "closed";
+export type ScoringStatus = "scheduled" | "open" | "closed";
 
 /**
  * Derive voting event status from its timeline and optional assembly timeline config.
@@ -59,6 +60,17 @@ export function deriveSurveyStatus(schedule: number | string, closesAt: number |
   const now = effectiveNow();
   const open = typeof schedule === "number" ? schedule : new Date(schedule).getTime();
   const close = typeof closesAt === "number" ? closesAt : new Date(closesAt).getTime();
+
+  if (now < open) return "scheduled";
+  if (now < close) return "open";
+  return "closed";
+}
+
+/** Derive scoring event status from its timeline. */
+export function deriveScoringStatus(opensAt: string, closesAt: string): ScoringStatus {
+  const now = effectiveNow();
+  const open = new Date(opensAt).getTime();
+  const close = new Date(closesAt).getTime();
 
   if (now < open) return "scheduled";
   if (now < close) return "open";
