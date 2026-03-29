@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useSearchParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, LinkIcon, Check, Plus, Trash2, X, Search, Trophy, Users, Clock } from "lucide-react";
+import { ChevronLeft, LinkIcon, Check, Plus, Trash2, X, Search, Trophy, Users, Clock, Play, Square, CalendarPlus } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
 import { useAssembly } from "../hooks/use-assembly.js";
 import { useAssemblyRole } from "../hooks/use-assembly-role.js";
@@ -15,6 +15,11 @@ import { Card, CardHeader, CardBody, Button, Input, Label, Select, ErrorBox, Emp
 import { Avatar } from "../components/avatar.js";
 
 type ScoringTab = "open" | "closed";
+
+/** Derive effective status from a ScoringEvent API response. */
+function eventStatus(e: ScoringEvent) {
+  return deriveScoringStatus(e.timeline.opensAt, e.timeline.closesAt, e.status, e.startAsDraft);
+}
 
 // ---------------------------------------------------------------------------
 // Root component — list view
@@ -45,14 +50,20 @@ export function Scoring() {
       .finally(() => setLoading(false));
   }, [assemblyId]);
 
+  const draftEvents = useMemo(() =>
+    events.filter((e) => eventStatus(e) === "draft")
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [events],
+  );
+
   const openEvents = useMemo(() =>
-    events.filter((e) => deriveScoringStatus(e.timeline.opensAt, e.timeline.closesAt) !== "closed")
+    events.filter((e) => eventStatus(e) === "open")
       .sort((a, b) => new Date(a.timeline.closesAt).getTime() - new Date(b.timeline.closesAt).getTime()),
     [events],
   );
 
   const closedEvents = useMemo(() =>
-    events.filter((e) => deriveScoringStatus(e.timeline.opensAt, e.timeline.closesAt) === "closed")
+    events.filter((e) => eventStatus(e) === "closed")
       .sort((a, b) => new Date(b.timeline.closesAt).getTime() - new Date(a.timeline.closesAt).getTime()),
     [events],
   );
@@ -102,6 +113,18 @@ export function Scoring() {
             <Button onClick={() => setShowCreate(true)}>{t("scoring.newScoring")}</Button>
           )}
         </div>
+
+        {/* Draft section — admin only */}
+        {isAdmin && draftEvents.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-text-tertiary mb-3">{t("scoring.draftsSection")}</h3>
+            <div className="space-y-3">
+              {draftEvents.map((event) => (
+                <ScoringEventCard key={event.id} assemblyId={assemblyId!} event={event} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Open / Closed sub-tabs */}
         <div className="flex gap-4 mb-4 border-b border-border-default">
@@ -153,8 +176,9 @@ export function Scoring() {
 
 function ScoringEventCard({ assemblyId, event }: { assemblyId: string; event: ScoringEvent }) {
   const { t } = useTranslation("governance");
-  const status = deriveScoringStatus(event.timeline.opensAt, event.timeline.closesAt);
+  const status = eventStatus(event);
   const isClosed = status === "closed";
+  const isDraft = status === "draft";
   const closesIn = new Date(event.timeline.closesAt).getTime() - effectiveNow();
   const closesLabel = closesIn > 0
     ? t("scoring.closesIn", { days: Math.ceil(closesIn / 86400000) })
@@ -215,6 +239,8 @@ function ScoringEventCard({ assemblyId, event }: { assemblyId: string; event: Sc
             </button>
             {isClosed ? (
               <Button variant="secondary" size="sm">{t("scoring.viewResults")}</Button>
+            ) : isDraft ? (
+              <Button variant="secondary" size="sm">{t("scoring.editDraft")}</Button>
             ) : (
               <Button size="sm">{t("scoring.startScoring")}</Button>
             )}
@@ -267,14 +293,170 @@ export function ScoringDetailPage() {
     );
   }
 
-  const status = deriveScoringStatus(event.timeline.opensAt, event.timeline.closesAt);
+  const status = eventStatus(event);
+  const { isAdmin } = useAssemblyRole(assemblyId);
+
+  const handleOpen = async () => {
+    if (!assemblyId || !scoringEventId) return;
+    await api.openScoringEvent(assemblyId, scoringEventId);
+    signal("scoring");
+    // Reload
+    const updated = await api.getScoringEvent(assemblyId, scoringEventId);
+    setEvent(updated);
+  };
+
+  const handleClose = async () => {
+    if (!assemblyId || !scoringEventId) return;
+    await api.closeScoringEvent(assemblyId, scoringEventId);
+    signal("scoring");
+    const updated = await api.getScoringEvent(assemblyId, scoringEventId);
+    setEvent(updated);
+  };
+
+  const [showExtend, setShowExtend] = useState(false);
+  const [newDeadline, setNewDeadline] = useState("");
+  const [extending, setExtending] = useState(false);
+
+  const handleExtend = async () => {
+    if (!assemblyId || !scoringEventId || !newDeadline) return;
+    setExtending(true);
+    try {
+      await api.extendScoringDeadline(assemblyId, scoringEventId, new Date(newDeadline).toISOString());
+      signal("scoring");
+      const updated = await api.getScoringEvent(assemblyId, scoringEventId);
+      setEvent(updated);
+      setShowExtend(false);
+    } finally {
+      setExtending(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto animate-page-in">
-      {status === "closed" ? (
+      {status === "draft" ? (
+        <DraftView assemblyId={assemblyId!} event={event} isAdmin={isAdmin} onOpen={handleOpen} onDiscard={handleClose} />
+      ) : status === "closed" ? (
         <ScoringResults assemblyId={assemblyId!} event={event} />
       ) : (
-        <ScoringForm assemblyId={assemblyId!} event={event} />
+        <>
+          <ScoringForm assemblyId={assemblyId!} event={event} />
+          {/* Admin controls for open events */}
+          {isAdmin && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button variant="secondary" size="sm" onClick={() => setShowExtend(true)}>
+                <CalendarPlus size={16} /> {t("scoring.extendDeadline")}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={handleClose}>
+                <Square size={16} /> {t("scoring.closeScoring")}
+              </Button>
+            </div>
+          )}
+          {/* Extend deadline dialog */}
+          {showExtend && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowExtend(false)}>
+              <div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}><Card>
+                <CardHeader>
+                  <h3 className="text-base font-bold text-text-primary">{t("scoring.extendDeadline")}</h3>
+                </CardHeader>
+                <CardBody className="space-y-4">
+                  {event.originalClosesAt && (
+                    <p className="text-xs text-text-muted">{t("scoring.originalDeadline", { date: new Date(event.originalClosesAt).toLocaleDateString() })}</p>
+                  )}
+                  <div>
+                    <Label>{t("scoring.extendTo")}</Label>
+                    <Input type="datetime-local" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} />
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <Button variant="secondary" onClick={() => setShowExtend(false)}>{t("common:cancel")}</Button>
+                    <Button onClick={handleExtend} disabled={!newDeadline || extending}>{t("scoring.extendDeadline")}</Button>
+                  </div>
+                </CardBody>
+              </Card></div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Draft view — shows event details with admin controls
+// ---------------------------------------------------------------------------
+
+function DraftView({
+  assemblyId,
+  event,
+  isAdmin,
+  onOpen,
+  onDiscard,
+}: {
+  assemblyId: string;
+  event: ScoringEvent;
+  isAdmin: boolean;
+  onOpen: () => void;
+  onDiscard: () => void;
+}) {
+  const { t } = useTranslation("governance");
+
+  const totalDimensions = event.rubric.categories.reduce(
+    (acc, cat) => acc + cat.dimensions.length, 0,
+  );
+
+  return (
+    <div className="space-y-6 pb-12">
+      <Link
+        to={`/assembly/${assemblyId}/scoring`}
+        className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
+      >
+        <ChevronLeft size={16} />
+        {t("scoring.backToScores")}
+      </Link>
+
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <StatusBadge status="draft" />
+        </div>
+        <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary leading-tight mb-1">
+          {event.title}
+        </h1>
+        {event.description && <p className="text-sm text-text-muted">{event.description}</p>}
+      </div>
+
+      {/* Event summary */}
+      <Card>
+        <CardBody className="p-4 space-y-3">
+          <div className="flex items-center gap-4 text-sm text-text-muted">
+            <span>{t("scoring.entry", { count: event.entries.length })}</span>
+            <span>{t("scoring.dimension", { count: totalDimensions })}</span>
+            {event.panelMemberIds && (
+              <span className="flex items-center gap-1">
+                <Users size={12} />
+                {t("scoring.evaluator", { count: event.panelMemberIds.length })}
+              </span>
+            )}
+            {!event.panelMemberIds && (
+              <span>{t("scoring.allMembers_short")}</span>
+            )}
+          </div>
+          <div className="text-sm text-text-muted">
+            <span className="font-medium">{t("scoring.opensLabel")}:</span> {new Date(event.timeline.opensAt).toLocaleString()}
+            {" · "}
+            <span className="font-medium">{t("scoring.closesLabel")}:</span> {new Date(event.timeline.closesAt).toLocaleString()}
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Admin actions */}
+      {isAdmin && (
+        <div className="flex gap-3">
+          <Button onClick={onOpen}>
+            <Play size={16} /> {t("scoring.openScoring")}
+          </Button>
+          <Button variant="secondary" onClick={onDiscard}>
+            {t("scoring.discardDraft")}
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -403,7 +585,7 @@ function ScoringForm({ assemblyId, event }: { assemblyId: string; event: Scoring
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <StatusBadge status={deriveScoringStatus(event.timeline.opensAt, event.timeline.closesAt)} />
+          <StatusBadge status={eventStatus(event)} />
           {closesLabel && (
             <span className="text-xs font-medium text-text-tertiary flex items-center gap-1">
               <Clock size={12} />
@@ -912,8 +1094,7 @@ function CreateScoringForm({
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doCreate = async (startAsDraft: boolean) => {
     if (!isValid()) return;
     setSubmitting(true);
     setFormError(null);
@@ -944,6 +1125,7 @@ function CreateScoringForm({
         panelMemberIds: evaluatorType === "panel" ? panelMembers.map((p) => p.id) : null,
         timeline: { opensAt: now, closesAt: now + 86400000 * 7 },
         settings,
+        startAsDraft: startAsDraft || undefined,
       });
       signal("scoring");
       onCreated(event);
@@ -952,6 +1134,11 @@ function CreateScoringForm({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doCreate(false);
   };
 
   return (
@@ -1280,6 +1467,9 @@ function CreateScoringForm({
           <div className="max-w-3xl mx-auto flex gap-3 justify-end">
             <Button type="button" variant="secondary" className="flex-1 sm:flex-none" onClick={onClose}>
               {t("common:cancel")}
+            </Button>
+            <Button type="button" variant="secondary" className="flex-1 sm:flex-none" disabled={submitting || !isValid()} onClick={() => doCreate(true)}>
+              {t("scoring.saveAsDraft")}
             </Button>
             <Button type="submit" className="flex-1 sm:flex-none" disabled={submitting || !isValid()}>
               {submitting ? t("scoring.publishing") : t("scoring.publishEvent")}

@@ -733,6 +733,7 @@ export function createScoringEvent(
     panelMemberIds?: string[] | null;
     timeline: { opensAt: number; closesAt: number };
     settings: { allowRevision: boolean; secretScores: boolean; normalizeScores: boolean };
+    startAsDraft?: boolean;
   },
 ): Promise<import("./types.js").ScoringEvent> {
   return request("POST", `/assemblies/${assemblyId}/scoring`, params);
@@ -774,6 +775,29 @@ export function closeScoringEvent(
   scoringEventId: string,
 ): Promise<{ status: string }> {
   return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/close`);
+}
+
+export function openScoringEvent(
+  assemblyId: string,
+  scoringEventId: string,
+): Promise<{ status: string }> {
+  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/open`);
+}
+
+export function extendScoringDeadline(
+  assemblyId: string,
+  scoringEventId: string,
+  closesAt: string,
+): Promise<{ closesAt: string; originalClosesAt: string | null }> {
+  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/extend`, { closesAt });
+}
+
+export function updateScoringDraft(
+  assemblyId: string,
+  scoringEventId: string,
+  params: Record<string, unknown>,
+): Promise<import("./types.js").ScoringEvent> {
+  return request("PUT", `/assemblies/${assemblyId}/scoring/${scoringEventId}`, params);
 }
 
 export { ApiError };

@@ -158,6 +158,7 @@ export function StatusBadge({ status }: { status: string }) {
     closed: { color: "gray", key: "status.closed" },
     open: { color: "green", key: "status.open" },
     scheduled: { color: "yellow", key: "status.scheduled" },
+    draft: { color: "yellow", key: "status.draft" },
   };
   const entry = map[status] ?? { color: "gray" as const, key: status };
   return <Badge color={entry.color}>{t(entry.key)}</Badge>;

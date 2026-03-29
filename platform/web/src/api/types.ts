@@ -490,6 +490,10 @@ export interface ScoringEvent {
   };
   settings: ScoringSettings;
   createdAt: string;
+  /** Effective status computed by the API. */
+  status?: "draft" | "open" | "closed";
+  startAsDraft?: boolean;
+  originalClosesAt?: string | null;
 }
 
 export interface ScorecardScore {

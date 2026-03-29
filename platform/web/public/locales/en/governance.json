@@ -857,5 +857,20 @@
   "scoring.submitError": "Failed to submit scorecard",
   "scoring.resultsError": "Failed to load results",
   "scoring.scoresSecret": "Scores are secret until the event closes.",
-  "scoring.allMembers_short": "All members"
+  "scoring.allMembers_short": "All members",
+  "scoring.statusDraft": "Draft",
+  "scoring.openScoring": "Open Scoring",
+  "scoring.closeScoring": "Close Scoring",
+  "scoring.extendDeadline": "Extend Deadline",
+  "scoring.saveAsDraft": "Save as Draft",
+  "scoring.extendTo": "New deadline",
+  "scoring.deadlineExtended": "Extended from {{original}}",
+  "scoring.confirmClose": "Close this scoring event? Evaluators will no longer be able to submit or revise scorecards.",
+  "scoring.confirmDiscard": "Discard this draft? The scoring event will be closed without ever opening.",
+  "scoring.editDraft": "Edit Draft",
+  "scoring.discardDraft": "Discard",
+  "scoring.draftsSection": "Drafts",
+  "scoring.noDrafts": "No draft scoring events",
+  "scoring.saveChanges": "Save Changes",
+  "scoring.originalDeadline": "Originally due {{date}}"
 }

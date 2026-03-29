@@ -25,6 +25,7 @@
   "status.closed": "Ended",
   "status.open": "Open",
   "status.scheduled": "Scheduled",
+  "status.draft": "Draft",
   "nav.personal": "Personal",
   "nav.home": "Home",
   "nav.myGroups": "My Groups",

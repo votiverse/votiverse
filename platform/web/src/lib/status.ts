@@ -23,7 +23,7 @@ export function effectiveNow(): number {
 
 export type EventStatus = "upcoming" | "deliberation" | "curation" | "voting" | "closed";
 export type SurveyStatus = "scheduled" | "open" | "closed";
-export type ScoringStatus = "scheduled" | "open" | "closed";
+export type ScoringStatus = "draft" | "open" | "closed";
 
 /**
  * Derive voting event status from its timeline and optional assembly timeline config.
@@ -66,13 +66,37 @@ export function deriveSurveyStatus(schedule: number | string, closesAt: number |
   return "closed";
 }
 
-/** Derive scoring event status from its timeline. */
-export function deriveScoringStatus(opensAt: string, closesAt: string): ScoringStatus {
+/**
+ * Derive scoring event status. Uses the API-provided explicit status when
+ * available, with timestamp-based fallback for backward compatibility.
+ */
+export function deriveScoringStatus(
+  opensAt: string,
+  closesAt: string,
+  apiStatus?: "draft" | "open" | "closed",
+  startAsDraft?: boolean,
+): ScoringStatus {
+  // If the API provides a status, use the same commanded+time derivation
+  if (apiStatus !== undefined) {
+    const now = effectiveNow();
+    const close = new Date(closesAt).getTime();
+    const open = new Date(opensAt).getTime();
+
+    if (apiStatus === "closed") return "closed";
+    if (apiStatus === "open") return now >= close ? "closed" : "open";
+    // apiStatus === "draft"
+    if (startAsDraft) return "draft";
+    if (now >= close) return "closed";
+    if (now >= open) return "open";
+    return "draft";
+  }
+
+  // Fallback: timestamp-only derivation (backward compat)
   const now = effectiveNow();
   const open = new Date(opensAt).getTime();
   const close = new Date(closesAt).getTime();
 
-  if (now < open) return "scheduled";
-  if (now < close) return "open";
-  return "closed";
+  if (now >= close) return "closed";
+  if (now >= open) return "open";
+  return "draft";
 }
