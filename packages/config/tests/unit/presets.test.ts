@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { PRESETS, DEFAULT_PRESET, getPreset, getPresetNames, validateConfig } from "../../src/index.js";
-import type { PresetName } from "../../src/index.js";
 
 describe("Named presets", () => {
   it("provides six named presets", () => {
@@ -20,7 +19,6 @@ describe("Named presets", () => {
 
   it("getPreset returns the correct preset", () => {
     const preset = getPreset("LIQUID_DELEGATION");
-    expect(preset.name).toBe("Liquid Delegation");
     expect(preset.delegation.candidacy).toBe(true);
     expect(preset.delegation.transferable).toBe(true);
   });
@@ -39,32 +37,6 @@ describe("Named presets", () => {
         expect(result.issues.filter((i) => i.severity === "error")).toHaveLength(0);
       });
     }
-  });
-
-  describe("preset display names", () => {
-    it("LIQUID_DELEGATION: Liquid Delegation", () => {
-      expect(PRESETS.LIQUID_DELEGATION.name).toBe("Liquid Delegation");
-    });
-
-    it("DIRECT_DEMOCRACY: Direct Democracy", () => {
-      expect(PRESETS.DIRECT_DEMOCRACY.name).toBe("Direct Democracy");
-    });
-
-    it("SWISS_VOTATION: Swiss Votation", () => {
-      expect(PRESETS.SWISS_VOTATION.name).toBe("Swiss Votation");
-    });
-
-    it("LIQUID_OPEN: Liquid Open", () => {
-      expect(PRESETS.LIQUID_OPEN.name).toBe("Liquid Open");
-    });
-
-    it("REPRESENTATIVE: Representative", () => {
-      expect(PRESETS.REPRESENTATIVE.name).toBe("Representative");
-    });
-
-    it("CIVIC: Civic Participatory", () => {
-      expect(PRESETS.CIVIC.name).toBe("Civic Participatory");
-    });
   });
 
   describe("delegation 2×2 grid", () => {
@@ -131,29 +103,6 @@ describe("Named presets", () => {
     });
   });
 
-  describe("feature properties", () => {
-    it("LIQUID_DELEGATION: all features enabled", () => {
-      const f = PRESETS.LIQUID_DELEGATION.features;
-      expect(f.communityNotes).toBe(true);
-      expect(f.predictions).toBe(true);
-      expect(f.surveys).toBe(true);
-    });
-
-    it("DIRECT_DEMOCRACY: no features", () => {
-      const f = PRESETS.DIRECT_DEMOCRACY.features;
-      expect(f.communityNotes).toBe(false);
-      expect(f.predictions).toBe(false);
-      expect(f.surveys).toBe(false);
-    });
-
-    it("SWISS_VOTATION: community notes and predictions, no surveys", () => {
-      const f = PRESETS.SWISS_VOTATION.features;
-      expect(f.communityNotes).toBe(true);
-      expect(f.predictions).toBe(true);
-      expect(f.surveys).toBe(false);
-    });
-  });
-
   describe("preset timelines", () => {
     it("LIQUID_DELEGATION: 7/2/7", () => {
       const t = PRESETS.LIQUID_DELEGATION.timeline;
@@ -203,7 +152,6 @@ describe("Named presets", () => {
     expect(Object.isFrozen(preset)).toBe(true);
     expect(Object.isFrozen(preset.delegation)).toBe(true);
     expect(Object.isFrozen(preset.ballot)).toBe(true);
-    expect(Object.isFrozen(preset.features)).toBe(true);
     expect(Object.isFrozen(preset.timeline)).toBe(true);
   });
 
@@ -212,7 +160,6 @@ describe("Named presets", () => {
     expect(Object.isFrozen(preset)).toBe(true);
     expect(Object.isFrozen(preset.delegation)).toBe(true);
     expect(Object.isFrozen(preset.ballot)).toBe(true);
-    expect(Object.isFrozen(preset.features)).toBe(true);
     expect(Object.isFrozen(preset.timeline)).toBe(true);
   });
 

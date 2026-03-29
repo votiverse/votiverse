@@ -9,17 +9,13 @@ import type {
   GovernanceConfig,
   DelegationConfig,
   BallotConfig,
-  FeatureConfig,
   TimelineConfig,
 } from "./types.js";
 
 /** Partial override type for GovernanceConfig. */
 export interface ConfigOverrides {
-  readonly name?: string;
-  readonly description?: string;
   readonly delegation?: Partial<DelegationConfig>;
   readonly ballot?: Partial<BallotConfig>;
-  readonly features?: Partial<FeatureConfig>;
   readonly timeline?: Partial<TimelineConfig>;
 }
 
@@ -29,8 +25,6 @@ export interface ConfigOverrides {
  */
 export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides): GovernanceConfig {
   return {
-    name: overrides.name ?? base.name,
-    description: overrides.description ?? base.description,
     delegation: {
       ...base.delegation,
       ...overrides.delegation,
@@ -38,10 +32,6 @@ export function deriveConfig(base: GovernanceConfig, overrides: ConfigOverrides)
     ballot: {
       ...base.ballot,
       ...overrides.ballot,
-    },
-    features: {
-      ...base.features,
-      ...overrides.features,
     },
     timeline: {
       ...base.timeline,

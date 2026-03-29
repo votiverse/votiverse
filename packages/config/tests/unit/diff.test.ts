@@ -8,17 +8,6 @@ describe("diffConfig", () => {
     expect(diffs).toHaveLength(0);
   });
 
-  it("detects name change", () => {
-    const base = getPreset("DIRECT_DEMOCRACY");
-    const modified = deriveConfig(base, { name: "My Custom Config" });
-    const diffs = diffConfig(base, modified);
-    expect(diffs).toContainEqual({
-      path: "name",
-      oldValue: "Direct Democracy",
-      newValue: "My Custom Config",
-    });
-  });
-
   it("detects delegation property changes", () => {
     const base = getPreset("DIRECT_DEMOCRACY");
     const modified = deriveConfig(base, {
@@ -66,7 +55,6 @@ describe("diffConfig", () => {
     const diffs = diffConfig(liquid, open);
 
     const paths = diffs.map((d) => d.path);
-    expect(paths).toContain("name");
     expect(paths).toContain("delegation.candidacy");
     expect(paths).toContain("ballot.secret");
     expect(diffs.length).toBeGreaterThan(0);

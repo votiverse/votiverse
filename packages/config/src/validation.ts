@@ -2,7 +2,7 @@
  * @votiverse/config — Configuration validation
  *
  * Validates GovernanceConfig for type and range correctness.
- * Every combination of the 13 parameters is valid — there are no
+ * Every combination of the 10 parameters is valid — there are no
  * cross-field constraint violations. Only range/type checks remain.
  */
 
@@ -24,7 +24,7 @@ export interface ValidationResult {
 /**
  * Validates a GovernanceConfig for range and type correctness.
  *
- * All combinations of the 13 governance parameters are valid.
+ * All combinations of the 10 governance parameters are valid.
  * This function only checks that numeric values are within legal ranges
  * and timeline values are positive integers.
  */

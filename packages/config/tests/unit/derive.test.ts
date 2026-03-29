@@ -15,13 +15,6 @@ describe("deriveConfig", () => {
     expect(base.delegation.candidacy).toBe(originalCandidacy);
   });
 
-  it("overrides top-level properties", () => {
-    const base = getPreset("DIRECT_DEMOCRACY");
-    const derived = deriveConfig(base, { name: "My Config" });
-    expect(derived.name).toBe("My Config");
-    expect(derived.description).toBe(base.description);
-  });
-
   it("overrides delegation properties", () => {
     const base = getPreset("DIRECT_DEMOCRACY");
     const derived = deriveConfig(base, {
@@ -41,16 +34,6 @@ describe("deriveConfig", () => {
     expect(derived.ballot.secret).toBe(base.ballot.secret);
   });
 
-  it("overrides feature properties", () => {
-    const base = getPreset("DIRECT_DEMOCRACY");
-    const derived = deriveConfig(base, {
-      features: { predictions: true, communityNotes: true },
-    });
-    expect(derived.features.predictions).toBe(true);
-    expect(derived.features.communityNotes).toBe(true);
-    expect(derived.features.surveys).toBe(base.features.surveys);
-  });
-
   it("overrides timeline properties", () => {
     const base = getPreset("LIQUID_DELEGATION");
     const derived = deriveConfig(base, {
@@ -64,10 +47,8 @@ describe("deriveConfig", () => {
   it("produces a new config that can be validated", () => {
     const base = getPreset("LIQUID_OPEN");
     const derived = deriveConfig(base, {
-      name: "Custom Liquid",
       ballot: { method: "supermajority" },
     });
-    expect(derived.name).toBe("Custom Liquid");
     expect(derived.ballot.method).toBe("supermajority");
   });
 });

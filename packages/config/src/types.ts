@@ -75,25 +75,6 @@ export interface BallotConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Feature toggles
-// ---------------------------------------------------------------------------
-
-/** Controls which features are active in the governance instance. */
-export interface FeatureConfig {
-  /** Crowd-sourced context notes on proposals, evaluated by the community. */
-  readonly communityNotes: boolean;
-
-  /** Falsifiable predictions attached to proposals, with track records over time. */
-  readonly predictions: boolean;
-
-  /** Sentiment surveys decoupled from binding votes. */
-  readonly surveys: boolean;
-
-  /** Rubric-based multi-criteria scoring events (non-delegable). */
-  readonly scoring: boolean;
-}
-
-// ---------------------------------------------------------------------------
 // Timeline configuration
 // ---------------------------------------------------------------------------
 
@@ -130,22 +111,19 @@ export interface TimelineConfig {
  * Configuration is data — the engine interprets configs, it never
  * hard-codes governance logic.
  *
- * 13 parameters across 4 sections. Every parameter represents a
- * governance decision. Implementation tuning (note thresholds,
- * awareness intensity, chain depth) lives in sensible defaults,
- * not in the configuration surface.
+ * 10 parameters across 3 sections, all voting-specific:
+ * delegation (2) + ballot (5) + timeline (3).
+ *
+ * Capability toggles (community notes, surveys, scoring) are managed
+ * by the backend's group capability registry, not by governance config.
+ * Predictions are a platform-level feature, always available.
+ * Group name and description are owned by the group entity, not the config.
  */
 export interface GovernanceConfig {
-  /** Human-readable name for this configuration. */
-  readonly name: string;
-  /** Optional description. */
-  readonly description: string;
   /** Delegation primitives. */
   readonly delegation: DelegationConfig;
   /** Ballot and voting parameters. */
   readonly ballot: BallotConfig;
-  /** Feature toggles. */
-  readonly features: FeatureConfig;
   /** Timeline durations for voting events. */
   readonly timeline: TimelineConfig;
 }

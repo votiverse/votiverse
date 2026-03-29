@@ -9,7 +9,6 @@ export type {
   GovernanceConfig,
   DelegationConfig,
   BallotConfig,
-  FeatureConfig,
   TimelineConfig,
   PresetName,
   VotingMethod,
