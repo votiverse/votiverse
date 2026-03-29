@@ -10,11 +10,14 @@ import type {
   CandidacyId,
   CommitmentId,
   DelegationId,
+  EntryId,
   EventId,
   IssueId,
   NoteId,
   OutcomeId,
   ParticipantId,
+  ScorecardId,
+  ScoringEventId,
   SurveyId,
   PredictionId,
   ProposalId,
@@ -102,6 +105,21 @@ export function generateNoteId(): NoteId {
 /** Generates a new unique AssetId. */
 export function generateAssetId(): AssetId {
   return uuidv7() as AssetId;
+}
+
+/** Generates a new unique ScoringEventId. */
+export function generateScoringEventId(): ScoringEventId {
+  return uuidv7() as ScoringEventId;
+}
+
+/** Generates a new unique EntryId. */
+export function generateEntryId(): EntryId {
+  return uuidv7() as EntryId;
+}
+
+/** Generates a new unique ScorecardId. */
+export function generateScorecardId(): ScorecardId {
+  return uuidv7() as ScorecardId;
 }
 
 // ---------------------------------------------------------------------------

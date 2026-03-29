@@ -11,11 +11,14 @@ import type {
   CommitmentId,
   ContentHash,
   DelegationId,
+  EntryId,
   EventId,
   IssueId,
   NoteId,
   ParticipantId,
   ParticipantStatus,
+  ScorecardId,
+  ScoringEventId,
   SurveyId,
   PredictionId,
   ProposalId,
@@ -74,7 +77,11 @@ export type EventType =
   | "ProposalEndorsed"
   | "RoleGranted"
   | "RoleRevoked"
-  | "IssueCancelled";
+  | "IssueCancelled"
+  | "ScoringEventCreated"
+  | "ScorecardSubmitted"
+  | "ScorecardRevised"
+  | "ScoringEventClosed";
 
 // ---------------------------------------------------------------------------
 // Event payload types
@@ -306,6 +313,98 @@ export interface RoleRevokedPayload {
 }
 
 // ---------------------------------------------------------------------------
+// Scoring event payload types
+// ---------------------------------------------------------------------------
+
+/** A single scoring dimension within a rubric — stored in event payloads. */
+export interface ScoringDimensionPayload {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly scale: { readonly min: number; readonly max: number; readonly step?: number };
+  readonly weight: number;
+  readonly labels?: readonly string[];
+}
+
+/** A rubric category — stored in event payloads. */
+export interface ScoringCategoryPayload {
+  readonly id: string;
+  readonly name: string;
+  readonly weight: number;
+  readonly dimensions: readonly ScoringDimensionPayload[];
+}
+
+/** How to combine scores from multiple evaluators for the same dimension. */
+export type EvaluatorAggregation = "mean" | "median" | "trimmed-mean";
+
+/** How to combine dimensional scores into a single score per entry. */
+export type DimensionAggregation = "weighted-sum" | "geometric-mean";
+
+/** Complete rubric — stored in event payloads. */
+export interface RubricPayload {
+  readonly categories: readonly ScoringCategoryPayload[];
+  readonly evaluatorAggregation: EvaluatorAggregation;
+  readonly dimensionAggregation: DimensionAggregation;
+}
+
+/** An entry being scored — stored in event payloads. */
+export interface ScoringEntryPayload {
+  readonly id: EntryId;
+  readonly title: string;
+  readonly description?: string;
+}
+
+/** Timeline for a scoring event. */
+export interface ScoringTimelinePayload {
+  readonly opensAt: Timestamp;
+  readonly closesAt: Timestamp;
+}
+
+/** Per-scoring-event settings. */
+export interface ScoringSettingsPayload {
+  readonly allowRevision: boolean;
+  readonly secretScores: boolean;
+  readonly normalizeScores: boolean;
+}
+
+/** A single dimension score within a scorecard. */
+export interface DimensionScorePayload {
+  readonly dimensionId: string;
+  readonly score: number;
+}
+
+export interface ScoringEventCreatedPayload {
+  readonly scoringEventId: ScoringEventId;
+  readonly title: string;
+  readonly description: string;
+  readonly entries: readonly ScoringEntryPayload[];
+  readonly rubric: RubricPayload;
+  readonly panelMemberIds: readonly ParticipantId[] | null;
+  readonly timeline: ScoringTimelinePayload;
+  readonly settings: ScoringSettingsPayload;
+}
+
+export interface ScorecardSubmittedPayload {
+  readonly scorecardId: ScorecardId;
+  readonly scoringEventId: ScoringEventId;
+  readonly evaluatorId: ParticipantId;
+  readonly entryId: EntryId;
+  readonly scores: readonly DimensionScorePayload[];
+}
+
+export interface ScorecardRevisedPayload {
+  readonly scorecardId: ScorecardId;
+  readonly scoringEventId: ScoringEventId;
+  readonly evaluatorId: ParticipantId;
+  readonly entryId: EntryId;
+  readonly scores: readonly DimensionScorePayload[];
+}
+
+export interface ScoringEventClosedPayload {
+  readonly scoringEventId: ScoringEventId;
+}
+
+// ---------------------------------------------------------------------------
 // Concrete event types
 // ---------------------------------------------------------------------------
 
@@ -366,6 +465,11 @@ export type ProposalEndorsedEvent = BaseEvent<"ProposalEndorsed", ProposalEndors
 export type RoleGrantedEvent = BaseEvent<"RoleGranted", RoleGrantedPayload>;
 export type RoleRevokedEvent = BaseEvent<"RoleRevoked", RoleRevokedPayload>;
 
+export type ScoringEventCreatedEvent = BaseEvent<"ScoringEventCreated", ScoringEventCreatedPayload>;
+export type ScorecardSubmittedEvent = BaseEvent<"ScorecardSubmitted", ScorecardSubmittedPayload>;
+export type ScorecardRevisedEvent = BaseEvent<"ScorecardRevised", ScorecardRevisedPayload>;
+export type ScoringEventClosedEvent = BaseEvent<"ScoringEventClosed", ScoringEventClosedPayload>;
+
 /**
  * Union of all concrete domain event types.
  * Use this when you need to handle any event from the store.
@@ -398,7 +502,11 @@ export type DomainEvent =
   | CommunityNoteWithdrawnEvent
   | ProposalEndorsedEvent
   | RoleGrantedEvent
-  | RoleRevokedEvent;
+  | RoleRevokedEvent
+  | ScoringEventCreatedEvent
+  | ScorecardSubmittedEvent
+  | ScorecardRevisedEvent
+  | ScoringEventClosedEvent;
 
 // ---------------------------------------------------------------------------
 // Event creation helper

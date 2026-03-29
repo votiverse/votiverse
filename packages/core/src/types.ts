@@ -56,6 +56,15 @@ export type NoteId = string & { readonly __brand: "NoteId" };
 /** Unique identifier for a stored binary asset. */
 export type AssetId = string & { readonly __brand: "AssetId" };
 
+/** Unique identifier for a scoring event. */
+export type ScoringEventId = string & { readonly __brand: "ScoringEventId" };
+
+/** Unique identifier for an entry being scored. */
+export type EntryId = string & { readonly __brand: "EntryId" };
+
+/** Unique identifier for a submitted scorecard. */
+export type ScorecardId = string & { readonly __brand: "ScorecardId" };
+
 /** SHA-256 content hash for integrity verification. */
 export type ContentHash = string & { readonly __brand: "ContentHash" };
 
