@@ -71,6 +71,7 @@ import type {
 import { ScoringService } from "@votiverse/scoring";
 import type {
   CreateScoringEventParams,
+  UpdateDraftParams,
   SubmitScorecardParams,
   ReviseScorecardParams,
   ScoringEvent,
@@ -78,7 +79,7 @@ import type {
   ScoringResult,
   ScoringStatus,
 } from "@votiverse/scoring";
-import type { ScoringEventId, EntryId } from "@votiverse/core";
+import type { ScoringEventId, EntryId, Timestamp } from "@votiverse/core";
 import { ProposalService, CandidacyService, NoteService } from "@votiverse/content";
 import type {
   ProposalMetadata,
@@ -822,6 +823,15 @@ export class VotiverseEngine {
   readonly scoring = {
     create: (params: CreateScoringEventParams): Promise<ScoringEvent> =>
       this.scoringService.create(params),
+
+    open: (scoringEventId: ScoringEventId): Promise<ScoringEvent> =>
+      this.scoringService.open(scoringEventId),
+
+    extendDeadline: (scoringEventId: ScoringEventId, newClosesAt: Timestamp): Promise<ScoringEvent> =>
+      this.scoringService.extendDeadline(scoringEventId, newClosesAt),
+
+    updateDraft: (scoringEventId: ScoringEventId, updates: UpdateDraftParams): Promise<ScoringEvent> =>
+      this.scoringService.updateDraft(scoringEventId, updates),
 
     submitScorecard: (params: SubmitScorecardParams): Promise<Scorecard> =>
       this.scoringService.submitScorecard(params),
