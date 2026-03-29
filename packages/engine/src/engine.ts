@@ -873,6 +873,11 @@ export class VotiverseEngine {
   getEventStore(): EventStore {
     return this.eventStore;
   }
+
+  /** Access the engine's time provider (for dev clock-aware time queries). */
+  getTimeProvider(): TimeProvider {
+    return this.timeProvider;
+  }
 }
 
 // ---------------------------------------------------------------------------
