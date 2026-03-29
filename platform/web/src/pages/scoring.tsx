@@ -260,6 +260,10 @@ export function ScoringDetailPage() {
   const { assemblyId, scoringEventId } = useParams();
   const [event, setEvent] = useState<ScoringEvent | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAssemblyRole(assemblyId);
+  const [showExtend, setShowExtend] = useState(false);
+  const [newDeadline, setNewDeadline] = useState("");
+  const [extending, setExtending] = useState(false);
 
   useEffect(() => {
     if (!assemblyId || !scoringEventId) return;
@@ -294,13 +298,11 @@ export function ScoringDetailPage() {
   }
 
   const status = eventStatus(event);
-  const { isAdmin } = useAssemblyRole(assemblyId);
 
   const handleOpen = async () => {
     if (!assemblyId || !scoringEventId) return;
     await api.openScoringEvent(assemblyId, scoringEventId);
     signal("scoring");
-    // Reload
     const updated = await api.getScoringEvent(assemblyId, scoringEventId);
     setEvent(updated);
   };
@@ -312,10 +314,6 @@ export function ScoringDetailPage() {
     const updated = await api.getScoringEvent(assemblyId, scoringEventId);
     setEvent(updated);
   };
-
-  const [showExtend, setShowExtend] = useState(false);
-  const [newDeadline, setNewDeadline] = useState("");
-  const [extending, setExtending] = useState(false);
 
   const handleExtend = async () => {
     if (!assemblyId || !scoringEventId || !newDeadline) return;
@@ -339,18 +337,20 @@ export function ScoringDetailPage() {
         <ScoringResults assemblyId={assemblyId!} event={event} />
       ) : (
         <>
-          <ScoringForm assemblyId={assemblyId!} event={event} />
-          {/* Admin controls for open events */}
-          {isAdmin && (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="secondary" size="sm" onClick={() => setShowExtend(true)}>
-                <CalendarPlus size={16} /> {t("scoring.extendDeadline")}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={handleClose}>
-                <Square size={16} /> {t("scoring.closeScoring")}
-              </Button>
-            </div>
-          )}
+          <ScoringForm
+            assemblyId={assemblyId!}
+            event={event}
+            adminControls={isAdmin ? (
+              <div className="flex flex-wrap gap-3">
+                <Button variant="secondary" size="sm" onClick={() => setShowExtend(true)}>
+                  <CalendarPlus size={16} /> {t("scoring.extendDeadline")}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={handleClose}>
+                  <Square size={16} /> {t("scoring.closeScoring")}
+                </Button>
+              </div>
+            ) : undefined}
+          />
           {/* Extend deadline dialog */}
           {showExtend && (
             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowExtend(false)}>
@@ -466,7 +466,7 @@ function DraftView({
 // Scoring form — submit scorecards for an open event
 // ---------------------------------------------------------------------------
 
-function ScoringForm({ assemblyId, event }: { assemblyId: string; event: ScoringEvent }) {
+function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string; event: ScoringEvent; adminControls?: React.ReactNode }) {
   const { t } = useTranslation("governance");
   const navigate = useNavigate();
   const { getParticipantId } = useParticipant();
@@ -609,6 +609,7 @@ function ScoringForm({ assemblyId, event }: { assemblyId: string; event: Scoring
         {event.description && (
           <p className="text-sm text-text-muted">{event.description}</p>
         )}
+        {adminControls && <div className="mt-3">{adminControls}</div>}
       </div>
 
       {submitError && <ErrorBox message={submitError} />}
