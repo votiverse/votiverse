@@ -3,6 +3,9 @@
  *
  * Manages scoring events, scorecards, and ranking computation.
  * Non-delegable — every evaluator scores for themselves.
+ *
+ * Lifecycle: draft → open → closed
+ * See docs/design/scoring-v2-lifecycle.md for the full design.
  */
 
 import type {
@@ -11,11 +14,18 @@ import type {
   ParticipantId,
   ScoringEventId,
   EntryId,
+  Timestamp,
   ScoringEventCreatedPayload,
+  ScoringEventOpenedPayload,
+  ScoringEventDeadlineExtendedPayload,
+  ScoringEventDraftUpdatedPayload,
   ScorecardSubmittedPayload,
   ScorecardRevisedPayload,
   ScoringEventClosedPayload,
   ScoringEventCreatedEvent,
+  ScoringEventOpenedEvent,
+  ScoringEventDeadlineExtendedEvent,
+  ScoringEventDraftUpdatedEvent,
   ScorecardSubmittedEvent,
   ScorecardRevisedEvent,
   ScoringEventClosedEvent,
@@ -39,6 +49,7 @@ import type {
   Scorecard,
   ScoringResult,
   CreateScoringEventParams,
+  UpdateDraftParams,
   SubmitScorecardParams,
   ReviseScorecardParams,
   Rubric,
@@ -64,7 +75,7 @@ export class ScoringService {
   // Commands
   // ---------------------------------------------------------------------------
 
-  /** Create a new scoring event. */
+  /** Create a new scoring event. Initial commanded status is always "draft". */
   async create(params: CreateScoringEventParams): Promise<ScoringEvent> {
     this.requireScoringEnabled();
 
@@ -81,6 +92,7 @@ export class ScoringService {
 
     const scoringEventId = generateScoringEventId();
     const now = this.timeProvider.now();
+    const startAsDraft = params.startAsDraft ?? false;
 
     const entries = params.entries.map((e) => ({
       id: generateEntryId(),
@@ -97,6 +109,7 @@ export class ScoringService {
       panelMemberIds: params.panelMemberIds,
       timeline: params.timeline,
       settings: params.settings,
+      startAsDraft: startAsDraft || undefined,
     };
 
     const event = createEvent<ScoringEventCreatedEvent>(
@@ -117,11 +130,185 @@ export class ScoringService {
       timeline: params.timeline,
       settings: params.settings,
       createdAt: now,
-      manuallyClosed: false,
+      status: "draft",
+      startAsDraft,
     };
     this.scoringEvents.set(scoringEventId, scoringEvent);
 
     return scoringEvent;
+  }
+
+  /** Open a draft scoring event. Transitions draft → open. */
+  async open(scoringEventId: ScoringEventId): Promise<ScoringEvent> {
+    this.requireScoringEnabled();
+
+    const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
+    const effectiveStatus = this.getStatus(scoringEvent);
+    if (effectiveStatus !== "draft") {
+      throw new InvalidStateError(
+        effectiveStatus === "open"
+          ? "Scoring event is already open"
+          : "Scoring event is closed",
+      );
+    }
+
+    const now = this.timeProvider.now();
+
+    const payload: ScoringEventOpenedPayload = {
+      scoringEventId,
+      opensAt: now,
+    };
+
+    const event = createEvent<ScoringEventOpenedEvent>(
+      "ScoringEventOpened",
+      payload,
+      generateEventId(),
+      now,
+    );
+    await this.eventStore.append(event);
+
+    const updated: ScoringEvent = {
+      ...scoringEvent,
+      status: "open",
+      timeline: { ...scoringEvent.timeline, opensAt: now },
+    };
+    this.scoringEvents.set(scoringEventId, updated);
+
+    return updated;
+  }
+
+  /** Extend the deadline for an open scoring event. */
+  async extendDeadline(
+    scoringEventId: ScoringEventId,
+    newClosesAt: Timestamp,
+  ): Promise<ScoringEvent> {
+    this.requireScoringEnabled();
+
+    const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
+    const effectiveStatus = this.getStatus(scoringEvent);
+    if (effectiveStatus !== "open") {
+      throw new InvalidStateError(
+        effectiveStatus === "draft"
+          ? "Cannot extend deadline for a draft event — open it first"
+          : "Cannot extend deadline for a closed event",
+      );
+    }
+
+    if (newClosesAt <= scoringEvent.timeline.closesAt) {
+      throw new ValidationError(
+        "newClosesAt",
+        "New deadline must be after the current deadline",
+      );
+    }
+
+    const now = this.timeProvider.now();
+
+    const payload: ScoringEventDeadlineExtendedPayload = {
+      scoringEventId,
+      previousClosesAt: scoringEvent.timeline.closesAt,
+      newClosesAt,
+    };
+
+    const event = createEvent<ScoringEventDeadlineExtendedEvent>(
+      "ScoringEventDeadlineExtended",
+      payload,
+      generateEventId(),
+      now,
+    );
+    await this.eventStore.append(event);
+
+    const updated: ScoringEvent = {
+      ...scoringEvent,
+      timeline: { ...scoringEvent.timeline, closesAt: newClosesAt },
+      originalClosesAt: scoringEvent.originalClosesAt ?? scoringEvent.timeline.closesAt,
+    };
+    this.scoringEvents.set(scoringEventId, updated);
+
+    return updated;
+  }
+
+  /** Update a draft scoring event. Only allowed when effective status is "draft". */
+  async updateDraft(
+    scoringEventId: ScoringEventId,
+    updates: UpdateDraftParams,
+  ): Promise<ScoringEvent> {
+    this.requireScoringEnabled();
+
+    const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
+    const effectiveStatus = this.getStatus(scoringEvent);
+    if (effectiveStatus !== "draft") {
+      throw new InvalidStateError(
+        effectiveStatus === "open"
+          ? "Cannot edit an open scoring event"
+          : "Cannot edit a closed scoring event",
+      );
+    }
+
+    // Merge updates with current state
+    const mergedTitle = updates.title ?? scoringEvent.title;
+    const mergedDescription = updates.description ?? scoringEvent.description;
+    const mergedRubric = updates.rubric ?? scoringEvent.rubric;
+    const mergedPanelMemberIds = updates.panelMemberIds !== undefined
+      ? updates.panelMemberIds
+      : scoringEvent.panelMemberIds;
+    const mergedTimeline = updates.timeline ?? scoringEvent.timeline;
+    const mergedSettings = updates.settings ?? scoringEvent.settings;
+
+    // Generate new entry IDs when entries are provided
+    const mergedEntries = updates.entries
+      ? updates.entries.map((e) => ({
+          id: generateEntryId(),
+          title: e.title,
+          ...(e.description !== undefined ? { description: e.description } : {}),
+        }))
+      : scoringEvent.entries;
+
+    // Validate the merged state
+    if (!mergedTitle.trim()) {
+      throw new ValidationError("title", "Title is required");
+    }
+    if (mergedEntries.length === 0) {
+      throw new ValidationError("entries", "At least one entry is required");
+    }
+    this.validateRubric(mergedRubric);
+    if (mergedTimeline.opensAt >= mergedTimeline.closesAt) {
+      throw new ValidationError("timeline", "opensAt must be before closesAt");
+    }
+
+    const now = this.timeProvider.now();
+
+    const payload: ScoringEventDraftUpdatedPayload = {
+      scoringEventId,
+      title: mergedTitle,
+      description: mergedDescription,
+      entries: mergedEntries,
+      rubric: mergedRubric,
+      panelMemberIds: mergedPanelMemberIds,
+      timeline: mergedTimeline,
+      settings: mergedSettings,
+    };
+
+    const event = createEvent<ScoringEventDraftUpdatedEvent>(
+      "ScoringEventDraftUpdated",
+      payload,
+      generateEventId(),
+      now,
+    );
+    await this.eventStore.append(event);
+
+    const updated: ScoringEvent = {
+      ...scoringEvent,
+      title: mergedTitle,
+      description: mergedDescription,
+      entries: mergedEntries,
+      rubric: mergedRubric,
+      panelMemberIds: mergedPanelMemberIds,
+      timeline: mergedTimeline,
+      settings: mergedSettings,
+    };
+    this.scoringEvents.set(scoringEventId, updated);
+
+    return updated;
   }
 
   /** Submit a scorecard for an entry. */
@@ -222,12 +409,13 @@ export class ScoringService {
     return revised;
   }
 
-  /** Close a scoring event. */
+  /** Close a scoring event. Works from both draft (discard) and open (early close). */
   async close(scoringEventId: ScoringEventId): Promise<void> {
     this.requireScoringEnabled();
 
     const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
-    if (scoringEvent.manuallyClosed) {
+    const effectiveStatus = this.getStatus(scoringEvent);
+    if (effectiveStatus === "closed") {
       throw new InvalidStateError("Scoring event is already closed");
     }
 
@@ -242,7 +430,7 @@ export class ScoringService {
 
     this.scoringEvents.set(scoringEventId, {
       ...scoringEvent,
-      manuallyClosed: true,
+      status: "closed",
     });
   }
 
@@ -280,13 +468,28 @@ export class ScoringService {
     return this.scorecards.get(this.compositeKey(scoringEventId, evaluatorId, entryId));
   }
 
-  /** Compute the current status of a scoring event. */
+  /**
+   * Compute the effective status of a scoring event.
+   * Combines commanded status + startAsDraft + timestamps + now.
+   */
   getStatus(scoringEvent: ScoringEvent): ScoringStatus {
-    if (scoringEvent.manuallyClosed) return "closed";
     const now = this.timeProvider.now();
-    if (now < scoringEvent.timeline.opensAt) return "scheduled";
+
+    // Terminal — always closed
+    if (scoringEvent.status === "closed") return "closed";
+
+    // Explicitly opened — check auto-close
+    if (scoringEvent.status === "open") {
+      return now >= scoringEvent.timeline.closesAt ? "closed" : "open";
+    }
+
+    // status === "draft"
+    if (scoringEvent.startAsDraft) return "draft"; // stays draft until open() is called
+
+    // Not startAsDraft — auto-open at opensAt, auto-close at closesAt
     if (now >= scoringEvent.timeline.closesAt) return "closed";
-    return "open";
+    if (now >= scoringEvent.timeline.opensAt) return "open";
+    return "draft";
   }
 
   /** Compute ranking for a scoring event. */
@@ -317,8 +520,50 @@ export class ScoringService {
             timeline: p.timeline,
             settings: p.settings,
             createdAt: event.timestamp,
-            manuallyClosed: false,
+            status: "draft",
+            startAsDraft: p.startAsDraft ?? false,
           });
+          break;
+        }
+        case "ScoringEventOpened": {
+          const p = event.payload as ScoringEventOpenedPayload;
+          const se = this.scoringEvents.get(p.scoringEventId);
+          if (se) {
+            this.scoringEvents.set(p.scoringEventId, {
+              ...se,
+              status: "open",
+              timeline: { ...se.timeline, opensAt: p.opensAt },
+            });
+          }
+          break;
+        }
+        case "ScoringEventDeadlineExtended": {
+          const p = event.payload as ScoringEventDeadlineExtendedPayload;
+          const se = this.scoringEvents.get(p.scoringEventId);
+          if (se) {
+            this.scoringEvents.set(p.scoringEventId, {
+              ...se,
+              timeline: { ...se.timeline, closesAt: p.newClosesAt },
+              originalClosesAt: se.originalClosesAt ?? p.previousClosesAt,
+            });
+          }
+          break;
+        }
+        case "ScoringEventDraftUpdated": {
+          const p = event.payload as ScoringEventDraftUpdatedPayload;
+          const se = this.scoringEvents.get(p.scoringEventId);
+          if (se) {
+            this.scoringEvents.set(p.scoringEventId, {
+              ...se,
+              title: p.title,
+              description: p.description,
+              entries: p.entries,
+              rubric: p.rubric,
+              panelMemberIds: p.panelMemberIds,
+              timeline: p.timeline,
+              settings: p.settings,
+            });
+          }
           break;
         }
         case "ScorecardSubmitted": {
@@ -351,7 +596,7 @@ export class ScoringService {
           const p = event.payload as ScoringEventClosedPayload;
           const se = this.scoringEvents.get(p.scoringEventId);
           if (se) {
-            this.scoringEvents.set(p.scoringEventId, { ...se, manuallyClosed: true });
+            this.scoringEvents.set(p.scoringEventId, { ...se, status: "closed" });
           }
           break;
         }
@@ -377,7 +622,7 @@ export class ScoringService {
 
   private requireOpen(scoringEvent: ScoringEvent): void {
     const status = this.getStatus(scoringEvent);
-    if (status === "scheduled") {
+    if (status === "draft") {
       throw new InvalidStateError("Scoring has not started yet");
     }
     if (status === "closed") {

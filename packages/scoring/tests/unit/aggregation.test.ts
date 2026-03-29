@@ -62,7 +62,8 @@ function makeScoringEvent(overrides?: Partial<ScoringEvent>): ScoringEvent {
     timeline: { opensAt: timestamp(0), closesAt: timestamp(100000) },
     settings: { allowRevision: false, secretScores: false, normalizeScores: false },
     createdAt: timestamp(0),
-    manuallyClosed: false,
+    status: "draft",
+    startAsDraft: false,
     ...overrides,
   };
 }

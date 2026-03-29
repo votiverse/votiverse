@@ -95,8 +95,8 @@ export interface ScoringTimeline {
   readonly closesAt: Timestamp;
 }
 
-/** Scoring event status, derived from timeline and TimeProvider. */
-export type ScoringStatus = "scheduled" | "open" | "closed";
+/** Scoring event status. Effective status is derived from commanded status + timestamps + now. */
+export type ScoringStatus = "draft" | "open" | "closed";
 
 /** Per-scoring-event settings. */
 export interface ScoringSettings {
@@ -116,8 +116,12 @@ export interface ScoringEvent {
   readonly timeline: ScoringTimeline;
   readonly settings: ScoringSettings;
   readonly createdAt: Timestamp;
-  /** True when explicitly closed via ScoringEventClosed event. */
-  readonly manuallyClosed: boolean;
+  /** Commanded status — the status last set by a command (create/open/close). */
+  readonly status: "draft" | "open" | "closed";
+  /** When true, the event stays in draft until explicitly opened via open(). */
+  readonly startAsDraft: boolean;
+  /** Original closesAt before the first deadline extension (audit trail). */
+  readonly originalClosesAt?: Timestamp;
 }
 
 // ---------------------------------------------------------------------------
@@ -176,6 +180,19 @@ export interface CreateScoringEventParams {
   readonly panelMemberIds: readonly ParticipantId[] | null;
   readonly timeline: ScoringTimeline;
   readonly settings: ScoringSettings;
+  /** When true, the event stays in draft until explicitly opened. Default: false. */
+  readonly startAsDraft?: boolean;
+}
+
+/** Parameters for updating a draft scoring event. All fields optional — merged with current state. */
+export interface UpdateDraftParams {
+  readonly title?: string;
+  readonly description?: string;
+  readonly entries?: readonly Omit<ScoringEntry, "id">[];
+  readonly rubric?: Rubric;
+  readonly panelMemberIds?: readonly ParticipantId[] | null;
+  readonly timeline?: ScoringTimeline;
+  readonly settings?: ScoringSettings;
 }
 
 /** Parameters for submitting a scorecard. */

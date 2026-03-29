@@ -24,6 +24,7 @@ export type {
   EntryResult,
   ScoringResult,
   CreateScoringEventParams,
+  UpdateDraftParams,
   SubmitScorecardParams,
   ReviseScorecardParams,
 } from "./types.js";
