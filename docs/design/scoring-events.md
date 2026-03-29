@@ -1,6 +1,6 @@
 # Scoring Events: Rubric-Based Multi-Criteria Ranking
 
-**Design Document — v1.1**
+**Design Document — v1.2**
 **March 2026**
 
 ---
@@ -46,7 +46,7 @@ The scoring model reuses existing Votiverse concepts wherever possible:
 |---|---|---|
 | Panel of judges | Group (assembly) | A group is already a bounded set of participants with shared governance config. A judge panel is a group whose purpose is scoring. |
 | Entry being scored | Opaque entity with ID and label | Same as voting issues — the engine doesn't model what the entry *is*. It could be a person, a project, a proposal, a dish. The real-world meaning is external. |
-| Scoring event | Event (parallel to voting event) | The operational container. Has a timeline, a set of entries, and a set of eligible evaluators. |
+| Scoring event | Event (parallel to voting event) | The operational container. Has a timeline, a set of entries, a rubric, and optionally a restricted panel. |
 | Evaluator | Participant | No new role type. Every group member is a potential evaluator, just as every group member is a potential voter. |
 
 The only genuinely new primitive is the **scorecard** — an evaluator's dimensional scoring of a single entry.
@@ -246,24 +246,16 @@ interface ScoringEvent {
   readonly description: string;
   readonly entries: readonly ScoringEntry[];
   readonly rubric: Rubric;
-  readonly evaluators: readonly EvaluatorDefinition[];
+  /**
+   * Optional panel restriction. When set, only these participants can
+   * submit scorecards. When null/omitted, all active group members
+   * can score — eligibility is checked at submission time against
+   * current group membership.
+   */
+  readonly panelMemberIds: readonly ParticipantId[] | null;
   readonly timeline: ScoringTimeline;
   readonly settings: ScoringSettings;
   readonly createdAt: Timestamp;
-}
-
-/**
- * An evaluator eligible to score in this scoring event.
- * Weight defaults to 1 when omitted — equal authority across evaluators.
- */
-interface EvaluatorDefinition {
-  readonly participantId: ParticipantId;
-  /**
-   * Relative weight of this evaluator's scores in aggregation.
-   * Default 1. A head judge with weight 2 counts twice as much
-   * as a regular judge with weight 1.
-   */
-  readonly weight?: number;
 }
 
 /**
@@ -309,6 +301,8 @@ interface ScoringSettings {
   readonly normalizeScores: boolean;
 }
 ```
+
+**Evaluator eligibility: open vs. panel.** By default, all active group members can score — no fixed evaluator list needed. This means members who join after the scoring event is created can still participate while it's open. When a specific panel is needed (competition jury, expert review), the creator selects members and their IDs are stored in `panelMemberIds`. The VCP checks membership at scorecard submission time: if `panelMemberIds` is set, the submitter must be in the list; otherwise, any active group member is eligible.
 
 **Why settings are per-event, not per-group.** Different scoring events in the same group may need different policies. A preliminary judging round might allow revision (judges compare notes), while a final round might lock scores on submission. A transparent scoring event might show live scores; a competition might seal them. A small panel of experienced judges may not need normalization; a large panel with mixed experience levels may benefit from it. Following the minimal config philosophy, these are per-event settings with no assembly-level defaults. The governance config gets only a feature toggle.
 
@@ -396,7 +390,8 @@ interface ScoringEventCreatedPayload {
   readonly description: string;
   readonly entries: readonly ScoringEntry[];
   readonly rubric: Rubric;
-  readonly evaluators: readonly EvaluatorDefinition[];
+  /** Null = all active group members can score. */
+  readonly panelMemberIds: readonly ParticipantId[] | null;
   readonly timeline: ScoringTimeline;
   readonly settings: ScoringSettings;
 }
@@ -461,8 +456,7 @@ The scoring service enforces these rules:
 | Scores respect step size | `(score - min) % step === 0` | `ValidationError` |
 | Revision only if allowed | `settings.allowRevision === true` | `InvalidStateError` |
 | Revision only before close | `now < closesAt` | `InvalidStateError` |
-| Evaluator must be eligible | `evaluatorId ∈ evaluators[].participantId` | `AuthorizationError` |
-| Evaluator weights must be positive | `weight > 0` (when provided) | `ValidationError` |
+| Evaluator must be eligible | If `panelMemberIds` set: `evaluatorId ∈ panelMemberIds`. Otherwise: active group member. | `AuthorizationError` |
 | Normalization requires sufficient data | `normalizeScores` needs ≥ 3 scored entries per evaluator | Falls back to raw scores |
 | Entry must exist in event | `entryId ∈ entries` | `NotFoundError` |
 | Only admins can create scoring events | Same admin-check pattern as voting events | `AuthorizationError` |
@@ -478,7 +472,7 @@ The ranking computation is a two-stage aggregation pipeline with an optional nor
 ```
 raw_scores[evaluator][entry][dimension]
   → (optional) normalize across evaluators
-  → stage 1: aggregate across evaluators per (entry, dimension), respecting evaluator weights
+  → stage 1: aggregate across evaluators per (entry, dimension)
   → stage 2: aggregate across dimensions per entry, respecting dimension/category weights
   → rank entries by final score
 ```
@@ -502,21 +496,19 @@ When `settings.normalizeScores` is true, each evaluator's scores are z-score sta
 
 ### 6.1 Stage 1: Evaluator aggregation (per entry, per dimension)
 
-**Input:** All (optionally normalized) scores for entry E, dimension D, plus evaluator weights.
+**Input:** All (optionally normalized) scores for entry E, dimension D.
 **Output:** A single consensus score for (E, D).
 
-Evaluator weights from `EvaluatorDefinition.weight` (default 1) are applied during this stage. A head judge with weight 2 has their score counted twice relative to a regular judge with weight 1.
+All evaluators have equal weight (v1). Per-evaluator weighting is a future extension (see Section 13).
 
 ```
-For a given (entry, dimension), with evaluators j₁, j₂, j₃ having weights w₁, w₂, w₃:
+For a given (entry, dimension), with evaluators j₁, j₂, j₃:
 
-mean:         Σ(wⱼ × scoreⱼ) / Σ(wⱼ)
-median:       the value at the 50th percentile of the weight-expanded distribution
-trimmed-mean: drop the highest and lowest score values, then weighted-mean
+mean:         sum(scores) / count(scores)
+median:       middle value (or average of two middle values)
+trimmed-mean: drop the highest and lowest score values, then mean
               of remaining (requires ≥ 3 evaluators; falls back to mean otherwise)
 ```
-
-When all evaluator weights are equal (the default), this reduces to simple mean/median/trimmed-mean.
 
 ### 6.2 Stage 2: Dimension aggregation (per entry, across dimensions)
 
@@ -629,7 +621,7 @@ CREATE TABLE scoring_events (
   description       TEXT NOT NULL DEFAULT '',
   entries           TEXT NOT NULL,   -- JSON: ScoringEntry[]
   rubric            TEXT NOT NULL,   -- JSON: Rubric
-  evaluators        TEXT NOT NULL,   -- JSON: EvaluatorDefinition[]
+  panel_member_ids  TEXT,            -- JSON: ParticipantId[] | null (null = all members)
   opens_at          TEXT NOT NULL,
   closes_at         TEXT NOT NULL,
   settings          TEXT NOT NULL,   -- JSON: ScoringSettings
@@ -681,11 +673,21 @@ The backend proxies scoring routes to the VCP with identity injection, same as v
 
 ### 9.3 Web UI
 
-**Naming:** The UI uses "Scores" as the user-facing term. This follows the same pattern as Groups (not Assemblies) and Votes (not VotingEvents) — the simplest word that communicates the concept to any user. The tab reads: **Votes · Surveys · Scores · Delegates**.
+**Naming:** The UI uses "Scores" as the user-facing term. This follows the same pattern as Groups (not Assemblies) and Votes (not VotingEvents) — the simplest word that communicates the concept to any user. The tab reads: **Votes · Surveys · Scores · Delegates**. The creation button reads **"New Scoring"**.
 
-New pages/components:
+**Creation flow ("New Scoring"):**
 
-- **Scores tab** — lists open/closed scoring events alongside voting events
+1. **Basics** — title, description, timeline (opens/closes)
+2. **Entries** — what's being scored (add/name entries)
+3. **Who scores** — toggle: "All members" (default) or "Selected panel" (shows member picker)
+4. **Rubric** — categories → dimensions → scale → labels → weights
+5. **Settings** — three toggles: Secret Scores, Allow Revision, Normalize Scores (advanced)
+
+The rubric builder is the core UI component. Scale presets (1-5, 1-10, 1-100) simplify the most common choice. Category/dimension weights default to equal, adjustable via proportional sliders. Aggregation methods (evaluator aggregation, dimension aggregation) default to mean + weighted-sum and are not exposed in v1 — added later if needed.
+
+**Pages/components:**
+
+- **Scores tab** — lists open/closed scoring events
 - **Scoring event detail page** — shows rubric, entries, and scoring interface
 - **Scorecard form** — rubric-driven form: categories as sections, dimensions as sliders/inputs
 - **Results page** — ranking table with expandable dimensional breakdown per entry
@@ -749,7 +751,26 @@ The following are explicitly outside the engine's domain:
 
 ---
 
-## 12. Decisions Log
+## 12. v1 Scope
+
+The engine supports the full aggregation pipeline (all methods, normalization, weighted dimensions). The v1 implementation defers certain features that add complexity without clear immediate demand:
+
+| Feature | v1 | Future |
+|---|---|---|
+| Evaluator eligibility | All members or selected panel | — |
+| Per-evaluator weighting | Equal weight for all evaluators | Optional `weight` field on panel members. Requires weighted-mean/median in stage 1. |
+| Evaluator aggregation method | Mean (hardcoded default) | UI toggle: mean / median / trimmed-mean |
+| Dimension aggregation method | Weighted-sum (hardcoded default) | UI toggle: weighted-sum / geometric-mean |
+| Category/dimension weights | Supported from v1 (rubric builder) | — |
+| Score normalization | Supported from v1 (settings toggle) | — |
+| Scale presets | 1-5, 1-10, 1-100 | Custom min/max/step |
+| Labels on scale points | Supported from v1 | — |
+
+The deferred features require no data model changes — the `Rubric` type already includes `evaluatorAggregation` and `dimensionAggregation` fields. v1 simply defaults them. When the UI exposes these options later, existing scoring events continue to work.
+
+---
+
+## 13. Decisions Log
 
 | Decision | Rationale |
 |---|---|
@@ -763,7 +784,9 @@ The following are explicitly outside the engine's domain:
 | Complete scorecards required (all dimensions scored) | Matches competition judging practice. Partial scoring can be added later as an opt-in setting. |
 | No quorum enforcement | Scoring panels are typically small, purposefully selected groups. Report participation rate instead; let consumers decide legitimacy. |
 | Per-event settings for revision, secrecy, and normalization | More flexible than assembly-level config. Different scoring events in the same group may need different policies. |
-| Evaluator weighting in core design | Head judges, domain experts, and senior reviewers often carry more authority. Weight is a natural per-evaluator attribute defined when creating the scoring event. Defaults to equal weight (1) when omitted. |
+| Evaluator weighting deferred to post-v1 | Equal weight covers 90%+ of use cases. Per-evaluator weighting adds UX complexity (weight column in panel picker, harder-to-interpret results) without clear immediate demand. The data model can accommodate it later as a backwards-compatible optional field. |
+| Aggregation method UI deferred to post-v1 | Mean + weighted-sum are the right defaults for most use cases. The engine supports all methods from day one; the UI exposes them when there's demand. |
+| Open-to-all-members by default | Most groups want all members to score. A fixed evaluator list forces manual selection and excludes members who join after creation. Open-by-default with optional panel restriction covers both cases simply. |
 | Score normalization as opt-in setting | Corrects for generous/strict scoring tendencies. Opt-in because it modifies submitted scores, which can surprise participants. Requires sufficient data (≥ 3 entries per evaluator) to be meaningful. |
 | Entries are opaque | The engine captures scoring mechanics, not domain semantics. What entries represent is external. |
 | Conflict of interest is a consumer concern | The engine doesn't model relationships between evaluators and entries. Recusals are enforced by excluding evaluator-entry pairs when constructing the event. |
@@ -774,4 +797,4 @@ The following are explicitly outside the engine's domain:
 | Entries immutable after creation | Prevents ranking instability from late entries having fewer scores. Same rule as voting events. |
 | Admin-only creation and close | Parallels voting event authorization. Uses existing `isAdminOf()` pattern. |
 | Entry description is optional | Keeps entries lightweight. Rich content is a backend concern, following the VCP/backend boundary. |
-| UI label: "Scores" | Simplest word that communicates the concept to any user. Same pattern as Groups/Votes/Surveys — user-facing terms don't need to match internal package names. |
+| UI label: "Scores" tab, "New Scoring" button | Simplest words that communicate the concept to any user. Same pattern as Groups/Votes/Surveys — user-facing terms don't need to match internal package names. "New Scoring" describes the activity being created, not the result. |
