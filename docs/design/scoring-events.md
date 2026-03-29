@@ -1,6 +1,6 @@
-# Evaluation Events: Multi-Criteria Scoring
+# Scoring Events: Rubric-Based Multi-Criteria Ranking
 
-**Design Document — v1.0**
+**Design Document — v1.1**
 **March 2026**
 
 ---
@@ -13,20 +13,26 @@ Votiverse's participation model currently supports three modes of structured inp
 2. **Surveys** — responding to structured questions (multi-dimensional, non-delegable, non-binding)
 3. **Predictions** — committing falsifiable forecasts (immutable, individually accountable)
 
-There is a fourth mode that these three do not capture: **multi-criteria evaluation**. This is the pattern where a group of people scores a set of entries against a structured rubric — each entry rated on multiple dimensions, each dimension with its own scale, dimensions optionally grouped into weighted categories.
+There is a fourth mode that these three do not capture: **multi-criteria scoring**. This is the pattern where a group of people scores a set of entries against a structured rubric — each entry rated on multiple dimensions, each dimension with its own scale, dimensions optionally grouped into weighted categories.
 
 Real-world instances of this pattern:
 
 - **Competition judging** — hackathons, science fairs, talent shows, design contests
 - **Grant review panels** — scoring proposals on feasibility, impact, budget, team
-- **Contractor selection** — evaluating bids on cost, quality, timeline, reputation
+- **Contractor selection** — scoring bids on cost, quality, timeline, reputation
 - **Award committees** — rating nominees across achievement categories
 - **Hiring panels** — scoring candidates on skills, experience, culture fit
-- **Project portfolio prioritization** — evaluating initiatives on ROI, risk, alignment
+- **Project portfolio prioritization** — scoring initiatives on ROI, risk, alignment
 
-These all share the same structure: a panel of evaluators, a set of entries, a rubric defining scoring dimensions, and an aggregation method that produces a ranking. The binding question is not "for or against?" but "how does this entry compare to the others across these criteria?"
+These all share the same structure: a panel of scorers, a set of entries, a rubric defining scoring dimensions, and an aggregation method that produces a ranking. The binding question is not "for or against?" but "how does this entry compare to the others across these criteria?"
 
-This document designs evaluation as a standalone concept in the Votiverse engine — parallel to voting and surveys, reusing existing infrastructure where possible, introducing new primitives only where the domain demands it.
+This document designs scoring as a standalone concept in the Votiverse engine — parallel to voting and surveys, reusing existing infrastructure where possible, introducing new primitives only where the domain demands it.
+
+### 1.1 Why "scoring" and not "evaluation"
+
+The term "evaluation" is already used in the codebase for the endorse/dispute signal on community notes and proposals (`NoteEvaluation`, `CommunityNoteEvaluated`, `ProposalEvaluation`). Using `@votiverse/evaluation` for multi-criteria scoring would create a semantic collision — "evaluation" would mean two different things.
+
+"Scoring" describes the core action precisely, creates a natural family with the other participation modes (`voting` → Votes, `survey` → Surveys, `scoring` → Scores), and avoids collision with any existing concept.
 
 ---
 
@@ -34,20 +40,20 @@ This document designs evaluation as a standalone concept in the Votiverse engine
 
 ### 2.1 No new structural concepts
 
-The evaluation model reuses existing Votiverse concepts wherever possible:
+The scoring model reuses existing Votiverse concepts wherever possible:
 
-| Evaluation concept | Existing concept | Rationale |
+| Scoring concept | Existing concept | Rationale |
 |---|---|---|
-| Panel of judges | Group (assembly) | A group is already a bounded set of participants with shared governance config. A judge panel is a group whose purpose is evaluation. |
-| Entry being evaluated | Opaque entity with ID and label | Same as voting issues — the engine doesn't model what the entry *is*. It could be a person, a project, a proposal, a dish. The real-world meaning is external. |
-| Evaluation event | Event (parallel to voting event) | The operational container. Has a timeline, a set of entries, and a set of eligible evaluators. |
+| Panel of judges | Group (assembly) | A group is already a bounded set of participants with shared governance config. A judge panel is a group whose purpose is scoring. |
+| Entry being scored | Opaque entity with ID and label | Same as voting issues — the engine doesn't model what the entry *is*. It could be a person, a project, a proposal, a dish. The real-world meaning is external. |
+| Scoring event | Event (parallel to voting event) | The operational container. Has a timeline, a set of entries, and a set of eligible evaluators. |
 | Evaluator | Participant | No new role type. Every group member is a potential evaluator, just as every group member is a potential voter. |
 
 The only genuinely new primitive is the **scorecard** — an evaluator's dimensional scoring of a single entry.
 
 ### 2.2 The engine captures mechanics, not domain
 
-The evaluation package captures the mechanics of rubric-based scoring: defining dimensions, collecting scorecards, aggregating results, producing rankings. It does not model:
+The scoring package captures the mechanics of rubric-based scoring: defining dimensions, collecting scorecards, aggregating results, producing rankings. It does not model:
 
 - What entries represent (candidates, projects, proposals, dishes)
 - What happens after rankings are computed (who wins the contract, who gets funded)
@@ -58,15 +64,15 @@ This follows the same boundary as voting: the engine knows how to tally votes, n
 
 ### 2.3 Non-delegable
 
-Evaluation is inherently personal. A judge's assessment reflects their individual expertise, observation, and judgment. It cannot be meaningfully transferred to someone else — delegation would undermine the purpose of having multiple independent evaluators.
+Scoring is inherently personal. A judge's assessment reflects their individual expertise, observation, and judgment. It cannot be meaningfully transferred to someone else — delegation would undermine the purpose of having multiple independent evaluators.
 
-This is the same invariant as surveys, but with an even stronger justification. Surveys capture sentiment, which is personal but potentially aggregatable. Evaluation scores carry epistemic weight — they presume the evaluator has directly observed or assessed the entry. A delegated score would be epistemically hollow.
+This is the same invariant as surveys, but with an even stronger justification. Surveys capture sentiment, which is personal but potentially aggregatable. Scores carry epistemic weight — they presume the evaluator has directly observed or assessed the entry. A delegated score would be epistemically hollow.
 
 **Invariant: Scorecards are non-delegable. Every evaluator scores for themselves or not at all.**
 
 ### 2.4 Coexistence with voting
 
-A group can have both voting events and evaluation events. A condo board might vote on budget proposals (binary) and evaluate contractor bids (rubric-scored) within the same group. The two mechanisms are parallel and independent — they share the participant pool and topic system but use different event types, different submission formats, and different result structures.
+A group can have both voting events and scoring events. A condo board might vote on budget proposals (binary) and score contractor bids (rubric-scored) within the same group. The two mechanisms are parallel and independent — they share the participant pool and topic system but use different event types, different submission formats, and different result structures.
 
 ---
 
@@ -75,10 +81,10 @@ A group can have both voting events and evaluation events. A condo board might v
 ### 3.1 Branded IDs (added to `@votiverse/core`)
 
 ```typescript
-/** Unique identifier for an evaluation event. */
-type EvaluationEventId = string & { readonly __brand: "EvaluationEventId" };
+/** Unique identifier for a scoring event. */
+type ScoringEventId = string & { readonly __brand: "ScoringEventId" };
 
-/** Unique identifier for an entry being evaluated. */
+/** Unique identifier for an entry being scored. */
 type EntryId = string & { readonly __brand: "EntryId" };
 
 /** Unique identifier for a submitted scorecard. */
@@ -89,7 +95,7 @@ Rubric dimension IDs are plain strings scoped to the rubric definition. They don
 
 ### 3.2 Rubric
 
-The rubric defines the evaluation framework — what dimensions exist, how they're scaled, how they're grouped, and how they're weighted. It is defined per evaluation event, not per group, because different evaluations in the same group may need different rubrics.
+The rubric defines the scoring framework — what dimensions exist, how they're scaled, how they're grouped, and how they're weighted. It is defined per scoring event, not per group, because different scoring events in the same group may need different rubrics.
 
 ```typescript
 /** A single scoring dimension within a rubric category. */
@@ -126,15 +132,15 @@ interface RubricCategory {
 }
 
 /**
- * The complete rubric for an evaluation event.
+ * The complete rubric for a scoring event.
  *
  * The rubric combines structure (categories, dimensions, scales) with
- * aggregation methods. Aggregation lives here rather than in EvaluationSettings
+ * aggregation methods. Aggregation lives here rather than in ScoringSettings
  * because the choice of method is tightly coupled with rubric design: you might
  * choose geometric-mean specifically because you designed a rubric where balance
  * across dimensions matters, or trimmed-mean because you expect a large panel.
  * The rubric is "what to measure and how to combine the measurements."
- * EvaluationSettings is "operational policies" (revision, secrecy, normalization).
+ * ScoringSettings is "operational policies" (revision, secrecy, normalization).
  */
 interface Rubric {
   readonly categories: readonly RubricCategory[];
@@ -183,11 +189,11 @@ type DimensionAggregation =
 
 ### 3.4 Entry
 
-An entry is the thing being evaluated. It is intentionally minimal — the real-world meaning is external.
+An entry is the thing being scored. It is intentionally minimal — the real-world meaning is external.
 
 ```typescript
-/** An entry in an evaluation event. Parallel to Issue in a voting event. */
-interface EvaluationEntry {
+/** An entry in a scoring event. Parallel to Issue in a voting event. */
+interface ScoringEntry {
   readonly id: EntryId;
   readonly title: string;
   /** Optional short summary. Rich content about entries is a backend concern. */
@@ -195,9 +201,9 @@ interface EvaluationEntry {
 }
 ```
 
-No `topicId`, no `choices`, no content hash. The evaluation package doesn't need to know what the entry represents. If entries need rich content (documents, images, portfolios), that's a backend concern — the same VCP/backend boundary that applies to proposals and candidacies.
+No `topicId`, no `choices`, no content hash. The scoring package doesn't need to know what the entry represents. If entries need rich content (documents, images, portfolios), that's a backend concern — the same VCP/backend boundary that applies to proposals and candidacies.
 
-**Immutability.** The entry list is fixed at creation time. Entries cannot be added or removed after the `EvaluationEventCreated` event is recorded. This is the same rule as voting events (issues are fixed at creation). Adding entries mid-evaluation would create ranking instability — late entries have fewer scores than early ones, distorting aggregation.
+**Immutability.** The entry list is fixed at creation time. Entries cannot be added or removed after the `ScoringEventCreated` event is recorded. This is the same rule as voting events (issues are fixed at creation). Adding entries mid-scoring would create ranking instability — late entries have fewer scores than early ones, distorting aggregation.
 
 ### 3.5 Scorecard
 
@@ -217,7 +223,7 @@ interface DimensionScore {
  */
 interface Scorecard {
   readonly id: ScorecardId;
-  readonly evaluationEventId: EvaluationEventId;
+  readonly scoringEventId: ScoringEventId;
   readonly evaluatorId: ParticipantId;
   readonly entryId: EntryId;
   readonly scores: readonly DimensionScore[];
@@ -225,29 +231,29 @@ interface Scorecard {
 }
 ```
 
-**Completeness.** A scorecard must include a score for every dimension in the rubric. Partial scorecards are rejected. This matches competition judging practice — a judge who doesn't score all criteria is disqualified or recused, not partially counted. If future use cases need partial scoring (e.g., large entry pools with specialist judges), this constraint can be relaxed per-evaluation-event via a config flag.
+**Completeness.** A scorecard must include a score for every dimension in the rubric. Partial scorecards are rejected. This matches competition judging practice — a judge who doesn't score all criteria is disqualified or recused, not partially counted. If future use cases need partial scoring (e.g., large entry pools with specialist judges), this constraint can be relaxed per-event via a config flag.
 
-**One scorecard per evaluator per entry.** This is the same constraint as one vote per participant per issue. Whether the scorecard can be revised depends on the evaluation event's configuration (see Section 3.7).
+**One scorecard per evaluator per entry.** This is the same constraint as one vote per participant per issue. Whether the scorecard can be revised depends on the scoring event's configuration (see Section 3.7).
 
-### 3.6 Evaluation event
+### 3.6 Scoring event
 
-The container for an evaluation. Parallel to `VotingEvent`.
+The container for a scoring session. Parallel to `VotingEvent`.
 
 ```typescript
-interface EvaluationEvent {
-  readonly id: EvaluationEventId;
+interface ScoringEvent {
+  readonly id: ScoringEventId;
   readonly title: string;
   readonly description: string;
-  readonly entries: readonly EvaluationEntry[];
+  readonly entries: readonly ScoringEntry[];
   readonly rubric: Rubric;
   readonly evaluators: readonly EvaluatorDefinition[];
-  readonly timeline: EvaluationTimeline;
-  readonly settings: EvaluationSettings;
+  readonly timeline: ScoringTimeline;
+  readonly settings: ScoringSettings;
   readonly createdAt: Timestamp;
 }
 
 /**
- * An evaluator eligible to score in this evaluation event.
+ * An evaluator eligible to score in this scoring event.
  * Weight defaults to 1 when omitted — equal authority across evaluators.
  */
 interface EvaluatorDefinition {
@@ -261,27 +267,27 @@ interface EvaluatorDefinition {
 }
 
 /**
- * Timeline for an evaluation event.
+ * Timeline for a scoring event.
  * Simpler than voting: no deliberation/curation distinction.
- * Evaluation opens, evaluators score, evaluation closes.
+ * Scoring opens, evaluators submit scorecards, scoring closes.
  */
-interface EvaluationTimeline {
+interface ScoringTimeline {
   readonly opensAt: Timestamp;
   readonly closesAt: Timestamp;
 }
 
 /**
- * Evaluation event status, derived from timeline and TimeProvider.
+ * Scoring event status, derived from timeline and TimeProvider.
  * Not stored — computed on read, avoiding stale state.
  *
  * - "scheduled": now < opensAt
  * - "open": opensAt ≤ now < closesAt
- * - "closed": now ≥ closesAt, or EvaluationEventClosed received
+ * - "closed": now ≥ closesAt, or ScoringEventClosed received
  */
-type EvaluationStatus = "scheduled" | "open" | "closed";
+type ScoringStatus = "scheduled" | "open" | "closed";
 
-/** Per-evaluation-event settings (not assembly-level config). */
-interface EvaluationSettings {
+/** Per-scoring-event settings (not assembly-level config). */
+interface ScoringSettings {
   /** Can evaluators revise their scorecards before the event closes? */
   readonly allowRevision: boolean;
   /** Are individual evaluator scores hidden until the event closes? */
@@ -304,7 +310,7 @@ interface EvaluationSettings {
 }
 ```
 
-**Why settings are per-event, not per-group.** Different evaluations in the same group may need different policies. A preliminary judging round might allow revision (judges compare notes), while a final round might lock scores on submission. A transparent evaluation might show live scores; a competition might seal them. A small panel of experienced judges may not need normalization; a large panel with mixed experience levels may benefit from it. Following the minimal config philosophy, these are per-event settings with no assembly-level defaults. The governance config gets only a feature toggle.
+**Why settings are per-event, not per-group.** Different scoring events in the same group may need different policies. A preliminary judging round might allow revision (judges compare notes), while a final round might lock scores on submission. A transparent scoring event might show live scores; a competition might seal them. A small panel of experienced judges may not need normalization; a large panel with mixed experience levels may benefit from it. Following the minimal config philosophy, these are per-event settings with no assembly-level defaults. The governance config gets only a feature toggle.
 
 ### 3.7 Ranking result
 
@@ -345,9 +351,9 @@ interface EntryResult {
   readonly categories: readonly CategoryResult[];
 }
 
-/** Complete evaluation result. Parallel to TallyResult. */
-interface EvaluationResult {
-  readonly evaluationEventId: EvaluationEventId;
+/** Complete scoring result. Parallel to TallyResult. */
+interface ScoringResult {
+  readonly scoringEventId: ScoringEventId;
   /** Entries sorted by rank (ascending — rank 1 first). */
   readonly entries: readonly EntryResult[];
   /** Total number of eligible evaluators. */
@@ -360,11 +366,11 @@ interface EvaluationResult {
 }
 ```
 
-**No winner field.** Unlike `TallyResult` which has a single `winner`, the evaluation result produces a complete ranking. The consumer decides what "winning" means — top 1, top 3, everyone above a threshold. This is a deliberate difference: voting has a natural winner concept (the choice with the most votes); evaluation produces a continuum.
+**No winner field.** Unlike `TallyResult` which has a single `winner`, the scoring result produces a complete ranking. The consumer decides what "winning" means — top 1, top 3, everyone above a threshold. This is a deliberate difference: voting has a natural winner concept (the choice with the most votes); scoring produces a continuum.
 
-**No quorum.** Evaluation events don't have a quorum concept in the same way voting does. If 3 out of 5 judges submit scores, the result is computed from those 3. The `participationRate` is reported so consumers can decide if the result is legitimate, but the engine doesn't enforce a minimum. This could be added as an optional `EvaluationSettings` field later if needed.
+**No quorum.** Scoring events don't have a quorum concept in the same way voting does. If 3 out of 5 judges submit scorecards, the result is computed from those 3. The `participationRate` is reported so consumers can decide if the result is legitimate, but the engine doesn't enforce a minimum. This could be added as an optional `ScoringSettings` field later if needed.
 
-**Result computation.** Rankings are computed on demand, not only at close time. This follows the same pattern as voting tallies — the `evaluation_results` table is a materialized cache recomputed when requested via `GET /results`. This means live results are possible when `secretScores` is false: the API returns the current ranking based on all scorecards submitted so far. When `secretScores` is true, the results endpoint returns data only after the evaluation is closed.
+**Result computation.** Rankings are computed on demand, not only at close time. This follows the same pattern as voting tallies — the `scoring_results` table is a materialized cache recomputed when requested via `GET /results`. This means live results are possible when `secretScores` is false: the API returns the current ranking based on all scorecards submitted so far. When `secretScores` is true, the results endpoint returns data only after the scoring event is closed.
 
 ---
 
@@ -375,29 +381,29 @@ Four new event types, following the existing event-sourcing pattern:
 ```typescript
 // Added to EventType union in @votiverse/core
 
-| "EvaluationEventCreated"
+| "ScoringEventCreated"
 | "ScorecardSubmitted"
 | "ScorecardRevised"
-| "EvaluationEventClosed"
+| "ScoringEventClosed"
 ```
 
 ### 4.1 Event payloads
 
 ```typescript
-interface EvaluationEventCreatedPayload {
-  readonly evaluationEventId: EvaluationEventId;
+interface ScoringEventCreatedPayload {
+  readonly scoringEventId: ScoringEventId;
   readonly title: string;
   readonly description: string;
-  readonly entries: readonly EvaluationEntry[];
+  readonly entries: readonly ScoringEntry[];
   readonly rubric: Rubric;
   readonly evaluators: readonly EvaluatorDefinition[];
-  readonly timeline: EvaluationTimeline;
-  readonly settings: EvaluationSettings;
+  readonly timeline: ScoringTimeline;
+  readonly settings: ScoringSettings;
 }
 
 interface ScorecardSubmittedPayload {
   readonly scorecardId: ScorecardId;
-  readonly evaluationEventId: EvaluationEventId;
+  readonly scoringEventId: ScoringEventId;
   readonly evaluatorId: ParticipantId;
   readonly entryId: EntryId;
   readonly scores: readonly DimensionScore[];
@@ -405,22 +411,22 @@ interface ScorecardSubmittedPayload {
 
 interface ScorecardRevisedPayload {
   readonly scorecardId: ScorecardId;
-  readonly evaluationEventId: EvaluationEventId;
+  readonly scoringEventId: ScoringEventId;
   readonly evaluatorId: ParticipantId;
   readonly entryId: EntryId;
   /** The complete new set of scores (replaces the previous scorecard). */
   readonly scores: readonly DimensionScore[];
 }
 
-interface EvaluationEventClosedPayload {
-  readonly evaluationEventId: EvaluationEventId;
+interface ScoringEventClosedPayload {
+  readonly scoringEventId: ScoringEventId;
 }
 ```
 
 ### 4.2 Event lifecycle
 
 ```
-EvaluationEventCreated
+ScoringEventCreated
   │
   ├── ScorecardSubmitted  (one per evaluator per entry)
   ├── ScorecardSubmitted
@@ -428,26 +434,26 @@ EvaluationEventCreated
   ├── ScorecardSubmitted
   │   ...
   │
-  └── EvaluationEventClosed
+  └── ScoringEventClosed
 ```
 
 **ScorecardRevised vs. re-submitting.** A revision replaces the previous scorecard entirely. The event log preserves both the original and the revision (immutable events), but ranking computation uses only the latest scorecard per evaluator per entry. This is the same pattern as `VoteCast` with `allowVoteChange` — the engine processes events in sequence and the latest submission wins.
 
 **Why a separate `ScorecardRevised` event?** Rather than reusing `ScorecardSubmitted`, a distinct event type makes the audit trail explicit. You can see at a glance whether an evaluator changed their mind.
 
-**ScorecardId semantics.** The `ScorecardId` is generated once when the first scorecard is submitted for an (evaluator, entry) pair. Subsequent revisions reference the same `ScorecardId`, creating a chain of events for the same logical scorecard. The materialized `scorecards` table (Section 9.1) uses the composite key `(evaluationEventId, evaluatorId, entryId)` for upsert; the `ScorecardId` serves as a stable handle for the API and event references.
+**ScorecardId semantics.** The `ScorecardId` is generated once when the first scorecard is submitted for an (evaluator, entry) pair. Subsequent revisions reference the same `ScorecardId`, creating a chain of events for the same logical scorecard. The materialized `scorecards` table (Section 9.1) uses the composite key `(scoringEventId, evaluatorId, entryId)` for upsert; the `ScorecardId` serves as a stable handle for the API and event references.
 
-**No retraction.** Unlike voting (`VoteRetracted`), there is no `ScorecardRetracted` event. Once an evaluator submits a scorecard, it cannot be withdrawn — only revised (if `allowRevision` is true). Retraction would create an asymmetry where some entries have fewer evaluations than others, distorting the ranking. If an evaluator submitted scores by mistake, a revision to corrected scores is the appropriate remedy.
+**No retraction.** Unlike voting (`VoteRetracted`), there is no `ScorecardRetracted` event. Once an evaluator submits a scorecard, it cannot be withdrawn — only revised (if `allowRevision` is true). Retraction would create an asymmetry where some entries have fewer scores than others, distorting the ranking. If an evaluator submitted scores by mistake, a revision to corrected scores is the appropriate remedy.
 
 ---
 
 ## 5. Validation Rules
 
-The evaluation service enforces these rules:
+The scoring service enforces these rules:
 
 | Rule | Enforcement | Error |
 |---|---|---|
-| Evaluations must be enabled in group config | `config.features.evaluations === true` | `ValidationError` |
+| Scoring must be enabled in group config | `config.features.scoring === true` | `ValidationError` |
 | Scorecards only accepted during open window | `opensAt ≤ now < closesAt` | `InvalidStateError` |
 | One scorecard per evaluator per entry | Deduplication by (evaluatorId, entryId) | `DuplicateError` |
 | All dimensions must be scored | `scores.length === rubric.totalDimensions` | `ValidationError` |
@@ -459,8 +465,8 @@ The evaluation service enforces these rules:
 | Evaluator weights must be positive | `weight > 0` (when provided) | `ValidationError` |
 | Normalization requires sufficient data | `normalizeScores` needs ≥ 3 scored entries per evaluator | Falls back to raw scores |
 | Entry must exist in event | `entryId ∈ entries` | `NotFoundError` |
-| Only admins can create evaluation events | Same admin-check pattern as voting events | `AuthorizationError` |
-| Only admins can close evaluation events | Creator or group admin | `AuthorizationError` |
+| Only admins can create scoring events | Same admin-check pattern as voting events | `AuthorizationError` |
+| Only admins can close scoring events | Creator or group admin | `AuthorizationError` |
 | Entries are immutable after creation | No add/remove entries post-creation | `InvalidStateError` |
 
 ---
@@ -537,54 +543,54 @@ Entries are sorted by `finalScore` descending. Ties share the same rank. The nex
 
 ## 7. Package Structure
 
-### 7.1 New package: `@votiverse/evaluation`
+### 7.1 New package: `@votiverse/scoring`
 
 ```
-packages/evaluation/
+packages/scoring/
 ├── package.json
 ├── tsconfig.json
 ├── README.md
 ├── src/
-│   ├── index.ts              ← public API (re-exports)
-│   ├── types.ts              ← Rubric, Scorecard, EvaluationEvent, EvaluationResult, etc.
-│   ├── evaluation-service.ts ← create, submit scorecard, revise, close, compute ranking
-│   └── aggregation.ts        ← evaluator aggregation, dimension aggregation, ranking
+│   ├── index.ts            ← public API (re-exports)
+│   ├── types.ts            ← Rubric, Scorecard, ScoringEvent, ScoringResult, etc.
+│   ├── scoring-service.ts  ← create, submit scorecard, revise, close, compute ranking
+│   └── aggregation.ts      ← evaluator aggregation, dimension aggregation, ranking
 └── tests/
     └── unit/
-        ├── evaluation-service.test.ts
+        ├── scoring-service.test.ts
         └── aggregation.test.ts
 ```
 
 ### 7.2 Dependencies
 
 ```
-evaluation → [config, core]
+scoring → [config, core]
 ```
 
 No dependency on `voting`, `delegation`, `survey`, or `identity`. The package only needs:
 - `core` — branded IDs, `BaseEvent`, `EventStore`, `TimeProvider`, error classes
-- `config` — `GovernanceConfig` (to check the `features.evaluations` toggle)
+- `config` — `GovernanceConfig` (to check the `features.scoring` toggle)
 
 ### 7.3 Updated dependency graph
 
 ```
-awareness → [delegation, voting, prediction, survey, evaluation, config, core, content]
-evaluation → [config, core]
-survey     → [identity, config, core]
-voting     → [delegation, config, core]
+awareness → [delegation, voting, prediction, survey, scoring, config, core, content]
+scoring → [config, core]
+survey  → [identity, config, core]
+voting  → [delegation, config, core]
 ```
 
-Evaluation and survey are peer packages at the same level in the dependency graph. Neither depends on the other.
+Scoring and survey are peer packages at the same level in the dependency graph. Neither depends on the other.
 
 ### 7.4 Awareness integration
 
-The awareness package gains read-only access to evaluation data:
+The awareness package gains read-only access to scoring data:
 
-- **Evaluation history:** which evaluation events a participant has scored in
-- **Scoring completeness:** how many entries a participant has left to score in open evaluations
-- **Participation patterns:** scoring consistency, participation rate across evaluations
+- **Scoring history:** which scoring events a participant has scored in
+- **Scoring completeness:** how many entries a participant has left to score in open events
+- **Participation patterns:** scoring consistency, participation rate across scoring events
 
-This follows the existing pattern: awareness queries evaluation state but never modifies it.
+This follows the existing pattern: awareness queries scoring state but never modifies it.
 
 ---
 
@@ -597,13 +603,13 @@ interface FeatureConfig {
   readonly communityNotes: boolean;
   readonly predictions: boolean;
   readonly surveys: boolean;
-  readonly evaluations: boolean;   // ← new
+  readonly scoring: boolean;   // ← new
 }
 ```
 
-This is the only change to the governance config surface. All evaluation-specific settings (rubric, aggregation method, revision policy, score secrecy) are per-evaluation-event, not per-group. This keeps the governance parameter count at 14 (from 13) with no new sections.
+This is the only change to the governance config surface. All scoring-specific settings (rubric, aggregation method, revision policy, score secrecy) are per-scoring-event, not per-group. This keeps the governance parameter count at 14 (from 13) with no new sections.
 
-**Preset updates:** Most presets set `evaluations: false`. The `REPRESENTATIVE` preset sets it to `true` — boards and committees are the most natural context for structured evaluation (contractor bids, project proposals). Other groups can enable it by customizing their config.
+**Preset updates:** Most presets set `scoring: false`. The `REPRESENTATIVE` preset sets it to `true` — boards and committees are the most natural context for structured scoring (contractor bids, project proposals). Other groups can enable it by customizing their config.
 
 ---
 
@@ -613,69 +619,69 @@ This is the only change to the governance config surface. All evaluation-specifi
 
 **New database tables:**
 
-The canonical data for scorecards lives in the `events` table as `ScorecardSubmitted` and `ScorecardRevised` events, following the same event-sourcing pattern as votes. The `scorecards` and `evaluation_results` tables below are **materialized views** — derived state kept in sync for efficient querying, same pattern as the existing `issue_tallies` table for voting. The `scorecards` table is upserted on each `ScorecardSubmitted`/`ScorecardRevised` event; the `evaluation_results` table is recomputed on demand.
+The canonical data for scorecards lives in the `events` table as `ScorecardSubmitted` and `ScorecardRevised` events, following the same event-sourcing pattern as votes. The `scorecards` and `scoring_results` tables below are **materialized views** — derived state kept in sync for efficient querying, same pattern as the existing `issue_tallies` table for voting. The `scorecards` table is upserted on each `ScorecardSubmitted`/`ScorecardRevised` event; the `scoring_results` table is recomputed on demand.
 
 ```sql
-CREATE TABLE evaluation_events (
+CREATE TABLE scoring_events (
   id                TEXT PRIMARY KEY,
   assembly_id       TEXT NOT NULL REFERENCES assemblies(id),
   title             TEXT NOT NULL,
   description       TEXT NOT NULL DEFAULT '',
-  entries           TEXT NOT NULL,   -- JSON: EvaluationEntry[]
+  entries           TEXT NOT NULL,   -- JSON: ScoringEntry[]
   rubric            TEXT NOT NULL,   -- JSON: Rubric
   evaluators        TEXT NOT NULL,   -- JSON: EvaluatorDefinition[]
   opens_at          TEXT NOT NULL,
   closes_at         TEXT NOT NULL,
-  settings          TEXT NOT NULL,   -- JSON: EvaluationSettings
+  settings          TEXT NOT NULL,   -- JSON: ScoringSettings
   created_at        TEXT NOT NULL
 );
 
 -- Materialized current state: upserted on each ScorecardSubmitted/Revised event.
 -- The UNIQUE constraint reflects "latest scorecard wins" — revisions overwrite.
 CREATE TABLE scorecards (
-  id                  TEXT PRIMARY KEY,
-  assembly_id         TEXT NOT NULL,
-  evaluation_event_id TEXT NOT NULL REFERENCES evaluation_events(id),
-  evaluator_id        TEXT NOT NULL,
-  entry_id            TEXT NOT NULL,
-  scores              TEXT NOT NULL,  -- JSON: DimensionScore[]
-  submitted_at        TEXT NOT NULL,
-  UNIQUE(evaluation_event_id, evaluator_id, entry_id)
+  id                TEXT PRIMARY KEY,
+  assembly_id       TEXT NOT NULL,
+  scoring_event_id  TEXT NOT NULL REFERENCES scoring_events(id),
+  evaluator_id      TEXT NOT NULL,
+  entry_id          TEXT NOT NULL,
+  scores            TEXT NOT NULL,  -- JSON: DimensionScore[]
+  submitted_at      TEXT NOT NULL,
+  UNIQUE(scoring_event_id, evaluator_id, entry_id)
 );
 
 -- Materialized ranking: recomputed on demand from current scorecards.
-CREATE TABLE evaluation_results (
-  assembly_id         TEXT NOT NULL,
-  evaluation_event_id TEXT NOT NULL REFERENCES evaluation_events(id),
-  entries             TEXT NOT NULL,  -- JSON: EntryResult[]
-  eligible_count      INTEGER NOT NULL,
+CREATE TABLE scoring_results (
+  assembly_id       TEXT NOT NULL,
+  scoring_event_id  TEXT NOT NULL REFERENCES scoring_events(id),
+  entries           TEXT NOT NULL,  -- JSON: EntryResult[]
+  eligible_count    INTEGER NOT NULL,
   participating_count INTEGER NOT NULL,
-  participation_rate  REAL NOT NULL,
-  computed_at         TEXT NOT NULL,
-  PRIMARY KEY (assembly_id, evaluation_event_id)
+  participation_rate REAL NOT NULL,
+  computed_at       TEXT NOT NULL,
+  PRIMARY KEY (assembly_id, scoring_event_id)
 );
 ```
 
 **New API routes:**
 
 ```
-POST   /assemblies/:id/evaluations                      — create evaluation event
-GET    /assemblies/:id/evaluations                      — list evaluation events
-GET    /assemblies/:id/evaluations/:eid                 — get evaluation event detail
-POST   /assemblies/:id/evaluations/:eid/scorecards      — submit scorecard
-PUT    /assemblies/:id/evaluations/:eid/scorecards/:sid — revise scorecard
-GET    /assemblies/:id/evaluations/:eid/scorecards      — list scorecards (respects secretScores)
-GET    /assemblies/:id/evaluations/:eid/results         — get ranking results
-POST   /assemblies/:id/evaluations/:eid/close           — close evaluation event
+POST   /assemblies/:id/scoring                      — create scoring event
+GET    /assemblies/:id/scoring                      — list scoring events
+GET    /assemblies/:id/scoring/:eid                 — get scoring event detail
+POST   /assemblies/:id/scoring/:eid/scorecards      — submit scorecard
+PUT    /assemblies/:id/scoring/:eid/scorecards/:sid — revise scorecard
+GET    /assemblies/:id/scoring/:eid/scorecards      — list scorecards (respects secretScores)
+GET    /assemblies/:id/scoring/:eid/results         — get ranking results
+POST   /assemblies/:id/scoring/:eid/close           — close scoring event
 ```
 
 ### 9.2 Backend
 
-The backend proxies evaluation routes to the VCP with identity injection, same as voting routes. No evaluation-specific backend logic — content about entries (if any) follows the same VCP/backend boundary as proposals and candidacies.
+The backend proxies scoring routes to the VCP with identity injection, same as voting routes. No scoring-specific backend logic — content about entries (if any) follows the same VCP/backend boundary as proposals and candidacies.
 
 ### 9.3 Web UI
 
-**Naming:** The UI uses "Scores" as the user-facing term, not "Evaluations." This follows the same pattern as Groups (not Assemblies) and Votes (not VotingEvents) — the simplest word that communicates the concept to any user. The tab reads: **Votes · Surveys · Scores · Delegates**.
+**Naming:** The UI uses "Scores" as the user-facing term. This follows the same pattern as Groups (not Assemblies) and Votes (not VotingEvents) — the simplest word that communicates the concept to any user. The tab reads: **Votes · Surveys · Scores · Delegates**.
 
 New pages/components:
 
@@ -689,9 +695,9 @@ New pages/components:
 
 ## 10. Relationship to Existing Concepts
 
-### 10.1 Evaluation vs. voting
+### 10.1 Scoring vs. voting
 
-| Aspect | Voting | Evaluation |
+| Aspect | Voting | Scoring |
 |---|---|---|
 | Input | Single choice (or ranked list) | Multi-dimensional score vector |
 | Delegation | Configurable (the core mechanism) | Never (personal judgment) |
@@ -700,9 +706,9 @@ New pages/components:
 | Issue/entry | Has declared choices | Scored against rubric dimensions |
 | Quorum | Enforced (required for valid result) | Not enforced (participation rate reported) |
 
-### 10.2 Evaluation vs. surveys
+### 10.2 Scoring vs. surveys
 
-| Aspect | Surveys | Evaluation |
+| Aspect | Surveys | Scoring |
 |---|---|---|
 | Purpose | Sense community sentiment | Score entries for ranking |
 | Delegation | Never | Never |
@@ -710,11 +716,11 @@ New pages/components:
 | Structure | Questions with varied types | Rubric with numeric dimensions |
 | Output | Aggregate statistics per question | Ranked entries with dimensional breakdown |
 | Binding | Non-binding (sensing mechanism) | Produces an actionable ranking |
-| Scope | Topic-scoped | Entry-scoped (entries within an evaluation event) |
+| Scope | Topic-scoped | Entry-scoped (entries within a scoring event) |
 
-### 10.3 Evaluation vs. endorsements
+### 10.3 Scoring vs. endorsements
 
-Endorsements (endorse/dispute on proposals and candidacies) are binary signals — thumbs up or thumbs down. Evaluation is multi-dimensional and granular. An endorsement says "I support this"; a scorecard says "here's how this rates on 8 specific criteria."
+Endorsements (endorse/dispute on proposals and candidacies) are binary signals — thumbs up or thumbs down. Scoring is multi-dimensional and granular. An endorsement says "I support this"; a scorecard says "here's how this rates on 8 specific criteria."
 
 ---
 
@@ -724,22 +730,22 @@ These don't need answers now but will arise during implementation:
 
 ### 11.1 Live vs. sealed results
 
-When `secretScores: false`, should live aggregate results be visible while the evaluation is still open? This is analogous to `ballot.liveResults` for voting.
+When `secretScores: false`, should live aggregate results be visible while scoring is still open? This is analogous to `ballot.liveResults` for voting.
 
-**Leaning toward:** Yes, as a natural extension. When scores are not secret, showing live aggregates is useful (e.g., a transparent grant review where applicants can see interim standings). Add `liveResults: boolean` to `EvaluationSettings` if this distinction matters.
+**Leaning toward:** Yes, as a natural extension. When scores are not secret, showing live aggregates is useful (e.g., a transparent grant review where applicants can see interim standings). Add `liveResults: boolean` to `ScoringSettings` if this distinction matters.
 
 ### 11.2 Comments alongside scores
 
 Should evaluators be able to attach free-text comments to individual dimension scores or to the overall scorecard? Useful for grant review panels and hiring committees.
 
-**Leaning toward:** Not in v1. Keep the scorecard purely numeric for clean aggregation. Comments are a backend/content concern — the backend can store evaluator notes keyed by (evaluationEventId, evaluatorId, entryId) without any engine changes.
+**Leaning toward:** Not in v1. Keep the scorecard purely numeric for clean aggregation. Comments are a backend/content concern — the backend can store evaluator notes keyed by (scoringEventId, evaluatorId, entryId) without any engine changes.
 
 ### 11.3 Out of scope
 
 The following are explicitly outside the engine's domain:
 
-- **Conflict of interest** — the engine doesn't know the relationship between evaluators and entries. Excluding a judge from scoring their own entry is a consumer/backend concern when constructing the evaluation event.
-- **Multi-round progression** — preliminary rounds narrowing the field to finals are modeled as separate, independent evaluation events. The consumer decides which entries advance. The engine doesn't need progression logic.
+- **Conflict of interest** — the engine doesn't know the relationship between evaluators and entries. Excluding a judge from scoring their own entry is a consumer/backend concern when constructing the scoring event.
+- **Multi-round progression** — preliminary rounds narrowing the field to finals are modeled as separate, independent scoring events. The consumer decides which entries advance. The engine doesn't need progression logic.
 
 ---
 
@@ -747,23 +753,25 @@ The following are explicitly outside the engine's domain:
 
 | Decision | Rationale |
 |---|---|
-| Standalone package, not an extension of voting | Evaluation has fundamentally different invariants: non-delegable, multi-dimensional, statistical aggregation. Forcing it into voting would dilute both concepts. |
+| Package named `scoring`, not `evaluation` | "Evaluation" already means endorse/dispute in the codebase (`NoteEvaluation`, `CommunityNoteEvaluated`). "Scoring" describes the core action, avoids collision, and creates a natural family with `voting` and `survey`. |
+| Standalone package, not an extension of voting | Scoring has fundamentally different invariants: non-delegable, multi-dimensional, statistical aggregation. Forcing it into voting would dilute both concepts. |
 | No new structural concepts (panel = group, entry = opaque ID, evaluator = participant) | Reuse existing infrastructure. The only new primitive is the scorecard. |
 | Non-delegable, always | Judgment is personal. This is a harder constraint than surveys — delegation would be epistemically meaningless. |
-| Rubric defined per evaluation event, not per group | Different evaluations need different rubrics. The governance config gets only a feature toggle. |
+| Rubric defined per scoring event, not per group | Different scoring events need different rubrics. The governance config gets only a feature toggle. |
 | Two-stage aggregation (across evaluators, then across dimensions) | Separates two independent design decisions: how to resolve evaluator disagreement vs. how to combine incommensurable dimensions. |
 | Weighted-sum and geometric-mean as dimension aggregation methods | Covers the most common real-world approaches. Geometric-mean adds the useful property of penalizing imbalance. Outranking methods deferred. |
 | Complete scorecards required (all dimensions scored) | Matches competition judging practice. Partial scoring can be added later as an opt-in setting. |
-| No quorum enforcement | Evaluation panels are typically small, purposefully selected groups. Report participation rate instead; let consumers decide legitimacy. |
-| Per-event settings for revision, secrecy, and normalization | More flexible than assembly-level config. Different evaluations in the same group may need different policies. |
-| Evaluator weighting in core design | Head judges, domain experts, and senior reviewers often carry more authority. Weight is a natural per-evaluator attribute defined when creating the evaluation event. Defaults to equal weight (1) when omitted. |
+| No quorum enforcement | Scoring panels are typically small, purposefully selected groups. Report participation rate instead; let consumers decide legitimacy. |
+| Per-event settings for revision, secrecy, and normalization | More flexible than assembly-level config. Different scoring events in the same group may need different policies. |
+| Evaluator weighting in core design | Head judges, domain experts, and senior reviewers often carry more authority. Weight is a natural per-evaluator attribute defined when creating the scoring event. Defaults to equal weight (1) when omitted. |
 | Score normalization as opt-in setting | Corrects for generous/strict scoring tendencies. Opt-in because it modifies submitted scores, which can surprise participants. Requires sufficient data (≥ 3 entries per evaluator) to be meaningful. |
 | Entries are opaque | The engine captures scoring mechanics, not domain semantics. What entries represent is external. |
 | Conflict of interest is a consumer concern | The engine doesn't model relationships between evaluators and entries. Recusals are enforced by excluding evaluator-entry pairs when constructing the event. |
-| Multi-round progression is a consumer concern | Rounds are separate evaluation events. Which entries advance is a consumer decision, not engine logic. |
+| Multi-round progression is a consumer concern | Rounds are separate scoring events. Which entries advance is a consumer decision, not engine logic. |
 | No scorecard retraction | Retraction would create asymmetric evaluator counts across entries, distorting rankings. Revision is the remedy for mistakes. |
 | Status derived from timeline, not stored | Avoids stale state. Computed from `opensAt`/`closesAt` + `TimeProvider`, same pattern as voting windows. |
 | Results computed on demand | Follows voting tally pattern. Enables live results when scores are not secret. Materialized table is a cache, not source of truth. |
 | Entries immutable after creation | Prevents ranking instability from late entries having fewer scores. Same rule as voting events. |
 | Admin-only creation and close | Parallels voting event authorization. Uses existing `isAdminOf()` pattern. |
 | Entry description is optional | Keeps entries lightweight. Rich content is a backend concern, following the VCP/backend boundary. |
+| UI label: "Scores" | Simplest word that communicates the concept to any user. Same pattern as Groups/Votes/Surveys — user-facing terms don't need to match internal package names. |
