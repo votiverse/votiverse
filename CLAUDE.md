@@ -19,6 +19,7 @@ The repository has three layers:
 - `docs/integration-architecture.md` — 3-tier system architecture, VCP/backend boundary, API contract
 - `docs/papers/paper-i-whitepaper.md` — governance model, formal properties, design rationale
 - `docs/papers/paper-ii-self-sustaining-governance.md` — proposals, candidacies, community notes, self-sustaining governance
+- `docs/design/groups-and-capabilities.md` — **upcoming refactor**: Group entity, capabilities as layers, VCP/backend boundary, FeatureConfig removal, prediction decoupling
 - `docs/design/app-design-system.md` — web UI design system: brand palette, tokens, typography, layout, components, dark mode
 - `docs/design/content-architecture.md` — design for proposals, candidacies, community notes, asset storage
 - `docs/design/candidacy-lifecycle.md` — candidacy versioning, withdrawal, note persistence principle, website URL
@@ -47,10 +48,11 @@ When context is compacted, you lose architectural reasoning. Before resuming any
 
 1. Re-read this file (`CLAUDE.md`)
 2. Re-read `docs/architecture.md`
-3. Re-read the `README.md` of the package you are currently working on
-4. Re-read the existing tests for that package
-5. If working on the web UI, re-read `platform/web/TESTING.md` and `docs/design/app-design-system.md`
-6. Only then resume implementation
+3. Re-read `docs/design/groups-and-capabilities.md` (upcoming refactor — understand what is changing and what is current)
+4. Re-read the `README.md` of the package you are currently working on
+5. Re-read the existing tests for that package
+6. If working on the web UI, re-read `platform/web/TESTING.md` and `docs/design/app-design-system.md`
+7. Only then resume implementation
 
 This is not optional. Skipping this step leads to architectural drift that is expensive to fix.
 
@@ -72,6 +74,7 @@ These decisions are final. Do not reconsider them without explicit instruction f
 - **Voting windows are enforced by the engine.** The engine's `voting.cast()` rejects votes outside the `votingStart`–`votingEnd` window with `GovernanceRuleViolation`. This is not just a UI concern — it's enforced at the engine level.
 - **The VCP stores governance metadata; the backend stores content.** The VCP is a governance computation and integrity engine. It stores event payloads, governance metadata, and content hashes — never markdown documents, binary assets, or PII. Rich content (proposal documents, candidacy profiles, community note text, uploaded files) lives in the client backend. The `contentHash` in the VCP provides integrity verification: anyone can hash backend-served content and compare it to the VCP's record. This separation keeps the VCP lean, deployment-agnostic, and capable of serving multiple client backends.
 - **The backend orchestrates; the VCP computes.** The backend is the entry point for all user actions. It manages drafts, stores content, and calls the VCP to record governance events and perform governance computation. The VCP never initiates contact with the backend.
+- **Predictions are always available.** Predictions are a platform-level feature, not a per-group toggle. Any member can make a prediction wherever the UI offers the affordance. There is no "mandatory predictions" mode. Predictions surface contextually (proposals, votes, candidate profiles), not as a dedicated tab. See `docs/design/groups-and-capabilities.md` section 2.4.
 
 ---
 
@@ -259,6 +262,23 @@ Detailed per-phase task lists (Phases 1–7) are in git history. Future phases f
 
 ---
 
+## Upcoming Refactor: Groups and Capabilities
+
+**Read `docs/design/groups-and-capabilities.md` before starting any implementation work on this refactor.**
+
+A pre-production architectural refactor is planned that will change several foundational assumptions in the codebase. The full design, rationale, schema audit, and implementation sequence are in the design document. Key changes:
+
+- **Group entity.** A new backend-owned entity ("group") becomes the user-facing top-level concept. The VCP's "assembly" becomes an internal implementation detail that users never see. URLs shift from `/assembly/:id/...` to `/group/:id/...`.
+- **Capabilities as layers.** Voting, scoring, surveys, and community notes become independently toggleable capabilities managed by the backend's `group_capabilities` table, not by `FeatureConfig` in `GovernanceConfig`.
+- **`FeatureConfig` removed from `GovernanceConfig`.** All capability gating moves to the backend. The VCP processes whatever the backend sends — it has no capability flags. `GovernanceConfig` shrinks to 10 voting-specific parameters: delegation (2) + ballot (5) + timeline (3).
+- **Predictions decoupled.** Predictions become a platform-level feature, always available, not per-group. `Prediction.proposalId` becomes optional (standalone predictions). No prediction mode dropdown.
+- **VCP/backend boundary sharpened.** VCP = computation integrity (one-per-member, delegation graphs, tallying, immutability). Backend = access control (auth, roles, capabilities, admission). Roles move from VCP to backend.
+- **Delegation quadrants.** Four named models: Direct, Open, Proxy, Liquid. The quadrant is the only immutable setting. Other ballot/timeline settings are adjustable between events.
+
+Until this refactor is implemented, the current code still uses assemblies as the top-level entity with `FeatureConfig` in `GovernanceConfig`. Follow the existing patterns for any work that isn't part of the refactor.
+
+---
+
 ## File Structure
 
 ### Engine Packages
@@ -377,13 +397,13 @@ The seed creates 7 assemblies using different governance presets:
 
 | Assembly       | Key          | Preset              | Delegation                | Surveys | Predictions |
 |----------------|--------------|---------------------|---------------------------|---------|-------------|
-| Greenfield     | `greenfield` | DIRECT_DEMOCRACY    | None                      | No      | Off         |
-| OSC            | `osc`        | LIQUID_OPEN         | Open, transferable        | No      | Mandatory   |
-| Municipal      | `municipal`  | CIVIC               | Open, transferable        | Yes     | Opt-in      |
-| Youth          | `youth`      | LIQUID_DELEGATION   | Candidacy, transferable   | Yes     | Opt-in      |
-| Board          | `board`      | REPRESENTATIVE      | Open, non-transferable    | No      | Off         |
-| Maple Heights  | `maple`      | LIQUID_DELEGATION   | Candidacy, transferable   | Yes     | Encouraged  |
-| Riverside      | `riverside`  | CIVIC               | Open, transferable        | No      | Off         |
+| Greenfield     | `greenfield` | DIRECT_DEMOCRACY    | None                      | No      | No          |
+| OSC            | `osc`        | LIQUID_OPEN         | Open, transferable        | No      | No          |
+| Municipal      | `municipal`  | CIVIC               | Open, transferable        | Yes     | Yes         |
+| Youth          | `youth`      | LIQUID_DELEGATION   | Candidacy, transferable   | Yes     | Yes         |
+| Board          | `board`      | REPRESENTATIVE      | Open, non-transferable    | No      | No          |
+| Maple Heights  | `maple`      | LIQUID_DELEGATION   | Candidacy, transferable   | Yes     | Yes         |
+| Riverside      | `riverside`  | CIVIC               | Open, transferable        | No      | No          |
 
 Each assembly has hierarchical topics (45 total), participants with cross-assembly overlap, voting events with issues mapped to topics, delegations (global + topic-scoped), and surveys (Municipal + Youth only). The Maple Heights assembly provides seed data for the Maple Heights Condo Board case study (proposals, community notes, closed results). The Riverside Community Center assembly provides seed data for the Riverside case study (topic navigation, issue cancellation/reclassification, community notes on misclassification).
 
