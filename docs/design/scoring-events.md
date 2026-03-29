@@ -613,6 +613,10 @@ This is the only change to the governance config surface. All scoring-specific s
 
 The canonical data for scorecards lives in the `events` table as `ScorecardSubmitted` and `ScorecardRevised` events, following the same event-sourcing pattern as votes. The `scorecards` and `scoring_results` tables below are **materialized views** — derived state kept in sync for efficient querying, same pattern as the existing `issue_tallies` table for voting. The `scorecards` table is upserted on each `ScorecardSubmitted`/`ScorecardRevised` event; the `scoring_results` table is recomputed on demand.
 
+As with all VCP migrations, dialect-specific files are required (see CLAUDE.md § Database Migrations). SQLite uses `TEXT` for IDs and JSON columns; PostgreSQL uses `UUID` (v7) for IDs, `JSONB` for structured data, and `TIMESTAMPTZ` for timestamps.
+
+**SQLite dialect:**
+
 ```sql
 CREATE TABLE scoring_events (
   id                TEXT PRIMARY KEY,
@@ -650,6 +654,46 @@ CREATE TABLE scoring_results (
   participating_count INTEGER NOT NULL,
   participation_rate REAL NOT NULL,
   computed_at       TEXT NOT NULL,
+  PRIMARY KEY (assembly_id, scoring_event_id)
+);
+```
+
+**PostgreSQL dialect:**
+
+```sql
+CREATE TABLE scoring_events (
+  id                UUID PRIMARY KEY,
+  assembly_id       UUID NOT NULL REFERENCES assemblies(id),
+  title             TEXT NOT NULL,
+  description       TEXT NOT NULL DEFAULT '',
+  entries           JSONB NOT NULL,
+  rubric            JSONB NOT NULL,
+  panel_member_ids  JSONB,            -- null = all members
+  opens_at          TIMESTAMPTZ NOT NULL,
+  closes_at         TIMESTAMPTZ NOT NULL,
+  settings          JSONB NOT NULL,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE scorecards (
+  id                UUID PRIMARY KEY,
+  assembly_id       UUID NOT NULL,
+  scoring_event_id  UUID NOT NULL REFERENCES scoring_events(id),
+  evaluator_id      UUID NOT NULL,
+  entry_id          UUID NOT NULL,
+  scores            JSONB NOT NULL,
+  submitted_at      TIMESTAMPTZ NOT NULL,
+  UNIQUE(scoring_event_id, evaluator_id, entry_id)
+);
+
+CREATE TABLE scoring_results (
+  assembly_id       UUID NOT NULL,
+  scoring_event_id  UUID NOT NULL REFERENCES scoring_events(id),
+  entries           JSONB NOT NULL,
+  eligible_count    INTEGER NOT NULL,
+  participating_count INTEGER NOT NULL,
+  participation_rate REAL NOT NULL,
+  computed_at       TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (assembly_id, scoring_event_id)
 );
 ```
