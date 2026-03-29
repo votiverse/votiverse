@@ -79,6 +79,9 @@ export type EventType =
   | "RoleRevoked"
   | "IssueCancelled"
   | "ScoringEventCreated"
+  | "ScoringEventOpened"
+  | "ScoringEventDeadlineExtended"
+  | "ScoringEventDraftUpdated"
   | "ScorecardSubmitted"
   | "ScorecardRevised"
   | "ScoringEventClosed";
@@ -382,6 +385,8 @@ export interface ScoringEventCreatedPayload {
   readonly panelMemberIds: readonly ParticipantId[] | null;
   readonly timeline: ScoringTimelinePayload;
   readonly settings: ScoringSettingsPayload;
+  /** When true, the event stays in draft until explicitly opened. Default: false. */
+  readonly startAsDraft?: boolean;
 }
 
 export interface ScorecardSubmittedPayload {
@@ -398,6 +403,29 @@ export interface ScorecardRevisedPayload {
   readonly evaluatorId: ParticipantId;
   readonly entryId: EntryId;
   readonly scores: readonly DimensionScorePayload[];
+}
+
+export interface ScoringEventOpenedPayload {
+  readonly scoringEventId: ScoringEventId;
+  /** The opensAt value after the open command — always set to now. */
+  readonly opensAt: Timestamp;
+}
+
+export interface ScoringEventDeadlineExtendedPayload {
+  readonly scoringEventId: ScoringEventId;
+  readonly previousClosesAt: Timestamp;
+  readonly newClosesAt: Timestamp;
+}
+
+export interface ScoringEventDraftUpdatedPayload {
+  readonly scoringEventId: ScoringEventId;
+  readonly title: string;
+  readonly description: string;
+  readonly entries: readonly ScoringEntryPayload[];
+  readonly rubric: RubricPayload;
+  readonly panelMemberIds: readonly ParticipantId[] | null;
+  readonly timeline: ScoringTimelinePayload;
+  readonly settings: ScoringSettingsPayload;
 }
 
 export interface ScoringEventClosedPayload {
@@ -466,6 +494,9 @@ export type RoleGrantedEvent = BaseEvent<"RoleGranted", RoleGrantedPayload>;
 export type RoleRevokedEvent = BaseEvent<"RoleRevoked", RoleRevokedPayload>;
 
 export type ScoringEventCreatedEvent = BaseEvent<"ScoringEventCreated", ScoringEventCreatedPayload>;
+export type ScoringEventOpenedEvent = BaseEvent<"ScoringEventOpened", ScoringEventOpenedPayload>;
+export type ScoringEventDeadlineExtendedEvent = BaseEvent<"ScoringEventDeadlineExtended", ScoringEventDeadlineExtendedPayload>;
+export type ScoringEventDraftUpdatedEvent = BaseEvent<"ScoringEventDraftUpdated", ScoringEventDraftUpdatedPayload>;
 export type ScorecardSubmittedEvent = BaseEvent<"ScorecardSubmitted", ScorecardSubmittedPayload>;
 export type ScorecardRevisedEvent = BaseEvent<"ScorecardRevised", ScorecardRevisedPayload>;
 export type ScoringEventClosedEvent = BaseEvent<"ScoringEventClosed", ScoringEventClosedPayload>;
@@ -504,6 +535,9 @@ export type DomainEvent =
   | RoleGrantedEvent
   | RoleRevokedEvent
   | ScoringEventCreatedEvent
+  | ScoringEventOpenedEvent
+  | ScoringEventDeadlineExtendedEvent
+  | ScoringEventDraftUpdatedEvent
   | ScorecardSubmittedEvent
   | ScorecardRevisedEvent
   | ScoringEventClosedEvent;

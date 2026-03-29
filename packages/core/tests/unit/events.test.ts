@@ -123,14 +123,36 @@ describe("Event definitions", () => {
         "DelegationCreated",
         "DelegationRevoked",
         "VoteCast",
+        "VoteRetracted",
+        "IssueCancelled",
         "PredictionCommitted",
         "OutcomeRecorded",
         "PollCreated",
         "PollResponseSubmitted",
         "IntegrityCommitment",
+        "ProposalSubmitted",
+        "ProposalVersionCreated",
+        "ProposalLocked",
+        "ProposalWithdrawn",
+        "CandidacyDeclared",
+        "CandidacyVersionCreated",
+        "CandidacyWithdrawn",
+        "CommunityNoteCreated",
+        "CommunityNoteEvaluated",
+        "CommunityNoteWithdrawn",
+        "ProposalEndorsed",
+        "RoleGranted",
+        "RoleRevoked",
+        "ScoringEventCreated",
+        "ScoringEventOpened",
+        "ScoringEventDeadlineExtended",
+        "ScoringEventDraftUpdated",
+        "ScorecardSubmitted",
+        "ScorecardRevised",
+        "ScoringEventClosed",
       ];
 
-      expect(types).toHaveLength(13);
+      expect(types).toHaveLength(35);
     });
   });
 });
