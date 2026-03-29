@@ -1,0 +1,35 @@
+{
+  "name": "@votiverse/scoring",
+  "version": "0.1.0",
+  "description": "Rubric-based multi-criteria scoring — non-delegable evaluation with ranking",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@votiverse/core": "workspace:*",
+    "@votiverse/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
