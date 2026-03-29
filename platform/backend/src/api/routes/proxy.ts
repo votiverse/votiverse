@@ -377,6 +377,18 @@ export function proxyRoutes(
           throw new ForbiddenError("Only admins can create topics");
         }
       }
+      // Scoring event creation: admin-only
+      if (/^\/scoring\/?$/.test(subpath)) {
+        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+          throw new ForbiddenError("Only admins can create scoring events");
+        }
+      }
+      // Scoring event close: admin-only
+      if (/^\/scoring\/[^/]+\/close\/?$/.test(subpath)) {
+        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+          throw new ForbiddenError("Only admins can close scoring events");
+        }
+      }
     }
 
     // Reconstruct the original path
