@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link, useSearchParams } from "react-router";
+import { useParams, Link, useSearchParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, LinkIcon, Check, Plus, Trash2, X, Search, Trophy, Users, Clock } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
@@ -286,6 +286,7 @@ export function ScoringDetailPage() {
 
 function ScoringForm({ assemblyId, event }: { assemblyId: string; event: ScoringEvent }) {
   const { t } = useTranslation("governance");
+  const navigate = useNavigate();
   const { getParticipantId } = useParticipant();
   const participantId = getParticipantId(assemblyId);
   const [activeEntryIndex, setActiveEntryIndex] = useState(0);
@@ -369,9 +370,9 @@ function ScoringForm({ assemblyId, event }: { assemblyId: string; event: Scoring
         }
       }
       signal("scoring");
+      navigate(`/assembly/${assemblyId}/scoring`);
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : t("scoring.submitError"));
-    } finally {
       setSubmitting(false);
     }
   };
