@@ -729,10 +729,9 @@ export function createScoringEvent(
     title: string;
     description: string;
     entries: Array<{ title: string; description?: string }>;
-    rubric: { categories: Array<{ name: string; weight: number; dimensions: Array<{ name: string; min: number; max: number; step: number; weight: number }> }> };
-    panelMemberIds?: string[];
-    opensAt: number;
-    closesAt: number;
+    rubric: { categories: Array<{ id: string; name: string; weight: number; dimensions: Array<{ id: string; name: string; scale: { min: number; max: number; step: number }; weight: number }> }>; evaluatorAggregation?: string; dimensionAggregation?: string };
+    panelMemberIds?: string[] | null;
+    timeline: { opensAt: number; closesAt: number };
     settings: { allowRevision: boolean; secretScores: boolean; normalizeScores: boolean };
   },
 ): Promise<import("./types.js").ScoringEvent> {

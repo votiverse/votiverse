@@ -494,9 +494,10 @@ function ScoringForm({ assemblyId, event }: { assemblyId: string; event: Scoring
                     </div>
                     {category.dimensions.map((dim) => {
                       const dimScore = currentScores[dim.id];
+                      const step = dim.scale.step ?? 1;
                       const range = Array.from(
-                        { length: Math.floor((dim.max - dim.min) / dim.step) + 1 },
-                        (_, i) => dim.min + i * dim.step,
+                        { length: Math.floor((dim.scale.max - dim.scale.min) / step) + 1 },
+                        (_, i) => dim.scale.min + i * step,
                       );
                       return (
                         <div key={dim.id} className="bg-surface rounded-xl p-4 border border-border-subtle">
@@ -504,7 +505,7 @@ function ScoringForm({ assemblyId, event }: { assemblyId: string; event: Scoring
                             <p className="text-sm font-medium text-text-primary">{dim.name}</p>
                             {dimScore !== undefined && (
                               <span className="text-sm font-bold text-accent-text">
-                                {t("scoring.scoreDisplay", { score: dimScore, max: dim.max })}
+                                {t("scoring.scoreDisplay", { score: dimScore, max: dim.scale.max })}
                               </span>
                             )}
                           </div>
@@ -789,7 +790,7 @@ function getMaxRubricScore(categories: ScoringCategory[]): number {
   let maxDim = 5;
   for (const cat of categories) {
     for (const dim of cat.dimensions) {
-      if (dim.max > maxDim) maxDim = dim.max;
+      if (dim.scale.max > maxDim) maxDim = dim.scale.max;
     }
   }
   return maxDim;
@@ -926,20 +927,21 @@ function CreateScoringForm({
         })),
         rubric: {
           categories: categories.map((c) => ({
+            id: c.id,
             name: c.name.trim(),
             weight: c.weight,
             dimensions: c.dimensions.map((d) => ({
+              id: d.id,
               name: d.name.trim(),
-              min: d.min,
-              max: d.max,
-              step: d.step,
+              scale: { min: d.min, max: d.max, step: d.step },
               weight: d.weight,
             })),
           })),
+          evaluatorAggregation: "mean",
+          dimensionAggregation: "weighted-sum",
         },
-        panelMemberIds: evaluatorType === "panel" ? panelMembers.map((p) => p.id) : undefined,
-        opensAt: now,
-        closesAt: now + 86400000 * 7,
+        panelMemberIds: evaluatorType === "panel" ? panelMembers.map((p) => p.id) : null,
+        timeline: { opensAt: now, closesAt: now + 86400000 * 7 },
         settings,
       });
       signal("scoring");

@@ -448,9 +448,7 @@ export interface CommunityNote {
 export interface ScoringDimension {
   id: string;
   name: string;
-  min: number;
-  max: number;
-  step: number;
+  scale: { min: number; max: number; step?: number };
   weight: number;
 }
 
