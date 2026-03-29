@@ -389,6 +389,28 @@ export function proxyRoutes(
           throw new ForbiddenError("Only admins can close scoring events");
         }
       }
+      // Scoring event open: admin-only
+      if (/^\/scoring\/[^/]+\/open\/?$/.test(subpath)) {
+        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+          throw new ForbiddenError("Only admins can open scoring events");
+        }
+      }
+      // Scoring event extend deadline: admin-only
+      if (/^\/scoring\/[^/]+\/extend\/?$/.test(subpath)) {
+        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+          throw new ForbiddenError("Only admins can extend scoring event deadlines");
+        }
+      }
+    }
+
+    // PUT admin-only operations
+    if (c.req.method === "PUT") {
+      // Scoring event draft update: admin-only
+      if (/^\/scoring\/[^/]+\/?$/.test(subpath) && !/\/scorecards\//.test(subpath)) {
+        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+          throw new ForbiddenError("Only admins can edit scoring event drafts");
+        }
+      }
     }
 
     // Reconstruct the original path
