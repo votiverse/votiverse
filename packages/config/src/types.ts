@@ -88,6 +88,9 @@ export interface FeatureConfig {
 
   /** Sentiment surveys decoupled from binding votes. */
   readonly surveys: boolean;
+
+  /** Rubric-based multi-criteria scoring events (non-delegable). */
+  readonly scoring: boolean;
 }
 
 // ---------------------------------------------------------------------------

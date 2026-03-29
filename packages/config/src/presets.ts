@@ -37,6 +37,7 @@ const LIQUID_DELEGATION: GovernanceConfig = Object.freeze({
     communityNotes: true,
     predictions: true,
     surveys: true,
+    scoring: false,
   }),
   timeline: Object.freeze({
     deliberationDays: 7,
@@ -68,6 +69,7 @@ const DIRECT_DEMOCRACY: GovernanceConfig = Object.freeze({
     communityNotes: false,
     predictions: false,
     surveys: false,
+    scoring: false,
   }),
   timeline: Object.freeze({
     deliberationDays: 7,
@@ -103,6 +105,7 @@ const SWISS_VOTATION: GovernanceConfig = Object.freeze({
     communityNotes: true,
     predictions: true,
     surveys: false,
+    scoring: false,
   }),
   timeline: Object.freeze({
     deliberationDays: 7,
@@ -136,6 +139,7 @@ const LIQUID_OPEN: GovernanceConfig = Object.freeze({
     communityNotes: false,
     predictions: false,
     surveys: false,
+    scoring: false,
   }),
   timeline: Object.freeze({
     deliberationDays: 5,
@@ -170,6 +174,7 @@ const REPRESENTATIVE: GovernanceConfig = Object.freeze({
     communityNotes: false,
     predictions: false,
     surveys: false,
+    scoring: true,
   }),
   timeline: Object.freeze({
     deliberationDays: 3,
@@ -204,6 +209,7 @@ const CIVIC: GovernanceConfig = Object.freeze({
     communityNotes: true,
     predictions: true,
     surveys: true,
+    scoring: false,
   }),
   timeline: Object.freeze({
     deliberationDays: 14,
