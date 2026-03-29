@@ -675,13 +675,15 @@ The backend proxies evaluation routes to the VCP with identity injection, same a
 
 ### 9.3 Web UI
 
+**Naming:** The UI uses "Scores" as the user-facing term, not "Evaluations." This follows the same pattern as Groups (not Assemblies) and Votes (not VotingEvents) — the simplest word that communicates the concept to any user. The tab reads: **Votes · Surveys · Scores · Delegates**.
+
 New pages/components:
 
-- **Evaluation list page** — shows open/closed evaluation events alongside voting events
-- **Evaluation detail page** — shows rubric, entries, and scoring interface
+- **Scores tab** — lists open/closed scoring events alongside voting events
+- **Scoring event detail page** — shows rubric, entries, and scoring interface
 - **Scorecard form** — rubric-driven form: categories as sections, dimensions as sliders/inputs
 - **Results page** — ranking table with expandable dimensional breakdown per entry
-- **Evaluator progress** — which entries you've scored, which are remaining
+- **Scoring progress** — which entries you've scored, which are remaining
 
 ---
 
