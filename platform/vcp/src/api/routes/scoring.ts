@@ -207,8 +207,27 @@ export function scoringRoutes(manager: AssemblyManager) {
     const now = new Date().toISOString();
     const isClosed = eventRow.closes_at <= now;
 
+    // When secretScores is enabled and the event is still open, only return
+    // the requesting evaluator's own scorecards (so they can revise).
+    const callerPid = c.req.header("X-Participant-Id") ?? null;
+
     if (settings.secretScores && !isClosed) {
-      return c.json({ error: { code: "SCORES_SECRET", message: "Scores are secret until the event closes" } }, 403);
+      if (!callerPid) {
+        return c.json({ error: { code: "SCORES_SECRET", message: "Scores are secret until the event closes" } }, 403);
+      }
+      const rows = await db.query<ScorecardRow>(
+        "SELECT * FROM scorecards WHERE scoring_event_id = ? AND assembly_id = ? AND evaluator_id = ?",
+        [eid, assemblyId, callerPid],
+      );
+      const scorecards = rows.map((row) => ({
+        id: row.id,
+        scoringEventId: row.scoring_event_id,
+        evaluatorId: row.evaluator_id,
+        entryId: row.entry_id,
+        scores: parseJson(row.scores),
+        submittedAt: row.submitted_at,
+      }));
+      return c.json({ scorecards });
     }
 
     const rows = await db.query<ScorecardRow>(
