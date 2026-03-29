@@ -30,6 +30,7 @@ import { proposalRoutes } from "./routes/proposals.js";
 import { candidacyRoutes } from "./routes/candidacies.js";
 import { noteRoutes } from "./routes/notes.js";
 import { endorsementRoutes } from "./routes/endorsements.js";
+import { scoringRoutes } from "./routes/scoring.js";
 import { authRoutes } from "./routes/auth.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { devRoutes } from "./routes/dev.js";
@@ -145,6 +146,7 @@ export function createApp(adapters: VCPAdapters, manager: AssemblyManager, confi
   app.route("/", candidacyRoutes(manager));
   app.route("/", noteRoutes(manager));
   app.route("/", endorsementRoutes(manager));
+  app.route("/", scoringRoutes(manager));
   app.route("/", awarenessRoutes(manager));
   app.route("/", metricsRoutes());
   // Dev-only routes (test clock) — fail-closed: only in development/test

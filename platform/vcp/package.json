@@ -23,6 +23,7 @@
     "@votiverse/engine": "workspace:*",
     "@votiverse/identity": "workspace:*",
     "@votiverse/prediction": "workspace:*",
+    "@votiverse/scoring": "workspace:*",
     "@votiverse/survey": "workspace:*",
     "@votiverse/voting": "workspace:*",
     "better-sqlite3": "^11.9.0",
