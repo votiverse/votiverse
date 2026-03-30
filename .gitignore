@@ -36,4 +36,4 @@ test-notifications/
 .claude/launch.json
 
 # Temporary files
-.aux/
+.aux/.claude/worktrees/
