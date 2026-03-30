@@ -149,7 +149,8 @@ export function GroupDashboard() {
                 </div>
               </CardHeader>
               <CardBody className="space-y-2">
-                <ConfigRow label={t("groupDashboard.delegation")} value={quadrantLabel(config, t)} />
+                <ConfigRow label={t("groupDashboard.delegation")} value={humanizeBoolean(config.delegation.transferable, "enabled-disabled", t)} />
+                <ConfigRow label={t("groupDashboard.candidatesLabel")} value={humanizeBoolean(config.delegation.candidacy, "enabled-disabled", t)} />
                 <ConfigRow label={t("groupDashboard.communityNotes")} value={humanizeBoolean(group?.capabilities?.includes("community_notes") ?? true, "enabled-disabled", t)} />
               </CardBody>
             </Card>
