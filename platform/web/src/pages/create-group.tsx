@@ -41,7 +41,7 @@ export function CreateGroup() {
   const [websiteUrl, setWebsiteUrl] = useState("");
 
   // Capabilities
-  const [votingEnabled, setVotingEnabled] = useState(true);
+  const [votingEnabled, setVotingEnabled] = useState(false);
   const [scoringEnabled, setScoringEnabled] = useState(false);
   const [surveysEnabled, setSurveysEnabled] = useState(false);
   const [notesEnabled, setNotesEnabled] = useState(false);
@@ -147,8 +147,8 @@ export function CreateGroup() {
                 {/* Quadrant selector */}
                 <div className="grid grid-cols-2 gap-2">
                   <QuadrantOption quadrant="direct" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                  <QuadrantOption quadrant="open" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
                   <QuadrantOption quadrant="proxy" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                  <QuadrantOption quadrant="open" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
                   <QuadrantOption quadrant="liquid" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
                 </div>
 
