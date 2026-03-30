@@ -218,7 +218,7 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
           <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
             <CardBody className="text-center py-4">
               <div className="text-2xl font-semibold text-text-primary">{totalVotes}</div>
-              <div className="text-xs text-text-muted mt-0.5">{t("profile.votesCast")}</div>
+              <div className="text-xs font-semibold text-text-muted mt-0.5">{t("profile.votesCast")}</div>
             </CardBody>
           </Card>
         </Link>
@@ -226,7 +226,7 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
           <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
             <CardBody className="text-center py-4">
               <div className="text-2xl font-semibold text-text-primary">{totalDelegators}</div>
-              <div className="text-xs text-text-muted mt-0.5">{t("profile.delegators")}</div>
+              <div className="text-xs font-semibold text-text-muted mt-0.5">{t("profile.delegators")}</div>
             </CardBody>
           </Card>
         </Link>
@@ -234,7 +234,7 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
           <Card className="hover:border-accent-muted hover:shadow active:border-accent transition-all">
             <CardBody className="text-center py-4">
               <div className="text-2xl font-semibold text-text-primary">{totalOutbound}</div>
-              <div className="text-xs text-text-muted mt-0.5">{t("profile.myDelegates")}</div>
+              <div className="text-xs font-semibold text-text-muted mt-0.5">{t("profile.myDelegates")}</div>
             </CardBody>
           </Card>
         </Link>
