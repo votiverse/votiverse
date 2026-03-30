@@ -177,6 +177,35 @@ export function meRoutes(
   });
 
   /**
+   * POST /internal/groups — seed-only: create a group with VCP assembly link and capabilities.
+   */
+  app.post("/internal/groups", async (c) => {
+    const body = await c.req.json<{
+      name: string;
+      handle: string;
+      createdBy: string;
+      vcpAssemblyId: string;
+      admissionMode?: string;
+      websiteUrl?: string | null;
+      voteCreation?: string;
+      capabilities?: string[];
+    }>();
+    const group = await groupService.create({
+      name: body.name,
+      handle: body.handle,
+      createdBy: body.createdBy,
+      admissionMode: (body.admissionMode as "open" | "approval" | "invite-only") ?? "approval",
+      websiteUrl: body.websiteUrl ?? null,
+      voteCreation: (body.voteCreation as "admin" | "members") ?? "admin",
+    });
+    await groupService.setVcpAssemblyId(group.id, body.vcpAssemblyId);
+    for (const cap of body.capabilities ?? []) {
+      await groupService.enableCapability(group.id, cap as "voting" | "scoring" | "surveys" | "community_notes");
+    }
+    return c.json({ id: group.id, status: "ok" }, 201);
+  });
+
+  /**
    * POST /internal/tracked-events — seed-only: track an existing VCP event
    * with all notification flags pre-set (already notified).
    */

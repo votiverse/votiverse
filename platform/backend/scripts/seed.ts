@@ -1,5 +1,5 @@
 /**
- * Backend seed script — creates users and memberships from VCP data.
+ * Backend seed script — creates users, groups, and memberships from VCP data.
  *
  * Assumes VCP is running with seeded data at BACKEND_VCP_URL.
  * Assumes backend is running at BACKEND_URL.
@@ -95,6 +95,26 @@ interface UserWithMemberships {
   memberships: Array<{ assemblyId: string; assemblyName: string; participantId: string }>;
 }
 
+/**
+ * Determine which capabilities a VCP assembly should have based on its config and data.
+ * This is a heuristic based on the preset used during VCP seeding.
+ */
+function deriveCapabilities(config: unknown): string[] {
+  const caps: string[] = ["voting"]; // All seeded assemblies have voting
+  // Infer capabilities from the VCP config shape
+  // Since FeatureConfig was removed, we enable all capabilities by default
+  // for seeded assemblies (they all had various features enabled before).
+  // In production, capabilities will be explicitly chosen at group creation.
+  const c = config as { delegation?: { candidacy?: boolean; transferable?: boolean } } | undefined;
+  if (c?.delegation?.candidacy || c?.delegation?.transferable) {
+    caps.push("community_notes");
+  }
+  // Enable surveys and scoring for most groups
+  caps.push("surveys", "community_notes", "scoring");
+  // Deduplicate
+  return [...new Set(caps)];
+}
+
 export async function main() {
   console.log(`\nSeeding backend from VCP at ${VCP_URL}...\n`);
 
@@ -139,13 +159,14 @@ export async function main() {
 
   console.log(`Found ${userMap.size} unique users across assemblies\n`);
 
-  // 3. Register users in the backend and create memberships
+  // 3. Register users in the backend
   let created = 0;
   let crossAssembly = 0;
   let firstToken: string | undefined;
+  const userTokens = new Map<string, string>(); // slug → token
+  const userIds = new Map<string, string>(); // slug → userId
 
   for (const user of userMap.values()) {
-    // Register
     const { status, body } = await backendPost<{ user: { id: string }; accessToken: string }>(
       "/auth/register",
       { email: user.email, password: DEFAULT_PASSWORD, name: user.name },
@@ -159,32 +180,87 @@ export async function main() {
     const userId = body.user.id;
     const token = body.accessToken;
     if (!firstToken) firstToken = token;
+    userTokens.set(user.slug, token);
+    userIds.set(user.slug, userId);
 
     // Set gender-appropriate avatar
     await backendPut("/me/profile", { avatarUrl: makeAvatarUrl(user.name) }, token);
-
-    // Create membership records directly via backend DB
-    // We use a special internal endpoint or direct DB access via the seed
-    // For now, use the /me/assemblies/:id/join endpoint — but VCP participant already exists
-    // Instead, we'll register memberships via a direct API call
-    // Since participants already exist in VCP (from VCP seed), we need to create
-    // the membership records without re-creating participants.
-    // We'll add a seed-only endpoint for this.
-
-    // For simplicity, POST to a seed-specific batch endpoint
-    for (const m of user.memberships) {
-      await backendPost(
-        "/internal/memberships",
-        { userId, assemblyId: m.assemblyId, participantId: m.participantId, assemblyName: m.assemblyName },
-        token,
-      );
-    }
 
     created++;
     if (user.memberships.length > 1) crossAssembly++;
   }
 
-  // 4. Populate assembly cache
+  // 4. Create groups for each VCP assembly
+  let createdGroups = 0;
+  const assemblyToGroupId = new Map<string, string>(); // vcpAssemblyId → groupId
+
+  // Find the first user to use as group creator
+  const firstUser = [...userMap.values()][0];
+  const firstUserId = firstUser ? userIds.get(firstUser.slug) : undefined;
+
+  for (const asm of assemblies) {
+    // Find the first participant's user ID to be the creator
+    const { participants } = await vcpGet<{ participants: VCPParticipant[] }>(
+      `/assemblies/${asm.id}/participants`,
+    );
+    const firstParticipant = participants[0];
+    const creatorSlug = firstParticipant ? slugify(firstParticipant.name) : undefined;
+    const creatorId = creatorSlug ? userIds.get(creatorSlug) : firstUserId;
+    if (!creatorId) continue;
+
+    const capabilities = deriveCapabilities(asm.config);
+    const handle = slugify(asm.name);
+
+    const { status, body } = await backendPost<{ id: string }>(
+      "/internal/groups",
+      {
+        name: asm.name,
+        handle,
+        createdBy: creatorId,
+        vcpAssemblyId: asm.id,
+        capabilities,
+      },
+      firstToken,
+    );
+
+    if (status === 201) {
+      assemblyToGroupId.set(asm.id, body.id);
+      createdGroups++;
+    } else {
+      console.error(`  ✗ Failed to create group for ${asm.name}: ${JSON.stringify(body)}`);
+    }
+  }
+
+  // 5. Create memberships (group_members) with roles
+  for (const user of userMap.values()) {
+    const userId = userIds.get(user.slug);
+    if (!userId) continue;
+
+    for (const m of user.memberships) {
+      const groupId = assemblyToGroupId.get(m.assemblyId);
+      if (!groupId) continue;
+
+      // First participant of each assembly gets "owner" role
+      const { participants } = await vcpGet<{ participants: VCPParticipant[] }>(
+        `/assemblies/${m.assemblyId}/participants`,
+      );
+      const isOwner = participants[0]?.id === m.participantId;
+
+      await backendPost(
+        "/internal/memberships",
+        {
+          userId,
+          groupId,
+          participantId: m.participantId,
+          groupName: m.assemblyName,
+          role: isOwner ? "owner" : "member",
+        },
+        firstToken,
+      );
+    }
+  }
+
+  // 6. Populate assembly cache (still needed for VCP config lookups)
   let cachedAssemblies = 0;
   for (const asm of assemblies) {
     await backendPost(
@@ -202,7 +278,7 @@ export async function main() {
     cachedAssemblies++;
   }
 
-  // 5. Populate topic cache
+  // 7. Populate topic cache
   let cachedTopics = 0;
   for (const asm of assemblies) {
     try {
@@ -230,7 +306,7 @@ export async function main() {
     }
   }
 
-  // 6. Populate survey cache
+  // 8. Populate survey cache
   let cachedSurveys = 0;
   for (const asm of assemblies) {
     try {
@@ -261,8 +337,7 @@ export async function main() {
     }
   }
 
-  // 7. Sync tracked events and surveys from VCP (pre-mark all as notified)
-  // This prevents the scheduler from sending notifications about historical seeded data.
+  // 9. Sync tracked events and surveys from VCP (pre-mark all as notified)
   let trackedEvents = 0;
   let trackedSurveys = 0;
 
@@ -314,7 +389,7 @@ export async function main() {
     }
   }
 
-  // 8. Seed content — fetch proposals/candidacies/notes from VCP, store markdown in backend
+  // 10. Seed content
   let contentItems = 0;
   try {
     const { PROPOSALS, CANDIDACIES, NOTES } = await import("../../vcp/scripts/seed-data/content.js");
@@ -373,34 +448,28 @@ export async function main() {
     console.log(`  (Content seeding skipped: ${err instanceof Error ? err.message : String(err)})`);
   }
 
-  // 9. Seed booklet recommendation for osc-deps
+  // 11. Seed booklet recommendation for osc-deps
   try {
-    // Find the OSC assembly
     const oscAsm = assemblies.find((a) => a.name.toLowerCase().includes("governance board"));
     if (oscAsm) {
-      // Find the osc-deps event
+      const oscGroupId = assemblyToGroupId.get(oscAsm.id);
       const { events } = await vcpGet<{ events: Array<{ id: string; title: string }> }>(
         `/assemblies/${oscAsm.id}/events`,
       );
       const depsEvent = events.find((e) => e.title.includes("Dependency"));
-      if (depsEvent) {
-        // Get the event's first issue
+      if (depsEvent && oscGroupId) {
         const fullEvent = await vcpGet<{ issues: Array<{ id: string }> }>(
           `/assemblies/${oscAsm.id}/events/${depsEvent.id}`,
         );
         const issueId = fullEvent.issues?.[0]?.id;
         if (issueId) {
-          // Find Sofia Reyes's token (first OSC participant = event creator)
           const sofiaSlug = "sofia-reyes";
-          const sofiaUser = userMap.get(sofiaSlug);
-          if (sofiaUser) {
-            // Login as Sofia to get her token
-            const loginRes = await backendPost<{ accessToken: string }>(
-              "/auth/login",
-              { email: `${sofiaSlug}@example.com`, password: DEFAULT_PASSWORD },
-            );
-            if (loginRes.status === 200) {
-              const markdown = `## Organizer Recommendation
+          const loginRes = await backendPost<{ accessToken: string }>(
+            "/auth/login",
+            { email: `${sofiaSlug}@example.com`, password: DEFAULT_PASSWORD },
+          );
+          if (loginRes.status === 200) {
+            const markdown = `## Organizer Recommendation
 
 After reviewing both proposals and community feedback, the governance committee recommends voting **For** mandatory license compatibility checks.
 
@@ -412,13 +481,12 @@ After reviewing both proposals and community feedback, the governance committee 
 
 This recommendation does not bind your vote — consider both arguments carefully and vote your conscience.`;
 
-              await backendPost(
-                `/assemblies/${oscAsm.id}/events/${depsEvent.id}/issues/${issueId}/recommendation`,
-                { markdown },
-                loginRes.body.accessToken,
-              );
-              console.log(`  Recommendation: seeded for Dependency Policy Review`);
-            }
+            await backendPost(
+              `/groups/${oscGroupId}/events/${depsEvent.id}/issues/${issueId}/recommendation`,
+              { markdown },
+              loginRes.body.accessToken,
+            );
+            console.log(`  Recommendation: seeded for Dependency Policy Review`);
           }
         }
       }
@@ -427,7 +495,7 @@ This recommendation does not bind your vote — consider both arguments carefull
     console.log(`  (Recommendation seeding skipped: ${err instanceof Error ? err.message : String(err)})`);
   }
 
-  // 10. Seed membership titles for candidates
+  // 12. Seed membership titles for candidates
   const candidateTitles: Record<string, string> = {
     "aisha-moyo": "High School Senior · STEM Advocate",
     "sofia-reyes": "Youth Program Director",
@@ -452,7 +520,10 @@ This recommendation does not bind your vote — consider both arguments carefull
       if (loginRes.status !== 200) continue;
       const token = loginRes.body.accessToken;
       for (const m of user.memberships) {
-        await backendPut("/me/assemblies/" + m.assemblyId + "/profile", { title }, token);
+        const groupId = assemblyToGroupId.get(m.assemblyId);
+        if (groupId) {
+          await backendPut("/me/groups/" + groupId + "/profile", { title }, token);
+        }
       }
       titlesSet++;
     } catch { /* skip on error */ }
@@ -462,6 +533,7 @@ This recommendation does not bind your vote — consider both arguments carefull
   console.log(`\n═══ SEED COMPLETE ═══\n`);
   console.log(`  Users:            ${created}`);
   console.log(`  Cross-assembly:   ${crossAssembly}`);
+  console.log(`  Groups:           ${createdGroups}`);
   console.log(`  Cached assemblies:${cachedAssemblies}`);
   console.log(`  Cached topics:    ${cachedTopics}`);
   console.log(`  Cached surveys:   ${cachedSurveys}`);
