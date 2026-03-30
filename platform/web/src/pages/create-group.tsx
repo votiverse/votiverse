@@ -44,7 +44,7 @@ export function CreateGroup() {
   const [votingEnabled, setVotingEnabled] = useState(false);
   const [scoringEnabled, setScoringEnabled] = useState(false);
   const [surveysEnabled, setSurveysEnabled] = useState(false);
-  const [notesEnabled, setNotesEnabled] = useState(false);
+  const [notesEnabled, setNotesEnabled] = useState(true);
 
   // Voting config (only relevant when voting is enabled)
   const [votingConfig, setVotingConfig] = useState<VotingConfig>(QUADRANT_DEFAULTS.liquid);
