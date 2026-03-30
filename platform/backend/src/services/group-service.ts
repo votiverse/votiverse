@@ -231,16 +231,16 @@ export class GroupService {
   async enableCapability(groupId: string, capability: Capability): Promise<void> {
     await this.db.run(
       `INSERT INTO group_capabilities (group_id, capability, enabled, enabled_at)
-       VALUES (?, ?, 1, datetime('now'))
+       VALUES (?, ?, TRUE, CURRENT_TIMESTAMP)
        ON CONFLICT (group_id, capability) DO UPDATE SET
-         enabled = 1, enabled_at = datetime('now'), disabled_at = NULL`,
+         enabled = TRUE, enabled_at = CURRENT_TIMESTAMP, disabled_at = NULL`,
       [groupId, capability],
     );
   }
 
   async disableCapability(groupId: string, capability: Capability): Promise<void> {
     await this.db.run(
-      `UPDATE group_capabilities SET enabled = 0, disabled_at = datetime('now')
+      `UPDATE group_capabilities SET enabled = FALSE, disabled_at = CURRENT_TIMESTAMP
        WHERE group_id = ? AND capability = ?`,
       [groupId, capability],
     );
@@ -267,7 +267,7 @@ export class GroupService {
   async addMember(groupId: string, userId: string, role: GroupRole = "member", participantId?: string | null): Promise<void> {
     await this.db.run(
       `INSERT INTO group_members (group_id, user_id, participant_id, role, joined_at)
-       VALUES (?, ?, ?, ?, datetime('now'))
+       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
        ON CONFLICT (group_id, user_id) DO NOTHING`,
       [groupId, userId, participantId ?? null, role],
     );

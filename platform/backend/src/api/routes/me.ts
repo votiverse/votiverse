@@ -512,7 +512,7 @@ export function meRoutes(
     await database.run(
       `INSERT INTO device_tokens (id, user_id, platform, token)
        VALUES (?, ?, ?, ?)
-       ON CONFLICT(user_id, platform, token) DO UPDATE SET updated_at = datetime('now')`,
+       ON CONFLICT(user_id, platform, token) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
       [id, userId, body.platform, body.token],
     );
 
