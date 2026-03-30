@@ -103,11 +103,11 @@ export async function listGroups(): Promise<Group[]> {
 
 export function createGroup(params: {
   name: string;
-  organizationId?: string;
   preset?: string;
   config?: unknown;
   admissionMode?: string;
   websiteUrl?: string;
+  capabilities?: string[];
 }): Promise<Group> {
   return request("POST", "/groups", params);
 }

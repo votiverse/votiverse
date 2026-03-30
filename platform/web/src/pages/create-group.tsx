@@ -5,56 +5,58 @@ import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, ErrorBox } from "../components/ui.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 
-// ── Preset definitions ───────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────────────────────
 
-function usePresets() {
-  const { t } = useTranslation("governance");
-  return [
-    { value: "LIQUID_DELEGATION", label: t("groupList.presetLiquidDelegation"), desc: t("groupList.presetLiquidDelegationDesc") },
-    { value: "DIRECT_DEMOCRACY", label: t("groupList.presetDirectDemocracy"), desc: t("groupList.presetDirectDemocracyDesc") },
-    { value: "SWISS_VOTATION", label: t("groupList.presetSwissVotation"), desc: t("groupList.presetSwissVotationDesc") },
-    { value: "LIQUID_OPEN", label: t("groupList.presetLiquidOpen"), desc: t("groupList.presetLiquidOpenDesc") },
-    { value: "REPRESENTATIVE", label: t("groupList.presetRepresentative"), desc: t("groupList.presetRepresentativeDesc") },
-    { value: "CIVIC", label: t("groupList.presetCivic"), desc: t("groupList.presetCivicDesc") },
-  ];
-}
+type Quadrant = "direct" | "open" | "proxy" | "liquid";
 
-interface ConfigDraft {
-  preset: string;
-  delegation: { candidacy: boolean; transferable: boolean };
+interface VotingConfig {
+  quadrant: Quadrant;
   ballot: { secret: boolean; liveResults: boolean; allowVoteChange: boolean };
   timeline: { deliberationDays: number; curationDays: number; votingDays: number };
 }
 
-const PRESET_CONFIGS: Record<string, ConfigDraft> = {
-  LIQUID_DELEGATION: { preset: "LIQUID_DELEGATION", delegation: { candidacy: true, transferable: true }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 } },
-  DIRECT_DEMOCRACY: { preset: "DIRECT_DEMOCRACY", delegation: { candidacy: false, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
-  SWISS_VOTATION: { preset: "SWISS_VOTATION", delegation: { candidacy: false, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: false }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
-  LIQUID_OPEN: { preset: "LIQUID_OPEN", delegation: { candidacy: false, transferable: true }, ballot: { secret: false, liveResults: true, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
-  REPRESENTATIVE: { preset: "REPRESENTATIVE", delegation: { candidacy: true, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: false }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
-  CIVIC: { preset: "CIVIC", delegation: { candidacy: false, transferable: true }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
+const QUADRANT_DELEGATION: Record<Quadrant, { candidacy: boolean; transferable: boolean }> = {
+  direct: { candidacy: false, transferable: false },
+  open: { candidacy: false, transferable: true },
+  proxy: { candidacy: true, transferable: false },
+  liquid: { candidacy: true, transferable: true },
 };
 
-function getDefaultConfig(): ConfigDraft {
-  return structuredClone(PRESET_CONFIGS["LIQUID_DELEGATION"]!);
-}
+const QUADRANT_DEFAULTS: Record<Quadrant, VotingConfig> = {
+  direct: { quadrant: "direct", ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
+  open: { quadrant: "open", ballot: { secret: false, liveResults: true, allowVoteChange: true }, timeline: { deliberationDays: 5, curationDays: 0, votingDays: 5 } },
+  proxy: { quadrant: "proxy", ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 3, curationDays: 0, votingDays: 3 } },
+  liquid: { quadrant: "liquid", ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 } },
+};
 
-// ── Page ─────────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────
 
 export function CreateGroup() {
   const { t } = useTranslation("governance");
   const navigate = useNavigate();
+
+  // Group basics
   const [name, setName] = useState("");
-  const [config, setConfig] = useState<ConfigDraft>(getDefaultConfig);
   const [admissionMode, setAdmissionMode] = useState<"open" | "approval" | "invite-only">("approval");
   const [websiteUrl, setWebsiteUrl] = useState("");
+
+  // Capabilities
+  const [votingEnabled, setVotingEnabled] = useState(true);
+  const [scoringEnabled, setScoringEnabled] = useState(false);
+  const [surveysEnabled, setSurveysEnabled] = useState(false);
+  const [notesEnabled, setNotesEnabled] = useState(false);
+
+  // Voting config (only relevant when voting is enabled)
+  const [votingConfig, setVotingConfig] = useState<VotingConfig>(QUADRANT_DEFAULTS.liquid);
+  const [showBallotSettings, setShowBallotSettings] = useState(false);
+  const [showTimelineSettings, setShowTimelineSettings] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showCustomize, setShowCustomize] = useState(false);
 
-  const isCustomized = config.preset !== "LIQUID_DELEGATION";
-  const PRESETS = usePresets();
-  const presetInfo = PRESETS.find((p) => p.value === config.preset);
+  const setQuadrant = (q: Quadrant) => {
+    setVotingConfig({ ...QUADRANT_DEFAULTS[q] });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,200 +64,265 @@ export function CreateGroup() {
     setSubmitting(true);
     setError(null);
     try {
-      const params: Parameters<typeof api.createGroup>[0] = { name: name.trim(), admissionMode, websiteUrl: websiteUrl.trim() || undefined };
-      if (isCustomized) {
-        params.config = config;
-      } else {
-        params.preset = config.preset;
+      const capabilities: string[] = [];
+      if (votingEnabled) capabilities.push("voting");
+      if (scoringEnabled) capabilities.push("scoring");
+      if (surveysEnabled) capabilities.push("surveys");
+      if (notesEnabled) capabilities.push("community_notes");
+
+      const params: Parameters<typeof api.createGroup>[0] = {
+        name: name.trim(),
+        admissionMode,
+        websiteUrl: websiteUrl.trim() || undefined,
+        capabilities,
+      };
+
+      if (votingEnabled) {
+        params.config = {
+          delegation: QUADRANT_DELEGATION[votingConfig.quadrant],
+          ballot: { ...votingConfig.ballot, quorum: 0.1, method: "majority" },
+          timeline: votingConfig.timeline,
+        };
       }
+
       const group = await api.createGroup(params);
       signal("groups");
       navigate(`/group/${group.id}/members`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("groupList.createError"));
+      setError(err instanceof Error ? err.message : t("createGroup.error"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const totalDays = config.timeline.deliberationDays + config.timeline.curationDays + config.timeline.votingDays;
-
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("createGroup.title")}</h1>
 
-      <Card>
-        <CardBody>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <ErrorBox message={error} />}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && <ErrorBox message={error} />}
 
+        {/* Group name */}
+        <Card>
+          <CardBody className="space-y-4">
             <div>
-              <Label>{t("groupList.nameLabel")}</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groupList.namePlaceholder")} autoFocus />
+              <Label>{t("createGroup.nameLabel")}</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("createGroup.namePlaceholder")} autoFocus />
             </div>
 
-            {/* Governance summary */}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-text-muted">
-                {t("groupList.governance")} <span className="font-medium text-text-secondary">{presetInfo?.label ?? t("groupList.presetLiquidDelegation")}</span>
-                {isCustomized && <span className="text-warning-text ml-1">{t("groupList.customized")}</span>}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowCustomize(true)}
-                className="text-accent-text hover:text-accent-text text-sm font-medium"
-              >
-                {t("groupList.customizeRules")}
-              </button>
-            </div>
-            <p className="text-xs text-text-tertiary -mt-2">
-              {t("groupList.rulesPermanent")}
-            </p>
-
-            {/* Timeline */}
             <div>
-              <Label>{t("groupList.timelinePerVote")}</Label>
-              <div className="flex items-center gap-4 mt-1">
-                <div className="flex items-center gap-1.5">
-                  <Input type="number" min={1} max={90} value={config.timeline.deliberationDays} onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, deliberationDays: Number(e.target.value) } }))} className="w-16" />
-                  <span className="text-xs text-text-muted">{t("groupList.deliberation")}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Input type="number" min={0} max={30} value={config.timeline.curationDays} onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, curationDays: Number(e.target.value) } }))} className="w-16" />
-                  <span className="text-xs text-text-muted">{t("groupList.curation")}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Input type="number" min={1} max={90} value={config.timeline.votingDays} onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, votingDays: Number(e.target.value) } }))} className="w-16" />
-                  <span className="text-xs text-text-muted">{t("groupList.voting")}</span>
-                </div>
-                <span className="text-xs text-text-tertiary">{t("groupList.days")}</span>
-              </div>
-              <p className="text-xs text-text-tertiary mt-1">{t("eventsList.timelineTotal", { total: totalDays })}</p>
-            </div>
-
-            {/* Admission mode */}
-            <div>
-              <Label>{t("groupList.whoCanJoin")}</Label>
+              <Label>{t("createGroup.whoCanJoin")}</Label>
               <Select value={admissionMode} onChange={(e) => setAdmissionMode(e.target.value as "open" | "approval" | "invite-only")}>
-                <option value="approval">{t("groupList.admissionApproval")}</option>
-                <option value="open">{t("groupList.admissionOpen")}</option>
-                <option value="invite-only">{t("groupList.admissionInviteOnly")}</option>
+                <option value="approval">{t("createGroup.admissionApproval")}</option>
+                <option value="open">{t("createGroup.admissionOpen")}</option>
+                <option value="invite-only">{t("createGroup.admissionInviteOnly")}</option>
               </Select>
               <p className="text-xs text-text-tertiary mt-1">
-                {admissionMode === "approval" && t("groupList.admissionApprovalDesc")}
-                {admissionMode === "open" && t("groupList.admissionOpenDesc")}
-                {admissionMode === "invite-only" && t("groupList.admissionInviteOnlyDesc")}
+                {admissionMode === "approval" && t("createGroup.admissionApprovalDesc")}
+                {admissionMode === "open" && t("createGroup.admissionOpenDesc")}
+                {admissionMode === "invite-only" && t("createGroup.admissionInviteOnlyDesc")}
               </p>
               {admissionMode === "open" && (
                 <p className="text-xs text-warning-text bg-warning-subtle border border-warning-border rounded px-2 py-1.5 mt-1.5">
-                  {t("groupList.sybilWarning")}
-                </p>
-              )}
-              <p className="text-xs text-text-tertiary mt-1">{t("groupList.changeableNote")}</p>
-            </div>
-
-            {/* Website URL */}
-            <div>
-              <Label>{t("groupList.websiteLabel")}</Label>
-              <Input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://..." />
-              {!websiteUrl && (
-                <p className="text-xs text-text-tertiary mt-1">
-                  {t("groupList.websiteHelper")}{" "}
-                  <a href="https://uniweb.app/templates?category=organization" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
-                    {t("groupList.browseTemplates")} →
-                  </a>
+                  {t("createGroup.sybilWarning")}
                 </p>
               )}
             </div>
+          </CardBody>
+        </Card>
 
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="secondary" onClick={() => navigate(-1)}>{t("common:cancel")}</Button>
-              <Button type="submit" disabled={submitting || !name.trim()}>
-                {submitting ? t("groupList.creating") : t("groupList.createGroup")}
-              </Button>
-            </div>
-          </form>
-        </CardBody>
-      </Card>
+        {/* Capabilities */}
+        <div>
+          <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-widest mb-3">{t("createGroup.capabilities")}</h2>
 
-      {showCustomize && (
-        <ConfigModal
-          config={config}
-          onChange={setConfig}
-          onClose={() => setShowCustomize(false)}
-          presets={PRESETS}
-          presetConfigs={PRESET_CONFIGS}
-        />
-      )}
+          {/* Voting */}
+          <CapabilityCard
+            checked={votingEnabled}
+            onChange={setVotingEnabled}
+            label={t("createGroup.capVoting")}
+            description={t("createGroup.capVotingDesc")}
+          >
+            {votingEnabled && (
+              <div className="mt-3 pt-3 border-t border-border-subtle space-y-3">
+                {/* Quadrant selector */}
+                <div className="grid grid-cols-2 gap-2">
+                  <QuadrantOption quadrant="direct" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                  <QuadrantOption quadrant="open" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                  <QuadrantOption quadrant="proxy" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                  <QuadrantOption quadrant="liquid" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                </div>
+
+                {/* Expandable ballot settings */}
+                <button type="button" onClick={() => setShowBallotSettings(!showBallotSettings)} className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text-secondary">
+                  <svg className={`w-3 h-3 transition-transform ${showBallotSettings ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  {t("createGroup.ballotSettings")}
+                </button>
+                {showBallotSettings && (
+                  <div className="space-y-2 pl-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={votingConfig.ballot.secret} onChange={(e) => setVotingConfig((p) => ({ ...p, ballot: { ...p.ballot, secret: e.target.checked } }))} className="rounded" />
+                      {t("createGroup.secretBallot")}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={votingConfig.ballot.liveResults} onChange={(e) => setVotingConfig((p) => ({ ...p, ballot: { ...p.ballot, liveResults: e.target.checked } }))} className="rounded" />
+                      {t("createGroup.liveResults")}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={votingConfig.ballot.allowVoteChange} onChange={(e) => setVotingConfig((p) => ({ ...p, ballot: { ...p.ballot, allowVoteChange: e.target.checked } }))} className="rounded" />
+                      {t("createGroup.allowVoteChange")}
+                    </label>
+                  </div>
+                )}
+
+                {/* Expandable timeline settings */}
+                <button type="button" onClick={() => setShowTimelineSettings(!showTimelineSettings)} className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text-secondary">
+                  <svg className={`w-3 h-3 transition-transform ${showTimelineSettings ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  {t("createGroup.timelineDefaults")}
+                </button>
+                {showTimelineSettings && (
+                  <div className="flex items-center gap-4 pl-4">
+                    <TimelineInput label={t("createGroup.deliberation")} value={votingConfig.timeline.deliberationDays} min={1} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, deliberationDays: v } }))} />
+                    <TimelineInput label={t("createGroup.curation")} value={votingConfig.timeline.curationDays} min={0} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, curationDays: v } }))} />
+                    <TimelineInput label={t("createGroup.votingDays")} value={votingConfig.timeline.votingDays} min={1} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, votingDays: v } }))} />
+                  </div>
+                )}
+              </div>
+            )}
+          </CapabilityCard>
+
+          {/* Scoring */}
+          <CapabilityCard
+            checked={scoringEnabled}
+            onChange={setScoringEnabled}
+            label={t("createGroup.capScoring")}
+            description={t("createGroup.capScoringDesc")}
+          />
+
+          {/* Surveys */}
+          <CapabilityCard
+            checked={surveysEnabled}
+            onChange={setSurveysEnabled}
+            label={t("createGroup.capSurveys")}
+            description={t("createGroup.capSurveysDesc")}
+          />
+
+          {/* Community Notes */}
+          <CapabilityCard
+            checked={notesEnabled}
+            onChange={setNotesEnabled}
+            label={t("createGroup.capNotes")}
+            description={t("createGroup.capNotesDesc")}
+          />
+        </div>
+
+        {/* Website URL */}
+        <Card>
+          <CardBody>
+            <Label>{t("createGroup.websiteLabel")}</Label>
+            <Input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://..." />
+            {!websiteUrl && (
+              <p className="text-xs text-text-tertiary mt-1">
+                {t("createGroup.websiteHelper")}{" "}
+                <a href="https://uniweb.app/templates?category=organization" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
+                  {t("createGroup.browseTemplates")} →
+                </a>
+              </p>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Submit */}
+        <div className="flex gap-2 justify-end">
+          <Button type="button" variant="secondary" onClick={() => navigate(-1)}>{t("common:cancel")}</Button>
+          <Button type="submit" disabled={submitting || !name.trim()}>
+            {submitting ? t("createGroup.creating") : t("createGroup.create")}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
 
-// ── Config modal (extracted) ─────────────────────────────────────────
+// ── Capability card ──────────────────────────────────────────────────────
 
-function ConfigModal({ config, onChange, onClose, presets, presetConfigs }: {
-  config: ConfigDraft;
-  onChange: (c: ConfigDraft) => void;
-  onClose: () => void;
-  presets: Array<{ value: string; label: string; desc: string }>;
-  presetConfigs: Record<string, ConfigDraft>;
+function CapabilityCard({ checked, onChange, label, description, children }: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  description: string;
+  children?: React.ReactNode;
 }) {
-  const { t } = useTranslation("governance");
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <Card className="w-full max-w-lg max-h-[85vh] overflow-y-auto">
-        <CardBody className="space-y-4">
-          <h3 className="font-medium text-text-primary">{t("groupList.governanceRules")}</h3>
-          <p className="text-sm text-text-muted">{t("groupList.governanceRulesDesc")}</p>
-
-          {/* Preset selector */}
-          <div>
-            <Label>{t("groupList.startFromPreset")}</Label>
-            <p className="text-xs text-text-tertiary mb-2">{t("groupList.presetResetsAll")}</p>
-            <Select value={config.preset} onChange={(e) => { const p = presetConfigs[e.target.value]; if (p) onChange(structuredClone(p)); }}>
-              {presets.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </Select>
+    <Card className={`mb-3 transition-colors ${checked ? "border-accent-muted" : ""}`}>
+      <CardBody>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            className="rounded mt-0.5 shrink-0"
+          />
+          <div className="min-w-0">
+            <span className="font-medium text-sm text-text-primary">{label}</span>
+            <p className="text-xs text-text-muted mt-0.5">{description}</p>
           </div>
+        </label>
+        {children}
+      </CardBody>
+    </Card>
+  );
+}
 
-          {/* Delegation */}
-          <div>
-            <Label>{t("groupList.sectionDelegation")}</Label>
-            <div className="space-y-2 mt-1">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.delegation.candidacy} onChange={(e) => onChange({ ...config, delegation: { ...config.delegation, candidacy: e.target.checked } })} className="rounded" />
-                {t("groupList.declaredCandidates")}
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.delegation.transferable} onChange={(e) => onChange({ ...config, delegation: { ...config.delegation, transferable: e.target.checked } })} className="rounded" />
-                {t("groupList.transferableAnyMember")}
-              </label>
-            </div>
-          </div>
+// ── Quadrant option ──────────────────────────────────────────────────────
 
-          {/* Ballot */}
-          <div>
-            <Label>{t("groupList.sectionBallot")}</Label>
-            <div className="space-y-2 mt-1">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.ballot.secret} onChange={(e) => onChange({ ...config, ballot: { ...config.ballot, secret: e.target.checked } })} className="rounded" />
-                {t("groupList.secretBallot")}
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.ballot.liveResults} onChange={(e) => onChange({ ...config, ballot: { ...config.ballot, liveResults: e.target.checked } })} className="rounded" />
-                {t("groupList.liveResults")}
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.ballot.allowVoteChange} onChange={(e) => onChange({ ...config, ballot: { ...config.ballot, allowVoteChange: e.target.checked } })} className="rounded" />
-                {t("groupList.allowVoteChange")}
-              </label>
-            </div>
-          </div>
+function QuadrantOption({ quadrant, current, onSelect, t }: {
+  quadrant: Quadrant;
+  current: Quadrant;
+  onSelect: (q: Quadrant) => void;
+  t: (key: string) => string;
+}) {
+  const selected = quadrant === current;
+  const labels: Record<Quadrant, { name: string; desc: string }> = {
+    direct: { name: t("createGroup.quadrantDirect"), desc: t("createGroup.quadrantDirectDesc") },
+    open: { name: t("createGroup.quadrantOpen"), desc: t("createGroup.quadrantOpenDesc") },
+    proxy: { name: t("createGroup.quadrantProxy"), desc: t("createGroup.quadrantProxyDesc") },
+    liquid: { name: t("createGroup.quadrantLiquid"), desc: t("createGroup.quadrantLiquidDesc") },
+  };
+  const { name, desc } = labels[quadrant];
 
-          <div className="flex gap-2 justify-end pt-2">
-            <Button onClick={onClose}>{t("groupList.done")}</Button>
-          </div>
-        </CardBody>
-      </Card>
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(quadrant)}
+      className={`text-left p-2.5 rounded-lg border transition-all ${
+        selected
+          ? "border-accent-muted bg-accent-subtle ring-1 ring-accent-muted"
+          : "border-border-subtle hover:border-border-default"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${selected ? "border-accent-text" : "border-border-default"}`}>
+          {selected && <div className="w-1.5 h-1.5 rounded-full bg-accent-text" />}
+        </div>
+        <span className="text-sm font-medium text-text-primary">{name}</span>
+      </div>
+      <p className="text-xs text-text-muted mt-1 ml-5.5">{desc}</p>
+    </button>
+  );
+}
+
+// ── Timeline input ───────────────────────────────────────────────────────
+
+function TimelineInput({ label, value, min, onChange }: {
+  label: string;
+  value: number;
+  min: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Input type="number" min={min} max={90} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-16" />
+      <span className="text-xs text-text-muted">{label}</span>
     </div>
   );
 }
