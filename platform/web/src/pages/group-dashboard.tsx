@@ -96,14 +96,14 @@ export function GroupDashboard() {
       {/* Governance settings — 3 boxes */}
       {config && (
         <div className="mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-widest">{t("groupDashboard.governanceSettings")}</h2>
-            {isAdmin && (
-              <Link to={`/group/${groupId}/settings`} className="text-text-tertiary hover:text-text-secondary" title={t("groupDashboard.editSettings")}>
-                <Pencil className="w-3.5 h-3.5" />
-              </Link>
-            )}
-          </div>
+          {isAdmin ? (
+            <Link to={`/group/${groupId}/settings`} className="flex items-center gap-2 mb-3 group">
+              <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-widest group-hover:text-text-secondary transition-colors">{t("groupDashboard.governanceSettings")}</h2>
+              <Pencil className="w-3.5 h-3.5 text-text-tertiary group-hover:text-text-secondary transition-colors" />
+            </Link>
+          ) : (
+            <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-widest mb-3">{t("groupDashboard.governanceSettings")}</h2>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
