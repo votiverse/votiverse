@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams, useLocation, useNavigationType } from "react-router";
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
+import { useGroup } from "./hooks/use-group.js";
 import { ThemeContext, useThemeProvider } from "./hooks/use-theme.js";
 import { Sidebar, MobileHeader, GroupContentHeader, BottomTabs } from "./components/layout.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
@@ -116,10 +117,23 @@ function Layout() {
   );
 }
 
-/** Redirect /group/:id → /group/:id/events (Votes is the default tab). */
+/** Redirect /group/:id → first available tab based on capabilities. */
 function GroupRedirect() {
   const { groupId } = useParams();
-  return <Navigate to={`/group/${groupId}/about`} replace />;
+  const { group } = useGroup(groupId);
+
+  if (!group) {
+    // Still loading — show nothing briefly, data is usually cached
+    return null;
+  }
+
+  const caps = group.capabilities ?? [];
+  let target = "about"; // fallback
+  if (caps.includes("voting")) target = "events";
+  else if (caps.includes("scoring")) target = "scoring";
+  else if (caps.includes("surveys")) target = "surveys";
+
+  return <Navigate to={`/group/${groupId}/${target}`} replace />;
 }
 
 export function App() {
