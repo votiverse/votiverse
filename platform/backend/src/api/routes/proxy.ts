@@ -15,6 +15,7 @@
  *   resolves user → participant, injects X-Participant-Id, intercepts POST responses for caching
  */
 
+import { posix } from "node:path";
 import { Hono } from "hono";
 import type { GroupService, Capability } from "../../services/group-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
@@ -541,7 +542,12 @@ export function proxyRoutes(
     // these writes, but GET requests can fall through safely — the proxy serves as
     // fallback for list/detail endpoints not explicitly handled by content routes.
     const url = new URL(c.req.url);
-    const subpath = url.pathname.replace(`/groups/${groupId}`, "");
+    const rawSubpath = url.pathname.replace(`/groups/${groupId}`, "");
+    const subpath = posix.normalize(rawSubpath);
+    // Reject path traversal attempts (e.g., /../../admin)
+    if (subpath.startsWith("/..") || subpath === "..") {
+      return c.json({ error: { code: "BAD_REQUEST", message: "Invalid path" } }, 400);
+    }
     if (c.req.method !== "GET" && /^\/(candidacies|proposals|notes)(\/|$)/.test(subpath)) {
       return c.notFound();
     }
