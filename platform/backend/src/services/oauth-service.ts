@@ -336,21 +336,19 @@ export class OAuthService {
     // Determine email — prefer mail, fallback to userPrincipalName
     const email = profile.mail || profile.userPrincipalName;
 
-    // Microsoft Graph doesn't have a direct email_verified field.
-    // If the user has a mail address, Microsoft has verified it.
-    // userPrincipalName for organizational accounts is also verified.
-    const emailVerified = !!email;
-
-    // Extract email_verified from id_token if available
-    let idTokenVerified = false;
+    // Determine email verification from the id_token's explicit claim only.
+    // Do NOT assume email is verified just because Microsoft Graph returns it —
+    // the mail field presence does not guarantee verification. If no id_token
+    // or the claim is absent/false, the user goes through our own verification.
+    let emailVerified = false;
     if (tokenData.id_token) {
       try {
         const idPayload = decodeJwtPayload(tokenData.id_token);
         if (idPayload.email_verified === true || idPayload.email_verified === "true") {
-          idTokenVerified = true;
+          emailVerified = true;
         }
       } catch {
-        // Ignore id_token decode failures
+        // id_token decode failure — email remains unverified
       }
     }
 
@@ -358,7 +356,7 @@ export class OAuthService {
       provider: "microsoft",
       providerUserId: profile.id,
       email,
-      emailVerified: emailVerified || idTokenVerified,
+      emailVerified,
       name: profile.displayName || email,
       avatarUrl,
       rawProfile: profile as unknown as Record<string, unknown>,
