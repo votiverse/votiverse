@@ -12,7 +12,7 @@ import type { BackendConfig } from "../../config/schema.js";
 import type { NotificationAdapter } from "../../services/notification-adapter.js";
 import { setAuthCookies, clearAuthCookies, getRefreshTokenFromCookie } from "../../lib/cookies.js";
 import { RegisterBody, LoginBody, RefreshBody, parseBody } from "../../lib/validation.js";
-import { ValidationError, NotFoundError } from "../middleware/error-handler.js";
+import { ValidationError, NotFoundError, EmailConflictError } from "../middleware/error-handler.js";
 import { renderTemplate } from "../../services/notification-templates.js";
 import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
@@ -30,7 +30,25 @@ export function authRoutes(
   /** POST /auth/register — create account. */
   app.post("/auth/register", async (c) => {
     const body = parseBody(RegisterBody, await c.req.json());
-    const user = await userService.register(body.email, body.password, body.name, body.handle);
+
+    let user;
+    try {
+      user = await userService.register(body.email, body.password, body.name, body.handle);
+    } catch (err) {
+      if (err instanceof EmailConflictError) {
+        // Return a generic response to prevent email enumeration.
+        // An attacker cannot distinguish "email exists" from "email is new" —
+        // both paths return the same status and shape.
+        if (notificationAdapter) {
+          void sendExistingAccountEmail(notificationAdapter, body.email, config).catch((e) => {
+            log.error("Failed to send existing-account email", { error: String(e) });
+          });
+        }
+        return c.json({ status: "check_email" });
+      }
+      throw err;
+    }
+
     const tokens = await sessionService.createSession(user);
 
     setAuthCookies(c, tokens.accessToken, tokens.refreshToken, config.jwtAccessExpiry, config.jwtRefreshExpiry);
@@ -218,5 +236,29 @@ async function sendPasswordResetEmail(
     title: "Reset your password",
     baseUrl: resetUrl,
   });
+  await adapter.send({ to: email, subject, body, bodyHtml });
+}
+
+async function sendExistingAccountEmail(
+  adapter: NotificationAdapter,
+  email: string,
+  config: BackendConfig,
+): Promise<void> {
+  const baseUrl = config.corsOrigins[0] ?? "http://localhost:5173";
+  const loginUrl = `${baseUrl}/login`;
+  const subject = "Sign-in attempt — Votiverse";
+  const body = [
+    "Someone tried to create a Votiverse account with this email address,",
+    "but an account already exists.",
+    "",
+    `If this was you, log in instead: ${loginUrl}`,
+    "",
+    "If you didn't request this, you can safely ignore this email.",
+  ].join("\n");
+  const bodyHtml = [
+    "<p>Someone tried to create a Votiverse account with this email address, but an account already exists.</p>",
+    `<p>If this was you, <a href="${loginUrl}">log in instead</a>.</p>`,
+    "<p>If you didn't request this, you can safely ignore this email.</p>",
+  ].join("\n");
   await adapter.send({ to: email, subject, body, bodyHtml });
 }

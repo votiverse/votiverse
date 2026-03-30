@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
-import { ValidationError, ConflictError, AuthenticationError, NotFoundError } from "../api/middleware/error-handler.js";
+import { ValidationError, ConflictError, EmailConflictError, AuthenticationError, NotFoundError } from "../api/middleware/error-handler.js";
 
 /** Verification token expiry: 24 hours. */
 const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
@@ -131,7 +131,7 @@ export class UserService {
       [email.toLowerCase()],
     );
     if (existing) {
-      throw new ConflictError("Email already registered");
+      throw new EmailConflictError();
     }
 
     // Resolve handle

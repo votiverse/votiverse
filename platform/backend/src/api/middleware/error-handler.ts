@@ -47,6 +47,14 @@ export class ConflictError extends AppError {
   }
 }
 
+/** Specific subclass for email conflicts — allows route handlers to distinguish
+ *  email conflicts from other conflicts for enumeration prevention. */
+export class EmailConflictError extends ConflictError {
+  constructor() {
+    super("Email already registered");
+  }
+}
+
 export class GoneError extends AppError {
   constructor(message: string) {
     super("EXPIRED", message, 410);

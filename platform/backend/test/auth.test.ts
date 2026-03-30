@@ -45,7 +45,13 @@ describe("Auth flow", () => {
         password: TEST_PASSWORD,
         name: "Alice 2",
       });
-      expect(res.status).toBe(409);
+      // Returns 200 with generic response to prevent email enumeration
+      expect(res.status).toBe(200);
+      const body = await res.json() as Record<string, unknown>;
+      expect(body.status).toBe("check_email");
+      // Must NOT return user data or tokens
+      expect(body).not.toHaveProperty("user");
+      expect(body).not.toHaveProperty("accessToken");
     });
 
     it("normalizes email to lowercase", async () => {
