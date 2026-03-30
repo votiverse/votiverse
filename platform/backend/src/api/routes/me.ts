@@ -75,7 +75,7 @@ export function meRoutes(
       throw new ValidationError("User has no group memberships");
     }
 
-    const groupId = memberships[0].groupId;
+    const groupId = memberships[0]!.groupId;
     const samples: Array<{ type: string; urgency: string; title: string; actionUrl?: string }> = [
       { type: "voting_open", urgency: "action", title: "Voting is open: Q2 Budget Allocation", actionUrl: `/group/${groupId}/events` },
       { type: "deadline_approaching", urgency: "action", title: "Voting closes tomorrow: Infrastructure Priorities", actionUrl: `/group/${groupId}/events` },

@@ -105,7 +105,7 @@ export class DatabaseAssetStore implements AssetStore {
     };
   }
 
-  async confirmUpload(assetId: string, sizeBytes: number, hash: string): Promise<AssetMetadata> {
+  async confirmUpload(assetId: string, _sizeBytes: number, _hash: string): Promise<AssetMetadata> {
     // In DB mode, the upload goes through storeDirect, so confirm is a no-op lookup
     const meta = await this.getMetadata(assetId);
     if (!meta) throw new Error(`Asset ${assetId} not found — upload may not have completed`);
