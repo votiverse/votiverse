@@ -18,29 +18,50 @@ function delegationEnabled(config: GovernanceConfig | null | undefined): boolean
 }
 
 /** Single source of truth for group navigation tabs. */
-export function useGroupTabs(groupId: string | undefined, config: GovernanceConfig | undefined): GroupTab[] {
+export function useGroupTabs(
+  groupId: string | undefined,
+  config: GovernanceConfig | null | undefined,
+  capabilities: string[] = [],
+): GroupTab[] {
   const { t } = useTranslation();
   const { isAdmin } = useGroupRole(groupId);
   return useMemo(() => {
     if (!groupId) return [];
-    const tabs: GroupTab[] = [
-      { to: `/group/${groupId}/events`, key: "Votes", label: t("nav.votes") },
-      { to: `/group/${groupId}/surveys`, key: "Surveys", label: t("nav.surveys") },
-    ];
-    if (config && delegationEnabled(config)) {
+    const has = (cap: string) => capabilities.includes(cap);
+    const tabs: GroupTab[] = [];
+
+    // Core capabilities — ordered by importance
+    if (has("voting")) {
+      tabs.push({ to: `/group/${groupId}/events`, key: "Votes", label: t("nav.votes") });
+    }
+    if (has("scoring")) {
+      tabs.push({ to: `/group/${groupId}/scoring`, key: "Scores", label: t("nav.scores") });
+    }
+    if (has("surveys")) {
+      tabs.push({ to: `/group/${groupId}/surveys`, key: "Surveys", label: t("nav.surveys") });
+    }
+
+    // Delegation-related tabs (only when voting with delegation)
+    if (has("voting") && config && delegationEnabled(config)) {
       tabs.push({ to: `/group/${groupId}/delegations`, key: "Delegates", label: t("nav.delegates") });
       tabs.push({ to: `/group/${groupId}/topics`, key: "Topics", label: t("nav.topics") });
     }
-    tabs.push({ to: `/group/${groupId}/scoring`, key: "Scores", label: t("nav.scores") });
-    tabs.push({ to: `/group/${groupId}/notes`, key: "Notes", label: t("nav.notes") });
-    if (config?.delegation.candidacy) {
+    if (has("voting") && config?.delegation.candidacy) {
       tabs.push({ to: `/group/${groupId}/candidacies`, key: "Candidates", label: t("nav.candidates") });
     }
+
+    // Notes — always shown if enabled
+    if (has("community_notes")) {
+      tabs.push({ to: `/group/${groupId}/notes`, key: "Notes", label: t("nav.notes") });
+    }
+
+    // Members — admin only
     if (isAdmin) {
       tabs.push({ to: `/group/${groupId}/members`, key: "Members", label: t("nav.members") });
     }
-    // About tab — always last, always present
+
+    // About — always last
     tabs.push({ to: `/group/${groupId}/about`, key: "About", label: t("nav.about") });
     return tabs;
-  }, [groupId, config, isAdmin, t]);
+  }, [groupId, config, capabilities, isAdmin, t]);
 }

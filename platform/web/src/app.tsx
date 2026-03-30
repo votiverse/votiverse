@@ -117,7 +117,7 @@ function Layout() {
 /** Redirect /group/:id → /group/:id/events (Votes is the default tab). */
 function GroupRedirect() {
   const { groupId } = useParams();
-  return <Navigate to={`/group/${groupId}/events`} replace />;
+  return <Navigate to={`/group/${groupId}/about`} replace />;
 }
 
 export function App() {

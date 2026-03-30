@@ -3,6 +3,7 @@ import { Link, useParams, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useGroup } from "../hooks/use-group.js";
+import { useGroupRole } from "../hooks/use-group-role.js";
 import { useGroupTabs } from "../hooks/use-group-tabs.js";
 import { useAttention } from "../hooks/use-attention.js";
 import { Avatar } from "./avatar.js";
@@ -162,7 +163,8 @@ function SidebarLink({ to, icon: Icon, label, active, badge = 0 }: {
 export function GroupContentHeader() {
   const { groupId } = useParams();
   const { group } = useGroup(groupId);
-  const tabs = useGroupTabs(groupId, group?.config);
+  const { isAdmin } = useGroupRole(groupId);
+  const tabs = useGroupTabs(groupId, group?.config, group?.capabilities);
   const location = useLocation();
 
   if (!groupId) return null;
@@ -170,14 +172,20 @@ export function GroupContentHeader() {
   return (
     <div className="hidden lg:block sticky top-0 z-10 bg-surface border-b border-border-subtle">
       <div className="max-w-5xl mx-auto px-6 lg:px-8">
-        {/* Group name */}
+        {/* Group name — links to settings for admins */}
         <div className="pt-4 pb-2">
-          <Link
-            to={`/group/${groupId}`}
-            className="text-lg font-bold font-display text-text-primary hover:text-accent-text transition-colors"
-          >
-            {group?.name ?? "…"}
-          </Link>
+          {isAdmin ? (
+            <Link
+              to={`/group/${groupId}/settings`}
+              className="text-lg font-bold font-display text-text-primary hover:text-accent-text transition-colors"
+            >
+              {group?.name ?? "…"}
+            </Link>
+          ) : (
+            <span className="text-lg font-bold font-display text-text-primary">
+              {group?.name ?? "…"}
+            </span>
+          )}
         </div>
         {/* Scrollable tab bar */}
         <div className="flex overflow-x-auto hide-scrollbar gap-2 sm:gap-5">
@@ -400,7 +408,7 @@ export function BottomTabs() {
     { to: "/profile", key: "Me", label: t("nav.me"), icon: TabUser, exact: true },
   ];
 
-  const groupTabDefs = useGroupTabs(groupId, group?.config);
+  const groupTabDefs = useGroupTabs(groupId, group?.config, group?.capabilities);
 
   // Must be after all hooks
   if (!storeUserId) return null;
@@ -443,7 +451,7 @@ export function BottomTabs() {
 
 function MobileMenuLinks({ groupId, onNavigate }: { groupId: string; onNavigate: () => void }) {
   const { group } = useGroup(groupId);
-  const tabs = useGroupTabs(groupId, group?.config);
+  const tabs = useGroupTabs(groupId, group?.config, group?.capabilities);
 
   return (
     <>
