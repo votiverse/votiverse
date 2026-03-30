@@ -233,9 +233,6 @@ export function CreateGroup() {
         </Card>
 
         {/* Submit */}
-        {!votingEnabled && !scoringEnabled && !surveysEnabled && (
-          <p className="text-xs text-text-muted text-center">{t("createGroup.selectCapability")}</p>
-        )}
         <div className="flex gap-2 justify-end">
           <Button type="button" variant="secondary" onClick={() => navigate(-1)}>{t("common:cancel")}</Button>
           <Button type="submit" disabled={submitting || !name.trim() || (!votingEnabled && !scoringEnabled && !surveysEnabled)}>
