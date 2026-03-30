@@ -6,7 +6,8 @@ import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import { Card, CardHeader, CardBody, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Pencil } from "lucide-react";
+import { useGroupRole } from "../hooks/use-group-role.js";
 import {
   quadrantLabel,
   humanizeBoolean,
@@ -18,6 +19,7 @@ export function GroupDashboard() {
   const { t } = useTranslation("governance");
   const { groupId } = useParams();
   const { getParticipantId } = useIdentity();
+  const { isAdmin } = useGroupRole(groupId);
   const participantId = groupId ? getParticipantId(groupId) : null;
   const { data: group, loading, error, refetch } = useApi(() => api.getGroup(groupId!), [groupId]);
   const { data: profile } = useApi(() => api.getGroupProfile(groupId!), [groupId]);
@@ -31,7 +33,6 @@ export function GroupDashboard() {
     () => participantId ? api.getVotingHistory(groupId!, participantId) : Promise.resolve(null),
     [groupId, participantId],
   );
-  const [showConfig, setShowConfig] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Re-check onboarding when groupId changes (handles redirects from invite acceptance)
@@ -92,42 +93,42 @@ export function GroupDashboard() {
         />
       </div>
 
-      {/* Config summary — collapsible */}
-      <div className="mb-4 sm:mb-6">
-        <button
-          onClick={() => setShowConfig(!showConfig)}
-          className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-secondary"
-          aria-label="Toggle governance settings"
-          aria-expanded={showConfig}
-        >
-          <svg className={`w-4 h-4 transition-transform ${showConfig ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
-          {t("groupDashboard.governanceSettings")}
-          <span className="text-text-tertiary font-normal">({quadrantLabel(config, t)})</span>
-        </button>
-        {showConfig && config && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-3">
+      {/* Governance settings — 3 boxes */}
+      {config && (
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-widest mb-3">{t("groupDashboard.governanceSettings")}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-text-primary">{t("groupDashboard.configuration")}</h2>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.ballot")}</h3>
+                  {isAdmin && (
+                    <Link to={`/group/${groupId}/members`} className="text-text-tertiary hover:text-text-secondary">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                </div>
               </CardHeader>
-              <CardBody className="space-y-3">
-                <ConfigRow label={t("groupDashboard.decisionModel")} value={quadrantLabel(config, t)} />
-                <ConfigRow label={t("groupDashboard.votingMethod")} value={config.ballot.method === "supermajority" ? t("groupDashboard.supermajority") : t("groupDashboard.majority")} />
+              <CardBody className="space-y-2">
                 <ConfigRow label={t("groupDashboard.ballot")} value={config.ballot.secret ? t("groupDashboard.secret") : t("groupDashboard.public")} />
                 <ConfigRow label={t("groupDashboard.liveResults")} value={humanizeBoolean(config.ballot.liveResults, "yes-no", t)} />
-                <ConfigRow label={t("groupDashboard.quorum")} value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
                 <ConfigRow label={t("groupDashboard.voteChanges")} value={config.ballot.allowVoteChange ? t("groupDashboard.voteChangeAllowed") : t("groupDashboard.voteChangeFinal")} />
-                <ConfigRow label={t("groupDashboard.candidatesLabel")} value={humanizeBoolean(config.delegation.candidacy, "enabled-disabled", t)} />
-                <ConfigRow label={t("groupDashboard.transferableLabel")} value={humanizeBoolean(config.delegation.transferable, "enabled-disabled", t)} />
+                <ConfigRow label={t("groupDashboard.quorum")} value={`${(config.ballot.quorum * 100).toFixed(0)}%`} />
+                <ConfigRow label={t("groupDashboard.votingMethod")} value={config.ballot.method === "supermajority" ? t("groupDashboard.supermajority") : t("groupDashboard.majority")} />
               </CardBody>
             </Card>
             <Card>
               <CardHeader>
-                <h2 className="font-medium text-text-primary">{t("groupDashboard.timeline")}</h2>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.timeline")}</h3>
+                  {isAdmin && (
+                    <Link to={`/group/${groupId}/members`} className="text-text-tertiary hover:text-text-secondary">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                </div>
               </CardHeader>
-              <CardBody className="space-y-3">
+              <CardBody className="space-y-2">
                 <ConfigRow label={t("groupDashboard.deliberation")} value={t("groupDashboard.day", { count: config.timeline.deliberationDays })} />
                 <ConfigRow label={t("groupDashboard.curation")} value={config.timeline.curationDays > 0 ? t("groupDashboard.day", { count: config.timeline.curationDays }) : t("groupDashboard.curationNone")} />
                 <ConfigRow label={t("groupDashboard.voting")} value={t("groupDashboard.day", { count: config.timeline.votingDays })} />
@@ -136,9 +137,21 @@ export function GroupDashboard() {
                 </div>
               </CardBody>
             </Card>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.delegationModel")}</h3>
+                </div>
+              </CardHeader>
+              <CardBody className="space-y-2">
+                <ConfigRow label={t("groupDashboard.model")} value={quadrantLabel(config, t)} />
+                <ConfigRow label={t("groupDashboard.candidatesLabel")} value={humanizeBoolean(config.delegation.candidacy, "enabled-disabled", t)} />
+                <ConfigRow label={t("groupDashboard.transferableLabel")} value={humanizeBoolean(config.delegation.transferable, "enabled-disabled", t)} />
+              </CardBody>
+            </Card>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Owners & Admins */}
       {profile && (profile.owners.length > 0 || profile.admins.length > 0) && (

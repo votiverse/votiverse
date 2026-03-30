@@ -30,6 +30,10 @@ const EN_FALLBACK: Record<string, string> = {
   "common:presets.civicParticipatory": "Municipal-scale governance",
   "common:presets.fullAccountability": "Maximum transparency and accountability",
   "common:presets.boardProxy": "Elected representatives",
+  "common:quadrant.direct": "Direct Only",
+  "common:quadrant.proxy": "Candidates Only",
+  "common:quadrant.open": "Optional Delegation",
+  "common:quadrant.liquid": "Optional Delegation & Candidates",
   "common:presets.enabled": "Enabled",
   "common:presets.disabled": "Disabled",
   "common:presets.yes": "Yes",
@@ -82,12 +86,13 @@ export function presetLabel(configName: string, t?: TranslateFn): string {
  * Maps the four delegation quadrants to their canonical preset labels.
  */
 export function quadrantLabel(config: { delegation?: { candidacy: boolean; transferable: boolean } } | null | undefined, t?: TranslateFn): string {
-  if (!config?.delegation) return presetLabel("Direct Democracy", t);
+  const translate = t ?? fallbackT;
+  if (!config?.delegation) return translate("common:quadrant.direct");
   const { candidacy, transferable } = config.delegation;
-  if (candidacy && transferable) return presetLabel("Liquid Delegation", t);
-  if (!candidacy && !transferable) return presetLabel("Direct Democracy", t);
-  if (candidacy && !transferable) return presetLabel("Representative", t);
-  return presetLabel("Liquid Open", t);
+  if (candidacy && transferable) return translate("common:quadrant.liquid");
+  if (!candidacy && !transferable) return translate("common:quadrant.direct");
+  if (candidacy && !transferable) return translate("common:quadrant.proxy");
+  return translate("common:quadrant.open");
 }
 
 // ── Config value humanizers ────────────────────────────────────────────
