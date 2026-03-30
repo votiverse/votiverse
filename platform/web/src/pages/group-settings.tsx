@@ -146,7 +146,7 @@ function TimelineSection({ groupId, config, onSaved, t }: {
   );
 }
 
-// ── Delegation & Notes Section ──────────────────────────────────────────
+// ── Delegation & Capabilities Section ────────────────────────────────────
 
 function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
   groupId: string;
@@ -156,17 +156,16 @@ function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
   t: (key: string) => string;
 }) {
   const [toggling, setToggling] = useState<string | null>(null);
+  const [caps, setCaps] = useState<string[]>(capabilities);
 
-  const notesEnabled = capabilities.includes("community_notes");
-
-  const toggleNotes = async () => {
-    setToggling("community_notes");
+  const toggleCapability = async (cap: string) => {
+    setToggling(cap);
     try {
-      if (notesEnabled) {
-        await api.disableCapability(groupId, "community_notes");
-      } else {
-        await api.enableCapability(groupId, "community_notes");
-      }
+      const enabled = caps.includes(cap);
+      const result = enabled
+        ? await api.disableCapability(groupId, cap)
+        : await api.enableCapability(groupId, cap);
+      setCaps(result.capabilities);
       signal("groups");
       onSaved();
     } catch {
@@ -176,16 +175,18 @@ function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
     }
   };
 
+  const votingEnabled = caps.includes("voting");
+
   return (
     <Card>
       <CardHeader>
-        <h2 className="font-medium text-text-primary">{t("settings.delegationAndNotes")}</h2>
+        <h2 className="font-medium text-text-primary">{t("settings.delegationAndCapabilities")}</h2>
       </CardHeader>
       <CardBody className="space-y-4">
         {/* Delegation — read-only */}
-        <div>
-          <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">{t("settings.delegation")}</h3>
-          {config ? (
+        {config && (
+          <div>
+            <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">{t("settings.delegation")}</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-text-secondary">{t("settings.delegationEnabled")}</span>
@@ -196,31 +197,81 @@ function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
                 <span className="text-text-primary font-medium">{config.delegation.candidacy ? t("settings.yes") : t("settings.no")}</span>
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-text-muted">{t("settings.noVoting")}</p>
-          )}
-          <p className="text-xs text-warning-text mt-2">{t("settings.delegationPermanent")}</p>
-        </div>
+            <p className="text-xs text-warning-text mt-2">{t("settings.delegationPermanent")}</p>
+          </div>
+        )}
 
-        {/* Community Notes — toggleable */}
-        <div className="pt-3 border-t border-border-subtle">
-          <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">{t("settings.communityNotes")}</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-text-secondary">{t("settings.communityNotesDesc")}</p>
-            </div>
-            <button
-              type="button"
-              onClick={toggleNotes}
-              disabled={toggling === "community_notes"}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-4 ${notesEnabled ? "bg-accent-text" : "bg-border-default"} ${toggling ? "opacity-50" : ""}`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notesEnabled ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
+        {/* Capabilities */}
+        <div className={config ? "pt-3 border-t border-border-subtle" : ""}>
+          <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">{t("settings.capabilities")}</h3>
+          <div className="space-y-3">
+            {/* Voting — shown as permanent, not toggleable */}
+            <CapabilityToggle
+              label={t("settings.capVoting")}
+              description={t("settings.capVotingDesc")}
+              enabled={votingEnabled}
+              permanent
+              t={t}
+            />
+            {/* Scoring — toggleable */}
+            <CapabilityToggle
+              label={t("settings.capScoring")}
+              description={t("settings.capScoringDesc")}
+              enabled={caps.includes("scoring")}
+              toggling={toggling === "scoring"}
+              onToggle={() => toggleCapability("scoring")}
+            />
+            {/* Surveys — toggleable */}
+            <CapabilityToggle
+              label={t("settings.capSurveys")}
+              description={t("settings.capSurveysDesc")}
+              enabled={caps.includes("surveys")}
+              toggling={toggling === "surveys"}
+              onToggle={() => toggleCapability("surveys")}
+            />
+            {/* Community Notes — toggleable */}
+            <CapabilityToggle
+              label={t("settings.capNotes")}
+              description={t("settings.capNotesDesc")}
+              enabled={caps.includes("community_notes")}
+              toggling={toggling === "community_notes"}
+              onToggle={() => toggleCapability("community_notes")}
+            />
           </div>
         </div>
       </CardBody>
     </Card>
+  );
+}
+
+function CapabilityToggle({ label, description, enabled, permanent, toggling, onToggle, t }: {
+  label: string;
+  description: string;
+  enabled: boolean;
+  permanent?: boolean;
+  toggling?: boolean;
+  onToggle?: () => void;
+  t?: (key: string) => string;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="min-w-0 mr-3">
+        <span className="text-sm text-text-secondary">{label}</span>
+        <p className="text-xs text-text-muted">{description}</p>
+      </div>
+      {permanent ? (
+        <span className="text-xs text-text-tertiary shrink-0">{enabled ? t?.("settings.permanent") ?? "Permanent" : t?.("settings.notEnabled") ?? "Not enabled"}</span>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggle}
+          disabled={toggling}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${enabled ? "bg-accent-text" : "bg-border-default"} ${toggling ? "opacity-50" : ""}`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`} />
+        </button>
+      )}
+    </div>
   );
 }
 
