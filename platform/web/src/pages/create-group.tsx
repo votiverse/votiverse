@@ -50,6 +50,7 @@ export function CreateGroup() {
   const [votingConfig, setVotingConfig] = useState<VotingConfig>(QUADRANT_DEFAULTS.liquid);
   const [showBallotSettings, setShowBallotSettings] = useState(false);
   const [showTimelineSettings, setShowTimelineSettings] = useState(false);
+  const [showDelegationModel, setShowDelegationModel] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,14 +145,6 @@ export function CreateGroup() {
           >
             {votingEnabled && (
               <div className="mt-3 pt-3 border-t border-border-subtle space-y-3">
-                {/* Quadrant selector */}
-                <div className="grid grid-cols-2 gap-2">
-                  <QuadrantOption quadrant="direct" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                  <QuadrantOption quadrant="proxy" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                  <QuadrantOption quadrant="open" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                  <QuadrantOption quadrant="liquid" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                </div>
-
                 {/* Expandable ballot settings */}
                 <button type="button" onClick={() => setShowBallotSettings(!showBallotSettings)} className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text-secondary">
                   <svg className={`w-3 h-3 transition-transform ${showBallotSettings ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
@@ -184,6 +177,23 @@ export function CreateGroup() {
                     <TimelineInput label={t("createGroup.deliberation")} value={votingConfig.timeline.deliberationDays} min={1} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, deliberationDays: v } }))} />
                     <TimelineInput label={t("createGroup.curation")} value={votingConfig.timeline.curationDays} min={0} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, curationDays: v } }))} />
                     <TimelineInput label={t("createGroup.votingDays")} value={votingConfig.timeline.votingDays} min={1} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, votingDays: v } }))} />
+                  </div>
+                )}
+
+                {/* Expandable delegation model */}
+                <button type="button" onClick={() => setShowDelegationModel(!showDelegationModel)} className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text-secondary">
+                  <svg className={`w-3 h-3 transition-transform ${showDelegationModel ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  {t("createGroup.delegationModel")}
+                </button>
+                {showDelegationModel && (
+                  <div className="pl-4 space-y-2">
+                    <p className="text-xs text-warning-text">{t("createGroup.delegationPermanent")}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <QuadrantOption quadrant="direct" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                      <QuadrantOption quadrant="proxy" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                      <QuadrantOption quadrant="open" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                      <QuadrantOption quadrant="liquid" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
+                    </div>
                   </div>
                 )}
               </div>
