@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from "react";
 import type { Group } from "../api/types.js";
+import { DEFAULT_CONFIG } from "../api/types.js";
 import * as api from "../api/client.js";
 import { useSignal } from "./use-mutation-signal.js";
 
@@ -44,6 +45,8 @@ export function useGroup(groupId: string | undefined): UseGroupResult {
     api.getGroup(groupId)
       .then((data) => {
         if (!cancelled) {
+          // Ensure config is never null — apply defaults for non-voting groups
+          if (!data.config) data.config = DEFAULT_CONFIG;
           cache.set(groupId, data);
           setGroup(data);
           setLoading(false);

@@ -42,7 +42,7 @@ export function EventsList() {
   const { groupId } = useParams();
   const { data, loading, error, refetch } = useApi(() => api.listEvents(groupId!), [groupId]);
   const { group: groupData } = useGroup(groupId);
-  const timelineConfig = groupData?.config?.timeline;
+  const timelineConfig = groupData?.config.timeline;
   const voteCreation = groupData?.voteCreation ?? "admin";
   const [creating, setCreating] = useState(false);
 
@@ -197,7 +197,7 @@ function CreateEventForm({ groupId, onClose, onCreated }: { groupId: string; onC
   const { data: participantsData } = useApi(() => api.listParticipants(groupId), [groupId]);
   const { data: topicsData } = useApi(() => api.listTopics(groupId), [groupId]);
   const { group: groupData } = useGroup(groupId);
-  const tl = groupData?.config?.timeline;
+  const tl = groupData?.config.timeline;
 
   const topics = topicsData?.topics ?? [];
   // Build flat list with parent prefix for display

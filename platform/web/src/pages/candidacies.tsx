@@ -41,7 +41,7 @@ export function Candidacies() {
 
   const [showDeclareForm, setShowDeclareForm] = useState(false);
 
-  const delegationCandidacy = group?.config?.delegation.candidacy ?? false;
+  const delegationCandidacy = group?.config.delegation.candidacy ?? false;
 
   // Check if the current user already has an active candidacy
   const myActiveCandidacy = participantId

@@ -14,7 +14,7 @@ export interface Group {
   id: string;
   organizationId: string | null;
   name: string;
-  config: GovernanceConfig | null;
+  config: GovernanceConfig;
   status: string;
   createdAt: string;
   admissionMode?: AdmissionMode;
@@ -37,6 +37,13 @@ export interface GroupProfile extends Group {
 }
 
 export type ParticipantStatus = "active" | "inactive" | "sunset";
+
+/** Safe defaults when a group has no voting config (non-voting groups). */
+export const DEFAULT_CONFIG: GovernanceConfig = {
+  delegation: { candidacy: false, transferable: false },
+  ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0, method: "majority" },
+  timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 },
+};
 
 export interface GovernanceConfig {
   delegation: {
