@@ -350,8 +350,8 @@ describe("Proposal endorsements and curation", () => {
     }
     [alice, bob, carol, dave] = participants as [{ id: string }, { id: string }, { id: string }, { id: string }];
 
-    // Grant Alice admin role (needed for curation: featuring proposals, recommendations)
-    await vcp.manager.grantRole(asmId, alice.id, "owner", alice.id);
+    // Note: Roles are now managed by the backend. The VCP trusts that
+    // proxied requests are authorized (feature, recommendation, etc.).
 
     // Create event with Alice as creator (via X-Participant-Id header)
     const now = vcp.clock.now() as number;
@@ -439,9 +439,10 @@ describe("Proposal endorsements and curation", () => {
     expect(body.featured).toBe(false);
   });
 
-  it("non-admin cannot feature proposals", async () => {
+  it("any authenticated participant can feature proposals (backend enforces admin check)", async () => {
+    // The VCP no longer enforces admin checks — the backend handles authorization.
     const res = await vcp.requestAs(bob.id, "POST", `/assemblies/${asmId}/proposals/${proposalId}/feature`);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
   });
 
   it("booklet returns featured proposal per position (auto-fallback to highest scored)", async () => {
@@ -516,11 +517,12 @@ describe("Proposal endorsements and curation", () => {
     expect(body3.recommendation).toBeNull();
   });
 
-  it("non-creator cannot set recommendation", async () => {
+  it("any authenticated participant can set recommendation (backend enforces admin check)", async () => {
+    // The VCP no longer enforces admin checks — the backend handles authorization.
     const res = await vcp.requestAs(bob.id, "POST",
       `/assemblies/${asmId}/events/${eventId}/issues/${issueId}/recommendation`,
       { contentHash: "rec" },
     );
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(201);
   });
 });

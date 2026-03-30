@@ -7,7 +7,7 @@ import { Hono } from "hono";
 import type { ParticipantId, IssueId, ProposalId, ContentHash, ProposalEvaluation } from "@votiverse/core";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
 import { getEventPhase } from "../../engine/event-phases.js";
-import { requireParticipant, requireScope } from "../middleware/auth.js";
+import { requireParticipant } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function proposalRoutes(manager: AssemblyManager) {
@@ -34,7 +34,7 @@ export function proposalRoutes(manager: AssemblyManager) {
       if (issue) {
         const ve = engine.events.get(issue.votingEventId);
         const info = await manager.getAssemblyInfo(assemblyId);
-        if (ve && info) {
+        if (ve && info?.config) {
           const now = manager.timeProvider.now() as number;
           const phase = getEventPhase(now, {
             deliberationStart: ve.timeline.deliberationStart as number,
@@ -120,7 +120,7 @@ export function proposalRoutes(manager: AssemblyManager) {
         const issue = engine.events.getIssue(iid as IssueId);
         if (issue) {
           const ve = engine.events.get(issue.votingEventId);
-          if (ve && info) {
+          if (ve && info?.config) {
             // Lock at deliberation end (= curation start) if curation is configured
             const deliberationEnd = (ve.timeline.deliberationStart as number) + info.config.timeline.deliberationDays * DAY_MS;
             const lockTime = info.config.timeline.curationDays > 0 ? deliberationEnd : (ve.timeline.votingStart as number);
@@ -326,7 +326,7 @@ export function proposalRoutes(manager: AssemblyManager) {
         if (issue) {
           const ve = engine.events.get(issue.votingEventId);
           const info = await manager.getAssemblyInfo(assemblyId);
-          if (ve && info) {
+          if (ve && info?.config) {
             const now = manager.timeProvider.now() as number;
             const phase = getEventPhase(now, {
               deliberationStart: ve.timeline.deliberationStart as number,
@@ -343,9 +343,9 @@ export function proposalRoutes(manager: AssemblyManager) {
         }
       }
 
-      // Check previous evaluation for materialized count update
-      const prev = await db.queryOne<{ evaluation: string }>(
-        `SELECT evaluation FROM proposal_endorsements WHERE assembly_id = ? AND proposal_id = ? AND participant_id = ?`,
+      // Check previous evaluation from stances table for materialized count update
+      const prev = await db.queryOne<{ value: string }>(
+        `SELECT value FROM stances WHERE assembly_id = ? AND entity_type = 'proposal' AND entity_id = ? AND participant_id = ?`,
         [assemblyId, proposalId, participantId],
       );
 
@@ -357,7 +357,7 @@ export function proposalRoutes(manager: AssemblyManager) {
 
       // Update materialized counts
       if (prev) {
-        const oldCol = prev.evaluation === "endorse" ? "endorsement_count" : "dispute_count";
+        const oldCol = prev.value === "endorse" ? "endorsement_count" : "dispute_count";
         const newCol = body.evaluation === "endorse" ? "endorsement_count" : "dispute_count";
         if (oldCol !== newCol) {
           await db.run(
@@ -373,32 +373,27 @@ export function proposalRoutes(manager: AssemblyManager) {
         );
       }
 
-      // Upsert endorsement record
+      // Upsert stance record
+      const now = Date.now();
       await db.run(
-        `INSERT INTO proposal_endorsements (assembly_id, proposal_id, participant_id, evaluation, evaluated_at)
-         VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT (assembly_id, proposal_id, participant_id) DO UPDATE SET evaluation = EXCLUDED.evaluation, evaluated_at = EXCLUDED.evaluated_at`,
-        [assemblyId, proposalId, participantId, body.evaluation, Date.now()],
+        `INSERT INTO stances (assembly_id, entity_type, entity_id, participant_id, value, created_at, updated_at)
+         VALUES (?, 'proposal', ?, ?, ?, ?, ?)
+         ON CONFLICT (assembly_id, entity_type, entity_id, participant_id) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`,
+        [assemblyId, proposalId, participantId, body.evaluation, now, now],
       );
 
       return c.json({ status: "ok" });
     },
   );
 
-  /** POST /assemblies/:id/proposals/:pid/feature — mark as featured (admin only). */
+  /** POST /assemblies/:id/proposals/:pid/feature — mark as featured.
+   *  Authorization is enforced by the backend before proxying to the VCP. */
   app.post(
     "/assemblies/:id/proposals/:pid/feature",
     requireParticipant(manager),
     async (c) => {
       const assemblyId = c.req.param("id");
       const proposalId = c.req.param("pid");
-      const participantId = c.get("participantId") as string;
-
-      // Verify caller is an admin
-      const isAdmin = await manager.isAdmin(assemblyId, participantId);
-      if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can feature proposals", details: { requiredRole: "admin" } } }, 403);
-      }
 
       const db = manager.getDatabase();
 
@@ -429,20 +424,14 @@ export function proposalRoutes(manager: AssemblyManager) {
     },
   );
 
-  /** POST /assemblies/:id/proposals/:pid/unfeature — remove featured flag (admin only). */
+  /** POST /assemblies/:id/proposals/:pid/unfeature — remove featured flag.
+   *  Authorization is enforced by the backend before proxying to the VCP. */
   app.post(
     "/assemblies/:id/proposals/:pid/unfeature",
     requireParticipant(manager),
     async (c) => {
       const assemblyId = c.req.param("id");
       const proposalId = c.req.param("pid");
-      const participantId = c.get("participantId") as string;
-
-      // Verify caller is an admin
-      const isAdmin = await manager.isAdmin(assemblyId, participantId);
-      if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can unfeature proposals", details: { requiredRole: "admin" } } }, 403);
-      }
 
       const db = manager.getDatabase();
       const proposal = await db.queryOne<Record<string, unknown>>(
@@ -462,7 +451,8 @@ export function proposalRoutes(manager: AssemblyManager) {
     },
   );
 
-  /** POST /assemblies/:id/events/:eid/issues/:iid/recommendation — set organizer recommendation. */
+  /** POST /assemblies/:id/events/:eid/issues/:iid/recommendation — set organizer recommendation.
+   *  Authorization is enforced by the backend before proxying to the VCP. */
   app.post(
     "/assemblies/:id/events/:eid/issues/:iid/recommendation",
     requireParticipant(manager),
@@ -472,12 +462,6 @@ export function proposalRoutes(manager: AssemblyManager) {
       const issueId = c.req.param("iid");
       const participantId = c.get("participantId") as string;
       const body = await c.req.json<{ contentHash: string }>();
-
-      // Verify caller is an admin
-      const isAdmin = await manager.isAdmin(assemblyId, participantId);
-      if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can set recommendations", details: { requiredRole: "admin" } } }, 403);
-      }
 
       const db = manager.getDatabase();
       const now = Date.now();
@@ -519,7 +503,8 @@ export function proposalRoutes(manager: AssemblyManager) {
     });
   });
 
-  /** DELETE /assemblies/:id/events/:eid/issues/:iid/recommendation — remove recommendation. */
+  /** DELETE /assemblies/:id/events/:eid/issues/:iid/recommendation — remove recommendation.
+   *  Authorization is enforced by the backend before proxying to the VCP. */
   app.delete(
     "/assemblies/:id/events/:eid/issues/:iid/recommendation",
     requireParticipant(manager),
@@ -527,13 +512,6 @@ export function proposalRoutes(manager: AssemblyManager) {
       const assemblyId = c.req.param("id");
       const eventId = c.req.param("eid");
       const issueId = c.req.param("iid");
-      const participantId = c.get("participantId") as string;
-
-      // Verify caller is an admin
-      const isAdmin = await manager.isAdmin(assemblyId, participantId);
-      if (!isAdmin) {
-        return c.json({ error: { code: "FORBIDDEN", message: "Only admins can remove recommendations", details: { requiredRole: "admin" } } }, 403);
-      }
 
       const db = manager.getDatabase();
       await db.run(

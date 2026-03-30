@@ -30,8 +30,8 @@ describe("Curation phase enforcement", () => {
     const bobRes = await vcp.request("POST", `/assemblies/${asmId}/participants`, { name: "Bob" });
     bob = (await bobRes.json()) as { id: string };
 
-    // Grant Alice admin for curation
-    await vcp.manager.grantRole(asmId, alice.id, "owner", alice.id);
+    // Note: Roles are now managed by the backend. The VCP trusts that
+    // proxied requests are authorized (feature, recommendation, etc.).
   });
 
   afterEach(() => { vcp.cleanup(); });

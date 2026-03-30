@@ -32,7 +32,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secret: isSecretBallot } = info.config.ballot;
+    const isSecretBallot = info.config?.ballot.secret ?? true;
 
     // Try materialized data first
     const cached = await manager.getConcentration(assemblyId, issueId);
@@ -72,7 +72,7 @@ export function awarenessRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secret: isSecretBallot } = info.config.ballot;
+    const isSecretBallot = info.config?.ballot.secret ?? true;
     const isOwnHistory = callerId === pid;
 
     // Under secret ballot, only the participant can view their own history

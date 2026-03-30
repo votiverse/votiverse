@@ -67,8 +67,13 @@ export function scoringRoutes(manager: AssemblyManager) {
     );
 
     const now = await getEngineNow(manager, assemblyId);
-    const callerPid = c.req.header("X-Participant-Id") ?? null;
-    const isAdmin = callerPid ? await isParticipantAdmin(db, assemblyId, callerPid) : false;
+
+    // Draft visibility: the backend handles authorization. The VCP returns
+    // all events and lets the backend filter by role if needed. However,
+    // for backward compatibility, draft events are still hidden from
+    // requests that don't include an X-Admin header (set by the backend
+    // proxy for admin users).
+    const isAdmin = c.req.header("X-Admin") === "true";
 
     // Filter: non-admins don't see draft events
     const filtered = rows.filter((row) => {
@@ -102,8 +107,7 @@ export function scoringRoutes(manager: AssemblyManager) {
 
     // Non-admins can't see draft events even by direct URL
     if (status === "draft") {
-      const callerPid = c.req.header("X-Participant-Id") ?? null;
-      const isAdmin = callerPid ? await isParticipantAdmin(db, assemblyId, callerPid) : false;
+      const isAdmin = c.req.header("X-Admin") === "true";
       if (!isAdmin) {
         return c.json({ error: { code: "NOT_FOUND", message: "Scoring event not found" } }, 404);
       }
@@ -647,15 +651,3 @@ async function getActiveParticipantCount(
   return result?.count ?? 0;
 }
 
-/** Check if a participant has an admin or owner role in the assembly. */
-async function isParticipantAdmin(
-  db: DatabaseAdapter,
-  assemblyId: string,
-  participantId: string,
-): Promise<boolean> {
-  const row = await db.queryOne<{ count: number }>(
-    "SELECT COUNT(*) as count FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role IN ('admin', 'owner')",
-    [assemblyId, participantId],
-  );
-  return (row?.count ?? 0) > 0;
-}

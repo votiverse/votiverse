@@ -10,19 +10,30 @@ import type { GovernanceConfig } from "@votiverse/config";
 import type { VotiverseEngine } from "@votiverse/engine";
 import { createEngine } from "@votiverse/engine";
 import { InvitationProvider } from "@votiverse/identity";
-import type { ParticipantId, TopicId, IssueId, VotingEventId, Issue } from "@votiverse/core";
-import { isOk, systemTime, generateEventId } from "@votiverse/core";
+import type { TopicId, IssueId, VotingEventId, Issue } from "@votiverse/core";
+import { isOk, systemTime } from "@votiverse/core";
 import type { TimeProvider } from "@votiverse/core";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import { parseJsonColumn } from "../adapters/database/interface.js";
 import type { QueueAdapter } from "../adapters/queue/interface.js";
 import { SQLiteEventStore } from "./sqlite-event-store.js";
 
+/**
+ * Minimal governance config for assemblies without a voting config
+ * (scoring-only or survey-only groups). Allows the engine to be
+ * instantiated even when no governance config is stored.
+ */
+const MINIMAL_CONFIG: GovernanceConfig = {
+  delegation: { candidacy: false, transferable: false },
+  ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0, method: "majority" },
+  timeline: { deliberationDays: 1, curationDays: 0, votingDays: 1 },
+};
+
 interface AssemblyRecord {
   id: string;
   organization_id: string | null;
   name: string;
-  config: string;
+  config: string | null;
   status: string;
   created_at: string;
 }
@@ -57,7 +68,7 @@ export interface AssemblyInfo {
   id: string;
   organizationId: string | null;
   name: string;
-  config: GovernanceConfig;
+  config: GovernanceConfig | null;
   status: string;
   createdAt: string;
 }
@@ -65,7 +76,7 @@ export interface AssemblyInfo {
 export interface CreateAssemblyParams {
   name: string;
   organizationId?: string;
-  config: GovernanceConfig;
+  config?: GovernanceConfig;
 }
 
 export class AssemblyManager {
@@ -89,13 +100,13 @@ export class AssemblyManager {
     await this.db.run(
       `INSERT INTO assemblies (id, organization_id, name, config, created_at, status)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, params.organizationId ?? null, params.name, JSON.stringify(params.config), new Date().toISOString(), "active"],
+      [id, params.organizationId ?? null, params.name, params.config ? JSON.stringify(params.config) : null, new Date().toISOString(), "active"],
     );
     return {
       id,
       organizationId: params.organizationId ?? null,
       name: params.name,
-      config: params.config,
+      config: params.config ?? null,
       status: "active",
       createdAt: new Date().toISOString(),
     };
@@ -110,7 +121,7 @@ export class AssemblyManager {
       id: row.id,
       organizationId: row.organization_id,
       name: row.name,
-      config: parseJsonColumn<GovernanceConfig>(row.config),
+      config: row.config !== null ? parseJsonColumn<GovernanceConfig>(row.config) : null,
       status: row.status,
       createdAt: row.created_at,
     }));
@@ -127,7 +138,7 @@ export class AssemblyManager {
       id: row.id,
       organizationId: row.organization_id,
       name: row.name,
-      config: parseJsonColumn<GovernanceConfig>(row.config),
+      config: row.config !== null ? parseJsonColumn<GovernanceConfig>(row.config) : null,
       status: row.status,
       createdAt: row.created_at,
     };
@@ -143,10 +154,14 @@ export class AssemblyManager {
       throw new AssemblyNotFoundError(assemblyId);
     }
 
+    // For assemblies without a governance config (scoring/survey-only),
+    // use a minimal default so the engine can still be instantiated.
+    const effectiveConfig: GovernanceConfig = info.config ?? MINIMAL_CONFIG;
+
     const store = new SQLiteEventStore(this.db, assemblyId);
     const provider = new InvitationProvider(store);
     const engine = createEngine({
-      config: info.config,
+      config: effectiveConfig,
       eventStore: store,
       identityProvider: provider,
       timeProvider: this.timeProvider,
@@ -303,120 +318,6 @@ export class AssemblyManager {
       parentId: r.parent_id,
       sortOrder: r.sort_order,
     }));
-  }
-
-  // -----------------------------------------------------------------------
-  // Assembly roles (materialized from events)
-  // -----------------------------------------------------------------------
-
-  /** Grant a role to a participant, recording both the event and the materialized row. */
-  async grantRole(
-    assemblyId: string,
-    participantId: string,
-    role: "owner" | "admin",
-    grantedBy: string,
-  ): Promise<void> {
-    const now = this.timeProvider.now();
-    // If granting owner, ensure they're also admin
-    if (role === "owner") {
-      await this.db.run(
-        `INSERT INTO assembly_roles (assembly_id, participant_id, role, granted_by, granted_at)
-         VALUES (?, ?, 'admin', ?, ?)
-         ON CONFLICT (assembly_id, participant_id, role) DO NOTHING`,
-        [assemblyId, participantId, grantedBy, now],
-      );
-    }
-    await this.db.run(
-      `INSERT INTO assembly_roles (assembly_id, participant_id, role, granted_by, granted_at)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT (assembly_id, participant_id, role) DO NOTHING`,
-      [assemblyId, participantId, role, grantedBy, now],
-    );
-    // Record the event
-    const { engine } = await this.getEngine(assemblyId);
-    const store = this.engines.get(assemblyId)!.store;
-    const { createEvent } = await import("@votiverse/core");
-    const event = createEvent("RoleGranted", {
-      participantId,
-      role,
-      grantedBy,
-    }, generateEventId(), now as import("@votiverse/core").Timestamp);
-    await store.append(event);
-  }
-
-  /** Revoke a role from a participant. Enforces invariants. */
-  async revokeRole(
-    assemblyId: string,
-    participantId: string,
-    role: "owner" | "admin",
-    revokedBy: string,
-  ): Promise<void> {
-    // Cannot remove admin from an owner — must revoke ownership first
-    if (role === "admin") {
-      const ownerRow = await this.db.queryOne<{ role: string }>(
-        `SELECT role FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = 'owner'`,
-        [assemblyId, participantId],
-      );
-      if (ownerRow) {
-        throw new RoleInvariantError("Cannot remove admin role from an owner. Revoke ownership first.");
-      }
-    }
-    // Cannot revoke last owner
-    if (role === "owner") {
-      const ownerCount = await this.db.queryOne<{ cnt: number }>(
-        `SELECT COUNT(*) as cnt FROM assembly_roles WHERE assembly_id = ? AND role = 'owner'`,
-        [assemblyId],
-      );
-      if ((ownerCount?.cnt ?? 0) <= 1) {
-        throw new RoleInvariantError("Cannot revoke the last owner. Promote another admin to owner first, or delete the assembly.");
-      }
-    }
-    await this.db.run(
-      `DELETE FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = ?`,
-      [assemblyId, participantId, role],
-    );
-    // Record the event
-    const store = this.engines.get(assemblyId)?.store ?? (() => { throw new Error("Engine not loaded"); })();
-    const { createEvent } = await import("@votiverse/core");
-    const now = this.timeProvider.now();
-    const event = createEvent("RoleRevoked", {
-      participantId,
-      role,
-      revokedBy,
-    }, generateEventId(), now as import("@votiverse/core").Timestamp);
-    await store.append(event);
-  }
-
-  /** List all roles for an assembly. */
-  async listRoles(assemblyId: string): Promise<Array<{ participantId: string; role: string; grantedBy: string; grantedAt: number }>> {
-    const rows = await this.db.query<{ participant_id: string; role: string; granted_by: string; granted_at: number }>(
-      `SELECT participant_id, role, granted_by, granted_at FROM assembly_roles WHERE assembly_id = ? ORDER BY granted_at ASC`,
-      [assemblyId],
-    );
-    return rows.map((r) => ({
-      participantId: r.participant_id,
-      role: r.role,
-      grantedBy: r.granted_by,
-      grantedAt: r.granted_at,
-    }));
-  }
-
-  /** Check if a participant has a specific role in an assembly. */
-  async hasRole(assemblyId: string, participantId: string, role: "owner" | "admin"): Promise<boolean> {
-    const row = await this.db.queryOne<{ role: string }>(
-      `SELECT role FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = ?`,
-      [assemblyId, participantId, role],
-    );
-    return !!row;
-  }
-
-  /** Check if a participant is an admin (owner is always admin). */
-  async isAdmin(assemblyId: string, participantId: string): Promise<boolean> {
-    const row = await this.db.queryOne<{ role: string }>(
-      `SELECT role FROM assembly_roles WHERE assembly_id = ? AND participant_id = ? AND role = 'admin'`,
-      [assemblyId, participantId],
-    );
-    return !!row;
   }
 
   // -----------------------------------------------------------------------
@@ -704,9 +605,3 @@ export class AssemblyNotFoundError extends Error {
   }
 }
 
-export class RoleInvariantError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "RoleInvariantError";
-  }
-}

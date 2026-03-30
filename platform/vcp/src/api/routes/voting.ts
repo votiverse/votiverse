@@ -103,7 +103,7 @@ export function votingRoutes(manager: AssemblyManager) {
 
     const now = manager.timeProvider.now();
     const votingEnded = votingEvent.timeline.votingEnd <= now;
-    const isSealed = !info.config.ballot.liveResults && !votingEnded;
+    const isSealed = !(info.config?.ballot.liveResults ?? false) && !votingEnded;
 
     // For closed events, try materialized data first; compute live for open events
     const tallies = [];
@@ -191,7 +191,7 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secret: isSecretBallot } = info.config.ballot;
+    const isSecretBallot = info.config?.ballot.secret ?? true;
     const delegationVisibility = getDelegationVisibility(info.config);
 
     // Access control: in private delegation mode, you can only query your own participation
@@ -357,7 +357,8 @@ export function votingRoutes(manager: AssemblyManager) {
       );
     }
 
-    const { secret: isSecretBallot, liveResults } = info.config.ballot;
+    const isSecretBallot = info.config?.ballot.secret ?? true;
+    const liveResults = info.config?.ballot.liveResults ?? false;
 
     // Per-participant weights reveal who voted — forbidden under secret ballot
     if (isSecretBallot) {

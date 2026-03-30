@@ -104,7 +104,7 @@ export function eventRoutes(manager: AssemblyManager) {
 
     // Compute timeline: either from explicit values or from startDate + assembly config
     let eventTimeline: { deliberationStart: ReturnType<typeof timestamp>; votingStart: ReturnType<typeof timestamp>; votingEnd: ReturnType<typeof timestamp> };
-    if (body.startDate && info) {
+    if (body.startDate && info?.config) {
       const start = typeof body.startDate === "number" ? body.startDate : new Date(body.startDate).getTime();
       const computed = computeTimeline(start, info.config.timeline);
       eventTimeline = {

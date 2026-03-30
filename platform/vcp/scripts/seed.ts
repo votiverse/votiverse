@@ -79,20 +79,9 @@ export async function main() {
   }
   console.log(`\n  Added ${totalParticipants} participants total\n`);
 
-  // ── Step 2b: Grant owner roles to first participant per assembly ───
-
-  // ── Step 2b: Grant owner roles to first participant per assembly ───
-  // Uses the role management API — the first participant becomes owner+admin
-  console.log("═══ ASSEMBLY ROLES ═══\n");
-  for (const [assemblyKey, names] of Object.entries(PARTICIPANTS)) {
-    const assemblyId = aid(assemblyKey);
-    const ownerName = names[0]!;
-    const ownerId = pid(assemblyKey, ownerName);
-    // Bootstrap: grant role via direct API (operational scope can write roles directly)
-    await post(`/assemblies/${assemblyId}/roles/bootstrap`, { participantId: ownerId });
-    console.log(`  ✓ ${assemblyKey}: ${ownerName} → owner`);
-  }
-  console.log("");
+  // Note: Assembly roles are now managed by the backend (group_members table).
+  // The VCP no longer stores materialized roles — RoleGranted/RoleRevoked
+  // events remain in the event log as audit trail.
 
   // ── Step 3: Create topics ─────────────────────────────────────────
 

@@ -116,10 +116,10 @@ export function noteRoutes(manager: AssemblyManager) {
 
       const { engine } = await manager.getEngine(assemblyId);
 
-      // Get previous evaluation to update materialized counts
+      // Get previous evaluation from stances table to update materialized counts
       const db = manager.getDatabase();
-      const prev = await db.queryOne<{ evaluation: string }>(
-        `SELECT evaluation FROM note_evaluations WHERE assembly_id = ? AND note_id = ? AND participant_id = ?`,
+      const prev = await db.queryOne<{ value: string }>(
+        `SELECT value FROM stances WHERE assembly_id = ? AND entity_type = 'community_note' AND entity_id = ? AND participant_id = ?`,
         [assemblyId, noteId, participantId],
       );
 
@@ -132,7 +132,7 @@ export function noteRoutes(manager: AssemblyManager) {
       // Update materialized counts
       if (prev) {
         // Decrement old, increment new
-        const oldCol = prev.evaluation === "endorse" ? "endorsement_count" : "dispute_count";
+        const oldCol = prev.value === "endorse" ? "endorsement_count" : "dispute_count";
         const newCol = body.evaluation === "endorse" ? "endorsement_count" : "dispute_count";
         if (oldCol !== newCol) {
           await db.run(
@@ -149,12 +149,13 @@ export function noteRoutes(manager: AssemblyManager) {
         );
       }
 
-      // Upsert evaluation record
+      // Upsert stance record
+      const now = Date.now();
       await db.run(
-        `INSERT INTO note_evaluations (assembly_id, note_id, participant_id, evaluation, evaluated_at)
-         VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT (assembly_id, note_id, participant_id) DO UPDATE SET evaluation = EXCLUDED.evaluation, evaluated_at = EXCLUDED.evaluated_at`,
-        [assemblyId, noteId, participantId, body.evaluation, Date.now()],
+        `INSERT INTO stances (assembly_id, entity_type, entity_id, participant_id, value, created_at, updated_at)
+         VALUES (?, 'community_note', ?, ?, ?, ?, ?)
+         ON CONFLICT (assembly_id, entity_type, entity_id, participant_id) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`,
+        [assemblyId, noteId, participantId, body.evaluation, now, now],
       );
 
       return c.json({ status: "ok" });
