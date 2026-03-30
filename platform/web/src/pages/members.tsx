@@ -7,11 +7,14 @@ import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 import { BulkInvite } from "../components/bulk-invite.js";
+import { useGroup } from "../hooks/use-group.js";
+import { signal } from "../hooks/use-mutation-signal.js";
 import type { AdmissionMode } from "../api/types.js";
 
 export function Members() {
   const { t } = useTranslation("governance");
   const { groupId } = useParams();
+  const { group } = useGroup(groupId);
   const { data, loading, error, refetch } = useApi(() => api.listParticipants(groupId!), [groupId]);
   const { data: settingsData, refetch: refetchSettings } = useApi(() => api.getGroupSettings(groupId!), [groupId]);
   const [showSettings, setShowSettings] = useState(false);
@@ -83,13 +86,16 @@ export function Members() {
       </div>
 
       {showSettings && (
-        <GroupSettings
-          groupId={groupId!}
-          currentMode={admissionMode}
-          currentWebsiteUrl={settingsData?.websiteUrl ?? null}
-          currentVoteCreation={(settingsData?.voteCreation as "admin" | "members") ?? "admin"}
-          onChanged={() => { refetchSettings(); setShowSettings(false); }}
-        />
+        <>
+          <GroupSettings
+            groupId={groupId!}
+            currentMode={admissionMode}
+            currentWebsiteUrl={settingsData?.websiteUrl ?? null}
+            currentVoteCreation={(settingsData?.voteCreation as "admin" | "members") ?? "admin"}
+            onChanged={() => { refetchSettings(); setShowSettings(false); }}
+          />
+          <CapabilitiesSection groupId={groupId!} capabilities={group?.capabilities ?? []} />
+        </>
       )}
 
       {inviteLink && (
@@ -434,6 +440,65 @@ function GroupSettings({ groupId, currentMode, currentWebsiteUrl, currentVoteCre
               {saving ? t("members.saving") : t("common:save")}
             </Button>
           </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+const CAPABILITY_META: Array<{ key: string; labelKey: string; descKey: string }> = [
+  { key: "voting", labelKey: "members.capVoting", descKey: "members.capVotingDesc" },
+  { key: "scoring", labelKey: "members.capScoring", descKey: "members.capScoringDesc" },
+  { key: "surveys", labelKey: "members.capSurveys", descKey: "members.capSurveysDesc" },
+  { key: "community_notes", labelKey: "members.capNotes", descKey: "members.capNotesDesc" },
+];
+
+function CapabilitiesSection({ groupId, capabilities }: { groupId: string; capabilities: string[] }) {
+  const { t } = useTranslation("governance");
+  const [caps, setCaps] = useState<string[]>(capabilities);
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const toggle = async (cap: string) => {
+    setToggling(cap);
+    try {
+      const enabled = caps.includes(cap);
+      const result = enabled
+        ? await api.disableCapability(groupId, cap)
+        : await api.enableCapability(groupId, cap);
+      setCaps(result.capabilities);
+      signal("groups");
+    } catch {
+      // silently fail
+    } finally {
+      setToggling(null);
+    }
+  };
+
+  return (
+    <Card className="mb-4">
+      <CardBody>
+        <h3 className="text-sm font-semibold text-text-primary mb-3">{t("members.capabilities")}</h3>
+        <p className="text-xs text-text-muted mb-3">{t("members.capabilitiesDesc")}</p>
+        <div className="space-y-2">
+          {CAPABILITY_META.map(({ key, labelKey, descKey }) => {
+            const enabled = caps.includes(key);
+            return (
+              <div key={key} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${enabled ? "border-accent-muted bg-accent-subtle/30" : "border-border-subtle"}`}>
+                <div className="min-w-0 mr-3">
+                  <span className="text-sm font-medium text-text-primary">{t(labelKey)}</span>
+                  <p className="text-xs text-text-muted mt-0.5">{t(descKey)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggle(key)}
+                  disabled={toggling === key}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${enabled ? "bg-accent-text" : "bg-border-default"} ${toggling === key ? "opacity-50" : ""}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </CardBody>
     </Card>

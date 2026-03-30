@@ -170,6 +170,16 @@ export function updateGroupSettings(groupId: string, settings: { admissionMode?:
   return request("PUT", `/groups/${groupId}/settings`, settings);
 }
 
+// ---- Capabilities ----
+
+export function enableCapability(groupId: string, capability: string): Promise<{ capabilities: string[] }> {
+  return request("POST", `/groups/${groupId}/capabilities/${capability}`, {});
+}
+
+export function disableCapability(groupId: string, capability: string): Promise<{ capabilities: string[] }> {
+  return request("DELETE", `/groups/${groupId}/capabilities/${capability}`);
+}
+
 // ---- Join Requests ----
 
 import type { JoinRequest } from "./types.js";

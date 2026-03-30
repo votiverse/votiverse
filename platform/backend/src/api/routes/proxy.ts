@@ -265,6 +265,72 @@ export function proxyRoutes(
   });
 
   /**
+   * POST /groups/:groupId/capabilities/:cap — enable a capability.
+   * Admin-only. If this is the first VCP capability and no VCP assembly exists,
+   * creates one. If enabling voting, config must be provided in the body.
+   */
+  app.post("/groups/:groupId/capabilities/:cap", async (c) => {
+    const groupId = c.req.param("groupId");
+    const cap = c.req.param("cap") as Capability;
+    const user = getUser(c);
+    if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
+      throw new ForbiddenError("Only admins can manage capabilities");
+    }
+    if (!["voting", "scoring", "surveys", "community_notes"].includes(cap)) {
+      throw new ValidationError(`Unknown capability: ${cap}`);
+    }
+
+    // If enabling a VCP capability and no VCP assembly exists, create one
+    const group = await groupService.get(groupId);
+    if (!group) throw new NotFoundError(`Group "${groupId}" not found`);
+
+    if (!group.vcpAssemblyId) {
+      const body = await c.req.json<{ config?: unknown; preset?: string }>().catch(() => ({}));
+      const vcpAssembly = await vcpClient.createAssembly({
+        name: group.name,
+        config: cap === "voting" ? body.config : undefined,
+        preset: cap === "voting" ? body.preset : undefined,
+      });
+      await groupService.setVcpAssemblyId(groupId, vcpAssembly.id);
+
+      // Create participant for the admin
+      const participant = await vcpClient.createParticipant(vcpAssembly.id, user.name);
+      await groupService.setParticipantId(groupId, user.id, participant.id);
+
+      // Cache assembly
+      await assemblyCacheService.upsert({
+        id: vcpAssembly.id,
+        organizationId: vcpAssembly.organizationId ?? null,
+        name: vcpAssembly.name,
+        config: vcpAssembly.config,
+        status: vcpAssembly.status,
+        createdAt: vcpAssembly.createdAt,
+      });
+    }
+
+    await groupService.enableCapability(groupId, cap);
+    const capabilities = await groupService.getCapabilities(groupId);
+    return c.json({ capabilities: capabilities.filter((c) => c.enabled).map((c) => c.capability) });
+  });
+
+  /**
+   * DELETE /groups/:groupId/capabilities/:cap — disable a capability.
+   * Admin-only. Does not destroy historical data.
+   */
+  app.delete("/groups/:groupId/capabilities/:cap", async (c) => {
+    const groupId = c.req.param("groupId");
+    const cap = c.req.param("cap") as Capability;
+    const user = getUser(c);
+    if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
+      throw new ForbiddenError("Only admins can manage capabilities");
+    }
+
+    await groupService.disableCapability(groupId, cap);
+    const capabilities = await groupService.getCapabilities(groupId);
+    return c.json({ capabilities: capabilities.filter((c) => c.enabled).map((c) => c.capability) });
+  });
+
+  /**
    * GET /groups/:groupId/topics — served from local topic cache.
    * Falls through to VCP proxy if cache is empty (first access).
    * Requires voting capability.
