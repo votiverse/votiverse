@@ -81,7 +81,8 @@ export function presetLabel(configName: string, t?: TranslateFn): string {
  * Derive a preset label from the delegation quadrant when config.name is unavailable.
  * Maps the four delegation quadrants to their canonical preset labels.
  */
-export function quadrantLabel(config: { delegation: { candidacy: boolean; transferable: boolean } }, t?: TranslateFn): string {
+export function quadrantLabel(config: { delegation?: { candidacy: boolean; transferable: boolean } } | null | undefined, t?: TranslateFn): string {
+  if (!config?.delegation) return presetLabel("Direct Democracy", t);
   const { candidacy, transferable } = config.delegation;
   if (candidacy && transferable) return presetLabel("Liquid Delegation", t);
   if (!candidacy && !transferable) return presetLabel("Direct Democracy", t);
@@ -114,12 +115,14 @@ export function describeAdmissionMode(mode: string, t?: TranslateFn): string {
 import type { GovernanceConfig } from "../api/types.js";
 
 /** Whether delegation is enabled in this config. */
-export function isDelegationEnabled(config: GovernanceConfig): boolean {
+export function isDelegationEnabled(config: GovernanceConfig | null | undefined): boolean {
+  if (!config) return false;
   return config.delegation.candidacy || config.delegation.transferable;
 }
 
 /** Generates plain-language governance rules from the config. */
-export function summarizeRules(config: GovernanceConfig, t?: TranslateFn): string[] {
+export function summarizeRules(config: GovernanceConfig | null | undefined, t?: TranslateFn): string[] {
+  if (!config) return [];
   const translate = t ?? fallbackT;
   const rules: string[] = [];
 

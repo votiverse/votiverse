@@ -14,7 +14,7 @@ export interface Group {
   id: string;
   organizationId: string | null;
   name: string;
-  config: GovernanceConfig;
+  config: GovernanceConfig | null;
   status: string;
   createdAt: string;
   admissionMode?: AdmissionMode;

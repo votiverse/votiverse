@@ -12,7 +12,8 @@ export interface GroupTab {
 }
 
 /** Whether delegation is enabled in the governance config. */
-function delegationEnabled(config: GovernanceConfig): boolean {
+function delegationEnabled(config: GovernanceConfig | null | undefined): boolean {
+  if (!config) return false;
   return config.delegation.candidacy || config.delegation.transferable;
 }
 

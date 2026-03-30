@@ -106,7 +106,7 @@ export function GroupDashboard() {
           {t("groupDashboard.governanceSettings")}
           <span className="text-text-tertiary font-normal">({quadrantLabel(config, t)})</span>
         </button>
-        {showConfig && (
+        {showConfig && config && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-3">
             <Card>
               <CardHeader>
