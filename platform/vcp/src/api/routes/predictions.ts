@@ -6,25 +6,16 @@ import { Hono } from "hono";
 import type { ParticipantId } from "@votiverse/core";
 import type { PredictionId, CommitPredictionParams, RecordOutcomeParams } from "@votiverse/prediction";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { requireParticipant, requireScope } from "../middleware/auth.js";
+import { getParticipantId, requireParticipant, requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function predictionRoutes(manager: AssemblyManager) {
   const app = new Hono();
 
-  /** GET /assemblies/:id/predictions — list predictions for a participant. */
-  app.get("/assemblies/:id/predictions", async (c) => {
+  /** GET /assemblies/:id/predictions — list predictions for the authenticated participant. */
+  app.get("/assemblies/:id/predictions", requireParticipant(manager), async (c) => {
     const assemblyId = c.req.param("id");
-    const rawParticipantId = c.req.query("participantId");
-
-    if (!rawParticipantId) {
-      return c.json(
-        { error: { code: "VALIDATION_ERROR", message: "participantId query parameter is required" } },
-        400,
-      );
-    }
-
-    const participantId = rawParticipantId;
+    const participantId = getParticipantId(c)!;
     const { engine } = await manager.getEngine(assemblyId);
     const predictions = await engine.prediction.getByParticipant(participantId as ParticipantId);
 
