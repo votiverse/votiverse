@@ -48,7 +48,7 @@ When context is compacted, you lose architectural reasoning. Before resuming any
 
 1. Re-read this file (`CLAUDE.md`)
 2. Re-read `docs/architecture.md`
-3. Re-read `docs/design/groups-and-capabilities.md` (upcoming refactor — understand what is changing and what is current)
+3. Re-read `docs/design/groups-and-capabilities.md` (completed refactor — understand the group/capability model)
 4. Re-read the `README.md` of the package you are currently working on
 5. Re-read the existing tests for that package
 6. If working on the web UI, re-read `platform/web/TESTING.md` and `docs/design/app-design-system.md`
@@ -96,20 +96,20 @@ These decisions are final. Do not reconsider them without explicit instruction f
 
 ### VCP Server (`platform/vcp/`)
 - **Framework:** Hono (lightweight HTTP framework)
-- **Database:** better-sqlite3 (SQLite, file-based: `vcp-dev.db`)
+- **Database:** PostgreSQL (preferred for dev and production), better-sqlite3 (SQLite fallback)
 - **Dev runner:** `tsx` (TypeScript execution without build step)
 - **Port:** 3000
 
 ### Client Backend (`platform/backend/`)
 - **Framework:** Hono (same as VCP)
-- **Database:** better-sqlite3 (SQLite, file-based: `backend-dev.db`), PostgreSQL for production
+- **Database:** PostgreSQL (preferred for dev and production), better-sqlite3 (SQLite fallback)
 - **Auth:** JWT access tokens + Argon2 password hashing (`@node-rs/argon2`)
 - **Dev runner:** `tsx` (TypeScript execution without build step)
 - **Port:** 4000
 
 ### Web UI (`platform/web/`)
 - **Framework:** React 19 with React Router v7
-- **Build/Dev:** Vite (HMR dev server on port 5174)
+- **Build/Dev:** Vite (HMR dev server on port 5173)
 - **Styling:** Tailwind CSS
 - **State management:** No global store (no Redux/Zustand). Data fetching uses `useApi` hook with per-component fetch. Cross-component cache invalidation uses **mutation signals** (`useMutationSignal`).
 
@@ -179,8 +179,9 @@ The migrator handles:
 ## Package Dependency Rules
 
 ```
-cli → engine → [awareness, voting, survey, prediction, integrity, content]
+cli → engine → [awareness, voting, survey, prediction, integrity, content, scoring]
                 awareness → [delegation, voting, prediction, survey, config, core, content]
+                scoring → [core]
                 content → [config, core]
                 voting → [delegation, config, core]
                 survey → [identity, config, core]
@@ -254,7 +255,7 @@ cli → engine → [awareness, voting, survey, prediction, integrity, content]
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
 
-**Current status:** All engine packages (Phases 1–7) are complete. The **groups-and-capabilities refactor** is complete: groups are the top-level entity with independently toggleable capabilities (voting, scoring, surveys, community notes). The backend owns roles (`group_members.role`), capabilities (`group_capabilities`), and group metadata. The VCP is a pure computation engine with nullable config and unified `stances` table. GovernanceConfig has 10 voting-specific parameters (no FeatureConfig). The web UI uses "group" terminology everywhere with `/group/:id/...` routes. 720+ tests across engine (471), VCP (131), backend (168), web (16), and config (61).
+**Current status:** All engine packages (Phases 1–7) are complete, plus the `@votiverse/scoring` package (14 engine packages total). The **groups-and-capabilities refactor** is complete: groups are the top-level entity with independently toggleable capabilities (voting, scoring, surveys, community notes). The backend owns roles (`group_members.role`), capabilities (`group_capabilities`), and group metadata. The VCP is a pure computation engine with nullable config and unified `stances` table. GovernanceConfig has 10 voting-specific parameters across 3 sub-configs (delegation 2 + ballot 5 + timeline 3), with 6 built-in presets. The web UI uses "group" terminology everywhere with `/group/:id/...` routes, full i18n support, dark mode, OAuth social login, group settings page, and feedback/terms pages. 800 tests across engine (475 + scoring 81), VCP (131), backend (168), web (16), and config (61).
 
 Detailed per-phase task lists (Phases 1–7) are in git history. Future phases follow the same discipline: complete fully, run all tests, write status report, STOP.
 
@@ -270,7 +271,7 @@ This refactor has been implemented. The codebase now uses groups as the top-leve
 
 - **Group entity.** The backend-owned "group" is the user-facing top-level concept. The VCP's "assembly" is an internal implementation detail. URLs are `/group/:id/...`. The `groups`, `group_capabilities`, and `group_members` tables are in the backend.
 - **Capabilities as layers.** Voting, scoring, surveys, and community notes are independently toggleable via `group_capabilities`. The backend checks capabilities before proxying to the VCP.
-- **`GovernanceConfig` is voting-only.** 10 parameters: delegation (2) + ballot (5) + timeline (3). No `FeatureConfig`, no `name`, no `description`. Capability gating is the backend's job.
+- **`GovernanceConfig` is voting-only.** 10 parameters across 3 sub-configs: `DelegationConfig` (candidacy, transferable), `BallotConfig` (secret, liveResults, allowVoteChange, quorum, method), `TimelineConfig` (deliberationDays, curationDays, votingDays). 6 built-in presets: LIQUID_DELEGATION, DIRECT_DEMOCRACY, SWISS_VOTATION, LIQUID_OPEN, REPRESENTATIVE, CIVIC. No `FeatureConfig`, no `name`, no `description`. Capability gating is the backend's job.
 - **Predictions decoupled.** Always available as a platform feature. `Prediction.proposalId` is optional (standalone predictions).
 - **Roles owned by backend.** `group_members.role` (owner/admin/member) replaces VCP's `assembly_roles`. The VCP no longer enforces roles.
 - **VCP generalized.** `assemblies.config` is nullable (non-voting groups). Unified `stances` table replaces `proposal_endorsements`, `entity_endorsements`, `note_evaluations`.
@@ -344,9 +345,10 @@ platform/
     │   │   └── types.ts         ← API response types
     │   ├── hooks/               ← useApi, useIdentity, useGroup, useGroupRole
     │   ├── components/          ← layout, avatar, topic-picker, UI primitives
-    │   └── pages/               ← dashboard, group-list, group-dashboard, create-group,
-    │                              events, event-detail, delegations, surveys,
-    │                              scoring, predictions, notes, members
+    │   └── pages/               ← dashboard, group-list, group-dashboard, group-settings,
+    │                              create-group, events, event-detail, delegations,
+    │                              surveys, scoring, predictions, notes, members,
+    │                              profile, feedback, terms, notifications
     └── TESTING.md               ← test identity guide, group-by-feature matrix
 ```
 
@@ -627,7 +629,7 @@ curl -X POST http://localhost:3000/dev/clock/reset
 
 **Cause:** Not a bug. Assemblies with `delegation.visibility.mode: "private"` only return delegations where the caller is the source or target. If the logged-in user hasn't delegated and nobody delegates to them, the API correctly returns 0.
 
-**Which assemblies are public vs private:** Check with `sqlite3 platform/vcp/vcp-dev.db "SELECT name, json_extract(config, '$.delegation.visibility.mode') FROM assemblies;"`. Currently: OSC, Youth, and Maple are public; Greenfield, Municipal, Board, and Riverside are private.
+**Which assemblies are public vs private:** Query the VCP database. For PostgreSQL: `psql -U claude -d votiverse_vcp -c "SELECT name, config->'delegation'->'visibility'->>'mode' FROM assemblies;"`. For SQLite: `sqlite3 platform/vcp/vcp-dev.db "SELECT name, json_extract(config, '$.delegation.visibility.mode') FROM assemblies;"`. Currently: OSC, Youth, and Maple are public; Greenfield, Municipal, Board, and Riverside are private.
 
 **Fix:** If you need to verify delegations exist, test with a participant who is a delegation source or target (check `seed-data/delegations.ts`), or query the VCP database directly.
 
@@ -650,6 +652,19 @@ curl -X POST http://localhost:3000/dev/clock/reset
 **Fix (already applied):** The VCP delegation POST route now accepts an optional `retractVoteOnIssue` field. When provided (or when `issueScope` is set), it calls `engine.voting.retract()` before creating the delegation. The QuickDelegateForm passes the issue ID for retraction.
 
 **Note:** This only applies to delegations created from an issue context (QuickDelegateForm). The Delegates tab creates topic-scoped delegations without issue context and does not trigger vote retraction.
+
+### 10. SQLite-specific SQL in runtime code
+
+**Symptom:** Backend or VCP returns 500 errors when running against PostgreSQL, with messages like `function datetime(unknown) does not exist` or `column "enabled" is of type boolean but expression is of type integer`.
+
+**Cause:** Runtime SQL queries using `datetime('now')` (SQLite-only) instead of `CURRENT_TIMESTAMP` (standard SQL), or using `1`/`0` for boolean columns instead of `TRUE`/`FALSE`.
+
+**Fix:** Use portable SQL:
+- `datetime('now')` → `CURRENT_TIMESTAMP` (works in both SQLite and PostgreSQL)
+- `enabled = 1` → `enabled = TRUE` (SQLite treats TRUE as 1; PostgreSQL requires boolean)
+- `enabled = 0` → `enabled = FALSE`
+
+**Prevention:** Always use `CURRENT_TIMESTAMP` and `TRUE`/`FALSE` in runtime SQL. Migration files can use dialect-specific syntax (they have `.sqlite.sql` and `.postgres.sql` variants), but runtime code must be portable.
 
 ### Troubleshooting Routine
 
