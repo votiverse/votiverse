@@ -40,11 +40,10 @@ export function CreateGroup() {
   const [admissionMode, setAdmissionMode] = useState<"open" | "approval" | "invite-only">("approval");
   const [websiteUrl, setWebsiteUrl] = useState("");
 
-  // Capabilities
+  // Capabilities (community notes always enabled — managed in group settings)
   const [votingEnabled, setVotingEnabled] = useState(false);
   const [scoringEnabled, setScoringEnabled] = useState(false);
   const [surveysEnabled, setSurveysEnabled] = useState(false);
-  const [notesEnabled, setNotesEnabled] = useState(true);
 
   // Voting config (only relevant when voting is enabled)
   const [votingConfig, setVotingConfig] = useState<VotingConfig>(QUADRANT_DEFAULTS.liquid);
@@ -65,11 +64,10 @@ export function CreateGroup() {
     setSubmitting(true);
     setError(null);
     try {
-      const capabilities: string[] = [];
+      const capabilities: string[] = ["community_notes"];
       if (votingEnabled) capabilities.push("voting");
       if (scoringEnabled) capabilities.push("scoring");
       if (surveysEnabled) capabilities.push("surveys");
-      if (notesEnabled) capabilities.push("community_notes");
 
       const params: Parameters<typeof api.createGroup>[0] = {
         name: name.trim(),
@@ -216,13 +214,6 @@ export function CreateGroup() {
             description={t("createGroup.capSurveysDesc")}
           />
 
-          {/* Community Notes */}
-          <CapabilityCard
-            checked={notesEnabled}
-            onChange={setNotesEnabled}
-            label={t("createGroup.capNotes")}
-            description={t("createGroup.capNotesDesc")}
-          />
         </div>
 
         {/* Website URL */}
