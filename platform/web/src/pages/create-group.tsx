@@ -4,30 +4,8 @@ import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, ErrorBox } from "../components/ui.js";
 import { signal } from "../hooks/use-mutation-signal.js";
-
-// ── Types ───────────────────────────────────────────────────────────────
-
-type Quadrant = "direct" | "open" | "proxy" | "liquid";
-
-interface VotingConfig {
-  quadrant: Quadrant;
-  ballot: { secret: boolean; liveResults: boolean; allowVoteChange: boolean };
-  timeline: { deliberationDays: number; curationDays: number; votingDays: number };
-}
-
-const QUADRANT_DELEGATION: Record<Quadrant, { candidacy: boolean; transferable: boolean }> = {
-  direct: { candidacy: false, transferable: false },
-  open: { candidacy: false, transferable: true },
-  proxy: { candidacy: true, transferable: false },
-  liquid: { candidacy: true, transferable: true },
-};
-
-const QUADRANT_DEFAULTS: Record<Quadrant, VotingConfig> = {
-  direct: { quadrant: "direct", ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
-  open: { quadrant: "open", ballot: { secret: false, liveResults: true, allowVoteChange: true }, timeline: { deliberationDays: 5, curationDays: 0, votingDays: 5 } },
-  proxy: { quadrant: "proxy", ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 3, curationDays: 0, votingDays: 3 } },
-  liquid: { quadrant: "liquid", ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 } },
-};
+import { VotingConfigForm, QUADRANT_DEFAULTS, QUADRANT_DELEGATION, toGovernanceConfig } from "../components/voting-config-form.js";
+import type { VotingConfig } from "../components/voting-config-form.js";
 
 // ── Page ─────────────────────────────────────────────────────────────────
 
@@ -47,16 +25,9 @@ export function CreateGroup() {
 
   // Voting config (only relevant when voting is enabled)
   const [votingConfig, setVotingConfig] = useState<VotingConfig>(QUADRANT_DEFAULTS.liquid);
-  const [showBallotSettings, setShowBallotSettings] = useState(false);
-  const [showTimelineSettings, setShowTimelineSettings] = useState(false);
-  const [showDelegationModel, setShowDelegationModel] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const setQuadrant = (q: Quadrant) => {
-    setVotingConfig({ ...QUADRANT_DEFAULTS[q] });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,16 +48,12 @@ export function CreateGroup() {
       };
 
       if (votingEnabled) {
-        params.config = {
-          delegation: QUADRANT_DELEGATION[votingConfig.quadrant],
-          ballot: { ...votingConfig.ballot, quorum: 0.1, method: "majority" },
-          timeline: votingConfig.timeline,
-        };
+        params.config = toGovernanceConfig(votingConfig);
       }
 
       const group = await api.createGroup(params);
       signal("groups");
-      navigate(`/group/${group.id}/members`);
+      navigate(`/group/${group.id}/about`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("createGroup.error"));
     } finally {
@@ -142,58 +109,8 @@ export function CreateGroup() {
             description={t("createGroup.capVotingDesc")}
           >
             {votingEnabled && (
-              <div className="mt-3 pt-3 border-t border-border-subtle space-y-3">
-                {/* Expandable ballot settings */}
-                <button type="button" onClick={() => setShowBallotSettings(!showBallotSettings)} className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text-secondary">
-                  <svg className={`w-3 h-3 transition-transform ${showBallotSettings ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                  {t("createGroup.ballotSettings")}
-                </button>
-                {showBallotSettings && (
-                  <div className="space-y-2 pl-4">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={votingConfig.ballot.secret} onChange={(e) => setVotingConfig((p) => ({ ...p, ballot: { ...p.ballot, secret: e.target.checked } }))} className="rounded" />
-                      {t("createGroup.secretBallot")}
-                    </label>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={votingConfig.ballot.liveResults} onChange={(e) => setVotingConfig((p) => ({ ...p, ballot: { ...p.ballot, liveResults: e.target.checked } }))} className="rounded" />
-                      {t("createGroup.liveResults")}
-                    </label>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={votingConfig.ballot.allowVoteChange} onChange={(e) => setVotingConfig((p) => ({ ...p, ballot: { ...p.ballot, allowVoteChange: e.target.checked } }))} className="rounded" />
-                      {t("createGroup.allowVoteChange")}
-                    </label>
-                  </div>
-                )}
-
-                {/* Expandable timeline settings */}
-                <button type="button" onClick={() => setShowTimelineSettings(!showTimelineSettings)} className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text-secondary">
-                  <svg className={`w-3 h-3 transition-transform ${showTimelineSettings ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                  {t("createGroup.timelineDefaults")}
-                </button>
-                {showTimelineSettings && (
-                  <div className="flex items-center gap-4 pl-4">
-                    <TimelineInput label={t("createGroup.deliberation")} value={votingConfig.timeline.deliberationDays} min={1} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, deliberationDays: v } }))} />
-                    <TimelineInput label={t("createGroup.curation")} value={votingConfig.timeline.curationDays} min={0} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, curationDays: v } }))} />
-                    <TimelineInput label={t("createGroup.votingDays")} value={votingConfig.timeline.votingDays} min={1} onChange={(v) => setVotingConfig((p) => ({ ...p, timeline: { ...p.timeline, votingDays: v } }))} />
-                  </div>
-                )}
-
-                {/* Expandable delegation model */}
-                <button type="button" onClick={() => setShowDelegationModel(!showDelegationModel)} className="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text-secondary">
-                  <svg className={`w-3 h-3 transition-transform ${showDelegationModel ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                  {t("createGroup.delegationModel")}
-                </button>
-                {showDelegationModel && (
-                  <div className="pl-4 space-y-2">
-                    <p className="text-xs text-warning-text">{t("createGroup.delegationPermanent")}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuadrantOption quadrant="direct" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                      <QuadrantOption quadrant="proxy" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                      <QuadrantOption quadrant="open" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                      <QuadrantOption quadrant="liquid" current={votingConfig.quadrant} onSelect={setQuadrant} t={t} />
-                    </div>
-                  </div>
-                )}
+              <div className="mt-3 pt-3 border-t border-border-subtle">
+                <VotingConfigForm config={votingConfig} onChange={setVotingConfig} />
               </div>
             )}
           </CapabilityCard>
@@ -271,59 +188,5 @@ function CapabilityCard({ checked, onChange, label, description, children }: {
         {children}
       </CardBody>
     </Card>
-  );
-}
-
-// ── Quadrant option ──────────────────────────────────────────────────────
-
-function QuadrantOption({ quadrant, current, onSelect, t }: {
-  quadrant: Quadrant;
-  current: Quadrant;
-  onSelect: (q: Quadrant) => void;
-  t: (key: string) => string;
-}) {
-  const selected = quadrant === current;
-  const labels: Record<Quadrant, { name: string; desc: string }> = {
-    direct: { name: t("createGroup.quadrantDirect"), desc: t("createGroup.quadrantDirectDesc") },
-    open: { name: t("createGroup.quadrantOpen"), desc: t("createGroup.quadrantOpenDesc") },
-    proxy: { name: t("createGroup.quadrantProxy"), desc: t("createGroup.quadrantProxyDesc") },
-    liquid: { name: t("createGroup.quadrantLiquid"), desc: t("createGroup.quadrantLiquidDesc") },
-  };
-  const { name, desc } = labels[quadrant];
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(quadrant)}
-      className={`text-left p-2.5 rounded-lg border transition-all ${
-        selected
-          ? "border-accent-muted bg-accent-subtle ring-1 ring-accent-muted"
-          : "border-border-subtle hover:border-border-default"
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${selected ? "border-accent-text" : "border-border-default"}`}>
-          {selected && <div className="w-1.5 h-1.5 rounded-full bg-accent-text" />}
-        </div>
-        <span className="text-sm font-medium text-text-primary">{name}</span>
-      </div>
-      <p className="text-xs text-text-muted mt-1 ml-5.5">{desc}</p>
-    </button>
-  );
-}
-
-// ── Timeline input ───────────────────────────────────────────────────────
-
-function TimelineInput({ label, value, min, onChange }: {
-  label: string;
-  value: number;
-  min: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Input type="number" min={min} max={90} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-16" />
-      <span className="text-xs text-text-muted">{label}</span>
-    </div>
   );
 }

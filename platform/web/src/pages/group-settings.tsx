@@ -7,6 +7,8 @@ import { useGroup } from "../hooks/use-group.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Select, Spinner, ErrorBox } from "../components/ui.js";
+import { VotingConfigForm, QUADRANT_DEFAULTS, toGovernanceConfig } from "../components/voting-config-form.js";
+import type { VotingConfig } from "../components/voting-config-form.js";
 import type { AdmissionMode } from "../api/types.js";
 
 export function GroupSettings() {
@@ -157,6 +159,7 @@ function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
 }) {
   const [toggling, setToggling] = useState<string | null>(null);
   const [caps, setCaps] = useState<string[]>(capabilities);
+  const [showEnableVoting, setShowEnableVoting] = useState(false);
 
   const toggleCapability = async (cap: string) => {
     setToggling(cap);
@@ -178,12 +181,13 @@ function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
   const votingEnabled = caps.includes("voting");
 
   return (
+    <>
     <Card>
       <CardHeader>
         <h2 className="font-medium text-text-primary">{t("settings.delegationAndCapabilities")}</h2>
       </CardHeader>
       <CardBody className="space-y-4">
-        {/* Delegation — read-only */}
+        {/* Delegation — read-only (only shown when voting is enabled) */}
         {config && (
           <div>
             <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">{t("settings.delegation")}</h3>
@@ -205,14 +209,18 @@ function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
         <div className={config ? "pt-3 border-t border-border-subtle" : ""}>
           <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">{t("settings.capabilities")}</h3>
           <div className="space-y-3">
-            {/* Voting — shown as permanent, not toggleable */}
-            <CapabilityToggle
-              label={t("settings.capVoting")}
-              description={t("settings.capVotingDesc")}
-              enabled={votingEnabled}
-              permanent
-              t={t}
-            />
+            {/* Voting */}
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 mr-3">
+                <span className="text-sm text-text-secondary">{t("settings.capVoting")}</span>
+                <p className="text-xs text-text-muted">{t("settings.capVotingDesc")}</p>
+              </div>
+              {votingEnabled ? (
+                <span className="text-xs text-text-tertiary shrink-0">{t("settings.permanent")}</span>
+              ) : (
+                <Button size="sm" onClick={() => setShowEnableVoting(true)}>{t("settings.enable")}</Button>
+              )}
+            </div>
             {/* Scoring — toggleable */}
             <CapabilityToggle
               label={t("settings.capScoring")}
@@ -241,17 +249,81 @@ function DelegationNotesSection({ groupId, config, capabilities, onSaved, t }: {
         </div>
       </CardBody>
     </Card>
+
+    {/* Enable voting modal */}
+    {showEnableVoting && (
+      <EnableVotingModal
+        groupId={groupId}
+        onClose={() => setShowEnableVoting(false)}
+        onEnabled={() => {
+          setShowEnableVoting(false);
+          signal("groups");
+          onSaved();
+          // Force reload to pick up new config
+          window.location.reload();
+        }}
+        t={t}
+      />
+    )}
+    </>
   );
 }
 
-function CapabilityToggle({ label, description, enabled, permanent, toggling, onToggle, t }: {
+function EnableVotingModal({ groupId, onClose, onEnabled, t }: {
+  groupId: string;
+  onClose: () => void;
+  onEnabled: () => void;
+  t: (key: string) => string;
+}) {
+  const [votingConfig, setVotingConfig] = useState<VotingConfig>(QUADRANT_DEFAULTS.liquid);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleEnable = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await api.enableCapability(groupId, "voting", {
+        config: toGovernanceConfig(votingConfig),
+      });
+      onEnabled();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to enable voting");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <Card className="w-full max-w-lg max-h-[85vh] overflow-y-auto">
+        <CardHeader>
+          <h3 className="font-medium text-text-primary">{t("settings.enableVoting")}</h3>
+          <p className="text-xs text-text-muted mt-1">{t("settings.enableVotingDesc")}</p>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          {error && <ErrorBox message={error} />}
+
+          <VotingConfigForm config={votingConfig} onChange={setVotingConfig} />
+
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="secondary" onClick={onClose}>{t("common:cancel")}</Button>
+            <Button onClick={handleEnable} disabled={saving}>
+              {saving ? t("common:loading") : t("settings.enableVoting")}
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+    </div>
+  );
+}
+
+function CapabilityToggle({ label, description, enabled, toggling, onToggle }: {
   label: string;
   description: string;
   enabled: boolean;
-  permanent?: boolean;
   toggling?: boolean;
   onToggle?: () => void;
-  t?: (key: string) => string;
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -259,10 +331,7 @@ function CapabilityToggle({ label, description, enabled, permanent, toggling, on
         <span className="text-sm text-text-secondary">{label}</span>
         <p className="text-xs text-text-muted">{description}</p>
       </div>
-      {permanent ? (
-        <span className="text-xs text-text-tertiary shrink-0">{enabled ? t?.("settings.permanent") ?? "Permanent" : t?.("settings.notEnabled") ?? "Not enabled"}</span>
-      ) : (
-        <button
+      <button
           type="button"
           onClick={onToggle}
           disabled={toggling}

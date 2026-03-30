@@ -281,8 +281,10 @@ export function proxyRoutes(
     const group = await groupService.get(groupId);
     if (!group) throw new NotFoundError(`Group "${groupId}" not found`);
 
+    const body = await c.req.json<{ config?: unknown; preset?: string }>().catch(() => ({}));
+
     if (!group.vcpAssemblyId) {
-      const body = await c.req.json<{ config?: unknown; preset?: string }>().catch(() => ({}));
+      // No VCP assembly yet — create one
       const vcpAssembly = await vcpClient.createAssembly({
         name: group.name,
         config: cap === "voting" ? body.config : undefined,
@@ -303,6 +305,19 @@ export function proxyRoutes(
         status: vcpAssembly.status,
         createdAt: vcpAssembly.createdAt,
       });
+    } else if (cap === "voting" && body.config) {
+      // VCP assembly exists but voting is being enabled — update config
+      // TODO: VCP needs a PATCH /assemblies/:id/config endpoint for this.
+      // For now, the config is set at assembly creation time. If the assembly
+      // was created without voting (for scoring/surveys), we need to set the
+      // config now. This is a gap that should be addressed.
+      const cached = await assemblyCacheService.get(group.vcpAssemblyId);
+      if (cached && !cached.config) {
+        await assemblyCacheService.upsert({
+          ...cached,
+          config: body.config,
+        });
+      }
     }
 
     await groupService.enableCapability(groupId, cap);

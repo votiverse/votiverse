@@ -172,8 +172,8 @@ export function updateGroupSettings(groupId: string, settings: { admissionMode?:
 
 // ---- Capabilities ----
 
-export function enableCapability(groupId: string, capability: string): Promise<{ capabilities: string[] }> {
-  return request("POST", `/groups/${groupId}/capabilities/${capability}`, {});
+export function enableCapability(groupId: string, capability: string, body?: { config?: unknown }): Promise<{ capabilities: string[] }> {
+  return request("POST", `/groups/${groupId}/capabilities/${capability}`, body ?? {});
 }
 
 export function disableCapability(groupId: string, capability: string): Promise<{ capabilities: string[] }> {
