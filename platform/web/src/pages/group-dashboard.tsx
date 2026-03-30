@@ -140,13 +140,17 @@ export function GroupDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.delegationModel")}</h3>
+                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.delegationAndNotes")}</h3>
+                  {isAdmin && (
+                    <Link to={`/group/${groupId}/members`} className="text-text-tertiary hover:text-text-secondary">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
                 </div>
               </CardHeader>
               <CardBody className="space-y-2">
-                <ConfigRow label={t("groupDashboard.model")} value={quadrantLabel(config, t)} />
-                <ConfigRow label={t("groupDashboard.candidatesLabel")} value={humanizeBoolean(config.delegation.candidacy, "enabled-disabled", t)} />
-                <ConfigRow label={t("groupDashboard.transferableLabel")} value={humanizeBoolean(config.delegation.transferable, "enabled-disabled", t)} />
+                <ConfigRow label={t("groupDashboard.delegation")} value={quadrantLabel(config, t)} />
+                <ConfigRow label={t("groupDashboard.communityNotes")} value={humanizeBoolean(group?.capabilities?.includes("community_notes") ?? true, "enabled-disabled", t)} />
               </CardBody>
             </Card>
           </div>

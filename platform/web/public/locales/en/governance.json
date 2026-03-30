@@ -470,8 +470,9 @@
 
   "groupDashboard.groupNotFound": "Group not found",
   "groupDashboard.governanceSettings": "Governance Settings",
-  "groupDashboard.delegationModel": "Delegation",
-  "groupDashboard.model": "Model",
+  "groupDashboard.delegationAndNotes": "Delegation & Notes",
+  "groupDashboard.delegation": "Delegation",
+  "groupDashboard.communityNotes": "Community Notes",
   "groupDashboard.configuration": "Configuration",
   "groupDashboard.decisionModel": "Decision Model",
   "groupDashboard.votingMethod": "Voting Method",
