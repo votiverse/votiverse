@@ -1,11 +1,15 @@
 /**
  * NotificationService — tracks governance events/surveys and dispatches
  * notifications on a schedule based on user preferences.
+ *
+ * Note: tracked_events and tracked_surveys still use assembly_id (VCP-scoped data).
+ * Recipient resolution now uses group_members instead of memberships.
  */
 
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { NotificationAdapter } from "./notification-adapter.js";
 import type { VCPClient } from "./vcp-client.js";
+import type { GroupService } from "./group-service.js";
 import type { NotificationHubService, NotificationType as HubNotificationType, Urgency } from "./notification-hub.js";
 import { renderTemplate } from "./notification-templates.js";
 import { logger } from "../lib/logger.js";
@@ -52,13 +56,6 @@ interface TrackedSurveyRow {
   notified_created: number | boolean;
   notified_deadline: number | boolean;
   notified_closed: number | boolean;
-}
-
-interface MembershipRow {
-  user_id: string;
-  assembly_id: string;
-  participant_id: string;
-  assembly_name: string;
 }
 
 interface UserRow {
@@ -114,6 +111,7 @@ export class NotificationService {
     private readonly adapter: NotificationAdapter,
     private readonly vcpClient: VCPClient,
     private readonly baseUrl: string,
+    private readonly groupService: GroupService,
   ) {}
 
   /** Set the notification hub for creating in-app notification records. */
@@ -289,94 +287,100 @@ export class NotificationService {
   // ── Internal: Notification dispatch ──────────────────────────────
 
   private async notifyEventCreated(event: TrackedEventRow): Promise<void> {
+    const groupId = await this.resolveGroupId(event.assembly_id);
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_new_votes", event);
-    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const groupName = await this.getGroupName(event.assembly_id);
     const template = renderTemplate("event_created", {
-      assemblyName, title: event.title,
+      assemblyName: groupName, title: event.title,
       votingStart: event.voting_start, votingEnd: event.voting_end, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    await this.createHubRecords(recipients, event.assembly_id, "vote_created", "timely",
-      `New vote: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
+    await this.createHubRecords(recipients, groupId, "vote_created", "timely",
+      `New vote: ${event.title}`, `/group/${groupId}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: event created`, { eventId: event.id });
   }
 
   private async notifyVotingOpen(event: TrackedEventRow): Promise<void> {
+    const groupId = await this.resolveGroupId(event.assembly_id);
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_new_votes", event);
-    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const groupName = await this.getGroupName(event.assembly_id);
     const template = renderTemplate("voting_open", {
-      assemblyName, title: event.title, votingEnd: event.voting_end, baseUrl: this.baseUrl,
+      assemblyName: groupName, title: event.title, votingEnd: event.voting_end, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    await this.createHubRecords(recipients, event.assembly_id, "voting_open", "action",
-      `Voting is open: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
+    await this.createHubRecords(recipients, groupId, "voting_open", "action",
+      `Voting is open: ${event.title}`, `/group/${groupId}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: voting open`, { eventId: event.id });
   }
 
   private async notifyDeadline(event: TrackedEventRow): Promise<void> {
+    const groupId = await this.resolveGroupId(event.assembly_id);
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_deadlines");
-    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const groupName = await this.getGroupName(event.assembly_id);
     const template = renderTemplate("deadline_approaching", {
-      assemblyName, title: event.title, votingEnd: event.voting_end, baseUrl: this.baseUrl,
+      assemblyName: groupName, title: event.title, votingEnd: event.voting_end, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    await this.createHubRecords(recipients, event.assembly_id, "deadline_approaching", "action",
-      `Voting closes tomorrow: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
+    await this.createHubRecords(recipients, groupId, "deadline_approaching", "action",
+      `Voting closes tomorrow: ${event.title}`, `/group/${groupId}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: deadline approaching`, { eventId: event.id });
   }
 
   private async notifyResultsAvailable(event: TrackedEventRow): Promise<void> {
+    const groupId = await this.resolveGroupId(event.assembly_id);
     const recipients = await this.resolveRecipients(event.assembly_id, "notify_results");
-    const assemblyName = await this.getAssemblyName(event.assembly_id);
+    const groupName = await this.getGroupName(event.assembly_id);
     const template = renderTemplate("results_available", {
-      assemblyName, title: event.title, baseUrl: this.baseUrl,
+      assemblyName: groupName, title: event.title, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    await this.createHubRecords(recipients, event.assembly_id, "results_available", "info",
-      `Results are in: ${event.title}`, `/assembly/${event.assembly_id}/events/${event.id}`);
+    await this.createHubRecords(recipients, groupId, "results_available", "info",
+      `Results are in: ${event.title}`, `/group/${groupId}/events/${event.id}`);
     this.log.info(`Notified ${recipients.length} users: results available`, { eventId: event.id });
   }
 
   private async notifySurveyCreated(survey: TrackedSurveyRow): Promise<void> {
+    const groupId = await this.resolveGroupId(survey.assembly_id);
     const recipients = await this.resolveRecipients(survey.assembly_id, "notify_new_surveys");
-    const assemblyName = await this.getAssemblyName(survey.assembly_id);
+    const groupName = await this.getGroupName(survey.assembly_id);
     const template = renderTemplate("survey_created", {
-      assemblyName, title: survey.title, baseUrl: this.baseUrl,
+      assemblyName: groupName, title: survey.title, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    await this.createHubRecords(recipients, survey.assembly_id, "survey_created", "timely",
-      `New survey: ${survey.title}`, `/assembly/${survey.assembly_id}/surveys`);
+    await this.createHubRecords(recipients, groupId, "survey_created", "timely",
+      `New survey: ${survey.title}`, `/group/${groupId}/surveys`);
     this.log.info(`Notified ${recipients.length} users: survey created`, { surveyId: survey.id });
   }
 
   private async notifySurveyDeadline(survey: TrackedSurveyRow): Promise<void> {
+    const groupId = await this.resolveGroupId(survey.assembly_id);
     const recipients = await this.resolveRecipients(survey.assembly_id, "notify_deadlines");
-    const assemblyName = await this.getAssemblyName(survey.assembly_id);
+    const groupName = await this.getGroupName(survey.assembly_id);
     const template = renderTemplate("survey_deadline", {
-      assemblyName, title: survey.title, closesAt: survey.closes_at, baseUrl: this.baseUrl,
+      assemblyName: groupName, title: survey.title, closesAt: survey.closes_at, baseUrl: this.baseUrl,
     });
     for (const r of recipients) {
       await this.adapter.send({ to: r.email, ...template });
     }
-    await this.createHubRecords(recipients, survey.assembly_id, "survey_deadline", "action",
-      `Survey closes tomorrow: ${survey.title}`, `/assembly/${survey.assembly_id}/surveys`);
+    await this.createHubRecords(recipients, groupId, "survey_deadline", "action",
+      `Survey closes tomorrow: ${survey.title}`, `/group/${groupId}/surveys`);
     this.log.info(`Notified ${recipients.length} users: survey deadline`, { surveyId: survey.id });
   }
 
   /** Create in-app notification records in the hub for a set of recipients. */
   private async createHubRecords(
     recipients: Array<{ userId: string; email: string }>,
-    assemblyId: string,
+    groupId: string,
     type: HubNotificationType,
     urgency: Urgency,
     title: string,
@@ -387,7 +391,7 @@ export class NotificationService {
       try {
         await this.hub.notify({
           userId: r.userId,
-          assemblyId,
+          groupId,
           type,
           urgency,
           title,
@@ -407,18 +411,17 @@ export class NotificationService {
     preferenceKey: string,
     event?: TrackedEventRow,
   ): Promise<Array<{ userId: string; email: string }>> {
-    // Get all members of the assembly
-    const members = await this.db.query<MembershipRow>(
-      "SELECT * FROM memberships WHERE assembly_id = ?",
-      [assemblyId],
-    );
+    // Resolve VCP assemblyId → group to find members
+    const group = await this.groupService.getByVcpAssemblyId(assemblyId);
+    if (!group) return [];
 
+    const members = await this.groupService.getMembers(group.id);
     const recipients: Array<{ userId: string; email: string }> = [];
 
     for (const member of members) {
       const user = await this.db.queryOne<UserRow>(
         "SELECT id, email, name FROM users WHERE id = ? AND status = 'active'",
-        [member.user_id],
+        [member.userId],
       );
       if (!user) continue;
 
@@ -432,10 +435,10 @@ export class NotificationService {
       if (prefValue === "false" || prefValue === "never") continue;
 
       // Handle "undelegated_only" for vote notifications
-      if (prefValue === "undelegated_only" && event) {
+      if (prefValue === "undelegated_only" && event && member.participantId) {
         const covered = await this.isDelegationCovered(
           assemblyId,
-          member.participant_id,
+          member.participantId,
         );
         if (covered) continue;
       }
@@ -473,12 +476,15 @@ export class NotificationService {
     }
   }
 
-  /** Get assembly name from memberships table (avoids VCP call). */
-  private async getAssemblyName(assemblyId: string): Promise<string> {
-    const row = await this.db.queryOne<{ assembly_name: string }>(
-      "SELECT assembly_name FROM memberships WHERE assembly_id = ? LIMIT 1",
-      [assemblyId],
-    );
-    return row?.assembly_name ?? assemblyId;
+  /** Resolve VCP assembly_id → group_id. Falls back to assemblyId if no group found. */
+  private async resolveGroupId(assemblyId: string): Promise<string> {
+    const group = await this.groupService.getByVcpAssemblyId(assemblyId);
+    return group?.id ?? assemblyId;
+  }
+
+  /** Get group name from the groups table (via VCP assembly ID). */
+  private async getGroupName(assemblyId: string): Promise<string> {
+    const group = await this.groupService.getByVcpAssemblyId(assemblyId);
+    return group?.name ?? assemblyId;
   }
 }

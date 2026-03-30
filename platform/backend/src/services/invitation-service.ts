@@ -1,16 +1,18 @@
 /**
  * InvitationService — manages invite links and direct invitations.
+ *
+ * Refactored to use group_id instead of assembly_id.
  */
 
 import { randomBytes } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { MembershipService } from "./membership-service.js";
-import { NotFoundError, ConflictError, ValidationError } from "../api/middleware/error-handler.js";
+import { ConflictError, ValidationError } from "../api/middleware/error-handler.js";
 
 interface InvitationRow {
   id: string;
-  assembly_id: string;
+  group_id: string;
   type: string;
   token: string | null;
   invited_by: string;
@@ -24,7 +26,7 @@ interface InvitationRow {
 
 export interface Invitation {
   id: string;
-  assemblyId: string;
+  groupId: string;
   type: "link" | "direct";
   token: string | null;
   invitedBy: string;
@@ -39,7 +41,7 @@ export interface Invitation {
 function rowToInvitation(row: InvitationRow): Invitation {
   return {
     id: row.id,
-    assemblyId: row.assembly_id,
+    groupId: row.group_id,
     type: row.type as "link" | "direct",
     token: row.token,
     invitedBy: row.invited_by,
@@ -63,7 +65,7 @@ export class InvitationService {
 
   /** Create an invite link. Returns the invitation with token. */
   async createLinkInvite(
-    assemblyId: string,
+    groupId: string,
     invitedByUserId: string,
     options?: { maxUses?: number; expiresAt?: string },
   ): Promise<Invitation> {
@@ -74,13 +76,13 @@ export class InvitationService {
     const maxUses = options?.maxUses ?? null;
 
     await this.db.run(
-      `INSERT INTO invitations (id, assembly_id, type, token, invited_by, max_uses, expires_at, status, created_at)
+      `INSERT INTO invitations (id, group_id, type, token, invited_by, max_uses, expires_at, status, created_at)
        VALUES (?, ?, 'link', ?, ?, ?, ?, 'active', ?)`,
-      [id, assemblyId, token, invitedByUserId, maxUses, expiresAt, new Date().toISOString()],
+      [id, groupId, token, invitedByUserId, maxUses, expiresAt, new Date().toISOString()],
     );
 
     return {
-      id, assemblyId, type: "link", token, invitedBy: invitedByUserId,
+      id, groupId, type: "link", token, invitedBy: invitedByUserId,
       inviteeHandle: null, maxUses, useCount: 0, expiresAt, status: "active",
       createdAt: new Date().toISOString(),
     };
@@ -88,30 +90,30 @@ export class InvitationService {
 
   /** Create a direct invitation to a specific user by handle. */
   async createDirectInvite(
-    assemblyId: string,
+    groupId: string,
     invitedByUserId: string,
     inviteeHandle: string,
   ): Promise<Invitation> {
     const id = uuidv7();
 
     await this.db.run(
-      `INSERT INTO invitations (id, assembly_id, type, invited_by, invitee_handle, status, created_at)
+      `INSERT INTO invitations (id, group_id, type, invited_by, invitee_handle, status, created_at)
        VALUES (?, ?, 'direct', ?, ?, 'active', ?)`,
-      [id, assemblyId, invitedByUserId, inviteeHandle.toLowerCase(), new Date().toISOString()],
+      [id, groupId, invitedByUserId, inviteeHandle.toLowerCase(), new Date().toISOString()],
     );
 
     return {
-      id, assemblyId, type: "direct", token: null, invitedBy: invitedByUserId,
+      id, groupId, type: "direct", token: null, invitedBy: invitedByUserId,
       inviteeHandle: inviteeHandle.toLowerCase(), maxUses: null, useCount: 0,
       expiresAt: null, status: "active", createdAt: new Date().toISOString(),
     };
   }
 
-  /** List invitations for an assembly. */
-  async listByAssembly(assemblyId: string): Promise<Invitation[]> {
+  /** List invitations for a group. */
+  async listByGroup(groupId: string): Promise<Invitation[]> {
     const rows = await this.db.query<InvitationRow>(
-      "SELECT * FROM invitations WHERE assembly_id = ? ORDER BY created_at DESC",
-      [assemblyId],
+      "SELECT * FROM invitations WHERE group_id = ? ORDER BY created_at DESC",
+      [groupId],
     );
     return rows.map(rowToInvitation);
   }
@@ -153,9 +155,9 @@ export class InvitationService {
 
   /**
    * Accept an invitation. Creates the membership and records the acceptance.
-   * Returns the assembly ID for redirect.
+   * Returns the group ID for redirect.
    */
-  async accept(invitation: Invitation, userId: string, userName: string): Promise<{ assemblyId: string }> {
+  async accept(invitation: Invitation, userId: string, userName: string): Promise<{ groupId: string }> {
     // Validate invitation is still active
     if (invitation.status !== "active") {
       throw new ValidationError("This invitation is no longer active");
@@ -173,13 +175,13 @@ export class InvitationService {
     }
 
     // Check if user is already a member
-    const existingPid = await this.membershipService.getParticipantId(userId, invitation.assemblyId);
+    const existingPid = await this.membershipService.getParticipantId(userId, invitation.groupId);
     if (existingPid) {
       throw new ConflictError("You are already a member of this group");
     }
 
-    // Join the assembly
-    await this.membershipService.joinAssembly(userId, invitation.assemblyId, userName);
+    // Join the group
+    await this.membershipService.joinGroup(userId, invitation.groupId, userName);
 
     // Record acceptance
     await this.db.run(
@@ -193,6 +195,6 @@ export class InvitationService {
       [invitation.id],
     );
 
-    return { assemblyId: invitation.assemblyId };
+    return { groupId: invitation.groupId };
   }
 }

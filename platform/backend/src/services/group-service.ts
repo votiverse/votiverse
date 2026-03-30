@@ -296,9 +296,9 @@ export class GroupService {
     return rows.map(rowToMember);
   }
 
-  async getUserGroups(userId: string): Promise<Array<Group & { role: GroupRole; participantId: string | null }>> {
-    const rows = await this.db.query<GroupRow & { role: string; participant_id: string | null }>(
-      `SELECT g.*, gm.role, gm.participant_id
+  async getUserGroups(userId: string): Promise<Array<Group & { role: GroupRole; participantId: string | null; joinedAt: string }>> {
+    const rows = await this.db.query<GroupRow & { role: string; participant_id: string | null; joined_at: string }>(
+      `SELECT g.*, gm.role, gm.participant_id, gm.joined_at AS joined_at
        FROM groups g
        JOIN group_members gm ON g.id = gm.group_id
        WHERE gm.user_id = ?
@@ -309,6 +309,7 @@ export class GroupService {
       ...rowToGroup(row),
       role: row.role as GroupRole,
       participantId: row.participant_id,
+      joinedAt: row.joined_at,
     }));
   }
 

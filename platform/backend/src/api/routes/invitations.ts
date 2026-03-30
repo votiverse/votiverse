@@ -1,6 +1,9 @@
 /**
  * Invitation and admission routes — invite links, direct invitations,
- * join requests, and assembly settings.
+ * join requests, and group settings.
+ *
+ * Routes are now group-centric: /groups/:id/... instead of /assemblies/:id/...
+ * Admin checks use isAdminOfGroup (backend-owned group_members.role).
  *
  * Public (no auth):
  *   GET  /invite/:token — group preview for invite link
@@ -12,49 +15,46 @@
  *   POST /me/invitations/:invId/decline — decline direct invitation
  *   GET  /me/join-requests — list user's pending join requests
  *
- * Admin (assembly-scoped):
- *   GET    /assemblies/:id/settings — read assembly settings (admissionMode)
- *   PUT    /assemblies/:id/settings — update assembly settings
- *   POST   /assemblies/:id/invitations — create invite
- *   GET    /assemblies/:id/invitations — list invitations
- *   DELETE /assemblies/:id/invitations/:invId — revoke invitation
- *   POST   /assemblies/:id/invitations/preview — preview bulk CSV import
- *   POST   /assemblies/:id/invitations/bulk — create bulk invitations
- *   GET    /assemblies/:id/join-requests — list pending join requests
- *   POST   /assemblies/:id/join-requests/:reqId/approve — approve join request
- *   POST   /assemblies/:id/join-requests/:reqId/reject — reject join request
+ * Admin (group-scoped):
+ *   GET    /groups/:id/settings — read group settings (admissionMode)
+ *   PUT    /groups/:id/settings — update group settings
+ *   POST   /groups/:id/invitations — create invite
+ *   GET    /groups/:id/invitations — list invitations
+ *   DELETE /groups/:id/invitations/:invId — revoke invitation
+ *   POST   /groups/:id/invitations/preview — preview bulk CSV import
+ *   POST   /groups/:id/invitations/bulk — create bulk invitations
+ *   GET    /groups/:id/join-requests — list pending join requests
+ *   POST   /groups/:id/join-requests/:reqId/approve — approve join request
+ *   POST   /groups/:id/join-requests/:reqId/reject — reject join request
  */
 
 import { Hono } from "hono";
 import type { InvitationService } from "../../services/invitation-service.js";
 import type { JoinRequestService } from "../../services/join-request-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
-import type { AssemblyCacheService } from "../../services/assembly-cache.js";
-import type { AdmissionMode, VoteCreation } from "../../services/assembly-cache.js";
-import type { VCPClient } from "../../services/vcp-client.js";
+import type { GroupService } from "../../services/group-service.js";
 import type { UserService } from "../../services/user-service.js";
 import type { InvitationNotifier } from "../../services/invitation-notifier.js";
 import type { NotificationHubService } from "../../services/notification-hub.js";
 import { getUser } from "../middleware/auth.js";
 import { parseCsvInvites } from "../../lib/csv-parser.js";
 import { AssemblySettingsBody, BulkInviteBody, parseBody } from "../../lib/validation.js";
-import { isAdminOf as isAdminOfShared } from "../../lib/admin-check.js";
+import { isAdminOfGroup } from "../../lib/admin-check.js";
 import { NotFoundError, ForbiddenError, GoneError, ValidationError } from "../middleware/error-handler.js";
 
 export function invitationRoutes(
   invitationService: InvitationService,
   joinRequestService: JoinRequestService,
   membershipService: MembershipService,
-  assemblyCacheService: AssemblyCacheService,
-  vcpClient: VCPClient,
+  groupService: GroupService,
   userService: UserService,
   invitationNotifier: InvitationNotifier | null = null,
   notificationHub: NotificationHubService | null = null,
 ) {
   const app = new Hono();
 
-  const isAdminOf = (userId: string, assemblyId: string) =>
-    isAdminOfShared(userId, assemblyId, membershipService, vcpClient);
+  const isAdmin = (userId: string, groupId: string) =>
+    isAdminOfGroup(userId, groupId, groupService);
 
   // ── Public routes (no auth) ──────────────────────────────────────
 
@@ -72,43 +72,44 @@ export function invitationRoutes(
       throw new GoneError("This invitation has expired");
     }
 
-    // Get assembly info for the preview
-    const assembly = await assemblyCacheService.get(invitation.assemblyId);
-    if (!assembly) {
+    // Get group info
+    const group = await groupService.get(invitation.groupId);
+    if (!group) {
       throw new NotFoundError("Group not found");
     }
 
-    // Get roles for leadership display
-    let owners: Array<{ name: string | null; participantId: string }> = [];
-    let admins: Array<{ name: string | null; participantId: string }> = [];
-    try {
-      const roles = await vcpClient.listRoles(invitation.assemblyId);
-      const participantIds = roles.map((r) => r.participantId);
-      const names = await membershipService.getParticipantNames(invitation.assemblyId, participantIds);
+    // Get members with roles for leadership display
+    const members = await groupService.getMembers(invitation.groupId);
+    const ownerMembers = members.filter((m) => m.role === "owner");
+    const adminMembers = members.filter((m) => m.role === "admin");
 
-      owners = roles
-        .filter((r) => r.role === "owner")
-        .map((r) => ({ participantId: r.participantId, name: names.get(r.participantId) ?? null }));
-      admins = roles
-        .filter((r) => r.role === "admin" && !owners.some((o) => o.participantId === r.participantId))
-        .map((r) => ({ participantId: r.participantId, name: names.get(r.participantId) ?? null }));
-    } catch {
-      // Roles unavailable — show preview without leadership
-    }
+    // Enrich with user names via participant IDs
+    const allLeaderPids = [...ownerMembers, ...adminMembers]
+      .filter((m) => m.participantId)
+      .map((m) => m.participantId!);
+    const nameMap = await groupService.getParticipantNames(invitation.groupId, allLeaderPids);
 
-    const memberCount = await membershipService.getAssemblyMemberCount(invitation.assemblyId);
+    const owners = ownerMembers.map((m) => ({
+      participantId: m.participantId,
+      name: m.participantId ? (nameMap.get(m.participantId) ?? null) : null,
+    }));
+    const admins = adminMembers.map((m) => ({
+      participantId: m.participantId,
+      name: m.participantId ? (nameMap.get(m.participantId) ?? null) : null,
+    }));
+
+    const memberCount = members.length;
 
     return c.json({
       invitation: {
         id: invitation.id,
         type: invitation.type,
-        assemblyId: invitation.assemblyId,
+        groupId: invitation.groupId,
       },
       group: {
-        id: assembly.id,
-        name: assembly.name,
-        config: assembly.config,
-        admissionMode: assembly.admissionMode,
+        id: group.id,
+        name: group.name,
+        admissionMode: group.admissionMode,
         owners,
         admins,
         memberCount,
@@ -126,83 +127,88 @@ export function invitationRoutes(
       throw new NotFoundError("Invitation not found");
     }
 
-    // Check admission mode
-    const assembly = await assemblyCacheService.get(invitation.assemblyId);
-    const admissionMode = assembly?.admissionMode ?? "approval";
+    // Check admission mode from the group
+    const group = await groupService.get(invitation.groupId);
+    const admissionMode = group?.admissionMode ?? "approval";
 
     if (admissionMode === "approval") {
       // Create a join request instead of instant join
       const user = await userService.getByIdOrThrow(userId);
       const joinRequest = await joinRequestService.create(
-        invitation.assemblyId, userId, name, user.handle,
+        invitation.groupId, userId, name, user.handle,
       );
 
-      // Notify assembly admins of the new join request
+      // Notify group admins of the new join request
       if (notificationHub) {
-        const asmName = assembly?.name ?? "a group";
-        void notificationHub.notifyAssemblyAdmins({
-          assemblyId: invitation.assemblyId,
+        const groupName = group?.name ?? "a group";
+        void notificationHub.notifyGroupAdmins({
+          groupId: invitation.groupId,
           type: "join_request",
           urgency: "action",
-          title: `${name} wants to join ${asmName}`,
-          actionUrl: `/assembly/${invitation.assemblyId}/members`,
+          title: `${name} wants to join ${groupName}`,
+          actionUrl: `/group/${invitation.groupId}/members`,
         });
       }
 
       return c.json(
-        { status: "pending", assemblyId: invitation.assemblyId, joinRequestId: joinRequest.id },
+        { status: "pending", groupId: invitation.groupId, joinRequestId: joinRequest.id },
         202,
       );
     }
 
     // Open mode (or invite-only with existing link) — instant join
     const result = await invitationService.accept(invitation, userId, name);
-    return c.json({ status: "joined", assemblyId: result.assemblyId }, 201);
+    return c.json({ status: "joined", groupId: result.groupId }, 201);
   });
 
-  // ── Assembly settings ────────────────────────────────────────────
+  // ── Group settings ──────────────────────────────────────────────
 
-  /** GET /assemblies/:id/settings — read assembly settings. */
-  app.get("/assemblies/:id/settings", async (c) => {
-    const assemblyId = c.req.param("id");
-    const assembly = await assemblyCacheService.get(assemblyId);
-    if (!assembly) {
-      throw new NotFoundError("Assembly not found");
+  /** GET /groups/:id/settings — read group settings. */
+  app.get("/groups/:id/settings", async (c) => {
+    const groupId = c.req.param("id");
+    const group = await groupService.get(groupId);
+    if (!group) {
+      throw new NotFoundError("Group not found");
     }
-    return c.json({ admissionMode: assembly.admissionMode, websiteUrl: assembly.websiteUrl, voteCreation: assembly.voteCreation });
+    return c.json({
+      admissionMode: group.admissionMode,
+      websiteUrl: group.websiteUrl,
+      voteCreation: group.voteCreation,
+    });
   });
 
-  /** PUT /assemblies/:id/settings — update assembly settings (admin only). */
-  app.put("/assemblies/:id/settings", async (c) => {
+  /** PUT /groups/:id/settings — update group settings (admin only). */
+  app.put("/groups/:id/settings", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
+    const groupId = c.req.param("id");
 
-    if (!(await isAdminOf(userId, assemblyId))) {
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can change settings");
     }
 
     const body = parseBody(AssemblySettingsBody, await c.req.json());
-    if (body.admissionMode !== undefined) {
-      await assemblyCacheService.updateAdmissionMode(assemblyId, body.admissionMode as AdmissionMode);
-    }
-    if (body.websiteUrl !== undefined) {
-      await assemblyCacheService.updateWebsiteUrl(assemblyId, body.websiteUrl || null);
-    }
-    if (body.voteCreation !== undefined) {
-      await assemblyCacheService.updateVoteCreation(assemblyId, body.voteCreation as VoteCreation);
-    }
-    const updated = await assemblyCacheService.get(assemblyId);
-    return c.json({ admissionMode: updated!.admissionMode, websiteUrl: updated!.websiteUrl, voteCreation: updated!.voteCreation });
+    const updates: Record<string, unknown> = {};
+    if (body.admissionMode !== undefined) updates.admissionMode = body.admissionMode;
+    if (body.websiteUrl !== undefined) updates.websiteUrl = body.websiteUrl || null;
+    if (body.voteCreation !== undefined) updates.voteCreation = body.voteCreation;
+
+    await groupService.update(groupId, updates as Parameters<typeof groupService.update>[1]);
+    const updated = await groupService.get(groupId);
+    return c.json({
+      admissionMode: updated!.admissionMode,
+      websiteUrl: updated!.websiteUrl,
+      voteCreation: updated!.voteCreation,
+    });
   });
 
-  // ── Admin routes (assembly-scoped) ───────────────────────────────
+  // ── Admin routes (group-scoped) ─────────────────────────────────
 
-  /** POST /assemblies/:id/invitations — create an invitation. */
-  app.post("/assemblies/:id/invitations", async (c) => {
+  /** POST /groups/:id/invitations — create an invitation. */
+  app.post("/groups/:id/invitations", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
+    const groupId = c.req.param("id");
 
-    if (!(await isAdminOf(userId, assemblyId))) {
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can create invitations");
     }
 
@@ -217,8 +223,8 @@ export function invitationRoutes(
 
     // Block link invites in invite-only mode
     if (type === "link") {
-      const assembly = await assemblyCacheService.get(assemblyId);
-      if (assembly?.admissionMode === "invite-only") {
+      const group = await groupService.get(groupId);
+      if (group?.admissionMode === "invite-only") {
         throw new ForbiddenError("Link invitations are not available in invite-only mode. Use direct invitations.");
       }
     }
@@ -227,40 +233,40 @@ export function invitationRoutes(
       if (!body.inviteeHandle) {
         throw new ValidationError("inviteeHandle is required for direct invitations");
       }
-      const invitation = await invitationService.createDirectInvite(assemblyId, userId, body.inviteeHandle);
+      const invitation = await invitationService.createDirectInvite(groupId, userId, body.inviteeHandle);
 
       // Fire-and-forget email notification to the invitee
       if (invitationNotifier) {
         const { name: inviterName } = getUser(c);
-        void invitationNotifier.sendInvitationEmail(body.inviteeHandle, assemblyId, inviterName);
+        void invitationNotifier.sendInvitationEmail(body.inviteeHandle, groupId, inviterName);
       }
 
       return c.json(invitation, 201);
     }
 
-    const invitation = await invitationService.createLinkInvite(assemblyId, userId, {
+    const invitation = await invitationService.createLinkInvite(groupId, userId, {
       maxUses: body.maxUses,
       expiresAt: body.expiresAt,
     });
     return c.json(invitation, 201);
   });
 
-  /** GET /assemblies/:id/invitations — list invitations for assembly (admin). */
-  app.get("/assemblies/:id/invitations", async (c) => {
+  /** GET /groups/:id/invitations — list invitations for group (admin). */
+  app.get("/groups/:id/invitations", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
-    if (!(await isAdminOf(userId, assemblyId))) {
+    const groupId = c.req.param("id");
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can list invitations");
     }
-    const invitations = await invitationService.listByAssembly(assemblyId);
+    const invitations = await invitationService.listByGroup(groupId);
     return c.json({ invitations });
   });
 
-  /** DELETE /assemblies/:id/invitations/:invId — revoke an invitation (admin). */
-  app.delete("/assemblies/:id/invitations/:invId", async (c) => {
+  /** DELETE /groups/:id/invitations/:invId — revoke an invitation (admin). */
+  app.delete("/groups/:id/invitations/:invId", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
-    if (!(await isAdminOf(userId, assemblyId))) {
+    const groupId = c.req.param("id");
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can revoke invitations");
     }
     const invId = c.req.param("invId");
@@ -268,12 +274,12 @@ export function invitationRoutes(
     return c.json({ status: "revoked" });
   });
 
-  /** POST /assemblies/:id/invitations/preview — preview a bulk CSV import (admin). */
-  app.post("/assemblies/:id/invitations/preview", async (c) => {
+  /** POST /groups/:id/invitations/preview — preview a bulk CSV import (admin). */
+  app.post("/groups/:id/invitations/preview", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
+    const groupId = c.req.param("id");
 
-    if (!(await isAdminOf(userId, assemblyId))) {
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can preview bulk invitations");
     }
 
@@ -292,8 +298,8 @@ export function invitationRoutes(
         valid.push({ handle: row.handle, status: "not_found", alreadyMember: false });
         continue;
       }
-      const pid = await membershipService.getParticipantId(handleUserId, assemblyId);
-      valid.push({ handle: row.handle, status: "found", alreadyMember: !!pid });
+      const member = await groupService.getMember(groupId, handleUserId);
+      valid.push({ handle: row.handle, status: "found", alreadyMember: !!member });
     }
 
     const canInvite = valid.filter((v) => v.status === "found" && !v.alreadyMember).length;
@@ -313,12 +319,12 @@ export function invitationRoutes(
     });
   });
 
-  /** POST /assemblies/:id/invitations/bulk — create bulk direct invitations (admin). */
-  app.post("/assemblies/:id/invitations/bulk", async (c) => {
+  /** POST /groups/:id/invitations/bulk — create bulk direct invitations (admin). */
+  app.post("/groups/:id/invitations/bulk", async (c) => {
     const { id: userId, name: inviterName } = getUser(c);
-    const assemblyId = c.req.param("id");
+    const groupId = c.req.param("id");
 
-    if (!(await isAdminOf(userId, assemblyId))) {
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can create bulk invitations");
     }
 
@@ -333,20 +339,20 @@ export function invitationRoutes(
 
       // Check for existing active invitation to same handle
       const existing = await invitationService.listPendingForHandle(normalized);
-      const hasPendingForAssembly = existing.some((inv) => inv.assemblyId === assemblyId);
-      if (hasPendingForAssembly) {
+      const hasPendingForGroup = existing.some((inv) => inv.groupId === groupId);
+      if (hasPendingForGroup) {
         results.push({ handle: normalized, status: "skipped", reason: "Pending invitation already exists" });
         skipped++;
         continue;
       }
 
-      await invitationService.createDirectInvite(assemblyId, userId, normalized);
+      await invitationService.createDirectInvite(groupId, userId, normalized);
       created++;
       results.push({ handle: normalized, status: "created" });
 
       // Fire-and-forget email notification
       if (invitationNotifier) {
-        void invitationNotifier.sendInvitationEmail(normalized, assemblyId, inviterName);
+        void invitationNotifier.sendInvitationEmail(normalized, groupId, inviterName);
       }
     }
 
@@ -355,57 +361,57 @@ export function invitationRoutes(
 
   // ── Join request management (admin) ──────────────────────────────
 
-  /** GET /assemblies/:id/join-requests — list pending join requests (admin). */
-  app.get("/assemblies/:id/join-requests", async (c) => {
+  /** GET /groups/:id/join-requests — list pending join requests (admin). */
+  app.get("/groups/:id/join-requests", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
+    const groupId = c.req.param("id");
 
-    if (!(await isAdminOf(userId, assemblyId))) {
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can view join requests");
     }
 
-    const requests = await joinRequestService.listByAssembly(assemblyId, "pending");
+    const requests = await joinRequestService.listByGroup(groupId, "pending");
     return c.json({ joinRequests: requests });
   });
 
-  /** POST /assemblies/:id/join-requests/:reqId/approve — approve a join request (admin). */
-  app.post("/assemblies/:id/join-requests/:reqId/approve", async (c) => {
+  /** POST /groups/:id/join-requests/:reqId/approve — approve a join request (admin). */
+  app.post("/groups/:id/join-requests/:reqId/approve", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
+    const groupId = c.req.param("id");
     const reqId = c.req.param("reqId");
 
-    if (!(await isAdminOf(userId, assemblyId))) {
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can approve join requests");
     }
 
     const request = await joinRequestService.approve(reqId, userId);
 
     // Create the membership
-    await membershipService.joinAssembly(request.userId, assemblyId, request.userName);
+    await membershipService.joinGroup(request.userId, groupId, request.userName);
 
     // Notify the requester that they've been approved
     if (notificationHub) {
-      const assembly = await assemblyCacheService.get(assemblyId);
+      const group = await groupService.get(groupId);
       void notificationHub.notify({
         userId: request.userId,
-        assemblyId,
+        groupId,
         type: "join_request_approved",
         urgency: "info",
-        title: `You've been approved to join ${assembly?.name ?? "a group"}`,
-        actionUrl: `/assembly/${assemblyId}`,
+        title: `You've been approved to join ${group?.name ?? "a group"}`,
+        actionUrl: `/group/${groupId}`,
       });
     }
 
-    return c.json({ status: "approved", assemblyId }, 201);
+    return c.json({ status: "approved", groupId }, 201);
   });
 
-  /** POST /assemblies/:id/join-requests/:reqId/reject — reject a join request (admin). */
-  app.post("/assemblies/:id/join-requests/:reqId/reject", async (c) => {
+  /** POST /groups/:id/join-requests/:reqId/reject — reject a join request (admin). */
+  app.post("/groups/:id/join-requests/:reqId/reject", async (c) => {
     const { id: userId } = getUser(c);
-    const assemblyId = c.req.param("id");
+    const groupId = c.req.param("id");
     const reqId = c.req.param("reqId");
 
-    if (!(await isAdminOf(userId, assemblyId))) {
+    if (!(await isAdmin(userId, groupId))) {
       throw new ForbiddenError("Only admins can reject join requests");
     }
 
@@ -414,13 +420,13 @@ export function invitationRoutes(
 
     // Notify the requester that they've been rejected
     if (notificationHub && request) {
-      const assembly = await assemblyCacheService.get(assemblyId);
+      const group = await groupService.get(groupId);
       void notificationHub.notify({
         userId: request.userId,
-        assemblyId,
+        groupId,
         type: "join_request_rejected",
         urgency: "info",
-        title: `Your request to join ${assembly?.name ?? "a group"} was not approved`,
+        title: `Your request to join ${group?.name ?? "a group"} was not approved`,
       });
     }
 
@@ -439,12 +445,12 @@ export function invitationRoutes(
 
     const invitations = await invitationService.listPendingForHandle(user.handle);
 
-    // Enrich with assembly names
+    // Enrich with group names
     const enriched = await Promise.all(invitations.map(async (inv) => {
-      const assembly = await assemblyCacheService.get(inv.assemblyId);
+      const group = await groupService.get(inv.groupId);
       return {
         ...inv,
-        assemblyName: assembly?.name ?? null,
+        groupName: group?.name ?? null,
       };
     }));
 
@@ -456,10 +462,10 @@ export function invitationRoutes(
     const { id: userId } = getUser(c);
     const requests = await joinRequestService.listByUser(userId);
 
-    // Enrich with assembly names
+    // Enrich with group names
     const enriched = await Promise.all(requests.map(async (req) => {
-      const assembly = await assemblyCacheService.get(req.assemblyId);
-      return { ...req, assemblyName: assembly?.name ?? null };
+      const group = await groupService.get(req.groupId);
+      return { ...req, groupName: group?.name ?? null };
     }));
 
     return c.json({ joinRequests: enriched });
@@ -477,7 +483,7 @@ export function invitationRoutes(
 
     // Direct invitations always bypass approval (admin explicitly invited this person)
     const result = await invitationService.accept(invitation, userId, name);
-    return c.json({ status: "joined", assemblyId: result.assemblyId }, 201);
+    return c.json({ status: "joined", groupId: result.groupId }, 201);
   });
 
   /** POST /me/invitations/:invId/decline — decline a direct invitation. */

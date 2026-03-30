@@ -1,5 +1,7 @@
 /**
  * HTTP API server — wires all routes and middleware.
+ *
+ * Refactored to use GroupService as the primary entity service.
  */
 
 import { Hono } from "hono";
@@ -9,6 +11,7 @@ import type { BackendConfig } from "../config/schema.js";
 import type { UserService } from "../services/user-service.js";
 import type { SessionService } from "../services/session-service.js";
 import type { MembershipService } from "../services/membership-service.js";
+import type { GroupService } from "../services/group-service.js";
 import type { AssemblyCacheService } from "../services/assembly-cache.js";
 import type { TopicCacheService } from "../services/topic-cache.js";
 import type { SurveyCacheService } from "../services/survey-cache.js";
@@ -46,6 +49,7 @@ export interface AppDependencies {
   userService: UserService;
   sessionService: SessionService;
   membershipService: MembershipService;
+  groupService: GroupService;
   assemblyCacheService: AssemblyCacheService;
   topicCacheService: TopicCacheService;
   surveyCacheService: SurveyCacheService;
@@ -59,7 +63,7 @@ export interface AppDependencies {
 }
 
 export function createApp(deps: AppDependencies): Hono {
-  const { database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, contentService, vcpClient, config } = deps;
+  const { database, userService, sessionService, membershipService, groupService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, contentService, vcpClient, config } = deps;
   const app = new Hono();
 
   // Middleware (order matters)
@@ -121,8 +125,8 @@ export function createApp(deps: AppDependencies): Hono {
 
   // Services (must be created before routes)
   const notificationHub = new NotificationHubService(
-    database, membershipService, assemblyCacheService,
-    deps.notificationAdapter ?? null, notificationService, vcpClient,
+    database, groupService,
+    deps.notificationAdapter ?? null, notificationService,
   );
   // Wire hub into notification service so scheduled notifications also create hub records
   notificationService.setHub(notificationHub);
@@ -134,7 +138,7 @@ export function createApp(deps: AppDependencies): Hono {
   const joinRequestService = new JoinRequestService(database);
   const frontendUrl = config.corsOrigins.find((o) => o !== "*") ?? "http://localhost:5174";
   const invitationNotifier = deps.notificationAdapter
-    ? new InvitationNotifier(deps.notificationAdapter, userService, assemblyCacheService, frontendUrl)
+    ? new InvitationNotifier(deps.notificationAdapter, userService, groupService, frontendUrl)
     : null;
 
   // OAuth service
@@ -145,12 +149,12 @@ export function createApp(deps: AppDependencies): Hono {
   app.route("/", metricsRoutes());
   app.route("/", authRoutes(userService, sessionService, config, deps.notificationAdapter));
   app.route("/", oauthRoutes(oauthService, config));
-  app.route("/", meRoutes(userService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub, database));
-  app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, assemblyCacheService, vcpClient, userService, invitationNotifier, notificationHub));
+  app.route("/", meRoutes(userService, membershipService, groupService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationHub, database));
+  app.route("/", invitationRoutes(invitationService, joinRequestService, membershipService, groupService, userService, invitationNotifier, notificationHub));
   // Content routes BEFORE proxy — these are backend-owned and must take precedence
   const assetStore = deps.assetStore ?? new DatabaseAssetStore(database, frontendUrl);
-  app.route("/", contentRoutes(membershipService, contentService, config, assetStore));
-  app.route("/", proxyRoutes(membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, vcpClient, config));
+  app.route("/", contentRoutes(groupService, membershipService, contentService, config, assetStore));
+  app.route("/", proxyRoutes(groupService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, vcpClient, config));
 
   return app;
 }

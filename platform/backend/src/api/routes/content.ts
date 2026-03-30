@@ -2,12 +2,17 @@
  * Content routes — backend-owned routes for proposals, candidacies,
  * community notes, and assets.
  *
+ * Routes are now group-centric: /groups/:groupId/...
+ * The route resolves groupId → vcpAssemblyId before calling VCP or content service.
+ * Content tables still use VCP assembly IDs internally.
+ *
  * These routes are registered BEFORE the VCP proxy catch-all.
  * They handle content storage locally and register metadata with VCP.
  * VCP-first rule: always call VCP before storing locally.
  */
 
 import { Hono } from "hono";
+import type { GroupService } from "../../services/group-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
 import type { ContentService } from "../../services/content-service.js";
 import { computeContentHash } from "../../services/content-service.js";
@@ -32,6 +37,7 @@ async function throwVcpError(res: Response, fallbackMessage: string): Promise<ne
 }
 
 export function contentRoutes(
+  groupService: GroupService,
   membershipService: MembershipService,
   contentService: ContentService,
   config: BackendConfig,
@@ -39,13 +45,34 @@ export function contentRoutes(
 ) {
   const app = new Hono();
 
+  // ── Helper: resolve groupId → vcpAssemblyId ──
+
+  async function resolveVcpAssemblyId(groupId: string): Promise<string> {
+    const vcpId = await groupService.resolveAssemblyId(groupId);
+    if (!vcpId) {
+      throw new NotFoundError("Group has no VCP assembly");
+    }
+    return vcpId;
+  }
+
+  // ── Helper: get participant ID for a user in a group ──
+
+  async function getParticipantIdOrThrow(userId: string, groupId: string): Promise<string> {
+    const pid = await groupService.getParticipantId(groupId, userId);
+    if (!pid) {
+      throw new NotFoundError("Not a member of this group");
+    }
+    return pid;
+  }
+
   // -----------------------------------------------------------------------
   // Proposal Drafts (backend-only, no VCP involvement)
   // -----------------------------------------------------------------------
 
-  app.post("/assemblies/:assemblyId/proposals/drafts", async (c) => {
+  app.post("/groups/:groupId/proposals/drafts", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const body = await c.req.json<{
       issueId: string;
       choiceKey?: string;
@@ -54,7 +81,7 @@ export function contentRoutes(
     }>();
 
     const draft = await contentService.createDraft({
-      assemblyId,
+      assemblyId: vcpAssemblyId,
       issueId: body.issueId,
       choiceKey: body.choiceKey,
       authorId: user.id,
@@ -65,18 +92,20 @@ export function contentRoutes(
     return c.json(draft, 201);
   });
 
-  app.get("/assemblies/:assemblyId/proposals/drafts", async (c) => {
+  app.get("/groups/:groupId/proposals/drafts", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
-    const drafts = await contentService.listDrafts(assemblyId, user.id);
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
+    const drafts = await contentService.listDrafts(vcpAssemblyId, user.id);
     return c.json({ drafts });
   });
 
-  app.get("/assemblies/:assemblyId/proposals/drafts/:draftId", async (c) => {
+  app.get("/groups/:groupId/proposals/drafts/:draftId", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const draftId = c.req.param("draftId");
-    const draft = await contentService.getDraft(assemblyId, draftId);
+    const draft = await contentService.getDraft(vcpAssemblyId, draftId);
     if (!draft) {
       throw new NotFoundError("Draft not found");
     }
@@ -86,11 +115,12 @@ export function contentRoutes(
     return c.json(draft);
   });
 
-  app.put("/assemblies/:assemblyId/proposals/drafts/:draftId", async (c) => {
+  app.put("/groups/:groupId/proposals/drafts/:draftId", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const draftId = c.req.param("draftId");
-    const draft = await contentService.getDraft(assemblyId, draftId);
+    const draft = await contentService.getDraft(vcpAssemblyId, draftId);
     if (!draft) {
       throw new NotFoundError("Draft not found");
     }
@@ -104,33 +134,35 @@ export function contentRoutes(
       assets?: string[];
     }>();
 
-    await contentService.updateDraft(assemblyId, draftId, body);
-    const updated = await contentService.getDraft(assemblyId, draftId);
+    await contentService.updateDraft(vcpAssemblyId, draftId, body);
+    const updated = await contentService.getDraft(vcpAssemblyId, draftId);
     return c.json(updated);
   });
 
-  app.delete("/assemblies/:assemblyId/proposals/drafts/:draftId", async (c) => {
+  app.delete("/groups/:groupId/proposals/drafts/:draftId", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const draftId = c.req.param("draftId");
-    const draft = await contentService.getDraft(assemblyId, draftId);
+    const draft = await contentService.getDraft(vcpAssemblyId, draftId);
     if (!draft) {
       throw new NotFoundError("Draft not found");
     }
     if (draft.authorId !== user.id) {
       throw new ForbiddenError("You can only delete your own drafts");
     }
-    await contentService.deleteDraft(assemblyId, draftId);
+    await contentService.deleteDraft(vcpAssemblyId, draftId);
     return c.json({ status: "deleted" });
   });
 
   /** Submit draft → VCP first, then store content locally. */
-  app.post("/assemblies/:assemblyId/proposals/drafts/:draftId/submit", async (c) => {
+  app.post("/groups/:groupId/proposals/drafts/:draftId/submit", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const draftId = c.req.param("draftId");
 
-    const draft = await contentService.getDraft(assemblyId, draftId);
+    const draft = await contentService.getDraft(vcpAssemblyId, draftId);
     if (!draft) {
       throw new NotFoundError("Draft not found");
     }
@@ -142,10 +174,10 @@ export function contentRoutes(
     const contentHash = computeContentHash(draft.markdown, draft.assets);
 
     // Resolve participant ID
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     // VCP-first: register metadata with VCP
-    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/proposals`, {
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${vcpAssemblyId}/proposals`, {
       issueId: draft.issueId,
       choiceKey: draft.choiceKey,
       title: draft.title,
@@ -161,7 +193,7 @@ export function contentRoutes(
     // On VCP success: store content locally
     await contentService.storeProposalContent({
       proposalId: vcpData.id,
-      assemblyId,
+      assemblyId: vcpAssemblyId,
       versionNumber: 1,
       markdown: draft.markdown,
       assets: draft.assets,
@@ -170,7 +202,7 @@ export function contentRoutes(
     });
 
     // Delete draft
-    await contentService.deleteDraft(assemblyId, draftId);
+    await contentService.deleteDraft(vcpAssemblyId, draftId);
 
     return c.json({
       id: vcpData.id,
@@ -188,32 +220,34 @@ export function contentRoutes(
   // -----------------------------------------------------------------------
 
   /** GET proposal with full content. */
-  app.get("/assemblies/:assemblyId/proposals/:proposalId", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/proposals/:proposalId", async (c) => {
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const proposalId = c.req.param("proposalId");
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     // Get metadata from VCP
-    const vcpRes = await callVcp(config, "GET", `/assemblies/${assemblyId}/proposals/${proposalId}`, undefined, participantId);
+    const vcpRes = await callVcp(config, "GET", `/assemblies/${vcpAssemblyId}/proposals/${proposalId}`, undefined, participantId);
     if (!vcpRes.ok) {
       return new Response(await vcpRes.text(), { status: vcpRes.status, headers: vcpRes.headers });
     }
     const metadata = await vcpRes.json() as Record<string, unknown>;
 
     // Get latest content
-    const content = await contentService.getProposalContent(assemblyId, proposalId);
+    const content = await contentService.getProposalContent(vcpAssemblyId, proposalId);
 
     return c.json({ ...metadata, content: content ? mapContentRow(content) : null });
   });
 
   /** GET proposal version with full content. */
-  app.get("/assemblies/:assemblyId/proposals/:proposalId/versions/:version", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/proposals/:proposalId/versions/:version", async (c) => {
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const proposalId = c.req.param("proposalId");
     const version = parseInt(c.req.param("version"));
 
-    const content = await contentService.getProposalContent(assemblyId, proposalId, version);
+    const content = await contentService.getProposalContent(vcpAssemblyId, proposalId, version);
     if (!content) {
       throw new NotFoundError("Version not found");
     }
@@ -221,21 +255,22 @@ export function contentRoutes(
   });
 
   /** POST new proposal version. */
-  app.post("/assemblies/:assemblyId/proposals/:proposalId/version", async (c) => {
+  app.post("/groups/:groupId/proposals/:proposalId/version", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const proposalId = c.req.param("proposalId");
     const body = await c.req.json<{
       markdown: string;
       assets?: string[];
       changeSummary?: string;
     }>();
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     const contentHash = computeContentHash(body.markdown, body.assets ?? []);
 
     // VCP-first
-    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/proposals/${proposalId}/version`, {
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${vcpAssemblyId}/proposals/${proposalId}/version`, {
       contentHash,
     }, participantId);
 
@@ -247,7 +282,7 @@ export function contentRoutes(
 
     await contentService.storeProposalContent({
       proposalId,
-      assemblyId,
+      assemblyId: vcpAssemblyId,
       versionNumber: vcpData.currentVersion,
       markdown: body.markdown,
       assets: body.assets ?? [],
@@ -264,9 +299,10 @@ export function contentRoutes(
   // -----------------------------------------------------------------------
 
   /** Declare candidacy with content. */
-  app.post("/assemblies/:assemblyId/candidacies", async (c) => {
+  app.post("/groups/:groupId/candidacies", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const body = await c.req.json<{
       topicScope: string[];
       voteTransparencyOptIn: boolean;
@@ -274,7 +310,7 @@ export function contentRoutes(
       assets?: string[];
       websiteUrl?: string;
     }>();
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     if (body.websiteUrl) {
       const urlResult = safeWebsiteUrl.safeParse(body.websiteUrl);
@@ -286,7 +322,7 @@ export function contentRoutes(
     const contentHash = computeContentHash(body.markdown, body.assets ?? []);
 
     // VCP-first
-    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/candidacies`, {
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${vcpAssemblyId}/candidacies`, {
       topicScope: body.topicScope,
       voteTransparencyOptIn: body.voteTransparencyOptIn,
       contentHash,
@@ -300,7 +336,7 @@ export function contentRoutes(
 
     await contentService.storeCandidacyContent({
       candidacyId: vcpData.id,
-      assemblyId,
+      assemblyId: vcpAssemblyId,
       versionNumber: vcpData.currentVersion,
       markdown: body.markdown,
       assets: body.assets ?? [],
@@ -313,22 +349,23 @@ export function contentRoutes(
   });
 
   /** GET candidacy list — enriched with websiteUrl from backend content. */
-  app.get("/assemblies/:assemblyId/candidacies", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/candidacies", async (c) => {
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     const url = new URL(c.req.url);
-    const vcpPath = `/assemblies/${assemblyId}/candidacies${url.search}`;
+    const vcpPath = `/assemblies/${vcpAssemblyId}/candidacies${url.search}`;
     const vcpRes = await callVcp(config, "GET", vcpPath, undefined, participantId);
     if (!vcpRes.ok) {
       return new Response(await vcpRes.text(), { status: vcpRes.status, headers: vcpRes.headers });
     }
     const data = await vcpRes.json() as { candidacies: Array<Record<string, unknown>> };
 
-    const websiteUrls = await contentService.getCandidacyWebsiteUrls(assemblyId);
+    const websiteUrls = await contentService.getCandidacyWebsiteUrls(vcpAssemblyId);
     const participantIds = data.candidacies.map((c) => c["participantId"] as string);
-    const titles = await membershipService.getMembershipTitles(assemblyId, participantIds);
+    const titles = await membershipService.getMembershipTitles(groupId, participantIds);
     for (const c of data.candidacies) {
       const url = websiteUrls.get(c["id"] as string);
       if (url) (c as Record<string, unknown>)["websiteUrl"] = url;
@@ -340,30 +377,32 @@ export function contentRoutes(
   });
 
   /** GET candidacy with full content. */
-  app.get("/assemblies/:assemblyId/candidacies/:candidacyId", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/candidacies/:candidacyId", async (c) => {
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const candidacyId = c.req.param("candidacyId");
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
-    const vcpRes = await callVcp(config, "GET", `/assemblies/${assemblyId}/candidacies/${candidacyId}`, undefined, participantId);
+    const vcpRes = await callVcp(config, "GET", `/assemblies/${vcpAssemblyId}/candidacies/${candidacyId}`, undefined, participantId);
     if (!vcpRes.ok) {
       return new Response(await vcpRes.text(), { status: vcpRes.status, headers: vcpRes.headers });
     }
     const metadata = await vcpRes.json() as Record<string, unknown>;
 
-    const content = await contentService.getCandidacyContent(assemblyId, candidacyId);
+    const content = await contentService.getCandidacyContent(vcpAssemblyId, candidacyId);
     const pId = metadata["participantId"] as string;
-    const titleMap = await membershipService.getMembershipTitles(assemblyId, [pId]);
+    const titleMap = await membershipService.getMembershipTitles(groupId, [pId]);
     const title = titleMap.get(pId) ?? null;
 
     return c.json({ ...metadata, title, content: content ? mapContentRow(content) : null });
   });
 
   /** POST candidacy version — update profile with new version. */
-  app.post("/assemblies/:assemblyId/candidacies/:candidacyId/version", async (c) => {
+  app.post("/groups/:groupId/candidacies/:candidacyId/version", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const candidacyId = c.req.param("candidacyId");
     const body = await c.req.json<{
       markdown: string;
@@ -372,7 +411,7 @@ export function contentRoutes(
       voteTransparencyOptIn?: boolean;
       websiteUrl?: string;
     }>();
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     if (body.websiteUrl) {
       const urlResult = safeWebsiteUrl.safeParse(body.websiteUrl);
@@ -384,7 +423,7 @@ export function contentRoutes(
     const contentHash = computeContentHash(body.markdown, body.assets ?? []);
 
     // VCP-first: register version metadata
-    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/version`, {
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${vcpAssemblyId}/candidacies/${candidacyId}/version`, {
       contentHash,
       topicScope: body.topicScope,
       voteTransparencyOptIn: body.voteTransparencyOptIn,
@@ -399,7 +438,7 @@ export function contentRoutes(
     // Store content locally
     await contentService.storeCandidacyContent({
       candidacyId,
-      assemblyId,
+      assemblyId: vcpAssemblyId,
       versionNumber: vcpData.currentVersion,
       markdown: body.markdown,
       assets: body.assets ?? [],
@@ -412,13 +451,14 @@ export function contentRoutes(
   });
 
   /** POST candidacy withdraw. */
-  app.post("/assemblies/:assemblyId/candidacies/:candidacyId/withdraw", async (c) => {
+  app.post("/groups/:groupId/candidacies/:candidacyId/withdraw", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const candidacyId = c.req.param("candidacyId");
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
-    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/withdraw`, {}, participantId);
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${vcpAssemblyId}/candidacies/${candidacyId}/withdraw`, {}, participantId);
 
     if (!vcpRes.ok) {
       await throwVcpError(vcpRes, "Failed to withdraw candidacy");
@@ -432,9 +472,10 @@ export function contentRoutes(
   // -----------------------------------------------------------------------
 
   /** Create note with content. */
-  app.post("/assemblies/:assemblyId/notes", async (c) => {
+  app.post("/groups/:groupId/notes", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const body = await c.req.json<{
       markdown: string;
       assets?: string[];
@@ -442,12 +483,12 @@ export function contentRoutes(
       targetId: string;
       targetVersionNumber?: number;
     }>();
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     const contentHash = computeContentHash(body.markdown, body.assets ?? []);
 
     // VCP-first
-    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/notes`, {
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${vcpAssemblyId}/notes`, {
       contentHash,
       targetType: body.targetType,
       targetId: body.targetId,
@@ -462,7 +503,7 @@ export function contentRoutes(
 
     await contentService.storeNoteContent({
       noteId: vcpData.id,
-      assemblyId,
+      assemblyId: vcpAssemblyId,
       markdown: body.markdown,
       assets: body.assets ?? [],
       contentHash,
@@ -473,14 +514,15 @@ export function contentRoutes(
   });
 
   /** GET notes list with content joined from backend. */
-  app.get("/assemblies/:assemblyId/notes", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/notes", async (c) => {
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     // Forward query params (targetType, targetId) to VCP
     const qs = c.req.url.includes("?") ? c.req.url.slice(c.req.url.indexOf("?")) : "";
-    const vcpRes = await callVcp(config, "GET", `/assemblies/${assemblyId}/notes${qs}`, undefined, participantId);
+    const vcpRes = await callVcp(config, "GET", `/assemblies/${vcpAssemblyId}/notes${qs}`, undefined, participantId);
     if (!vcpRes.ok) {
       return new Response(await vcpRes.text(), { status: vcpRes.status, headers: vcpRes.headers });
     }
@@ -489,7 +531,7 @@ export function contentRoutes(
     // Join content for each note
     const enriched = await Promise.all(
       notes.map(async (note) => {
-        const content = await contentService.getNoteContent(assemblyId, note["id"] as string);
+        const content = await contentService.getNoteContent(vcpAssemblyId, note["id"] as string);
         return { ...note, content: content ? mapContentRow(content) : null };
       }),
     );
@@ -498,31 +540,33 @@ export function contentRoutes(
   });
 
   /** GET note with full content. */
-  app.get("/assemblies/:assemblyId/notes/:noteId", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/notes/:noteId", async (c) => {
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const noteId = c.req.param("noteId");
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
-    const vcpRes = await callVcp(config, "GET", `/assemblies/${assemblyId}/notes/${noteId}`, undefined, participantId);
+    const vcpRes = await callVcp(config, "GET", `/assemblies/${vcpAssemblyId}/notes/${noteId}`, undefined, participantId);
     if (!vcpRes.ok) {
       return new Response(await vcpRes.text(), { status: vcpRes.status, headers: vcpRes.headers });
     }
     const metadata = await vcpRes.json() as Record<string, unknown>;
 
-    const content = await contentService.getNoteContent(assemblyId, noteId);
+    const content = await contentService.getNoteContent(vcpAssemblyId, noteId);
 
     return c.json({ ...metadata, content: content ? mapContentRow(content) : null });
   });
 
   /** POST note withdraw. */
-  app.post("/assemblies/:assemblyId/notes/:noteId/withdraw", async (c) => {
+  app.post("/groups/:groupId/notes/:noteId/withdraw", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const noteId = c.req.param("noteId");
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
-    const vcpRes = await callVcp(config, "POST", `/assemblies/${assemblyId}/notes/${noteId}/withdraw`, {}, participantId);
+    const vcpRes = await callVcp(config, "POST", `/assemblies/${vcpAssemblyId}/notes/${noteId}/withdraw`, {}, participantId);
 
     if (!vcpRes.ok) {
       await throwVcpError(vcpRes, "Failed to withdraw note");
@@ -536,20 +580,21 @@ export function contentRoutes(
   // -----------------------------------------------------------------------
 
   /** POST recommendation — VCP-first, then store markdown locally. */
-  app.post("/assemblies/:assemblyId/events/:eventId/issues/:issueId/recommendation", async (c) => {
+  app.post("/groups/:groupId/events/:eventId/issues/:issueId/recommendation", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const eventId = c.req.param("eventId");
     const issueId = c.req.param("issueId");
     const body = await c.req.json<{ markdown: string }>();
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     // Compute content hash
     const contentHash = computeContentHash(body.markdown);
 
     // VCP-first: register metadata
     const vcpRes = await callVcp(config, "POST",
-      `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`,
+      `/assemblies/${vcpAssemblyId}/events/${eventId}/issues/${issueId}/recommendation`,
       { contentHash },
       participantId,
     );
@@ -560,7 +605,7 @@ export function contentRoutes(
 
     // Store content locally
     await contentService.storeRecommendation({
-      assemblyId,
+      assemblyId: vcpAssemblyId,
       eventId,
       issueId,
       markdown: body.markdown,
@@ -570,12 +615,13 @@ export function contentRoutes(
   });
 
   /** GET recommendation with content. */
-  app.get("/assemblies/:assemblyId/events/:eventId/issues/:issueId/recommendation", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/events/:eventId/issues/:issueId/recommendation", async (c) => {
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const eventId = c.req.param("eventId");
     const issueId = c.req.param("issueId");
 
-    const content = await contentService.getRecommendation(assemblyId, eventId, issueId);
+    const content = await contentService.getRecommendation(vcpAssemblyId, eventId, issueId);
     if (!content) {
       return c.json({ recommendation: null });
     }
@@ -591,16 +637,17 @@ export function contentRoutes(
   });
 
   /** DELETE recommendation. */
-  app.delete("/assemblies/:assemblyId/events/:eventId/issues/:issueId/recommendation", async (c) => {
+  app.delete("/groups/:groupId/events/:eventId/issues/:issueId/recommendation", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const eventId = c.req.param("eventId");
     const issueId = c.req.param("issueId");
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     // VCP-first
     const vcpRes = await callVcp(config, "DELETE",
-      `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`,
+      `/assemblies/${vcpAssemblyId}/events/${eventId}/issues/${issueId}/recommendation`,
       undefined,
       participantId,
     );
@@ -610,7 +657,7 @@ export function contentRoutes(
     }
 
     // Delete local content
-    await contentService.deleteRecommendation(assemblyId, eventId, issueId);
+    await contentService.deleteRecommendation(vcpAssemblyId, eventId, issueId);
 
     return c.json({ status: "deleted" });
   });
@@ -619,10 +666,10 @@ export function contentRoutes(
   // Assets
   // -----------------------------------------------------------------------
 
-  /** POST /assemblies/:assemblyId/assets/upload-url — request a presigned upload URL. */
-  app.post("/assemblies/:assemblyId/assets/upload-url", async (c) => {
+  /** POST /groups/:groupId/assets/upload-url — request a presigned upload URL. */
+  app.post("/groups/:groupId/assets/upload-url", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
     const body = await c.req.json() as { filename: string; mimeType: string };
 
     if (!body.filename || !body.mimeType) {
@@ -631,7 +678,7 @@ export function contentRoutes(
 
     if (!assetStore) throw new ValidationError("Asset storage not configured");
     const upload = await assetStore.requestUpload({
-      assemblyId,
+      groupId,
       filename: body.filename,
       mimeType: body.mimeType,
       uploadedBy: user.id,
@@ -643,8 +690,8 @@ export function contentRoutes(
     }, 201);
   });
 
-  /** POST /assemblies/:assemblyId/assets/:assetId/confirm — confirm upload completed. */
-  app.post("/assemblies/:assemblyId/assets/:assetId/confirm", async (c) => {
+  /** POST /groups/:groupId/assets/:assetId/confirm — confirm upload completed. */
+  app.post("/groups/:groupId/assets/:assetId/confirm", async (c) => {
     const assetId = c.req.param("assetId");
     const body = await c.req.json() as { sizeBytes: number; hash: string };
 
@@ -661,10 +708,10 @@ export function contentRoutes(
     });
   });
 
-  /** POST /assemblies/:assemblyId/assets — direct upload (dev/compat, multipart form). */
-  app.post("/assemblies/:assemblyId/assets", async (c) => {
+  /** POST /groups/:groupId/assets — direct upload (dev/compat, multipart form). */
+  app.post("/groups/:groupId/assets", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
 
     const formData = await c.req.parseBody();
     const file = formData["file"];
@@ -675,7 +722,7 @@ export function contentRoutes(
     const buffer = Buffer.from(await file.arrayBuffer());
     if (!assetStore) throw new ValidationError("Asset storage not configured");
     const metadata = await assetStore.storeDirect({
-      assemblyId,
+      groupId,
       filename: file.name || "unnamed",
       mimeType: file.type || "application/octet-stream",
       data: buffer,
@@ -692,8 +739,8 @@ export function contentRoutes(
     }, 201);
   });
 
-  /** GET /assemblies/:assemblyId/assets/:assetId — serve asset (DB mode) or redirect (S3 mode). */
-  app.get("/assemblies/:assemblyId/assets/:assetId", async (c) => {
+  /** GET /groups/:groupId/assets/:assetId — serve asset (DB mode) or redirect (S3 mode). */
+  app.get("/groups/:groupId/assets/:assetId", async (c) => {
     const assetId = c.req.param("assetId");
 
     if (!assetStore) throw new NotFoundError("Asset not found");
@@ -788,36 +835,39 @@ export function contentRoutes(
 
   // ── Entity Endorsements (proxy to VCP) ──────────────────────────────
 
-  /** PUT /assemblies/:assemblyId/endorsements — upsert endorsement. */
-  app.put("/assemblies/:assemblyId/endorsements", async (c) => {
+  /** PUT /groups/:groupId/endorsements — upsert endorsement. */
+  app.put("/groups/:groupId/endorsements", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
     const body = await c.req.json();
 
-    const vcpRes = await callVcp(config, "PUT", `/assemblies/${assemblyId}/endorsements`, body, participantId);
+    const vcpRes = await callVcp(config, "PUT", `/assemblies/${vcpAssemblyId}/endorsements`, body, participantId);
     return new Response(await vcpRes.text(), { status: vcpRes.status, headers: { "Content-Type": "application/json" } });
   });
 
-  /** DELETE /assemblies/:assemblyId/endorsements — retract endorsement. */
-  app.delete("/assemblies/:assemblyId/endorsements", async (c) => {
+  /** DELETE /groups/:groupId/endorsements — retract endorsement. */
+  app.delete("/groups/:groupId/endorsements", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
     const body = await c.req.json();
 
-    const vcpRes = await callVcp(config, "DELETE", `/assemblies/${assemblyId}/endorsements`, body, participantId);
+    const vcpRes = await callVcp(config, "DELETE", `/assemblies/${vcpAssemblyId}/endorsements`, body, participantId);
     return new Response(await vcpRes.text(), { status: vcpRes.status, headers: { "Content-Type": "application/json" } });
   });
 
-  /** GET /assemblies/:assemblyId/endorsements — get endorsement counts + caller's state. */
-  app.get("/assemblies/:assemblyId/endorsements", async (c) => {
+  /** GET /groups/:groupId/endorsements — get endorsement counts + caller's state. */
+  app.get("/groups/:groupId/endorsements", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     const url = new URL(c.req.url);
-    const vcpRes = await callVcp(config, "GET", `/assemblies/${assemblyId}/endorsements${url.search}`, undefined, participantId);
+    const vcpRes = await callVcp(config, "GET", `/assemblies/${vcpAssemblyId}/endorsements${url.search}`, undefined, participantId);
     return new Response(await vcpRes.text(), { status: vcpRes.status, headers: { "Content-Type": "application/json" } });
   });
 

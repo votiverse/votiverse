@@ -4,15 +4,15 @@
  * Creates notification records in the database and optionally dispatches
  * to external channels (email/push) via the NotificationAdapter.
  * In-app notifications are always created regardless of delivery preferences.
+ *
+ * Refactored to use group_id instead of assembly_id in the notifications table.
  */
 
 import { v7 as uuidv7 } from "uuid";
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
 import type { NotificationAdapter } from "./notification-adapter.js";
 import type { NotificationService } from "./notification-service.js";
-import type { MembershipService } from "./membership-service.js";
-import type { VCPClient } from "./vcp-client.js";
-import type { AssemblyCacheService } from "./assembly-cache.js";
+import type { GroupService } from "./group-service.js";
 import { renderTemplate, type NotificationType as EmailTemplateType } from "./notification-templates.js";
 import type { PushDeliveryService } from "./push-delivery.js";
 import { logger } from "../lib/logger.js";
@@ -37,8 +37,8 @@ export type Urgency = "action" | "timely" | "info";
 export interface Notification {
   id: string;
   userId: string;
-  assemblyId: string;
-  assemblyName?: string;
+  groupId: string;
+  groupName?: string;
   type: NotificationType;
   urgency: Urgency;
   title: string;
@@ -51,7 +51,7 @@ export interface Notification {
 interface NotificationRow {
   id: string;
   user_id: string;
-  assembly_id: string;
+  group_id: string;
   type: string;
   urgency: string;
   title: string;
@@ -65,7 +65,7 @@ function rowToNotification(row: NotificationRow): Notification {
   return {
     id: row.id,
     userId: row.user_id,
-    assemblyId: row.assembly_id,
+    groupId: row.group_id,
     type: row.type as NotificationType,
     urgency: row.urgency as Urgency,
     title: row.title,
@@ -92,11 +92,9 @@ export class NotificationHubService {
 
   constructor(
     private readonly db: DatabaseAdapter,
-    private readonly membershipService: MembershipService,
-    private readonly assemblyCacheService: AssemblyCacheService,
+    private readonly groupService: GroupService,
     private readonly notificationAdapter: NotificationAdapter | null,
     private readonly notificationService: NotificationService,
-    private readonly vcpClient: VCPClient,
   ) {}
 
   /** Set the push delivery service (called during app wiring). */
@@ -107,7 +105,7 @@ export class NotificationHubService {
   /** Create a notification for a single user. Set skipEmail when the caller already handles email delivery. */
   async notify(params: {
     userId: string;
-    assemblyId: string;
+    groupId: string;
     type: NotificationType;
     urgency: Urgency;
     title: string;
@@ -117,15 +115,15 @@ export class NotificationHubService {
   }): Promise<void> {
     const id = uuidv7();
     await this.db.run(
-      `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, body, action_url, created_at)
+      `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, body, action_url, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, params.userId, params.assemblyId, params.type, params.urgency,
+      [id, params.userId, params.groupId, params.type, params.urgency,
        params.title, params.body ?? null, params.actionUrl ?? null, new Date().toISOString()],
     );
 
     // Fire-and-forget email dispatch (skip if caller already sent email)
     if (!params.skipEmail && this.notificationAdapter) {
-      void this.dispatchEmail(params.userId, params.assemblyId, params.type, params.title).catch((err) =>
+      void this.dispatchEmail(params.userId, params.groupId, params.type, params.title).catch((err) =>
         log.error("Email dispatch failed", { error: String(err) }),
       );
     }
@@ -144,9 +142,9 @@ export class NotificationHubService {
     }
   }
 
-  /** Create notifications for all members of an assembly. */
-  async notifyAssemblyMembers(params: {
-    assemblyId: string;
+  /** Create notifications for all members of a group. */
+  async notifyGroupMembers(params: {
+    groupId: string;
     type: NotificationType;
     urgency: Urgency;
     title: string;
@@ -154,14 +152,14 @@ export class NotificationHubService {
     actionUrl?: string;
     excludeUserIds?: string[];
   }): Promise<void> {
-    const memberships = await this.membershipService.getUserMembershipsByAssembly(params.assemblyId);
+    const members = await this.groupService.getMembers(params.groupId);
     const exclude = new Set(params.excludeUserIds ?? []);
 
-    for (const m of memberships) {
+    for (const m of members) {
       if (exclude.has(m.userId)) continue;
       await this.notify({
         userId: m.userId,
-        assemblyId: params.assemblyId,
+        groupId: params.groupId,
         type: params.type,
         urgency: params.urgency,
         title: params.title,
@@ -171,9 +169,9 @@ export class NotificationHubService {
     }
   }
 
-  /** Create notifications for assembly admins/owners only. */
-  async notifyAssemblyAdmins(params: {
-    assemblyId: string;
+  /** Create notifications for group admins/owners only. */
+  async notifyGroupAdmins(params: {
+    groupId: string;
     type: NotificationType;
     urgency: Urgency;
     title: string;
@@ -181,21 +179,15 @@ export class NotificationHubService {
     actionUrl?: string;
   }): Promise<void> {
     try {
-      const roles = await this.vcpClient.listRoles(params.assemblyId);
-      const adminPids = roles
-        .filter((r) => r.role === "admin" || r.role === "owner")
-        .map((r) => r.participantId);
-
-      // Resolve participant IDs to user IDs
-      const memberships = await this.membershipService.getUserMembershipsByAssembly(params.assemblyId);
-      const adminUserIds = memberships
-        .filter((m) => adminPids.includes(m.participantId))
+      const members = await this.groupService.getMembers(params.groupId);
+      const adminUserIds = members
+        .filter((m) => m.role === "admin" || m.role === "owner")
         .map((m) => m.userId);
 
       for (const userId of adminUserIds) {
         await this.notify({
           userId,
-          assemblyId: params.assemblyId,
+          groupId: params.groupId,
           type: params.type,
           urgency: params.urgency,
           title: params.title,
@@ -204,13 +196,13 @@ export class NotificationHubService {
         });
       }
     } catch (err) {
-      log.error("Failed to notify assembly admins", { assemblyId: params.assemblyId, error: String(err) });
+      log.error("Failed to notify group admins", { groupId: params.groupId, error: String(err) });
     }
   }
 
   /** List notifications for a user (paginated, filterable). */
   async list(userId: string, options?: {
-    assemblyId?: string;
+    groupId?: string;
     unreadOnly?: boolean;
     limit?: number;
     offset?: number;
@@ -222,9 +214,9 @@ export class NotificationHubService {
     const conditions = ["user_id = ?"];
     const params: unknown[] = [userId];
 
-    if (options?.assemblyId) {
-      conditions.push("assembly_id = ?");
-      params.push(options.assemblyId);
+    if (options?.groupId) {
+      conditions.push("group_id = ?");
+      params.push(options.groupId);
     }
     if (options?.unreadOnly) {
       conditions.push("read_at IS NULL");
@@ -239,7 +231,7 @@ export class NotificationHubService {
     );
     const total = countRow?.cnt ?? 0;
 
-    // Get unread count (always unfiltered by assembly for the badge)
+    // Get unread count (always unfiltered by group for the badge)
     const unreadRow = await this.db.queryOne<{ cnt: number }>(
       "SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND read_at IS NULL",
       [userId],
@@ -257,14 +249,14 @@ export class NotificationHubService {
       [...params, limit, offset],
     );
 
-    // Enrich with assembly names
-    const assemblyIds = [...new Set(rows.map((r) => r.assembly_id))];
-    const assemblies = await this.assemblyCacheService.listByIds(assemblyIds);
-    const nameMap = new Map(assemblies.map((a) => [a.id, a.name]));
+    // Enrich with group names
+    const groupIds = [...new Set(rows.map((r) => r.group_id))];
+    const groups = await this.groupService.listByIds(groupIds);
+    const nameMap = new Map(groups.map((g) => [g.id, g.name]));
 
     const notifications = rows.map((row) => ({
       ...rowToNotification(row),
-      assemblyName: nameMap.get(row.assembly_id),
+      groupName: nameMap.get(row.group_id),
     }));
 
     return { notifications, unreadCount, total };
@@ -287,12 +279,12 @@ export class NotificationHubService {
     );
   }
 
-  /** Mark all notifications as read for a user (optionally scoped to assembly). */
-  async markAllRead(userId: string, assemblyId?: string): Promise<void> {
-    if (assemblyId) {
+  /** Mark all notifications as read for a user (optionally scoped to group). */
+  async markAllRead(userId: string, groupId?: string): Promise<void> {
+    if (groupId) {
       await this.db.run(
-        "UPDATE notifications SET read_at = ? WHERE user_id = ? AND assembly_id = ? AND read_at IS NULL",
-        [new Date().toISOString(), userId, assemblyId],
+        "UPDATE notifications SET read_at = ? WHERE user_id = ? AND group_id = ? AND read_at IS NULL",
+        [new Date().toISOString(), userId, groupId],
       );
     } else {
       await this.db.run(
@@ -305,7 +297,7 @@ export class NotificationHubService {
   /** Dispatch email for a notification (fire-and-forget, preference-checked). */
   private async dispatchEmail(
     userId: string,
-    assemblyId: string,
+    groupId: string,
     type: NotificationType,
     title: string,
   ): Promise<void> {
@@ -326,13 +318,13 @@ export class NotificationHubService {
     );
     if (!user) return;
 
-    // Get assembly name
-    const assembly = await this.assemblyCacheService.get(assemblyId);
-    const assemblyName = assembly?.name ?? "a group";
+    // Get group name
+    const group = await this.groupService.get(groupId);
+    const groupName = group?.name ?? "a group";
 
     try {
       const rendered = renderTemplate(templateType, {
-        assemblyName,
+        assemblyName: groupName,
         title,
         baseUrl: "https://votiverse.app", // TODO: configurable
       });

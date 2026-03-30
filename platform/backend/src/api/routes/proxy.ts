@@ -1,18 +1,22 @@
 /**
  * VCP proxy routes — forwards governance requests to VCP with identity injection.
  *
- * Locally served (no VCP round-trip):
- *   GET /assemblies — from assemblies_cache, filtered by user memberships
- *   GET /assemblies/:id — from assemblies_cache
- *   GET /assemblies/:id/topics — from topics_cache (falls through to VCP on cache miss)
- *   GET /assemblies/:id/surveys — from surveys_cache + survey_responses (falls through on miss)
+ * Routes are now group-centric: /groups/:groupId/...
+ * The proxy resolves groupId → vcpAssemblyId before forwarding to VCP.
+ * Capability gating is enforced before proxying.
  *
- * Proxied to VCP (all other assembly-scoped routes):
+ * Locally served (no VCP round-trip):
+ *   GET /groups — list user's groups from GroupService
+ *   GET /groups/:id — get group from GroupService + merge VCP config
+ *   GET /groups/:id/topics — from topics_cache (falls through to VCP on cache miss)
+ *   GET /groups/:id/surveys — from surveys_cache + survey_responses (falls through on miss)
+ *
+ * Proxied to VCP (all other group-scoped routes):
  *   resolves user → participant, injects X-Participant-Id, intercepts POST responses for caching
  */
 
 import { Hono } from "hono";
-import type { MembershipService } from "../../services/membership-service.js";
+import type { GroupService, Capability } from "../../services/group-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { TopicCacheService } from "../../services/topic-cache.js";
 import type { SurveyCacheService } from "../../services/survey-cache.js";
@@ -23,10 +27,10 @@ import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
 import { ValidationError, NotFoundError, ForbiddenError } from "../middleware/error-handler.js";
 import { safeWebsiteUrl } from "../../lib/validation.js";
-import { isAdminOf } from "../../lib/admin-check.js";
+import { isAdminOfGroup } from "../../lib/admin-check.js";
 
 export function proxyRoutes(
-  membershipService: MembershipService,
+  groupService: GroupService,
   assemblyCacheService: AssemblyCacheService,
   topicCacheService: TopicCacheService,
   surveyCacheService: SurveyCacheService,
@@ -36,37 +40,73 @@ export function proxyRoutes(
 ) {
   const app = new Hono();
 
+  // ── Helper: resolve groupId → vcpAssemblyId (throws if group not found or has no VCP assembly) ──
+
+  async function resolveVcpAssemblyId(groupId: string): Promise<string> {
+    const vcpId = await groupService.resolveAssemblyId(groupId);
+    if (!vcpId) {
+      throw new NotFoundError("Group has no VCP assembly");
+    }
+    return vcpId;
+  }
+
+  // ── Helper: check capability is enabled for a group ──
+
+  async function requireCapability(groupId: string, capability: Capability): Promise<void> {
+    const enabled = await groupService.isCapabilityEnabled(groupId, capability);
+    if (!enabled) {
+      throw new ForbiddenError(`Capability "${capability}" is not enabled for this group`);
+    }
+  }
+
+  // ── Helper: get participant ID for a user in a group ──
+
+  async function getParticipantIdOrThrow(userId: string, groupId: string): Promise<string> {
+    const pid = await groupService.getParticipantId(groupId, userId);
+    if (!pid) {
+      throw new NotFoundError("Not a member of this group");
+    }
+    return pid;
+  }
+
   /**
-   * GET /assemblies — list assemblies the user belongs to (served from local cache).
+   * GET /groups — list groups the user belongs to.
    */
-  app.get("/assemblies", async (c) => {
+  app.get("/groups", async (c) => {
     const user = getUser(c);
-    const memberships = await membershipService.getUserMemberships(user.id);
-    const memberAssemblyIds = memberships.map((m) => m.assemblyId);
+    const groups = await groupService.getUserGroups(user.id);
 
-    const assemblies = await assemblyCacheService.listByIds(memberAssemblyIds);
+    // Enrich with capabilities
+    const enriched = await Promise.all(groups.map(async (g) => {
+      const capabilities = await groupService.getCapabilities(g.id);
+      const enabledCaps = capabilities.filter((c) => c.enabled).map((c) => c.capability);
+      return { ...g, capabilities: enabledCaps };
+    }));
 
-    return c.json({ assemblies });
+    return c.json({ groups: enriched });
   });
 
   /**
-   * POST /assemblies — create a new assembly.
-   * Creates assembly on VCP, creates first participant, bootstraps owner role,
-   * caches assembly locally, and creates local membership.
+   * POST /groups — create a new group.
+   * Creates group via GroupService, optionally creates VCP assembly if voting capability is requested,
+   * sets up capabilities.
    */
-  app.post("/assemblies", async (c) => {
+  app.post("/groups", async (c) => {
     const user = getUser(c);
     const body = await c.req.json<{
       name: string;
+      handle?: string;
       preset?: string;
       config?: unknown;
       admissionMode?: string;
       websiteUrl?: string;
       voteCreation?: string;
+      capabilities?: string[];
+      avatarStyle?: string;
     }>();
 
     if (!body.name?.trim()) {
-      throw new ValidationError("Assembly name is required");
+      throw new ValidationError("Group name is required");
     }
     if (body.websiteUrl) {
       const urlResult = safeWebsiteUrl.safeParse(body.websiteUrl);
@@ -75,117 +115,176 @@ export function proxyRoutes(
       }
     }
 
-    // Create assembly on VCP
-    const vcpAssembly = await vcpClient.createAssembly({
+    // Generate handle from name if not provided
+    const handle = body.handle ?? body.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+    // Create group
+    const group = await groupService.create({
       name: body.name.trim(),
-      preset: body.preset,
-      config: body.config,
-    });
-
-    // Create participant for the creator
-    const participant = await vcpClient.createParticipant(vcpAssembly.id, user.name);
-
-    // Bootstrap owner role
-    await vcpClient.bootstrapRole(vcpAssembly.id, participant.id);
-
-    // Cache assembly locally with admission mode and website URL
-    await assemblyCacheService.upsert({
-      id: vcpAssembly.id,
-      organizationId: vcpAssembly.organizationId ?? null,
-      name: vcpAssembly.name,
-      config: vcpAssembly.config,
-      status: vcpAssembly.status,
-      createdAt: vcpAssembly.createdAt,
+      handle,
+      createdBy: user.id,
       admissionMode: (body.admissionMode as "open" | "approval" | "invite-only") ?? "approval",
       websiteUrl: body.websiteUrl || null,
       voteCreation: (body.voteCreation as "admin" | "members") ?? "admin",
+      avatarStyle: body.avatarStyle,
     });
 
-    // Create local membership
-    await membershipService.createMembership(user.id, vcpAssembly.id, participant.id, vcpAssembly.name);
+    // Add creator as owner
+    await groupService.addMember(group.id, user.id, "owner");
+
+    // Determine requested capabilities (default: voting enabled)
+    const requestedCaps = body.capabilities ?? ["voting"];
+    const needsVcp = requestedCaps.some((c) => ["voting", "scoring", "surveys", "community_notes"].includes(c));
+
+    let vcpAssemblyId: string | null = null;
+
+    // If VCP-backed capabilities are requested, create VCP assembly
+    if (needsVcp) {
+      const vcpAssembly = await vcpClient.createAssembly({
+        name: body.name.trim(),
+        preset: body.preset,
+        config: body.config,
+      });
+      vcpAssemblyId = vcpAssembly.id;
+
+      // Link group to VCP assembly
+      await groupService.setVcpAssemblyId(group.id, vcpAssemblyId);
+
+      // Create participant for the creator
+      const participant = await vcpClient.createParticipant(vcpAssemblyId, user.name);
+
+      // Bootstrap owner role in VCP
+      await vcpClient.bootstrapRole(vcpAssemblyId, participant.id);
+
+      // Set participant ID on group member
+      await groupService.setParticipantId(group.id, user.id, participant.id);
+
+      // Cache assembly locally
+      await assemblyCacheService.upsert({
+        id: vcpAssembly.id,
+        organizationId: vcpAssembly.organizationId ?? null,
+        name: vcpAssembly.name,
+        config: vcpAssembly.config,
+        status: vcpAssembly.status,
+        createdAt: vcpAssembly.createdAt,
+        admissionMode: (body.admissionMode as "open" | "approval" | "invite-only") ?? "approval",
+        websiteUrl: body.websiteUrl || null,
+        voteCreation: (body.voteCreation as "admin" | "members") ?? "admin",
+      });
+    }
+
+    // Enable requested capabilities
+    for (const cap of requestedCaps) {
+      if (["voting", "scoring", "surveys", "community_notes"].includes(cap)) {
+        await groupService.enableCapability(group.id, cap as Capability);
+      }
+    }
 
     return c.json({
-      ...vcpAssembly,
-      admissionMode: body.admissionMode ?? "approval",
-      websiteUrl: body.websiteUrl || null,
-      voteCreation: body.voteCreation ?? "admin",
+      ...group,
+      vcpAssemblyId,
+      capabilities: requestedCaps,
     }, 201);
   });
 
   /**
-   * GET /assemblies/:id — get assembly (served from local cache).
+   * GET /groups/:id — get group details.
+   * Merges group metadata from groups table with VCP config from assemblies_cache.
    */
-  app.get("/assemblies/:id", async (c) => {
+  app.get("/groups/:id", async (c) => {
     const id = c.req.param("id");
-    const assembly = await assemblyCacheService.get(id);
-    if (!assembly) {
-      throw new NotFoundError(`Assembly "${id}" not found`);
-    }
-    return c.json(assembly);
-  });
-
-  /**
-   * GET /assemblies/:id/profile — group profile with roles enriched with user names.
-   * Must be registered before the /:assemblyId/* catch-all.
-   */
-  app.get("/assemblies/:id/profile", async (c) => {
-    const id = c.req.param("id");
-    const assembly = await assemblyCacheService.get(id);
-    if (!assembly) {
-      throw new NotFoundError(`Assembly "${id}" not found`);
+    const group = await groupService.get(id);
+    if (!group) {
+      throw new NotFoundError(`Group "${id}" not found`);
     }
 
-    // Fetch roles from VCP
-    let roles: Array<{ participantId: string; role: string; grantedBy: string; grantedAt: number }> = [];
-    try {
-      roles = await vcpClient.listRoles(id);
-    } catch {
-      // VCP may not have roles yet (pre-migration assemblies)
+    // Get capabilities
+    const capabilities = await groupService.getCapabilities(id);
+    const enabledCaps = capabilities.filter((c) => c.enabled).map((c) => c.capability);
+
+    // Merge with VCP config if available
+    let vcpConfig: unknown = null;
+    if (group.vcpAssemblyId) {
+      const cached = await assemblyCacheService.get(group.vcpAssemblyId);
+      vcpConfig = cached?.config ?? null;
     }
-
-    // Enrich roles with user names via membership lookups
-    const participants = await membershipService.getParticipantNames(id, roles.map((r) => r.participantId));
-
-    const enrichedRoles = roles.map((r) => ({
-      participantId: r.participantId,
-      role: r.role,
-      name: participants.get(r.participantId) ?? null,
-      grantedAt: r.grantedAt,
-    }));
-
-    // Separate owners and admins for display
-    const owners = enrichedRoles.filter((r) => r.role === "owner");
-    const admins = enrichedRoles.filter((r) => r.role === "admin" && !owners.some((o) => o.participantId === r.participantId));
-
-    // Get member count
-    const memberships = await membershipService.getAssemblyMemberCount(id);
 
     return c.json({
-      ...assembly,
-      owners,
-      admins,
-      memberCount: memberships,
+      ...group,
+      capabilities: enabledCaps,
+      config: vcpConfig,
     });
   });
 
   /**
-   * GET /assemblies/:assemblyId/topics — served from local topic cache.
-   * Falls through to VCP proxy if cache is empty (first access).
+   * GET /groups/:id/profile — group profile with roles enriched with user names.
+   * Must be registered before the /:groupId/* catch-all.
    */
-  app.get("/assemblies/:assemblyId/topics", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:id/profile", async (c) => {
+    const id = c.req.param("id");
+    const group = await groupService.get(id);
+    if (!group) {
+      throw new NotFoundError(`Group "${id}" not found`);
+    }
+
+    // Get members with roles from group_members (backend-owned)
+    const members = await groupService.getMembers(id);
+
+    // Enrich with user names via participant IDs
+    const participantIds = members.filter((m) => m.participantId).map((m) => m.participantId!);
+    const nameMap = await groupService.getParticipantNames(id, participantIds);
+
+    const owners = members
+      .filter((m) => m.role === "owner")
+      .map((m) => ({ participantId: m.participantId, userId: m.userId, role: m.role, name: m.participantId ? (nameMap.get(m.participantId) ?? null) : null }));
+    const admins = members
+      .filter((m) => m.role === "admin")
+      .map((m) => ({ participantId: m.participantId, userId: m.userId, role: m.role, name: m.participantId ? (nameMap.get(m.participantId) ?? null) : null }));
+
+    const memberCount = members.length;
+
+    // Get capabilities
+    const capabilities = await groupService.getCapabilities(id);
+    const enabledCaps = capabilities.filter((c) => c.enabled).map((c) => c.capability);
+
+    // Merge with VCP config if available
+    let vcpConfig: unknown = null;
+    if (group.vcpAssemblyId) {
+      const cached = await assemblyCacheService.get(group.vcpAssemblyId);
+      vcpConfig = cached?.config ?? null;
+    }
+
+    return c.json({
+      ...group,
+      config: vcpConfig,
+      capabilities: enabledCaps,
+      owners,
+      admins,
+      memberCount,
+    });
+  });
+
+  /**
+   * GET /groups/:groupId/topics — served from local topic cache.
+   * Falls through to VCP proxy if cache is empty (first access).
+   * Requires voting capability.
+   */
+  app.get("/groups/:groupId/topics", async (c) => {
+    const groupId = c.req.param("groupId");
+    await requireCapability(groupId, "voting");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
 
     // Check cache first
-    const hasCached = await topicCacheService.hasTopics(assemblyId);
+    const hasCached = await topicCacheService.hasTopics(vcpAssemblyId);
     if (hasCached) {
-      const topics = await topicCacheService.listByAssembly(assemblyId);
+      const topics = await topicCacheService.listByAssembly(vcpAssemblyId);
       return c.json({ topics });
     }
 
     // Cache miss — proxy to VCP, cache the response, and return
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
-    const response = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/topics`, participantId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
+    const response = await proxyToVcp(c, config, "GET", `/assemblies/${vcpAssemblyId}/topics`, participantId);
 
     if (response.status === 200) {
       try {
@@ -196,7 +295,7 @@ export function proxyRoutes(
             await topicCacheService.upsertMany(
               data.topics.map((t) => ({
                 id: t.id,
-                assemblyId,
+                assemblyId: vcpAssemblyId,
                 name: t.name,
                 parentId: t.parentId ?? null,
                 sortOrder: t.sortOrder ?? 0,
@@ -213,31 +312,34 @@ export function proxyRoutes(
   });
 
   /**
-   * GET /assemblies/:assemblyId/surveys — served from local survey cache.
+   * GET /groups/:groupId/surveys — served from local survey cache.
    * Falls through to VCP proxy if cache is empty (first access).
    * Enriches with hasResponded from local survey_responses table.
+   * Requires surveys capability.
    */
-  app.get("/assemblies/:assemblyId/surveys", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.get("/groups/:groupId/surveys", async (c) => {
+    const groupId = c.req.param("groupId");
+    await requireCapability(groupId, "surveys");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
-    const hasCached = await surveyCacheService.hasSurveys(assemblyId);
+    const hasCached = await surveyCacheService.hasSurveys(vcpAssemblyId);
     if (hasCached) {
-      const cachedSurveys = await surveyCacheService.listByAssembly(assemblyId);
+      const cachedSurveys = await surveyCacheService.listByAssembly(vcpAssemblyId);
 
       // If we've never synced hasResponded for this participant, fetch from VCP and cache
-      const checked = await surveyCacheService.hasCheckedParticipant(assemblyId, participantId);
+      const checked = await surveyCacheService.hasCheckedParticipant(vcpAssemblyId, participantId);
       if (!checked) {
         try {
-          const vcpRes = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/surveys?participantId=${participantId}`, participantId);
+          const vcpRes = await proxyToVcp(c, config, "GET", `/assemblies/${vcpAssemblyId}/surveys?participantId=${participantId}`, participantId);
           if (vcpRes.status === 200) {
             const body = (vcpRes as ResponseWithBody).__bufferedBody;
             if (body) {
               const vcpData = JSON.parse(body) as { surveys: Array<{ id: string; hasResponded?: boolean }> };
               for (const s of vcpData.surveys ?? []) {
                 if (s.hasResponded) {
-                  await surveyCacheService.recordResponse(assemblyId, s.id, participantId);
+                  await surveyCacheService.recordResponse(vcpAssemblyId, s.id, participantId);
                 }
               }
             }
@@ -245,12 +347,12 @@ export function proxyRoutes(
         } catch (err) {
           logger.warn("Failed to sync hasResponded from VCP", { error: String(err) });
         }
-        await surveyCacheService.markParticipantChecked(assemblyId, participantId);
+        await surveyCacheService.markParticipantChecked(vcpAssemblyId, participantId);
       }
 
       const [respondedIds, dismissedIds] = await Promise.all([
-        surveyCacheService.respondedSurveyIds(assemblyId, participantId),
-        surveyCacheService.dismissedSurveyIds(assemblyId, participantId),
+        surveyCacheService.respondedSurveyIds(vcpAssemblyId, participantId),
+        surveyCacheService.dismissedSurveyIds(vcpAssemblyId, participantId),
       ]);
       const surveys = cachedSurveys.map((p) => ({
         id: p.id,
@@ -267,7 +369,7 @@ export function proxyRoutes(
     }
 
     // Cache miss — proxy to VCP, cache the response, and return
-    const response = await proxyToVcp(c, config, "GET", `/assemblies/${assemblyId}/surveys?participantId=${participantId}`, participantId);
+    const response = await proxyToVcp(c, config, "GET", `/assemblies/${vcpAssemblyId}/surveys?participantId=${participantId}`, participantId);
 
     if (response.status === 200) {
       try {
@@ -276,14 +378,14 @@ export function proxyRoutes(
           const data = JSON.parse(body) as { surveys: Array<{ id: string; title: string; questions: unknown[]; topicIds: string[]; schedule: number; closesAt: number; createdBy: string; hasResponded?: boolean }> };
           for (const p of data.surveys ?? []) {
             await surveyCacheService.upsert({
-              id: p.id, assemblyId, title: p.title, questions: p.questions,
+              id: p.id, assemblyId: vcpAssemblyId, title: p.title, questions: p.questions,
               topicIds: p.topicIds, schedule: p.schedule, closesAt: p.closesAt, createdBy: p.createdBy,
             });
             if (p.hasResponded) {
-              await surveyCacheService.recordResponse(assemblyId, p.id, participantId);
+              await surveyCacheService.recordResponse(vcpAssemblyId, p.id, participantId);
             }
           }
-          await surveyCacheService.markParticipantChecked(assemblyId, participantId);
+          await surveyCacheService.markParticipantChecked(vcpAssemblyId, participantId);
         }
       } catch (err) {
         logger.warn("Failed to cache surveys from VCP response", { error: String(err) });
@@ -294,38 +396,43 @@ export function proxyRoutes(
   });
 
   /**
-   * POST /assemblies/:assemblyId/surveys/:surveyId/dismiss — dismiss a survey from pending list.
+   * POST /groups/:groupId/surveys/:surveyId/dismiss — dismiss a survey from pending list.
    * Backend-owned: this is user preference state, not governance data.
+   * Requires surveys capability.
    */
-  app.post("/assemblies/:assemblyId/surveys/:surveyId/dismiss", async (c) => {
-    const assemblyId = c.req.param("assemblyId");
+  app.post("/groups/:groupId/surveys/:surveyId/dismiss", async (c) => {
+    const groupId = c.req.param("groupId");
+    await requireCapability(groupId, "surveys");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
     const surveyId = c.req.param("surveyId");
     const user = getUser(c);
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
-    await surveyCacheService.recordDismissal(assemblyId, surveyId, participantId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
+    await surveyCacheService.recordDismissal(vcpAssemblyId, surveyId, participantId);
     return c.json({ status: "ok" });
   });
 
   /**
-   * GET /assemblies/:assemblyId/participants — proxy to VCP + enrich with handles.
+   * GET /groups/:groupId/participants — proxy to VCP + enrich with handles.
    * Handles are user-level data (backend-owned), not VCP data. We enrich the
    * VCP response so the frontend can search members by @handle.
+   * No capability check — participants are always available.
    */
-  app.get("/assemblies/:assemblyId/participants", async (c) => {
+  app.get("/groups/:groupId/participants", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    const groupId = c.req.param("groupId");
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     const url = new URL(c.req.url);
-    const path = url.pathname + url.search;
-    const response = await proxyToVcp(c, config, "GET", path, participantId);
+    const vcpPath = `/assemblies/${vcpAssemblyId}/participants${url.search}`;
+    const response = await proxyToVcp(c, config, "GET", vcpPath, participantId);
 
     if (response.status !== 200) return response;
 
     try {
       const data = await response.json() as { participants: Array<{ id: string; name: string }> };
       const pids = data.participants.map((p) => p.id);
-      const handleMap = await membershipService.getHandlesForParticipants(assemblyId, pids);
+      const handleMap = await groupService.getHandlesForParticipants(groupId, pids);
       const enriched = data.participants.map((p) => ({
         ...p,
         handle: handleMap.get(p.id) ?? null,
@@ -338,66 +445,85 @@ export function proxyRoutes(
   });
 
   /**
-   * Assembly-scoped routes — resolve user → participant, then proxy.
-   * Catches all methods and paths under /assemblies/:assemblyId/
+   * Group-scoped routes — resolve groupId → vcpAssemblyId, then proxy.
+   * Catches all methods and paths under /groups/:groupId/
    *
+   * Applies capability gating before forwarding to VCP.
    * Intercepts POST responses for events and surveys to track them for notifications.
    */
-  app.all("/assemblies/:assemblyId/*", async (c) => {
+  app.all("/groups/:groupId/*", async (c) => {
     const user = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
+
+    // Resolve group → VCP assembly
+    const vcpAssemblyId = await resolveVcpAssemblyId(groupId);
 
     // Content routes handle POST/PUT/DELETE for candidacies, proposals, and notes
     // (they compute contentHash before calling VCP). The proxy must not intercept
     // these writes, but GET requests can fall through safely — the proxy serves as
     // fallback for list/detail endpoints not explicitly handled by content routes.
     const url = new URL(c.req.url);
-    const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
+    const subpath = url.pathname.replace(`/groups/${groupId}`, "");
     if (c.req.method !== "GET" && /^\/(candidacies|proposals|notes)(\/|$)/.test(subpath)) {
       return c.notFound();
     }
 
-    // Resolve user's participant ID for this assembly
-    const participantId = await membershipService.getParticipantIdOrThrow(user.id, assemblyId);
+    // ── Capability gating ──
+    if (/^\/(events|votes|delegations)(\/|$)/.test(subpath)) {
+      await requireCapability(groupId, "voting");
+    }
+    if (/^\/scoring(\/|$)/.test(subpath)) {
+      await requireCapability(groupId, "scoring");
+    }
+    if (/^\/surveys(\/|$)/.test(subpath)) {
+      await requireCapability(groupId, "surveys");
+    }
+    if (/^\/notes(\/|$)/.test(subpath)) {
+      await requireCapability(groupId, "community_notes");
+    }
+    // predictions, awareness, participants — always allowed (no capability check)
+
+    // Resolve user's participant ID for this group
+    const participantId = await getParticipantIdOrThrow(user.id, groupId);
 
     // Enforce admin-only operations server-side (not just a frontend gate)
     if (c.req.method === "POST") {
-      // Event creation: gated by voteCreation assembly setting
+      // Event creation: gated by voteCreation group setting
       if (/^\/events\/?$/.test(subpath)) {
-        const assembly = await assemblyCacheService.get(assemblyId);
-        if (assembly?.voteCreation !== "members") {
-          if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+        const group = await groupService.get(groupId);
+        if (group?.voteCreation !== "members") {
+          if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
             throw new ForbiddenError("Only admins can create votes in this group");
           }
         }
       }
       // Topic creation: always admin-only
       if (/^\/topics\/?$/.test(subpath)) {
-        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
           throw new ForbiddenError("Only admins can create topics");
         }
       }
       // Scoring event creation: admin-only
       if (/^\/scoring\/?$/.test(subpath)) {
-        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
           throw new ForbiddenError("Only admins can create scoring events");
         }
       }
       // Scoring event close: admin-only
       if (/^\/scoring\/[^/]+\/close\/?$/.test(subpath)) {
-        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
           throw new ForbiddenError("Only admins can close scoring events");
         }
       }
       // Scoring event open: admin-only
       if (/^\/scoring\/[^/]+\/open\/?$/.test(subpath)) {
-        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
           throw new ForbiddenError("Only admins can open scoring events");
         }
       }
       // Scoring event extend deadline: admin-only
       if (/^\/scoring\/[^/]+\/extend\/?$/.test(subpath)) {
-        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
           throw new ForbiddenError("Only admins can extend scoring event deadlines");
         }
       }
@@ -407,38 +533,36 @@ export function proxyRoutes(
     if (c.req.method === "PUT") {
       // Scoring event draft update: admin-only
       if (/^\/scoring\/[^/]+\/?$/.test(subpath) && !/\/scorecards\//.test(subpath)) {
-        if (!(await isAdminOf(user.id, assemblyId, membershipService, vcpClient))) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
           throw new ForbiddenError("Only admins can edit scoring event drafts");
         }
       }
     }
 
-    // Reconstruct the original path
-    const path = url.pathname + url.search;
+    // Rewrite the URL path from /groups/:groupId/... to /assemblies/:vcpAssemblyId/...
+    const vcpPath = `/assemblies/${vcpAssemblyId}${subpath}${url.search}`;
 
-    const response = await proxyToVcp(c, config, c.req.method, path, participantId);
+    const response = await proxyToVcp(c, config, c.req.method, vcpPath, participantId);
 
     // Intercept successful POST responses to track events/surveys and cache data
     if (c.req.method === "POST" && (response.status === 200 || response.status === 201)) {
-      const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
       if (response.status === 201) {
-        await interceptForNotifications(response, assemblyId, subpath, notificationService);
-        await interceptForTopicCache(response, assemblyId, subpath, topicCacheService);
-        await interceptForSurveyCache(response, assemblyId, subpath, surveyCacheService);
+        await interceptForNotifications(response, vcpAssemblyId, subpath, notificationService);
+        await interceptForTopicCache(response, vcpAssemblyId, subpath, topicCacheService);
+        await interceptForSurveyCache(response, vcpAssemblyId, subpath, surveyCacheService);
       }
-      await interceptForSurveyResponse(response, assemblyId, subpath, participantId, surveyCacheService);
+      await interceptForSurveyResponse(response, vcpAssemblyId, subpath, participantId, surveyCacheService);
     }
 
     // If VCP rejects a survey response with "already responded", record it in cache
     if (c.req.method === "POST" && response.status === 400) {
-      const subpath = url.pathname.replace(`/assemblies/${assemblyId}`, "");
       const match = /^\/surveys\/([^/]+)\/respond\/?$/.exec(subpath);
       if (match) {
         try {
           const body = (response as ResponseWithBody).__bufferedBody;
           if (body && body.includes("already responded")) {
             const surveyId = match[1]!;
-            await surveyCacheService.recordResponse(assemblyId, surveyId, participantId);
+            await surveyCacheService.recordResponse(vcpAssemblyId, surveyId, participantId);
           }
         } catch {
           // ignore
@@ -564,7 +688,7 @@ async function interceptForNotifications(
 
     const data = JSON.parse(body);
 
-    // POST /assemblies/:id/events → track for notification
+    // POST .../events → track for notification
     if (/^\/events\/?$/.test(subpath) && data.id) {
       await notificationService.trackEvent({
         id: data.id,
@@ -575,7 +699,7 @@ async function interceptForNotifications(
       });
     }
 
-    // POST /assemblies/:id/surveys → track for notification
+    // POST .../surveys → track for notification
     if (/^\/surveys\/?$/.test(subpath) && data.id) {
       await notificationService.trackSurvey({
         id: data.id,

@@ -1,5 +1,7 @@
 /**
- * JoinRequestService — manages pending join requests for approval-mode assemblies.
+ * JoinRequestService — manages pending join requests for approval-mode groups.
+ *
+ * Refactored to use group_id instead of assembly_id.
  */
 
 import { v7 as uuidv7 } from "uuid";
@@ -8,7 +10,7 @@ import { ConflictError, NotFoundError } from "../api/middleware/error-handler.js
 
 export interface JoinRequest {
   id: string;
-  assemblyId: string;
+  groupId: string;
   userId: string;
   userName: string;
   userHandle: string | null;
@@ -20,7 +22,7 @@ export interface JoinRequest {
 
 interface JoinRequestRow {
   id: string;
-  assembly_id: string;
+  group_id: string;
   user_id: string;
   user_name: string;
   user_handle: string | null;
@@ -33,7 +35,7 @@ interface JoinRequestRow {
 function rowToRequest(row: JoinRequestRow): JoinRequest {
   return {
     id: row.id,
-    assemblyId: row.assembly_id,
+    groupId: row.group_id,
     userId: row.user_id,
     userName: row.user_name,
     userHandle: row.user_handle,
@@ -49,15 +51,15 @@ export class JoinRequestService {
 
   /** Create a pending join request. Throws ConflictError if one already exists. */
   async create(
-    assemblyId: string,
+    groupId: string,
     userId: string,
     userName: string,
     userHandle: string | null,
   ): Promise<JoinRequest> {
     // Check for existing pending request
     const existing = await this.db.queryOne<JoinRequestRow>(
-      "SELECT * FROM join_requests WHERE assembly_id = ? AND user_id = ? AND status = 'pending'",
-      [assemblyId, userId],
+      "SELECT * FROM join_requests WHERE group_id = ? AND user_id = ? AND status = 'pending'",
+      [groupId, userId],
     );
     if (existing) {
       throw new ConflictError("You already have a pending request to join this group");
@@ -67,28 +69,28 @@ export class JoinRequestService {
     const createdAt = new Date().toISOString();
 
     await this.db.run(
-      `INSERT INTO join_requests (id, assembly_id, user_id, user_name, user_handle, status, created_at)
+      `INSERT INTO join_requests (id, group_id, user_id, user_name, user_handle, status, created_at)
        VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
-      [id, assemblyId, userId, userName, userHandle, createdAt],
+      [id, groupId, userId, userName, userHandle, createdAt],
     );
 
     return {
-      id, assemblyId, userId, userName, userHandle,
+      id, groupId, userId, userName, userHandle,
       status: "pending", reviewedBy: null, reviewedAt: null, createdAt,
     };
   }
 
-  /** List join requests for an assembly, optionally filtered by status. */
-  async listByAssembly(assemblyId: string, status?: string): Promise<JoinRequest[]> {
+  /** List join requests for a group, optionally filtered by status. */
+  async listByGroup(groupId: string, status?: string): Promise<JoinRequest[]> {
     const sql = status
-      ? "SELECT * FROM join_requests WHERE assembly_id = ? AND status = ? ORDER BY created_at DESC"
-      : "SELECT * FROM join_requests WHERE assembly_id = ? ORDER BY created_at DESC";
-    const params = status ? [assemblyId, status] : [assemblyId];
+      ? "SELECT * FROM join_requests WHERE group_id = ? AND status = ? ORDER BY created_at DESC"
+      : "SELECT * FROM join_requests WHERE group_id = ? ORDER BY created_at DESC";
+    const params = status ? [groupId, status] : [groupId];
     const rows = await this.db.query<JoinRequestRow>(sql, params);
     return rows.map(rowToRequest);
   }
 
-  /** List a user's pending join requests across all assemblies. */
+  /** List a user's pending join requests across all groups. */
   async listByUser(userId: string): Promise<JoinRequest[]> {
     const rows = await this.db.query<JoinRequestRow>(
       "SELECT * FROM join_requests WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC",
@@ -106,11 +108,11 @@ export class JoinRequestService {
     return row ? rowToRequest(row) : null;
   }
 
-  /** Check if a user has a pending request for an assembly. */
-  async hasPending(userId: string, assemblyId: string): Promise<boolean> {
+  /** Check if a user has a pending request for a group. */
+  async hasPending(userId: string, groupId: string): Promise<boolean> {
     const row = await this.db.queryOne<{ id: string }>(
-      "SELECT id FROM join_requests WHERE user_id = ? AND assembly_id = ? AND status = 'pending'",
-      [userId, assemblyId],
+      "SELECT id FROM join_requests WHERE user_id = ? AND group_id = ? AND status = 'pending'",
+      [userId, groupId],
     );
     return !!row;
   }

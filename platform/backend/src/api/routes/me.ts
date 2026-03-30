@@ -1,10 +1,14 @@
 /**
  * User profile routes — /me endpoints.
+ *
+ * Refactored to use group-centric model. Memberships now come from
+ * group_members table via GroupService.
  */
 
 import { Hono } from "hono";
 import type { UserService } from "../../services/user-service.js";
 import type { MembershipService } from "../../services/membership-service.js";
+import type { GroupService } from "../../services/group-service.js";
 import type { AssemblyCacheService } from "../../services/assembly-cache.js";
 import type { TopicCacheService } from "../../services/topic-cache.js";
 import type { SurveyCacheService } from "../../services/survey-cache.js";
@@ -21,6 +25,7 @@ import * as devClock from "../../lib/dev-clock.js";
 export function meRoutes(
   userService: UserService,
   membershipService: MembershipService,
+  groupService: GroupService,
   assemblyCacheService: AssemblyCacheService,
   topicCacheService: TopicCacheService,
   surveyCacheService: SurveyCacheService,
@@ -37,7 +42,7 @@ export function meRoutes(
   app.post("/dev/notifications/trigger", async (c) => {
     const { id: userId } = getUser(c);
     const body = await c.req.json<{
-      assemblyId: string;
+      groupId: string;
       type?: string;
       urgency?: string;
       title?: string;
@@ -47,7 +52,7 @@ export function meRoutes(
 
     await notificationHub.notify({
       userId,
-      assemblyId: body.assemblyId,
+      groupId: body.groupId,
       type: (body.type ?? "vote_created") as "vote_created",
       urgency: (body.urgency ?? "timely") as "action" | "timely" | "info",
       title: body.title ?? "Test notification",
@@ -67,25 +72,25 @@ export function meRoutes(
     const { id: userId } = getUser(c);
     const memberships = await membershipService.getUserMemberships(userId);
     if (memberships.length === 0) {
-      throw new ValidationError("User has no assembly memberships");
+      throw new ValidationError("User has no group memberships");
     }
 
-    const asmId = memberships[0].assemblyId;
+    const groupId = memberships[0].groupId;
     const samples: Array<{ type: string; urgency: string; title: string; actionUrl?: string }> = [
-      { type: "voting_open", urgency: "action", title: "Voting is open: Q2 Budget Allocation", actionUrl: `/assembly/${asmId}/events` },
-      { type: "deadline_approaching", urgency: "action", title: "Voting closes tomorrow: Infrastructure Priorities", actionUrl: `/assembly/${asmId}/events` },
-      { type: "survey_created", urgency: "timely", title: "New survey: Community Satisfaction Index", actionUrl: `/assembly/${asmId}/surveys` },
-      { type: "vote_created", urgency: "timely", title: "New vote: Annual Policy Review", actionUrl: `/assembly/${asmId}/events` },
-      { type: "join_request", urgency: "action", title: "Elena Vasquez wants to join your group", actionUrl: `/assembly/${asmId}/members` },
-      { type: "results_available", urgency: "info", title: "Results are in: Emergency Transit Funding", actionUrl: `/assembly/${asmId}/events` },
-      { type: "member_joined", urgency: "info", title: "Marcus Chen joined the group", actionUrl: `/assembly/${asmId}/members` },
+      { type: "voting_open", urgency: "action", title: "Voting is open: Q2 Budget Allocation", actionUrl: `/group/${groupId}/events` },
+      { type: "deadline_approaching", urgency: "action", title: "Voting closes tomorrow: Infrastructure Priorities", actionUrl: `/group/${groupId}/events` },
+      { type: "survey_created", urgency: "timely", title: "New survey: Community Satisfaction Index", actionUrl: `/group/${groupId}/surveys` },
+      { type: "vote_created", urgency: "timely", title: "New vote: Annual Policy Review", actionUrl: `/group/${groupId}/events` },
+      { type: "join_request", urgency: "action", title: "Elena Vasquez wants to join your group", actionUrl: `/group/${groupId}/members` },
+      { type: "results_available", urgency: "info", title: "Results are in: Emergency Transit Funding", actionUrl: `/group/${groupId}/events` },
+      { type: "member_joined", urgency: "info", title: "Marcus Chen joined the group", actionUrl: `/group/${groupId}/members` },
       { type: "join_request_approved", urgency: "info", title: "You've been approved to join Municipal Budget Committee" },
     ];
 
     for (const s of samples) {
       await notificationHub.notify({
         userId,
-        assemblyId: asmId,
+        groupId,
         type: s.type as "vote_created",
         urgency: s.urgency as "action" | "timely" | "info",
         title: s.title,
@@ -156,15 +161,17 @@ export function meRoutes(
   app.post("/internal/memberships", async (c) => {
     const body = await c.req.json<{
       userId: string;
-      assemblyId: string;
+      groupId: string;
       participantId: string;
-      assemblyName: string;
+      groupName: string;
+      role?: string;
     }>();
     await membershipService.createMembership(
       body.userId,
-      body.assemblyId,
+      body.groupId,
       body.participantId,
-      body.assemblyName,
+      body.groupName,
+      (body.role as "owner" | "admin" | "member") ?? "member",
     );
     return c.json({ status: "ok" }, 201);
   });
@@ -293,6 +300,13 @@ export function meRoutes(
     const user = await userService.getByIdOrThrow(id);
     const memberships = await membershipService.getUserMemberships(id);
 
+    // Enrich memberships with capabilities
+    const enrichedMemberships = await Promise.all(memberships.map(async (m) => {
+      const capabilities = await groupService.getCapabilities(m.groupId);
+      const enabledCaps = capabilities.filter((c) => c.enabled).map((c) => c.capability);
+      return { ...m, capabilities: enabledCaps };
+    }));
+
     return c.json({
       id: user.id,
       email: user.email,
@@ -301,7 +315,7 @@ export function meRoutes(
       avatarUrl: user.avatarUrl,
       bio: user.bio,
       locale: user.locale,
-      memberships,
+      memberships: enrichedMemberships,
     });
   });
 
@@ -331,22 +345,22 @@ export function meRoutes(
     return c.json(profile);
   });
 
-  /** POST /me/assemblies/:assemblyId/join — join an assembly. */
-  app.post("/me/assemblies/:assemblyId/join", async (c) => {
+  /** POST /me/groups/:groupId/join — join a group. */
+  app.post("/me/groups/:groupId/join", async (c) => {
     const { id, name } = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
 
-    const membership = await membershipService.joinAssembly(id, assemblyId, name);
+    const membership = await membershipService.joinGroup(id, groupId, name);
     return c.json(membership, 201);
   });
 
-  /** PUT /me/assemblies/:assemblyId/profile — update per-membership profile (title, avatar, banner). */
-  app.put("/me/assemblies/:assemblyId/profile", async (c) => {
+  /** PUT /me/groups/:groupId/profile — update per-membership profile (title, avatar, banner). */
+  app.put("/me/groups/:groupId/profile", async (c) => {
     const { id } = getUser(c);
-    const assemblyId = c.req.param("assemblyId");
+    const groupId = c.req.param("groupId");
     const body = parseBody(UpdateMemberProfileBody, await c.req.json());
 
-    await membershipService.updateMemberProfile(id, assemblyId, {
+    await membershipService.updateMemberProfile(id, groupId, {
       title: body.title,
       avatarUrl: body.avatarUrl,
       bannerUrl: body.bannerUrl,
@@ -404,10 +418,10 @@ export function meRoutes(
     const { id } = getUser(c);
     const limit = parseInt(c.req.query("limit") ?? "20", 10);
     const offset = parseInt(c.req.query("offset") ?? "0", 10);
-    const assemblyId = c.req.query("assemblyId") ?? undefined;
+    const groupId = c.req.query("groupId") ?? undefined;
     const unreadOnly = c.req.query("unreadOnly") === "true";
 
-    const result = await notificationHub.list(id, { assemblyId, unreadOnly, limit, offset });
+    const result = await notificationHub.list(id, { groupId, unreadOnly, limit, offset });
     return c.json(result);
   });
 
@@ -429,8 +443,8 @@ export function meRoutes(
   /** POST /me/notifications/read-all — mark all notifications as read. */
   app.post("/me/notifications/read-all", async (c) => {
     const { id } = getUser(c);
-    const assemblyId = c.req.query("assemblyId") ?? undefined;
-    await notificationHub.markAllRead(id, assemblyId);
+    const groupId = c.req.query("groupId") ?? undefined;
+    await notificationHub.markAllRead(id, groupId);
     return c.json({ status: "ok" });
   });
 

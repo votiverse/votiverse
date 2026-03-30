@@ -4,6 +4,8 @@
  * Production uses S3 with CloudFront CDN and presigned upload URLs.
  * Development uses the database (BLOB/BYTEA) for zero-config setup.
  *
+ * Refactored to use group_id instead of assembly_id.
+ *
  * Upload flow (S3):
  *   1. Client calls POST /assets/upload-url → gets presigned PUT URL + asset ID
  *   2. Client uploads directly to S3 using the presigned URL
@@ -25,7 +27,7 @@ import { v7 as uuidv7 } from "uuid";
 
 export interface AssetMetadata {
   id: string;
-  assemblyId: string;
+  groupId: string;
   filename: string;
   mimeType: string;
   sizeBytes: number;
@@ -45,7 +47,7 @@ export interface UploadRequest {
 export interface AssetStore {
   /** Generate a presigned upload URL. Returns the asset ID and URL. */
   requestUpload(params: {
-    assemblyId: string;
+    groupId: string;
     filename: string;
     mimeType: string;
     uploadedBy: string;
@@ -68,7 +70,7 @@ export interface AssetStore {
    * DatabaseAssetStore implements this; S3AssetStore uploads to S3 directly.
    */
   storeDirect(params: {
-    assemblyId: string;
+    groupId: string;
     filename: string;
     mimeType: string;
     data: Buffer;
@@ -89,7 +91,7 @@ export class DatabaseAssetStore implements AssetStore {
   ) {}
 
   async requestUpload(params: {
-    assemblyId: string;
+    groupId: string;
     filename: string;
     mimeType: string;
     uploadedBy: string;
@@ -98,7 +100,7 @@ export class DatabaseAssetStore implements AssetStore {
     const assetId = uuidv7();
     return {
       assetId,
-      uploadUrl: `${this.baseUrl}/assemblies/${params.assemblyId}/assets`,
+      uploadUrl: `${this.baseUrl}/groups/${params.groupId}/assets`,
       key: assetId,
     };
   }
@@ -111,31 +113,31 @@ export class DatabaseAssetStore implements AssetStore {
   }
 
   async getUrl(assetId: string): Promise<string | null> {
-    const row = await this.db.queryOne<{ assembly_id: string }>(
-      "SELECT assembly_id FROM assets WHERE id = ?",
+    const row = await this.db.queryOne<{ group_id: string }>(
+      "SELECT group_id FROM assets WHERE id = ?",
       [assetId],
     );
     if (!row) return null;
-    return `${this.baseUrl}/assemblies/${row.assembly_id}/assets/${assetId}`;
+    return `${this.baseUrl}/groups/${row.group_id}/assets/${assetId}`;
   }
 
   async getMetadata(assetId: string): Promise<AssetMetadata | null> {
     const row = await this.db.queryOne<Record<string, unknown>>(
-      "SELECT id, assembly_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at FROM assets WHERE id = ?",
+      "SELECT id, group_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at FROM assets WHERE id = ?",
       [assetId],
     );
     if (!row) return null;
-    const assemblyId = row["assembly_id"] as string;
+    const groupId = row["group_id"] as string;
     return {
       id: row["id"] as string,
-      assemblyId,
+      groupId,
       filename: row["filename"] as string,
       mimeType: row["mime_type"] as string,
       sizeBytes: row["size_bytes"] as number,
       hash: row["hash"] as string,
       uploadedBy: row["uploaded_by"] as string,
       uploadedAt: row["uploaded_at"] as number,
-      url: `${this.baseUrl}/assemblies/${assemblyId}/assets/${assetId}`,
+      url: `${this.baseUrl}/groups/${groupId}/assets/${assetId}`,
     };
   }
 
@@ -144,7 +146,7 @@ export class DatabaseAssetStore implements AssetStore {
   }
 
   async storeDirect(params: {
-    assemblyId: string;
+    groupId: string;
     filename: string;
     mimeType: string;
     data: Buffer;
@@ -156,21 +158,21 @@ export class DatabaseAssetStore implements AssetStore {
     const now = Date.now();
 
     await this.db.run(
-      `INSERT INTO assets (id, assembly_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at, data)
+      `INSERT INTO assets (id, group_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at, data)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, params.assemblyId, params.filename, params.mimeType, sizeBytes, hash, params.uploadedBy, now, params.data],
+      [id, params.groupId, params.filename, params.mimeType, sizeBytes, hash, params.uploadedBy, now, params.data],
     );
 
     return {
       id,
-      assemblyId: params.assemblyId,
+      groupId: params.groupId,
       filename: params.filename,
       mimeType: params.mimeType,
       sizeBytes,
       hash,
       uploadedBy: params.uploadedBy,
       uploadedAt: now,
-      url: `${this.baseUrl}/assemblies/${params.assemblyId}/assets/${id}`,
+      url: `${this.baseUrl}/groups/${params.groupId}/assets/${id}`,
     };
   }
 
@@ -209,7 +211,7 @@ export interface S3AssetStoreConfig {
  * Requires @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner
  * as peer dependencies — only imported when this class is instantiated.
  *
- * Assets are stored at: s3://{bucket}/assets/{assemblyId}/{assetId}/{filename}
+ * Assets are stored at: s3://{bucket}/assets/{groupId}/{assetId}/{filename}
  */
 export class S3AssetStore implements AssetStore {
   private s3Client: unknown;
@@ -236,13 +238,13 @@ export class S3AssetStore implements AssetStore {
   }
 
   async requestUpload(params: {
-    assemblyId: string;
+    groupId: string;
     filename: string;
     mimeType: string;
     uploadedBy: string;
   }): Promise<UploadRequest> {
     const assetId = uuidv7();
-    const key = `assets/${params.assemblyId}/${assetId}/${params.filename}`;
+    const key = `assets/${params.groupId}/${assetId}/${params.filename}`;
 
     const s3 = await this.getS3();
     const { PutObjectCommand } = await import("@aws-sdk/client-s3");
@@ -261,9 +263,9 @@ export class S3AssetStore implements AssetStore {
     // Pre-register metadata (without size/hash — those come on confirm)
     const now = Date.now();
     await this.db.run(
-      `INSERT INTO assets (id, assembly_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at)
+      `INSERT INTO assets (id, group_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at)
        VALUES (?, ?, ?, ?, 0, '', ?, ?)`,
-      [assetId, params.assemblyId, params.filename, params.mimeType, params.uploadedBy, now],
+      [assetId, params.groupId, params.filename, params.mimeType, params.uploadedBy, now],
     );
 
     return { assetId, uploadUrl, key };
@@ -277,9 +279,9 @@ export class S3AssetStore implements AssetStore {
     );
     if (!row) throw new Error(`Asset ${assetId} not found`);
 
-    const assemblyId = row["assembly_id"] as string;
+    const groupId = row["group_id"] as string;
     const filename = row["filename"] as string;
-    const key = `assets/${assemblyId}/${assetId}/${filename}`;
+    const key = `assets/${groupId}/${assetId}/${filename}`;
 
     const s3 = await this.getS3();
     const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
@@ -301,7 +303,7 @@ export class S3AssetStore implements AssetStore {
 
     return {
       id: assetId,
-      assemblyId,
+      groupId,
       filename,
       mimeType: row["mime_type"] as string,
       sizeBytes,
@@ -314,26 +316,26 @@ export class S3AssetStore implements AssetStore {
 
   async getUrl(assetId: string): Promise<string | null> {
     const row = await this.db.queryOne<Record<string, unknown>>(
-      "SELECT assembly_id, filename FROM assets WHERE id = ?",
+      "SELECT group_id, filename FROM assets WHERE id = ?",
       [assetId],
     );
     if (!row) return null;
-    const key = `assets/${row["assembly_id"]}/${assetId}/${row["filename"]}`;
+    const key = `assets/${row["group_id"]}/${assetId}/${row["filename"]}`;
     return this.buildReadUrl(key);
   }
 
   async getMetadata(assetId: string): Promise<AssetMetadata | null> {
     const row = await this.db.queryOne<Record<string, unknown>>(
-      "SELECT id, assembly_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at FROM assets WHERE id = ?",
+      "SELECT id, group_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at FROM assets WHERE id = ?",
       [assetId],
     );
     if (!row) return null;
-    const assemblyId = row["assembly_id"] as string;
+    const groupId = row["group_id"] as string;
     const filename = row["filename"] as string;
-    const key = `assets/${assemblyId}/${assetId}/${filename}`;
+    const key = `assets/${groupId}/${assetId}/${filename}`;
     return {
       id: row["id"] as string,
-      assemblyId,
+      groupId,
       filename,
       mimeType: row["mime_type"] as string,
       sizeBytes: row["size_bytes"] as number,
@@ -346,11 +348,11 @@ export class S3AssetStore implements AssetStore {
 
   async deleteAsset(assetId: string): Promise<void> {
     const row = await this.db.queryOne<Record<string, unknown>>(
-      "SELECT assembly_id, filename FROM assets WHERE id = ?",
+      "SELECT group_id, filename FROM assets WHERE id = ?",
       [assetId],
     );
     if (row) {
-      const key = `assets/${row["assembly_id"]}/${assetId}/${row["filename"]}`;
+      const key = `assets/${row["group_id"]}/${assetId}/${row["filename"]}`;
       const s3 = await this.getS3();
       const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
       await (s3 as import("@aws-sdk/client-s3").S3Client).send(new DeleteObjectCommand({
@@ -362,7 +364,7 @@ export class S3AssetStore implements AssetStore {
   }
 
   async storeDirect(params: {
-    assemblyId: string;
+    groupId: string;
     filename: string;
     mimeType: string;
     data: Buffer;
@@ -372,7 +374,7 @@ export class S3AssetStore implements AssetStore {
     const hash = createHash("sha256").update(params.data).digest("hex");
     const sizeBytes = params.data.length;
     const now = Date.now();
-    const key = `assets/${params.assemblyId}/${id}/${params.filename}`;
+    const key = `assets/${params.groupId}/${id}/${params.filename}`;
 
     // Upload to S3
     const s3 = await this.getS3();
@@ -386,14 +388,14 @@ export class S3AssetStore implements AssetStore {
 
     // Store metadata (no binary data in DB)
     await this.db.run(
-      `INSERT INTO assets (id, assembly_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at)
+      `INSERT INTO assets (id, group_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, params.assemblyId, params.filename, params.mimeType, sizeBytes, hash, params.uploadedBy, now],
+      [id, params.groupId, params.filename, params.mimeType, sizeBytes, hash, params.uploadedBy, now],
     );
 
     return {
       id,
-      assemblyId: params.assemblyId,
+      groupId: params.groupId,
       filename: params.filename,
       mimeType: params.mimeType,
       sizeBytes,

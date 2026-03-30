@@ -11,6 +11,7 @@ import type { DatabaseAdapter } from "./adapters/database/interface.js";
 import { UserService } from "./services/user-service.js";
 import { SessionService } from "./services/session-service.js";
 import { MembershipService } from "./services/membership-service.js";
+import { GroupService } from "./services/group-service.js";
 import { AssemblyCacheService } from "./services/assembly-cache.js";
 import { TopicCacheService } from "./services/topic-cache.js";
 import { SurveyCacheService } from "./services/survey-cache.js";
@@ -65,10 +66,11 @@ async function main() {
     config.jwtRefreshExpiry,
   );
   const vcpClient = new VCPClient(config.vcpBaseUrl, config.vcpApiKey);
+  const groupService = new GroupService(database);
   const assemblyCacheService = new AssemblyCacheService(database);
   const topicCacheService = new TopicCacheService(database);
   const surveyCacheService = new SurveyCacheService(database);
-  const membershipService = new MembershipService(database, vcpClient, assemblyCacheService);
+  const membershipService = new MembershipService(database, vcpClient, groupService, assemblyCacheService);
 
   // Wire notification service
   const isProduction = process.env["NODE_ENV"] === "production";
@@ -108,6 +110,7 @@ async function main() {
     notificationAdapter,
     vcpClient,
     config.vcpBaseUrl,
+    groupService,
   );
 
   // Wire content service
@@ -148,7 +151,7 @@ async function main() {
   });
 
   // Create HTTP app
-  const app = createApp({ database, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, pushService, contentService, vcpClient, assetStore, config });
+  const app = createApp({ database, userService, sessionService, membershipService, groupService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, pushService, contentService, vcpClient, assetStore, config });
 
   // Start HTTP server
   const server = serve({
