@@ -153,9 +153,6 @@ export function proxyRoutes(
       // Create participant for the creator
       const participant = await vcpClient.createParticipant(vcpAssemblyId, user.name);
 
-      // Bootstrap owner role in VCP
-      await vcpClient.bootstrapRole(vcpAssemblyId, participant.id);
-
       // Set participant ID on group member
       await groupService.setParticipantId(group.id, user.id, participant.id);
 
