@@ -578,7 +578,7 @@
   "createGroup.quadrantOpen": "Optional Delegation",
   "createGroup.quadrantOpenDesc": "Directly or via delegates",
   "createGroup.quadrantLiquid": "Optional Delegation & Candidates",
-  "createGroup.quadrantLiquidDesc": "Via candidates or delegates",
+  "createGroup.quadrantLiquidDesc": "Directly, via candidates or delegates",
   "createGroup.delegationModel": "Delegation model",
   "createGroup.delegationPermanent": "This setting is permanent and can\u2019t be changed after creation.",
   "createGroup.ballotSettings": "Ballot settings",
