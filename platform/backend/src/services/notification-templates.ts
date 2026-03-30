@@ -2,6 +2,8 @@
  * Notification templates — generates plain text and HTML bodies for each notification type.
  */
 
+import { escapeHtml } from "../lib/html.js";
+
 export type NotificationType =
   | "event_created"
   | "voting_open"
@@ -76,9 +78,9 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
           `Go to Votiverse to review and vote: ${data.baseUrl}`,
         ].join("\n"),
         bodyHtml: wrapHtml(
-          `New vote in ${data.assemblyName}`,
+          `New vote in ${escapeHtml(data.assemblyName)}`,
           [
-            `A new vote has been created: <strong>${data.title}</strong>`,
+            `A new vote has been created: <strong>${escapeHtml(data.title)}</strong>`,
             `Voting opens: ${data.votingStart ? formatDate(data.votingStart) : "TBD"}`,
             `Voting closes: ${data.votingEnd ? formatDate(data.votingEnd) : "TBD"}`,
           ],
@@ -98,9 +100,9 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
           `Cast your vote: ${data.baseUrl}`,
         ].join("\n"),
         bodyHtml: wrapHtml(
-          `Voting is open: ${data.title}`,
+          `Voting is open: ${escapeHtml(data.title)}`,
           [
-            `Voting is now open for <strong>${data.title}</strong> in ${data.assemblyName}.`,
+            `Voting is now open for <strong>${escapeHtml(data.title)}</strong> in ${escapeHtml(data.assemblyName)}.`,
             `Deadline: ${data.votingEnd ? formatDate(data.votingEnd) : "TBD"}`,
           ],
           "Cast Your Vote",
@@ -121,7 +123,7 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
         bodyHtml: wrapHtml(
           `Voting closes tomorrow`,
           [
-            `Voting for <strong>${data.title}</strong> in ${data.assemblyName} closes in less than 24 hours.`,
+            `Voting for <strong>${escapeHtml(data.title)}</strong> in ${escapeHtml(data.assemblyName)} closes in less than 24 hours.`,
             `Deadline: ${data.votingEnd ? formatDate(data.votingEnd) : "TBD"}`,
           ],
           "Vote Now",
@@ -140,7 +142,7 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
         bodyHtml: wrapHtml(
           `Results are in`,
           [
-            `Voting has closed for <strong>${data.title}</strong> in ${data.assemblyName}.`,
+            `Voting has closed for <strong>${escapeHtml(data.title)}</strong> in ${escapeHtml(data.assemblyName)}.`,
           ],
           "View Results",
           data.baseUrl,
@@ -161,9 +163,9 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
           `Respond now: ${data.baseUrl}`,
         ].join("\n"),
         bodyHtml: wrapHtml(
-          `New survey in ${data.assemblyName}`,
+          `New survey in ${escapeHtml(data.assemblyName)}`,
           [
-            `A new survey has been created: <strong>${data.title}</strong>`,
+            `A new survey has been created: <strong>${escapeHtml(data.title)}</strong>`,
             "Your observations matter \u2014 surveys help the community understand what\u2019s happening on the ground.",
           ],
           "Respond Now",
@@ -184,7 +186,7 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
         bodyHtml: wrapHtml(
           `Survey closes tomorrow`,
           [
-            `The survey <strong>${data.title}</strong> in ${data.assemblyName} closes in less than 24 hours.`,
+            `The survey <strong>${escapeHtml(data.title)}</strong> in ${escapeHtml(data.assemblyName)} closes in less than 24 hours.`,
             "If you haven\u2019t responded yet, your observations are still needed.",
           ],
           "Respond Now",
@@ -206,11 +208,11 @@ export function renderTemplate(type: NotificationType, data: TemplateData): Rend
           `View the group and accept: ${data.baseUrl}`,
         ].join("\n"),
         bodyHtml: wrapHtml(
-          `You're invited to ${data.assemblyName}`,
+          `You're invited to ${escapeHtml(data.assemblyName)}`,
           [
             data.inviterName
-              ? `<strong>${data.inviterName}</strong> has invited you to join <strong>${data.assemblyName}</strong> on Votiverse.`
-              : `You've been invited to join <strong>${data.assemblyName}</strong> on Votiverse.`,
+              ? `<strong>${escapeHtml(data.inviterName)}</strong> has invited you to join <strong>${escapeHtml(data.assemblyName)}</strong> on Votiverse.`
+              : `You've been invited to join <strong>${escapeHtml(data.assemblyName)}</strong> on Votiverse.`,
             "Votiverse is a governance platform where groups make decisions together through voting, delegation, and structured deliberation.",
           ],
           "View Group & Join",
