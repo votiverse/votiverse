@@ -752,7 +752,7 @@ export function contentRoutes(
       return new Response(asset.data, {
         headers: {
           "Content-Type": asset.mimeType,
-          "Content-Disposition": `inline; filename="${asset.filename}"`,
+          "Content-Disposition": `inline; filename="download"; filename*=UTF-8''${encodeURIComponent(asset.filename)}`,
           "Content-Length": String(asset.sizeBytes),
         },
       });
