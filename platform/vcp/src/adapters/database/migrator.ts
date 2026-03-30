@@ -45,11 +45,11 @@ export async function runMigrations(
 
   if (lockId != null) {
     return db.withConnection(async () => {
-      await db.query(`SELECT pg_advisory_lock(${lockId})`);
+      await db.query("SELECT pg_advisory_lock(?)", [lockId]);
       try {
         return await applyMigrations(db, migrationsDir, dialect);
       } finally {
-        await db.query(`SELECT pg_advisory_unlock(${lockId})`);
+        await db.query("SELECT pg_advisory_unlock(?)", [lockId]);
       }
     });
   }
