@@ -332,14 +332,13 @@ function CapabilityToggle({ label, description, enabled, toggling, onToggle }: {
         <p className="text-xs text-text-muted">{description}</p>
       </div>
       <button
-          type="button"
-          onClick={onToggle}
-          disabled={toggling}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${enabled ? "bg-accent-text" : "bg-border-default"} ${toggling ? "opacity-50" : ""}`}
-        >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`} />
-        </button>
-      )}
+        type="button"
+        onClick={onToggle}
+        disabled={toggling}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${enabled ? "bg-accent-text" : "bg-border-default"} ${toggling ? "opacity-50" : ""}`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"}`} />
+      </button>
     </div>
   );
 }
