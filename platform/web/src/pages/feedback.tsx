@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, ErrorBox } from "../components/ui.js";
@@ -28,6 +29,9 @@ export function FeedbackPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <Link to="/profile" className="text-sm text-text-muted hover:text-text-secondary mb-4 inline-flex items-center gap-1">
+        <span>&#8592;</span> {t("feedback.backToProfile")}
+      </Link>
       <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-2">{t("feedback.title")}</h1>
       <p className="text-text-muted text-sm mb-6">{t("feedback.subtitle")}</p>
 

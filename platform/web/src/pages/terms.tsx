@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Card, CardBody } from "../components/ui.js";
 
@@ -6,6 +7,9 @@ export function TermsPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <Link to="/profile" className="text-sm text-text-muted hover:text-text-secondary mb-4 inline-flex items-center gap-1">
+        <span>&#8592;</span> {t("terms.backToProfile")}
+      </Link>
       <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("terms.title")}</h1>
 
       <Card>
