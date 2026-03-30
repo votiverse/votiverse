@@ -810,6 +810,8 @@
   "profile.tab.language": "Language",
   "profile.tab.appearance": "Appearance",
   "profile.tab.accounts": "Accounts",
+  "profile.feedback": "Feedback",
+  "profile.terms": "Terms",
   "profile.logout": "Log out",
   "profile.noIdentity": "No identity selected. Go to Home to pick who you are.",
   "profile.votesCast": "Votes Cast",

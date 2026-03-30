@@ -8,7 +8,7 @@ import * as oauthApi from "../api/oauth.js";
 import type { Group, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Spinner, ErrorBox } from "../components/ui.js";
 import { Avatar, AVATAR_STYLES, AVATAR_STYLE_LABELS, avatarUrl, type AvatarStyle } from "../components/avatar.js";
-import { Sun, Monitor, Moon, Globe, Palette, User, Link2, LogOut } from "lucide-react";
+import { Sun, Monitor, Moon, Globe, Palette, User, Link2, LogOut, MessageSquare, FileText } from "lucide-react";
 import { useTheme, type ThemeMode } from "../hooks/use-theme.js";
 import { ALL_LOCALES, LOCALE_NAMES } from "../locales.js";
 
@@ -112,13 +112,33 @@ export function Profile() {
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("profile.title")}</h1>
-        <button
-          onClick={() => clearIdentity()}
-          className="flex items-center gap-1.5 text-sm text-text-muted hover:text-error-text transition-colors"
-        >
-          <LogOut size={15} />
-          {t("profile.logout")}
-        </button>
+        <div className="flex items-center gap-4">
+          <a
+            href="https://votiverse.org/feedback"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text-secondary transition-colors"
+          >
+            <MessageSquare size={15} />
+            {t("profile.feedback")}
+          </a>
+          <a
+            href="https://votiverse.org/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text-secondary transition-colors"
+          >
+            <FileText size={15} />
+            {t("profile.terms")}
+          </a>
+          <button
+            onClick={() => clearIdentity()}
+            className="flex items-center gap-1.5 text-sm text-text-muted hover:text-error-text transition-colors"
+          >
+            <LogOut size={15} />
+            {t("profile.logout")}
+          </button>
+        </div>
       </div>
 
       {/* Identity card — always visible above tabs */}
