@@ -77,6 +77,18 @@ export function presetLabel(configName: string, t?: TranslateFn): string {
   return key ? translate(key) : configName;
 }
 
+/**
+ * Derive a preset label from the delegation quadrant when config.name is unavailable.
+ * Maps the four delegation quadrants to their canonical preset labels.
+ */
+export function quadrantLabel(config: { delegation: { candidacy: boolean; transferable: boolean } }, t?: TranslateFn): string {
+  const { candidacy, transferable } = config.delegation;
+  if (candidacy && transferable) return presetLabel("Liquid Delegation", t);
+  if (!candidacy && !transferable) return presetLabel("Direct Democracy", t);
+  if (candidacy && !transferable) return presetLabel("Representative", t);
+  return presetLabel("Liquid Open", t);
+}
+
 // ── Config value humanizers ────────────────────────────────────────────
 
 export function humanizeBoolean(value: boolean, style: "yes-no" | "enabled-disabled" = "yes-no", t?: TranslateFn): string {
@@ -141,14 +153,6 @@ export function summarizeRules(config: GovernanceConfig, t?: TranslateFn): strin
 
   if (config.ballot.allowVoteChange) {
     rules.push(translate("common:presets.ballotVoteChange"));
-  }
-
-  // Features
-  if (config.features.communityNotes) {
-    rules.push(translate("common:presets.featureNotes"));
-  }
-  if (config.features.surveys) {
-    rules.push(translate("common:presets.featureSurveys"));
   }
 
   return rules;

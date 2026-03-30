@@ -24,20 +24,14 @@ export function useAssemblyTabs(assemblyId: string | undefined, config: Governan
     if (!assemblyId) return [];
     const tabs: AssemblyTab[] = [
       { to: `/assembly/${assemblyId}/events`, key: "Votes", label: t("nav.votes") },
+      { to: `/assembly/${assemblyId}/surveys`, key: "Surveys", label: t("nav.surveys") },
     ];
-    if (config?.features.surveys) {
-      tabs.push({ to: `/assembly/${assemblyId}/surveys`, key: "Surveys", label: t("nav.surveys") });
-    }
     if (config && delegationEnabled(config)) {
       tabs.push({ to: `/assembly/${assemblyId}/delegations`, key: "Delegates", label: t("nav.delegates") });
       tabs.push({ to: `/assembly/${assemblyId}/topics`, key: "Topics", label: t("nav.topics") });
     }
-    if (config?.features.scoring) {
-      tabs.push({ to: `/assembly/${assemblyId}/scoring`, key: "Scores", label: t("nav.scores") });
-    }
-    if (config?.features.communityNotes) {
-      tabs.push({ to: `/assembly/${assemblyId}/notes`, key: "Notes", label: t("nav.notes") });
-    }
+    tabs.push({ to: `/assembly/${assemblyId}/scoring`, key: "Scores", label: t("nav.scores") });
+    tabs.push({ to: `/assembly/${assemblyId}/notes`, key: "Notes", label: t("nav.notes") });
     if (config?.delegation.candidacy) {
       tabs.push({ to: `/assembly/${assemblyId}/candidacies`, key: "Candidates", label: t("nav.candidates") });
     }

@@ -38,8 +38,6 @@ export interface AssemblyProfile extends Assembly {
 export type ParticipantStatus = "active" | "inactive" | "sunset";
 
 export interface GovernanceConfig {
-  name: string;
-  description: string;
   delegation: {
     candidacy: boolean;
     transferable: boolean;
@@ -50,12 +48,6 @@ export interface GovernanceConfig {
     allowVoteChange: boolean;
     quorum: number;
     method: "majority" | "supermajority";
-  };
-  features: {
-    communityNotes: boolean;
-    predictions: boolean;
-    surveys: boolean;
-    scoring: boolean;
   };
   timeline: {
     deliberationDays: number;

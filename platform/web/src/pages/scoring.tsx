@@ -39,7 +39,7 @@ export function Scoring() {
   const [events, setEvents] = useState<ScoringEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const scoringEnabled = assembly?.config.features.scoring ?? false;
+  const scoringEnabled = true; // Capability gating moves to backend in Tier 2
 
   useEffect(() => {
     if (!assemblyId) return;

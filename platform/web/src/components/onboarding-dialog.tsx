@@ -9,7 +9,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { GovernanceConfig } from "../api/types.js";
-import { presetLabel } from "../lib/presets.js";
+import { quadrantLabel } from "../lib/presets.js";
 import { Button } from "./ui.js";
 
 // ── localStorage helpers ─────────────────────────────────────────────
@@ -44,7 +44,7 @@ function buildSteps(config: GovernanceConfig, assemblyName: string, t: (key: str
     icon: "👋",
     title: t("step.welcome.title", { name: assemblyName }),
     lines: [
-      t("step.welcome.governanceModel", { preset: presetLabel(config.name) }),
+      t("step.welcome.governanceModel", { preset: quadrantLabel(config) }),
       t("step.welcome.overview"),
     ],
   });
@@ -89,25 +89,17 @@ function buildSteps(config: GovernanceConfig, assemblyName: string, t: (key: str
     });
   }
 
-  // 4. Community features (conditional)
-  const featureLines: string[] = [];
-  if (config.features.communityNotes) {
-    featureLines.push(t("step.features.communityNotes"));
-  }
-  if (config.features.surveys) {
-    featureLines.push(t("step.features.surveys"));
-  }
-  if (config.features.predictions) {
-    featureLines.push(t("step.features.predictions"));
-  }
-  if (featureLines.length > 0) {
-    featureLines.unshift(t("step.features.intro"));
-    steps.push({
-      icon: "💬",
-      title: t("step.features.title"),
-      lines: featureLines,
-    });
-  }
+  // 4. Community features (always available)
+  steps.push({
+    icon: "💬",
+    title: t("step.features.title"),
+    lines: [
+      t("step.features.intro"),
+      t("step.features.communityNotes"),
+      t("step.features.surveys"),
+      t("step.features.predictions"),
+    ],
+  });
 
   // 5. Getting started (always)
   const startLines = [t("step.start.ready")];

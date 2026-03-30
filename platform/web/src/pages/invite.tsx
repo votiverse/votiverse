@@ -11,7 +11,7 @@ import { useTranslation, Trans } from "react-i18next";
 import { useIdentity } from "../hooks/use-identity.js";
 import { Card, CardBody, Button, Spinner, ErrorBox, Badge } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { presetLabel, summarizeRules, describeAdmissionMode } from "../lib/presets.js";
+import { quadrantLabel, summarizeRules, describeAdmissionMode } from "../lib/presets.js";
 import type { GovernanceConfig } from "../api/types.js";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -161,7 +161,7 @@ export function InvitePage() {
         <CardBody>
           <div className="flex items-center gap-2 mb-3">
             <h2 className="text-sm font-semibold text-text-secondary">{t("invite.governanceRules")}</h2>
-            <Badge color="gray">{presetLabel(group.config.name)}</Badge>
+            <Badge color="gray">{quadrantLabel(group.config)}</Badge>
           </div>
           <ul className="space-y-1.5">
             {rules.map((rule, i) => (

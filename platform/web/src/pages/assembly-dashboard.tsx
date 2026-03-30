@@ -8,7 +8,7 @@ import { Card, CardHeader, CardBody, Spinner, ErrorBox, Badge } from "../compone
 import { Avatar } from "../components/avatar.js";
 import { ExternalLink } from "lucide-react";
 import {
-  presetLabel,
+  quadrantLabel,
   humanizeBoolean,
   isDelegationEnabled,
 } from "../lib/presets.js";
@@ -104,7 +104,7 @@ export function AssemblyDashboard() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
           {t("assemblyDashboard.governanceSettings")}
-          <span className="text-text-tertiary font-normal">({presetLabel(config.name, t)})</span>
+          <span className="text-text-tertiary font-normal">({quadrantLabel(config, t)})</span>
         </button>
         {showConfig && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-3">
@@ -113,7 +113,7 @@ export function AssemblyDashboard() {
                 <h2 className="font-medium text-text-primary">{t("assemblyDashboard.configuration")}</h2>
               </CardHeader>
               <CardBody className="space-y-3">
-                <ConfigRow label={t("assemblyDashboard.decisionModel")} value={presetLabel(config.name, t)} />
+                <ConfigRow label={t("assemblyDashboard.decisionModel")} value={quadrantLabel(config, t)} />
                 <ConfigRow label={t("assemblyDashboard.votingMethod")} value={config.ballot.method === "supermajority" ? t("assemblyDashboard.supermajority") : t("assemblyDashboard.majority")} />
                 <ConfigRow label={t("assemblyDashboard.ballot")} value={config.ballot.secret ? t("assemblyDashboard.secret") : t("assemblyDashboard.public")} />
                 <ConfigRow label={t("assemblyDashboard.liveResults")} value={humanizeBoolean(config.ballot.liveResults, "yes-no", t)} />
@@ -134,16 +134,6 @@ export function AssemblyDashboard() {
                 <div className="text-xs text-text-tertiary pt-1">
                   {t("assemblyDashboard.totalDaysPerVote", { count: config.timeline.deliberationDays + config.timeline.curationDays + config.timeline.votingDays })}
                 </div>
-              </CardBody>
-            </Card>
-            <Card>
-              <CardHeader>
-                <h2 className="font-medium text-text-primary">{t("assemblyDashboard.features")}</h2>
-              </CardHeader>
-              <CardBody className="space-y-3">
-                <ConfigRow label={t("assemblyDashboard.communityNotes")} value={humanizeBoolean(config.features.communityNotes, "enabled-disabled", t)} />
-                <ConfigRow label={t("assemblyDashboard.predictionsLabel")} value={humanizeBoolean(config.features.predictions, "enabled-disabled", t)} />
-                <ConfigRow label={t("assemblyDashboard.surveysLabel")} value={humanizeBoolean(config.features.surveys, "enabled-disabled", t)} />
               </CardBody>
             </Card>
           </div>

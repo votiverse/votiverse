@@ -45,7 +45,7 @@ export function Surveys() {
   };
   const [showCreate, setShowCreate] = useState(false);
 
-  const surveysEnabled = assembly?.config.features.surveys ?? false;
+  const surveysEnabled = true; // Capability gating moves to backend in Tier 2
 
   useEffect(() => {
     if (!assemblyId) return;

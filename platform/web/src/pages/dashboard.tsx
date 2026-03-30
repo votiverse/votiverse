@@ -9,7 +9,7 @@ import * as api from "../api/client.js";
 import { Countdown } from "../components/countdown.js";
 import { Card, CardBody, Button, Badge, Skeleton } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
-import { presetLabel } from "../lib/presets.js";
+import { quadrantLabel } from "../lib/presets.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 import { FileText, Clock, Building2, CheckCircle2, X } from "lucide-react";
 
@@ -226,7 +226,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
                       <div className="w-10 h-10 bg-surface-sunken border border-border-default rounded-xl flex items-center justify-center text-base font-bold text-text-muted font-display shadow-sm shrink-0">
                         {assembly.name[0]}
                       </div>
-                      <Badge color="gray">{presetLabel(assembly.config.name, t)}</Badge>
+                      <Badge color="gray">{quadrantLabel(assembly.config, t)}</Badge>
                     </div>
                     <h3 className="font-bold font-display text-text-primary text-base leading-tight mb-4">
                       {assembly.name}

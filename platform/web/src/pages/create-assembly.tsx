@@ -23,17 +23,16 @@ interface ConfigDraft {
   preset: string;
   delegation: { candidacy: boolean; transferable: boolean };
   ballot: { secret: boolean; liveResults: boolean; allowVoteChange: boolean };
-  features: { predictions: boolean; surveys: boolean; communityNotes: boolean };
   timeline: { deliberationDays: number; curationDays: number; votingDays: number };
 }
 
 const PRESET_CONFIGS: Record<string, ConfigDraft> = {
-  LIQUID_DELEGATION: { preset: "LIQUID_DELEGATION", delegation: { candidacy: true, transferable: true }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, features: { predictions: true, surveys: true, communityNotes: true }, timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 } },
-  DIRECT_DEMOCRACY: { preset: "DIRECT_DEMOCRACY", delegation: { candidacy: false, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, features: { predictions: false, surveys: false, communityNotes: false }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
-  SWISS_VOTATION: { preset: "SWISS_VOTATION", delegation: { candidacy: false, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: false }, features: { predictions: true, surveys: false, communityNotes: true }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
-  LIQUID_OPEN: { preset: "LIQUID_OPEN", delegation: { candidacy: false, transferable: true }, ballot: { secret: false, liveResults: true, allowVoteChange: true }, features: { predictions: false, surveys: false, communityNotes: true }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
-  REPRESENTATIVE: { preset: "REPRESENTATIVE", delegation: { candidacy: true, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: false }, features: { predictions: false, surveys: true, communityNotes: true }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
-  CIVIC: { preset: "CIVIC", delegation: { candidacy: false, transferable: true }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, features: { predictions: true, surveys: true, communityNotes: true }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
+  LIQUID_DELEGATION: { preset: "LIQUID_DELEGATION", delegation: { candidacy: true, transferable: true }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 } },
+  DIRECT_DEMOCRACY: { preset: "DIRECT_DEMOCRACY", delegation: { candidacy: false, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
+  SWISS_VOTATION: { preset: "SWISS_VOTATION", delegation: { candidacy: false, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: false }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
+  LIQUID_OPEN: { preset: "LIQUID_OPEN", delegation: { candidacy: false, transferable: true }, ballot: { secret: false, liveResults: true, allowVoteChange: true }, timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 } },
+  REPRESENTATIVE: { preset: "REPRESENTATIVE", delegation: { candidacy: true, transferable: false }, ballot: { secret: true, liveResults: false, allowVoteChange: false }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
+  CIVIC: { preset: "CIVIC", delegation: { candidacy: false, transferable: true }, ballot: { secret: true, liveResults: false, allowVoteChange: true }, timeline: { deliberationDays: 14, curationDays: 3, votingDays: 7 } },
 };
 
 function getDefaultConfig(): ConfigDraft {
@@ -248,25 +247,6 @@ function ConfigModal({ config, onChange, onClose, presets, presetConfigs }: {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={config.ballot.allowVoteChange} onChange={(e) => onChange({ ...config, ballot: { ...config.ballot, allowVoteChange: e.target.checked } })} className="rounded" />
                 {t("assemblyList.allowVoteChange")}
-              </label>
-            </div>
-          </div>
-
-          {/* Features */}
-          <div>
-            <Label>{t("assemblyList.sectionFeatures")}</Label>
-            <div className="space-y-2 mt-1">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.features.predictions} onChange={(e) => onChange({ ...config, features: { ...config.features, predictions: e.target.checked } })} className="rounded" />
-                {t("assemblyList.featurePredictions")}
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.features.surveys} onChange={(e) => onChange({ ...config, features: { ...config.features, surveys: e.target.checked } })} className="rounded" />
-                {t("assemblyList.surveys")}
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={config.features.communityNotes} onChange={(e) => onChange({ ...config, features: { ...config.features, communityNotes: e.target.checked } })} className="rounded" />
-                {t("assemblyList.communityNotes")}
               </label>
             </div>
           </div>

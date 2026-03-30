@@ -5,7 +5,7 @@ import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
-import { presetLabel } from "../lib/presets.js";
+import { quadrantLabel } from "../lib/presets.js";
 
 // ── Preset definitions ───────────────────────────────────────────────
 
@@ -35,11 +35,6 @@ interface ConfigDraft {
     quorum: number;
     method: "majority" | "supermajority";
   };
-  features: {
-    communityNotes: boolean;
-    predictions: boolean;
-    surveys: boolean;
-  };
   timeline: {
     deliberationDays: number;
     curationDays: number;
@@ -52,42 +47,36 @@ const PRESET_CONFIGS: Record<string, ConfigDraft> = {
     preset: "LIQUID_DELEGATION",
     delegation: { candidacy: true, transferable: true },
     ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.1, method: "majority" },
-    features: { communityNotes: true, predictions: true, surveys: true },
     timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 },
   },
   DIRECT_DEMOCRACY: {
     preset: "DIRECT_DEMOCRACY",
     delegation: { candidacy: false, transferable: false },
     ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0, method: "majority" },
-    features: { communityNotes: false, predictions: false, surveys: false },
     timeline: { deliberationDays: 7, curationDays: 0, votingDays: 7 },
   },
   SWISS_VOTATION: {
     preset: "SWISS_VOTATION",
     delegation: { candidacy: false, transferable: false },
     ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.2, method: "majority" },
-    features: { communityNotes: true, predictions: true, surveys: false },
     timeline: { deliberationDays: 7, curationDays: 2, votingDays: 7 },
   },
   LIQUID_OPEN: {
     preset: "LIQUID_OPEN",
     delegation: { candidacy: false, transferable: true },
     ballot: { secret: false, liveResults: true, allowVoteChange: true, quorum: 0.1, method: "majority" },
-    features: { communityNotes: false, predictions: false, surveys: false },
     timeline: { deliberationDays: 5, curationDays: 0, votingDays: 5 },
   },
   REPRESENTATIVE: {
     preset: "REPRESENTATIVE",
     delegation: { candidacy: true, transferable: false },
     ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.5, method: "majority" },
-    features: { communityNotes: false, predictions: false, surveys: false },
     timeline: { deliberationDays: 3, curationDays: 0, votingDays: 3 },
   },
   CIVIC: {
     preset: "CIVIC",
     delegation: { candidacy: true, transferable: true },
     ballot: { secret: true, liveResults: false, allowVoteChange: true, quorum: 0.1, method: "majority" },
-    features: { communityNotes: true, predictions: true, surveys: true },
     timeline: { deliberationDays: 14, curationDays: 3, votingDays: 14 },
   },
 };
@@ -137,7 +126,7 @@ export function AssemblyList() {
                       <AssemblyInitial name={asm.name} />
                       <div>
                         <h3 className="font-medium text-text-primary">{asm.name}</h3>
-                        <p className="text-sm text-text-muted mt-0.5">{presetLabel(asm.config.name, t)}</p>
+                        <p className="text-sm text-text-muted mt-0.5">{quadrantLabel(asm.config, t)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -342,7 +331,7 @@ function ConfigModal({
   const { t } = useTranslation("governance");
   const [draft, setDraft] = useState<ConfigDraft>(() => structuredClone(config));
 
-  const update = (section: "delegation" | "ballot" | "features", values: Record<string, unknown>) => {
+  const update = (section: "delegation" | "ballot", values: Record<string, unknown>) => {
     setDraft((prev) => ({ ...prev, [section]: { ...prev[section], ...values } }));
   };
 
@@ -423,12 +412,6 @@ function ConfigModal({
             </Row>
           </Section>
 
-          {/* Features */}
-          <Section title={t("assemblyList.sectionFeatures")}>
-            <Toggle label={t("assemblyList.featureCommunityNotes")} checked={draft.features.communityNotes} onChange={(v) => update("features", { communityNotes: v })} />
-            <Toggle label={t("assemblyList.featurePredictions")} checked={draft.features.predictions} onChange={(v) => update("features", { predictions: v })} />
-            <Toggle label={t("assemblyList.featureSurveys")} checked={draft.features.surveys} onChange={(v) => update("features", { surveys: v })} />
-          </Section>
         </div>
 
         {/* Footer */}
