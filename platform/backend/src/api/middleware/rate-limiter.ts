@@ -42,14 +42,16 @@ function startCleanup() {
   }
 }
 
-function getClientIp(c: Context): string {
-  // Trust X-Forwarded-For only from reverse proxies (ALB, CloudFront).
-  // In production, the ALB sets this header; locally it may be absent.
-  const forwarded = c.req.header("X-Forwarded-For")?.split(",")[0]?.trim();
-  if (forwarded) return forwarded;
-  const realIp = c.req.header("X-Real-IP");
-  if (realIp) return realIp;
-  // Fall back to the actual connection address (works in local dev without proxy)
+function getClientIp(c: Context, trustProxy: boolean): string {
+  // Only trust forwarded headers when explicitly configured (behind ALB, CloudFront).
+  // Without trustProxy, an attacker can bypass rate limiting by spoofing these headers.
+  if (trustProxy) {
+    const forwarded = c.req.header("X-Forwarded-For")?.split(",")[0]?.trim();
+    if (forwarded) return forwarded;
+    const realIp = c.req.header("X-Real-IP");
+    if (realIp) return realIp;
+  }
+  // Direct connection IP (works in local dev and when not behind a proxy)
   try {
     const info = getConnInfo(c);
     if (info.remote?.address) return info.remote.address;
@@ -66,11 +68,11 @@ function getClientIp(c: Context): string {
  * @param windowMs - Window duration in milliseconds (default: 60s)
  * @param keyPrefix - Optional prefix to separate buckets (e.g., "auth" vs "global")
  */
-export function rateLimiter(maxRequests: number, windowMs = 60_000, keyPrefix = "global") {
+export function rateLimiter(maxRequests: number, windowMs = 60_000, keyPrefix = "global", trustProxy = false) {
   startCleanup();
 
   return async (c: Context, next: Next) => {
-    const ip = getClientIp(c);
+    const ip = getClientIp(c, trustProxy);
     const key = `${keyPrefix}:${ip}`;
     const now = Date.now();
 

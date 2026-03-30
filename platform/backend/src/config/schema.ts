@@ -41,6 +41,10 @@ export interface BackendConfig {
   oauthMicrosoftClientSecret: string;
   oauthRedirectBaseUrl: string;
   oauthFrontendUrl: string;
+  /** Trust proxy headers (X-Forwarded-For, X-Real-IP) for client IP detection.
+   *  Set to true when running behind a reverse proxy (ALB, CloudFront).
+   *  Default: true in production, false otherwise. */
+  trustProxy: boolean;
 }
 
 const DEFAULT_JWT_SECRET = "backend-dev-secret-do-not-use-in-production";
@@ -89,6 +93,9 @@ export function loadConfig(): BackendConfig {
     oauthMicrosoftClientSecret: process.env["OAUTH_MICROSOFT_CLIENT_SECRET"] ?? "",
     oauthRedirectBaseUrl: process.env["OAUTH_REDIRECT_BASE_URL"] ?? "http://localhost:4000",
     oauthFrontendUrl: process.env["OAUTH_FRONTEND_URL"] ?? "http://localhost:5173",
+    trustProxy: process.env["BACKEND_TRUST_PROXY"]
+      ? process.env["BACKEND_TRUST_PROXY"] === "true"
+      : process.env["NODE_ENV"] === "production",
   };
 }
 

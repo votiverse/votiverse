@@ -100,9 +100,9 @@ export function createApp(deps: AppDependencies): Hono {
   // Rate limiting (can be disabled when AWS WAF handles it)
   if (config.rateLimitEnabled) {
     // Stricter limit on auth endpoints (10 req/min per IP)
-    app.use("/auth/*", rateLimiter(10, 60_000, "auth"));
+    app.use("/auth/*", rateLimiter(10, 60_000, "auth", config.trustProxy));
     // Global baseline (100 req/min per IP)
-    app.use("*", rateLimiter(100, 60_000, "global"));
+    app.use("*", rateLimiter(100, 60_000, "global", config.trustProxy));
   }
 
   app.use("*", createAuthMiddleware(config.jwtSecret));
