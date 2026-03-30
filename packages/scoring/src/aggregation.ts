@@ -103,6 +103,8 @@ export function aggregateEvaluators(
       return median(scores);
     case "trimmed-mean":
       return trimmedMean(scores);
+    default:
+      return method satisfies never;
   }
 }
 
@@ -122,6 +124,8 @@ export function aggregateDimensions(
       return weightedSum(categoryScores);
     case "geometric-mean":
       return weightedGeometricMean(categoryScores);
+    default:
+      return method satisfies never;
   }
 }
 
