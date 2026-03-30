@@ -135,7 +135,10 @@ export function requireParticipant(manager: AssemblyManager) {
       return next();
     }
 
-    // No assembly context — pass through raw participant ID
+    // SECURITY: No assembly context — trust the participant ID from the header.
+    // This is safe ONLY because VCP runs behind the backend proxy, which validates
+    // participant identity before forwarding. If VCP is exposed directly, this
+    // path MUST be removed or replaced with JWT-only validation.
     c.set("participantId", participantId);
     return next();
   };

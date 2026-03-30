@@ -1,5 +1,21 @@
 /**
  * HTTP API server — wires all routes together.
+ *
+ * SECURITY: Trust Boundary
+ *
+ * The VCP is designed to run behind the client backend proxy, which is the
+ * sole entry point for external traffic. The backend validates user identity
+ * (JWT sessions, email verification) and authorization (group membership,
+ * admin roles, capability gating) before forwarding requests to VCP.
+ *
+ * VCP's auth middleware authenticates the *client application* (via API key
+ * or JWT), not the end-user. Participant identity (X-Participant-Id) is
+ * trusted from the backend proxy. If VCP is ever exposed directly to the
+ * internet, participant identity MUST be validated independently (e.g.,
+ * via JWT-only auth mode with per-user tokens).
+ *
+ * VCP MUST NOT be exposed to the public internet without an API gateway
+ * or the backend proxy in front of it.
  */
 
 import { Hono } from "hono";
