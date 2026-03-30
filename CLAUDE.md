@@ -19,7 +19,7 @@ The repository has three layers:
 - `docs/integration-architecture.md` — 3-tier system architecture, VCP/backend boundary, API contract
 - `docs/papers/paper-i-whitepaper.md` — governance model, formal properties, design rationale
 - `docs/papers/paper-ii-self-sustaining-governance.md` — proposals, candidacies, community notes, self-sustaining governance
-- `docs/design/groups-and-capabilities.md` — **upcoming refactor**: Group entity, capabilities as layers, VCP/backend boundary, FeatureConfig removal, prediction decoupling
+- `docs/design/groups-and-capabilities.md` — **implemented**: Group entity, capabilities as layers, VCP/backend boundary, GovernanceConfig cleanup
 - `docs/design/app-design-system.md` — web UI design system: brand palette, tokens, typography, layout, components, dark mode
 - `docs/design/content-architecture.md` — design for proposals, candidacies, community notes, asset storage
 - `docs/design/candidacy-lifecycle.md` — candidacy versioning, withdrawal, note persistence principle, website URL
@@ -113,10 +113,10 @@ These decisions are final. Do not reconsider them without explicit instruction f
 - **Styling:** Tailwind CSS
 - **State management:** No global store (no Redux/Zustand). Data fetching uses `useApi` hook with per-component fetch. Cross-component cache invalidation uses **mutation signals** (`useMutationSignal`).
 
-**Mutation signals:** When a mutation happens (e.g., creating an assembly), the mutating component calls `signal("assemblies")`. Any hook or component subscribed via `useSignal("assemblies")` automatically re-renders and re-fetches. This is a lightweight pub/sub pattern (50 lines, no dependencies) that avoids stale data after mutations without introducing a global state store.
+**Mutation signals:** When a mutation happens (e.g., creating a group), the mutating component calls `signal("groups")`. Any hook or component subscribed via `useSignal("groups")` automatically re-renders and re-fetches. This is a lightweight pub/sub pattern (50 lines, no dependencies) that avoids stale data after mutations without introducing a global state store.
 
 - `useApi(fetcher, deps, signalKey?)` — fetches data, auto-refetches when the signal fires
-- `useAssembly` — assembly config cache, invalidated on `"assemblies"` signal
+- `useGroup` — assembly config cache, invalidated on `"assemblies"` signal
 - `useAttention` — sidebar pending counts, re-fetches on `"assemblies"` signal
 - `useIdentity` — user profile + memberships, re-fetches on `"assemblies"` signal
 
@@ -219,7 +219,7 @@ cli → engine → [awareness, voting, survey, prediction, integrity, content]
 
 **Concretely:** If the web UI hides "Create Vote" from non-admins, the backend proxy MUST reject `POST /events` from non-admins with 403. If the web UI hides "New Topic" from non-admins, the backend MUST reject `POST /topics` from non-admins with 403. It should not be possible to bypass any access gate using `curl` or similar tools.
 
-**Pattern:** Use the shared `isAdminOf()` helper in `platform/backend/src/lib/admin-check.ts` for backend-side admin checks. Use `useAssemblyRole()` hook in `platform/web/src/hooks/use-assembly-role.ts` for frontend display gating. Both must agree — if one checks, the other must check too.
+**Pattern:** Use the shared `isAdminOfGroup()` helper in `platform/backend/src/lib/admin-check.ts` for backend-side admin checks. Use `useGroupRole()` hook in `platform/web/src/hooks/use-group-role.ts` for frontend display gating. Both must agree — if one checks, the other must check too.
 
 ### Naming
 - Packages: `@votiverse/<name>` (lowercase, single word)
@@ -254,7 +254,7 @@ cli → engine → [awareness, voting, survey, prediction, integrity, content]
 
 Work proceeds in phases. Complete one phase fully before starting the next. At the end of each phase, run all tests, write a status report in the PR description, and STOP. Do not proceed to the next phase without explicit instruction.
 
-**Current status:** All engine packages (Phases 1–7) are complete, including `@votiverse/content` (proposals, candidacies, community notes). The platform layer implements a full working UI: voting, delegations, surveys, predictions, awareness, proposals with TipTap editor, delegate candidacies with candidacy discovery, community notes with evaluations, and member search. Group creation with LIQUID_DELEGATION default, assembly roles (owner/admin), curation phase enforcement. Onboarding system: handles (@username), invite links with public group preview, direct invitations by handle, multi-step onboarding dialog, avatar style picker, profile editing. Invitation hardening: email notifications (InvitationNotifier with adapter pattern), bulk CSV import with preview. Admission control: backend-owned mutable `admissionMode` (open/approval/invite-only), join request flow, Sybil risk warnings in UI. 830+ tests across engine (471), VCP (143), backend (146), web (16), and config (88).
+**Current status:** All engine packages (Phases 1–7) are complete. The **groups-and-capabilities refactor** is complete: groups are the top-level entity with independently toggleable capabilities (voting, scoring, surveys, community notes). The backend owns roles (`group_members.role`), capabilities (`group_capabilities`), and group metadata. The VCP is a pure computation engine with nullable config and unified `stances` table. GovernanceConfig has 10 voting-specific parameters (no FeatureConfig). The web UI uses "group" terminology everywhere with `/group/:id/...` routes. 720+ tests across engine (471), VCP (131), backend (168), web (16), and config (61).
 
 Detailed per-phase task lists (Phases 1–7) are in git history. Future phases follow the same discipline: complete fully, run all tests, write status report, STOP.
 
@@ -262,20 +262,19 @@ Detailed per-phase task lists (Phases 1–7) are in git history. Future phases f
 
 ---
 
-## Upcoming Refactor: Groups and Capabilities
+## Completed Refactor: Groups and Capabilities
 
-**Read `docs/design/groups-and-capabilities.md` before starting any implementation work on this refactor.**
+**See `docs/design/groups-and-capabilities.md` for the full design rationale.**
 
-A pre-production architectural refactor is planned that will change several foundational assumptions in the codebase. The full design, rationale, schema audit, and implementation sequence are in the design document. Key changes:
+This refactor has been implemented. The codebase now uses groups as the top-level entity with independently toggleable capabilities. Key changes that are now in effect:
 
-- **Group entity.** A new backend-owned entity ("group") becomes the user-facing top-level concept. The VCP's "assembly" becomes an internal implementation detail that users never see. URLs shift from `/assembly/:id/...` to `/group/:id/...`.
-- **Capabilities as layers.** Voting, scoring, surveys, and community notes become independently toggleable capabilities managed by the backend's `group_capabilities` table, not by `FeatureConfig` in `GovernanceConfig`.
-- **`FeatureConfig` removed from `GovernanceConfig`.** All capability gating moves to the backend. The VCP processes whatever the backend sends — it has no capability flags. `GovernanceConfig` shrinks to 10 voting-specific parameters: delegation (2) + ballot (5) + timeline (3).
-- **Predictions decoupled.** Predictions become a platform-level feature, always available, not per-group. `Prediction.proposalId` becomes optional (standalone predictions). No prediction mode dropdown.
-- **VCP/backend boundary sharpened.** VCP = computation integrity (one-per-member, delegation graphs, tallying, immutability). Backend = access control (auth, roles, capabilities, admission). Roles move from VCP to backend.
-- **Delegation quadrants.** Four named models: Direct, Open, Proxy, Liquid. The quadrant is the only immutable setting. Other ballot/timeline settings are adjustable between events.
-
-Until this refactor is implemented, the current code still uses assemblies as the top-level entity with `FeatureConfig` in `GovernanceConfig`. Follow the existing patterns for any work that isn't part of the refactor.
+- **Group entity.** The backend-owned "group" is the user-facing top-level concept. The VCP's "assembly" is an internal implementation detail. URLs are `/group/:id/...`. The `groups`, `group_capabilities`, and `group_members` tables are in the backend.
+- **Capabilities as layers.** Voting, scoring, surveys, and community notes are independently toggleable via `group_capabilities`. The backend checks capabilities before proxying to the VCP.
+- **`GovernanceConfig` is voting-only.** 10 parameters: delegation (2) + ballot (5) + timeline (3). No `FeatureConfig`, no `name`, no `description`. Capability gating is the backend's job.
+- **Predictions decoupled.** Always available as a platform feature. `Prediction.proposalId` is optional (standalone predictions).
+- **Roles owned by backend.** `group_members.role` (owner/admin/member) replaces VCP's `assembly_roles`. The VCP no longer enforces roles.
+- **VCP generalized.** `assemblies.config` is nullable (non-voting groups). Unified `stances` table replaces `proposal_endorsements`, `entity_endorsements`, `note_evaluations`.
+- **Delegation quadrants.** Direct, Open, Proxy, Liquid — selected when voting is enabled for a group.
 
 ---
 
@@ -327,7 +326,7 @@ platform/
 │   │   ├── config/schema.ts     ← BackendConfig, env vars
 │   │   ├── lib/                 ← logger, metrics, jwt, password
 │   │   ├── adapters/            ← database (SQLite/PostgreSQL)
-│   │   ├── services/            ← user-service, session-service,
+│   │   ├── services/            ← user-service, session-service, group-service,
 │   │   │                          membership-service, vcp-client
 │   │   └── api/
 │   │       ├── server.ts        ← Hono app, middleware, route mounting
@@ -335,7 +334,7 @@ platform/
 │   │       └── routes/          ← auth, me, proxy (to VCP)
 │   ├── test/                    ← integration tests
 │   └── scripts/
-│       ├── seed.ts              ← creates users + memberships from VCP data
+│       ├── seed.ts              ← creates users, groups + memberships from VCP data
 │       └── reset.ts             ← wipes backend DB, seeds from VCP
 └── web/                         ← React web UI
     ├── src/
@@ -343,11 +342,12 @@ platform/
     │   ├── api/
     │   │   ├── client.ts        ← HTTP client functions (fetch wrappers)
     │   │   └── types.ts         ← API response types
-    │   ├── hooks/               ← useApi, useIdentity, useAssembly
+    │   ├── hooks/               ← useApi, useIdentity, useGroup, useGroupRole
     │   ├── components/          ← layout, avatar, topic-picker, UI primitives
-    │   └── pages/               ← dashboard, events, event-detail, delegations,
-    │                              polls, predictions, awareness
-    └── TESTING.md               ← test identity guide, assembly matrix
+    │   └── pages/               ← dashboard, group-list, group-dashboard, create-group,
+    │                              events, event-detail, delegations, surveys,
+    │                              scoring, predictions, notes, members
+    └── TESTING.md               ← test identity guide, group-by-feature matrix
 ```
 
 ---
