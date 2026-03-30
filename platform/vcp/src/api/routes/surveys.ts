@@ -6,16 +6,16 @@ import { Hono } from "hono";
 import type { TopicId, SurveyId, ParticipantId } from "@votiverse/core";
 import type { CreateSurveyParams, SubmitResponseParams } from "@votiverse/survey";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
-import { requireParticipant, requireScope } from "../middleware/auth.js";
+import { getParticipantId, requireParticipant, requireScope } from "../middleware/auth.js";
 import { parsePagination, paginate } from "../middleware/pagination.js";
 
 export function surveyRoutes(manager: AssemblyManager) {
   const app = new Hono();
 
-  /** GET /assemblies/:id/surveys — list all surveys. Optional ?participantId= to include hasResponded. */
+  /** GET /assemblies/:id/surveys — list all surveys. Uses authenticated participant for hasResponded. */
   app.get("/assemblies/:id/surveys", async (c) => {
     const assemblyId = c.req.param("id");
-    const participantId = c.req.query("participantId") as ParticipantId | undefined;
+    const participantId = getParticipantId(c) as ParticipantId | undefined;
 
     const { engine } = await manager.getEngine(assemblyId);
     const surveys = await engine.surveys.list();
