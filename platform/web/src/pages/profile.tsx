@@ -138,7 +138,7 @@ export function Profile() {
       </div>
 
       {/* Identity card — always visible above tabs */}
-      <Card className="mb-4">
+      <Card className="mb-8">
         <CardBody>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
