@@ -17,27 +17,27 @@ const MarkdownViewer = lazy(() =>
 );
 
 /**
- * Standalone candidacy profile page — /assembly/:assemblyId/candidacies/:candidacyId
+ * Standalone candidacy profile page — /group/:groupId/candidacies/:candidacyId
  * Shows the full candidate profile with statement, community notes, and topic badges.
  */
 export function CandidacyProfile() {
   const { t } = useTranslation("governance");
-  const { assemblyId, candidacyId } = useParams();
+  const { groupId, candidacyId } = useParams();
   const { getParticipantId } = useIdentity();
   const navigate = useNavigate();
-  const myParticipantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const myParticipantId = groupId ? getParticipantId(groupId) : null;
 
   const { data: candidacy, loading, error } = useApi(
-    () => api.getCandidacy(assemblyId!, candidacyId!),
-    [assemblyId, candidacyId],
+    () => api.getCandidacy(groupId!, candidacyId!),
+    [groupId, candidacyId],
   );
-  const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
-  const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
+  const { data: participantsData } = useApi(() => api.listParticipants(groupId!), [groupId]);
+  const { data: topicsData } = useApi(() => api.listTopics(groupId!), [groupId]);
 
   // Endorsement state
   const { data: endorsementData } = useApi(
-    () => api.getEndorsements(assemblyId!, "candidacy", [candidacyId!]),
-    [assemblyId, candidacyId],
+    () => api.getEndorsements(groupId!, "candidacy", [candidacyId!]),
+    [groupId, candidacyId],
   );
   const [localEndorsement, setLocalEndorsement] = useState<EndorsementCounts | null>(null);
   const endorsement: EndorsementCounts = localEndorsement
@@ -62,8 +62,8 @@ export function CandidacyProfile() {
     if (!confirm(t("candidacies.withdrawConfirm"))) return;
     setWithdrawing(true);
     try {
-      await api.withdrawCandidacy(assemblyId!, candidacyId!);
-      navigate(`/assembly/${assemblyId}/candidacies`);
+      await api.withdrawCandidacy(groupId!, candidacyId!);
+      navigate(`/group/${groupId}/candidacies`);
     } catch (err) {
       alert(err instanceof Error ? err.message : t("candidacies.withdrawFailed"));
     } finally {
@@ -75,7 +75,7 @@ export function CandidacyProfile() {
     <div className="max-w-3xl mx-auto space-y-5 animate-page-in">
       {/* Back link */}
       <Link
-        to={`/assembly/${assemblyId}/candidacies`}
+        to={`/group/${groupId}/candidacies`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
       >
         <ChevronLeft size={16} />
@@ -165,7 +165,7 @@ export function CandidacyProfile() {
           </h2>
         </CardHeader>
         <CardBody>
-          <NotesList assemblyId={assemblyId!} targetType="candidacy" targetId={candidacyId!} />
+          <NotesList groupId={groupId!} targetType="candidacy" targetId={candidacyId!} />
         </CardBody>
       </Card>
 
@@ -176,7 +176,7 @@ export function CandidacyProfile() {
       <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-surface-raised/95 backdrop-blur-md border-t border-border-default z-40">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <EndorseButton
-            assemblyId={assemblyId!}
+            groupId={groupId!}
             targetType="candidacy"
             targetId={candidacyId!}
             counts={endorsement}
@@ -186,7 +186,7 @@ export function CandidacyProfile() {
           {isOwn && (
             <>
               <Link
-                to={`/assembly/${assemblyId}/candidacies`}
+                to={`/group/${groupId}/candidacies`}
                 className="text-sm text-accent-text hover:text-accent-strong-text inline-flex items-center gap-1.5 min-h-[36px]"
               >
                 <Pencil size={14} />

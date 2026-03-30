@@ -9,17 +9,17 @@ import { Card, CardHeader, CardBody, Spinner, ErrorBox, EmptyState, Badge } from
 
 export function Predictions() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const participantId = groupId ? getParticipantId(groupId) : null;
 
   const { data: predictionsData, loading: loadingPred, error: errorPred } = useApi(
-    () => participantId ? api.listPredictions(assemblyId!, participantId) : Promise.resolve({ predictions: [] }),
-    [assemblyId, participantId],
+    () => participantId ? api.listPredictions(groupId!, participantId) : Promise.resolve({ predictions: [] }),
+    [groupId, participantId],
   );
   const { data: trackRecord, loading: loadingTR, error: errorTR } = useApi(
-    () => participantId ? api.getTrackRecord(assemblyId!, participantId) : Promise.resolve(null),
-    [assemblyId, participantId],
+    () => participantId ? api.getTrackRecord(groupId!, participantId) : Promise.resolve(null),
+    [groupId, participantId],
   );
 
   const loading = loadingPred || loadingTR;
@@ -59,7 +59,7 @@ export function Predictions() {
       ) : (
         <div className="space-y-3">
           {predictions.map((p) => (
-            <PredictionCard key={p.id} prediction={p} assemblyId={assemblyId!} />
+            <PredictionCard key={p.id} prediction={p} groupId={groupId!} />
           ))}
         </div>
       )}
@@ -98,7 +98,7 @@ function TrackRecordCard({ record }: { record: TrackRecord }) {
   );
 }
 
-function PredictionCard({ prediction }: { prediction: Prediction; assemblyId: string }) {
+function PredictionCard({ prediction }: { prediction: Prediction; groupId: string }) {
   const { t } = useTranslation("governance");
   const claim = prediction.claim;
   const patternType = Object.keys(claim.pattern)[0] ?? "unknown";

@@ -3,7 +3,7 @@
  * their group's governance model on first visit after joining.
  *
  * Steps are conditional based on the group's GovernanceConfig.
- * State is tracked in localStorage per assembly.
+ * State is tracked in localStorage per group.
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -16,16 +16,16 @@ import { Button } from "./ui.js";
 
 const STORAGE_KEY_PREFIX = "votiverse:onboarding-complete:";
 
-export function shouldShowOnboarding(assemblyId: string): boolean {
-  return localStorage.getItem(`${STORAGE_KEY_PREFIX}${assemblyId}`) !== "1";
+export function shouldShowOnboarding(groupId: string): boolean {
+  return localStorage.getItem(`${STORAGE_KEY_PREFIX}${groupId}`) !== "1";
 }
 
-export function markOnboardingComplete(assemblyId: string): void {
-  localStorage.setItem(`${STORAGE_KEY_PREFIX}${assemblyId}`, "1");
+export function markOnboardingComplete(groupId: string): void {
+  localStorage.setItem(`${STORAGE_KEY_PREFIX}${groupId}`, "1");
 }
 
-export function resetOnboarding(assemblyId: string): void {
-  localStorage.removeItem(`${STORAGE_KEY_PREFIX}${assemblyId}`);
+export function resetOnboarding(groupId: string): void {
+  localStorage.removeItem(`${STORAGE_KEY_PREFIX}${groupId}`);
 }
 
 // ── Step definitions ─────────────────────────────────────────────────
@@ -36,13 +36,13 @@ interface Step {
   lines: string[];
 }
 
-function buildSteps(config: GovernanceConfig, assemblyName: string, t: (key: string, opts?: Record<string, unknown>) => string): Step[] {
+function buildSteps(config: GovernanceConfig, groupName: string, t: (key: string, opts?: Record<string, unknown>) => string): Step[] {
   const steps: Step[] = [];
 
   // 1. Welcome (always)
   steps.push({
     icon: "👋",
-    title: t("step.welcome.title", { name: assemblyName }),
+    title: t("step.welcome.title", { name: groupName }),
     lines: [
       t("step.welcome.governanceModel", { preset: quadrantLabel(config) }),
       t("step.welcome.overview"),
@@ -120,15 +120,15 @@ function buildSteps(config: GovernanceConfig, assemblyName: string, t: (key: str
 // ── Component ────────────────────────────────────────────────────────
 
 interface OnboardingDialogProps {
-  assemblyId: string;
-  assemblyName: string;
+  groupId: string;
+  groupName: string;
   config: GovernanceConfig;
   onDismiss: () => void;
 }
 
-export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }: OnboardingDialogProps) {
+export function OnboardingDialog({ groupId, groupName, config, onDismiss }: OnboardingDialogProps) {
   const { t } = useTranslation("onboarding");
-  const steps = buildSteps(config, assemblyName, t);
+  const steps = buildSteps(config, groupName, t);
   const [currentStep, setCurrentStep] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -138,21 +138,21 @@ export function OnboardingDialog({ assemblyId, assemblyName, config, onDismiss }
 
   const handleNext = useCallback(() => {
     if (isLast) {
-      markOnboardingComplete(assemblyId);
+      markOnboardingComplete(groupId);
       onDismiss();
     } else {
       setCurrentStep((s) => s + 1);
     }
-  }, [isLast, assemblyId, onDismiss]);
+  }, [isLast, groupId, onDismiss]);
 
   const handleBack = useCallback(() => {
     setCurrentStep((s) => Math.max(0, s - 1));
   }, []);
 
   const handleSkip = useCallback(() => {
-    markOnboardingComplete(assemblyId);
+    markOnboardingComplete(groupId);
     onDismiss();
-  }, [assemblyId, onDismiss]);
+  }, [groupId, onDismiss]);
 
   // Focus trap: auto-focus the dialog on mount
   useEffect(() => {

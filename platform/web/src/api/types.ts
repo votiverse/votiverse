@@ -10,7 +10,7 @@ export type AdmissionMode = "open" | "approval" | "invite-only";
 
 export type VoteCreation = "admin" | "members";
 
-export interface Assembly {
+export interface Group {
   id: string;
   organizationId: string | null;
   name: string;
@@ -20,18 +20,19 @@ export interface Assembly {
   admissionMode?: AdmissionMode;
   websiteUrl?: string | null;
   voteCreation?: VoteCreation;
+  capabilities?: string[];
 }
 
-export interface AssemblyRole {
+export interface GroupRole {
   participantId: string;
   role: string;
   name: string | null;
   grantedAt: number;
 }
 
-export interface AssemblyProfile extends Assembly {
-  owners: AssemblyRole[];
-  admins: AssemblyRole[];
+export interface GroupProfile extends Group {
+  owners: GroupRole[];
+  admins: GroupRole[];
   memberCount: number;
 }
 
@@ -228,8 +229,8 @@ export type NotificationUrgency = "action" | "timely" | "info";
 export interface Notification {
   id: string;
   userId: string;
-  assemblyId: string;
-  assemblyName?: string;
+  groupId: string;
+  groupName?: string;
   type: string;
   urgency: NotificationUrgency;
   title: string;
@@ -243,7 +244,7 @@ export interface Notification {
 
 export interface JoinRequest {
   id: string;
-  assemblyId: string;
+  groupId: string;
   userId: string;
   userName: string;
   userHandle: string | null;
@@ -251,7 +252,7 @@ export interface JoinRequest {
   reviewedBy: string | null;
   reviewedAt: string | null;
   createdAt: string;
-  assemblyName?: string;
+  groupName?: string;
 }
 
 // ---- Notification Preferences ----
@@ -307,7 +308,7 @@ export interface TrackRecord {
 
 export interface ProposalDraft {
   id: string;
-  assemblyId: string;
+  groupId: string;
   issueId: string;
   choiceKey?: string;
   authorId: string;

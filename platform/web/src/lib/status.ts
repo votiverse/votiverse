@@ -26,7 +26,7 @@ export type SurveyStatus = "scheduled" | "open" | "closed";
 export type ScoringStatus = "draft" | "open" | "closed";
 
 /**
- * Derive voting event status from its timeline and optional assembly timeline config.
+ * Derive voting event status from its timeline and optional group timeline config.
  * If timelineConfig is provided and has curationDays > 0, the curation phase
  * is computed as the window between deliberation end and voting start.
  */

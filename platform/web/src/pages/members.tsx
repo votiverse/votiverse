@@ -11,11 +11,11 @@ import type { AdmissionMode } from "../api/types.js";
 
 export function Members() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
-  const { data, loading, error, refetch } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
-  const { data: settingsData, refetch: refetchSettings } = useApi(() => api.getAssemblySettings(assemblyId!), [assemblyId]);
+  const { groupId } = useParams();
+  const { data, loading, error, refetch } = useApi(() => api.listParticipants(groupId!), [groupId]);
+  const { data: settingsData, refetch: refetchSettings } = useApi(() => api.getGroupSettings(groupId!), [groupId]);
   const [showSettings, setShowSettings] = useState(false);
-  const { data: joinRequestsData, refetch: refetchJoinRequests } = useApi(() => api.listJoinRequests(assemblyId!).catch(() => ({ joinRequests: [] })), [assemblyId]);
+  const { data: joinRequestsData, refetch: refetchJoinRequests } = useApi(() => api.listJoinRequests(groupId!).catch(() => ({ joinRequests: [] })), [groupId]);
   const [adding, setAdding] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function Members() {
 
   const handleGenerateInvite = async () => {
     try {
-      const result = await api.createInviteLink(assemblyId!) as { token: string; expiresAt?: string };
+      const result = await api.createInviteLink(groupId!) as { token: string; expiresAt?: string };
       const link = `${window.location.origin}/invite/${result.token}`;
       setInviteLink(link);
       setInviteExpiresAt(result.expiresAt ?? null);
@@ -83,8 +83,8 @@ export function Members() {
       </div>
 
       {showSettings && (
-        <AssemblySettings
-          assemblyId={assemblyId!}
+        <GroupSettings
+          groupId={groupId!}
           currentMode={admissionMode}
           currentWebsiteUrl={settingsData?.websiteUrl ?? null}
           currentVoteCreation={(settingsData?.voteCreation as "admin" | "members") ?? "admin"}
@@ -131,14 +131,14 @@ export function Members() {
 
       {showDirectInvite && (
         <DirectInviteForm
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           onClose={() => setShowDirectInvite(false)}
         />
       )}
 
       {showBulkInvite && (
         <BulkInvite
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           onClose={() => setShowBulkInvite(false)}
         />
       )}
@@ -156,7 +156,7 @@ export function Members() {
                 <PendingRequestRow
                   key={req.id}
                   request={req}
-                  assemblyId={assemblyId!}
+                  groupId={groupId!}
                   onAction={() => { void refetchJoinRequests(); void refetch(); }}
                 />
               ))}
@@ -167,7 +167,7 @@ export function Members() {
 
       {adding && (
         <AddMemberForm
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           onClose={() => setAdding(false)}
           onAdded={refetch}
         />
@@ -197,7 +197,7 @@ export function Members() {
                       {p.status}
                     </Badge>
                   )}
-                  <RemoveButton assemblyId={assemblyId!} participantId={p.id} onRemoved={refetch} />
+                  <RemoveButton groupId={groupId!} participantId={p.id} onRemoved={refetch} />
                 </div>
               </div>
             ))}
@@ -208,7 +208,7 @@ export function Members() {
   );
 }
 
-function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; onClose: () => void; onAdded: () => void }) {
+function AddMemberForm({ groupId, onClose, onAdded }: { groupId: string; onClose: () => void; onAdded: () => void }) {
   const { t } = useTranslation("governance");
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -220,7 +220,7 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
     setSubmitting(true);
     setError(null);
     try {
-      await api.addParticipant(assemblyId, name.trim());
+      await api.addParticipant(groupId, name.trim());
       setName("");
       onAdded();
       onClose();
@@ -253,7 +253,7 @@ function AddMemberForm({ assemblyId, onClose, onAdded }: { assemblyId: string; o
   );
 }
 
-function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose: () => void }) {
+function DirectInviteForm({ groupId, onClose }: { groupId: string; onClose: () => void }) {
   const { t } = useTranslation("governance");
   const [handle, setHandle] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -267,7 +267,7 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
     setSubmitting(true);
     setError(null);
     try {
-      await api.createDirectInvite(assemblyId, h);
+      await api.createDirectInvite(groupId, h);
       setSent(true);
       setTimeout(() => { setSent(false); setHandle(""); }, 2000);
     } catch (err: unknown) {
@@ -306,14 +306,14 @@ function DirectInviteForm({ assemblyId, onClose }: { assemblyId: string; onClose
   );
 }
 
-function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: string; userName: string; userHandle: string | null; createdAt: string }; assemblyId: string; onAction: () => void }) {
+function PendingRequestRow({ request, groupId, onAction }: { request: { id: string; userName: string; userHandle: string | null; createdAt: string }; groupId: string; onAction: () => void }) {
   const { t } = useTranslation("governance");
   const [acting, setActing] = useState(false);
 
   const handleApprove = async () => {
     setActing(true);
     try {
-      await api.approveJoinRequest(assemblyId, request.id);
+      await api.approveJoinRequest(groupId, request.id);
       onAction();
     } catch { /* ignore */ }
     finally { setActing(false); }
@@ -322,7 +322,7 @@ function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: s
   const handleReject = async () => {
     setActing(true);
     try {
-      await api.rejectJoinRequest(assemblyId, request.id);
+      await api.rejectJoinRequest(groupId, request.id);
       onAction();
     } catch { /* ignore */ }
     finally { setActing(false); }
@@ -350,7 +350,7 @@ function PendingRequestRow({ request, assemblyId, onAction }: { request: { id: s
   );
 }
 
-function AssemblySettings({ assemblyId, currentMode, currentWebsiteUrl, currentVoteCreation, onChanged }: { assemblyId: string; currentMode: AdmissionMode; currentWebsiteUrl: string | null; currentVoteCreation: "admin" | "members"; onChanged: () => void }) {
+function GroupSettings({ groupId, currentMode, currentWebsiteUrl, currentVoteCreation, onChanged }: { groupId: string; currentMode: AdmissionMode; currentWebsiteUrl: string | null; currentVoteCreation: "admin" | "members"; onChanged: () => void }) {
   const { t } = useTranslation("governance");
   const [mode, setMode] = useState(currentMode);
   const [websiteUrl, setWebsiteUrl] = useState(currentWebsiteUrl ?? "");
@@ -366,11 +366,11 @@ function AssemblySettings({ assemblyId, currentMode, currentWebsiteUrl, currentV
     setSaving(true);
     setError(null);
     try {
-      const updates: Parameters<typeof api.updateAssemblySettings>[1] = {};
+      const updates: Parameters<typeof api.updateGroupSettings>[1] = {};
       if (modeChanged) updates.admissionMode = mode;
       if (urlChanged) updates.websiteUrl = websiteUrl.trim();
       if (voteCreationChanged) updates.voteCreation = voteCreation;
-      await api.updateAssemblySettings(assemblyId, updates);
+      await api.updateGroupSettings(groupId, updates);
       onChanged();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("members.updateError"));
@@ -440,7 +440,7 @@ function AssemblySettings({ assemblyId, currentMode, currentWebsiteUrl, currentV
   );
 }
 
-function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: string; participantId: string; onRemoved: () => void }) {
+function RemoveButton({ groupId, participantId, onRemoved }: { groupId: string; participantId: string; onRemoved: () => void }) {
   const { t } = useTranslation("governance");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -448,7 +448,7 @@ function RemoveButton({ assemblyId, participantId, onRemoved }: { assemblyId: st
   const handleRemove = async () => {
     setError(null);
     try {
-      await api.removeParticipant(assemblyId, participantId);
+      await api.removeParticipant(groupId, participantId);
       onRemoved();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("members.removeError"));

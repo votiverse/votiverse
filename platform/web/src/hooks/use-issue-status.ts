@@ -24,16 +24,16 @@ const EMPTY_STATUS: Omit<IssueStatus, "refetch"> = {
 };
 
 /**
- * Cache voting history per (assemblyId, participantId) so that multiple
+ * Cache voting history per (groupId, participantId) so that multiple
  * IssueVotingCards on the same EventDetail page share a single fetch.
  */
 const historyCache = new Map<string, Promise<VotingHistory>>();
 
-function getCachedHistory(assemblyId: string, participantId: string): Promise<VotingHistory> {
-  const key = `${assemblyId}:${participantId}`;
+function getCachedHistory(groupId: string, participantId: string): Promise<VotingHistory> {
+  const key = `${groupId}:${participantId}`;
   const cached = historyCache.get(key);
   if (cached) return cached;
-  const promise = api.getVotingHistory(assemblyId, participantId);
+  const promise = api.getVotingHistory(groupId, participantId);
   historyCache.set(key, promise);
   // Expire after 30 seconds to allow refetch after voting
   setTimeout(() => historyCache.delete(key), 30_000);
@@ -46,7 +46,7 @@ export function invalidateHistoryCache() {
 }
 
 export function useIssueStatus(
-  assemblyId: string | undefined,
+  groupId: string | undefined,
   participantId: string | null,
   issueId: string,
 ): IssueStatus {
@@ -60,7 +60,7 @@ export function useIssueStatus(
   }, []);
 
   useEffect(() => {
-    if (!assemblyId || !participantId) {
+    if (!groupId || !participantId) {
       setStatus({ ...EMPTY_STATUS, loading: false });
       return;
     }
@@ -70,8 +70,8 @@ export function useIssueStatus(
     (async () => {
       try {
         const [chain, history] = await Promise.allSettled([
-          api.resolveChain(assemblyId, participantId, issueId),
-          getCachedHistory(assemblyId, participantId),
+          api.resolveChain(groupId, participantId, issueId),
+          getCachedHistory(groupId, participantId),
         ]);
 
         if (versionRef.current !== version) return;
@@ -103,7 +103,7 @@ export function useIssueStatus(
         setStatus({ ...EMPTY_STATUS, loading: false });
       }
     })();
-  }, [assemblyId, participantId, issueId, fetchVersion]);
+  }, [groupId, participantId, issueId, fetchVersion]);
 
   return { ...status, refetch };
 }

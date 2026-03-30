@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../../hooks/use-api.js";
 import { useIdentity } from "../../hooks/use-identity.js";
-import { useAssembly } from "../../hooks/use-assembly.js";
+import { useGroup } from "../../hooks/use-group.js";
 import * as api from "../../api/client.js";
 import type { Topic, Candidacy, EndorsementCounts } from "../../api/types.js";
 import { Spinner, ErrorBox, EmptyState } from "../../components/ui.js";
@@ -28,35 +28,35 @@ type DelegatesView =
 
 export function Delegations() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
-  const { assembly } = useAssembly(assemblyId);
+  const participantId = groupId ? getParticipantId(groupId) : null;
+  const { group } = useGroup(groupId);
 
   const [view, setView] = useState<DelegatesView>({ level: "list" });
 
   // Data fetching — shared across all levels
-  const { data, loading, error, refetch } = useApi(() => api.listDelegations(assemblyId!), [assemblyId]);
-  const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
-  const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
+  const { data, loading, error, refetch } = useApi(() => api.listDelegations(groupId!), [groupId]);
+  const { data: participantsData } = useApi(() => api.listParticipants(groupId!), [groupId]);
+  const { data: topicsData } = useApi(() => api.listTopics(groupId!), [groupId]);
 
-  const delegationCandidacy = assembly?.config.delegation.candidacy ?? false;
-  const delegationEnabled = delegationCandidacy || (assembly?.config.delegation.transferable ?? false);
+  const delegationCandidacy = group?.config.delegation.candidacy ?? false;
+  const delegationEnabled = delegationCandidacy || (group?.config.delegation.transferable ?? false);
   const { data: candidaciesData } = useApi(
-    () => delegationCandidacy ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
-    [assemblyId, delegationCandidacy],
+    () => delegationCandidacy ? api.listCandidacies(groupId!, "active") : Promise.resolve({ candidacies: [] }),
+    [groupId, delegationCandidacy],
   );
 
   // Fetch endorsement counts for all candidacies
   const candidacyIds = (candidaciesData?.candidacies ?? []).map((c) => c.id);
   const { data: endorsementData, refetch: refetchEndorsements } = useApi(
-    () => candidacyIds.length > 0 ? api.getEndorsements(assemblyId!, "candidacy", candidacyIds) : Promise.resolve({ endorsements: {} }),
-    [assemblyId, candidacyIds.join(",")],
+    () => candidacyIds.length > 0 ? api.getEndorsements(groupId!, "candidacy", candidacyIds) : Promise.resolve({ endorsements: {} }),
+    [groupId, candidacyIds.join(",")],
   );
   const endorsementMap: Record<string, EndorsementCounts> = endorsementData?.endorsements ?? {};
 
   // Fetch events to resolve issue titles for issue-scoped delegations
-  const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
+  const { data: eventsData } = useApi(() => api.listEvents(groupId!), [groupId]);
   const issueEventMap = useMemo(() => {
     const map = new Map<string, { issueTitle: string; eventTitle: string }>();
     for (const evt of eventsData?.events ?? []) {
@@ -126,7 +126,7 @@ export function Delegations() {
     <div className={`max-w-3xl mx-auto ${animClass}`} key={view.level}>
       {view.level === "list" && (
         <DelegatesList
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           participantId={participantId}
           myOutgoing={myOutgoing}
           issueDelegations={myIssueDelegations}
@@ -142,7 +142,7 @@ export function Delegations() {
 
       {view.level === "browse" && (
         <BrowseCandidates
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           participantId={participantId}
           candidacies={candidacies}
           participants={participants}
@@ -157,7 +157,7 @@ export function Delegations() {
 
       {view.level === "detail" && (
         <CandidateProfile
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           candidacyId={view.candidacyId}
           candidacies={candidacies}
           nameMap={nameMap}
@@ -170,7 +170,7 @@ export function Delegations() {
 
       {view.level === "form" && (
         <ConfigureDelegation
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           targetId={view.targetId}
           targetName={view.targetName}
           candidacyTopics={view.candidacyTopics}

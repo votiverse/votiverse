@@ -2,22 +2,22 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
-import type { Assembly, DelegateProfile } from "../api/types.js";
+import type { Group, DelegateProfile } from "../api/types.js";
 import { Card, CardHeader, CardBody, Spinner, ErrorBox, EmptyState } from "../components/ui.js";
 import { Avatar } from "../components/avatar.js";
 
-interface AssemblyDelegateData {
-  assembly: Assembly;
+interface GroupDelegateData {
+  group: Group;
   profile: DelegateProfile | null;
 }
 
 export function ProfileDelegates() {
   const { t } = useTranslation("governance");
   const { storeUserId, memberships } = useIdentity();
-  const [data, setData] = useState<AssemblyDelegateData[]>([]);
+  const [data, setData] = useState<GroupDelegateData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAssembly, setSelectedAssembly] = useState<string>("all");
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
 
   useEffect(() => {
     if (!storeUserId || memberships.length === 0) { setLoading(false); return; }
@@ -25,19 +25,19 @@ export function ProfileDelegates() {
     (async () => {
       try {
         const membershipMap = new Map(
-          memberships.map((m) => [m.assemblyId, m.participantId]),
+          memberships.map((m) => [m.groupId, m.participantId]),
         );
-        const allAssemblies = await api.listAssemblies();
-        const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
-        const results: AssemblyDelegateData[] = [];
+        const allAssemblies = await api.listGroups();
+        const groups = allAssemblies.filter((a) => membershipMap.has(a.id));
+        const results: GroupDelegateData[] = [];
         await Promise.allSettled(
-          assemblies.map(async (asm) => {
-            const pid = membershipMap.get(asm.id)!;
+          groups.map(async (grp) => {
+            const pid = membershipMap.get(grp.id)!;
             try {
-              const profile = await api.getDelegateProfile(asm.id, pid);
-              results.push({ assembly: asm, profile });
+              const profile = await api.getDelegateProfile(grp.id, pid);
+              results.push({ group: grp, profile });
             } catch {
-              results.push({ assembly: asm, profile: null });
+              results.push({ group: grp, profile: null });
             }
           }),
         );
@@ -53,9 +53,9 @@ export function ProfileDelegates() {
 
   const filtered = useMemo(() => {
     return data
-      .filter((d) => selectedAssembly === "all" || d.assembly.id === selectedAssembly)
+      .filter((d) => selectedGroup === "all" || d.group.id === selectedGroup)
       .filter((d) => (d.profile?.myDelegations.length ?? 0) > 0);
-  }, [data, selectedAssembly]);
+  }, [data, selectedGroup]);
 
   if (!storeUserId) {
     return (
@@ -78,13 +78,13 @@ export function ProfileDelegates() {
       {data.length > 1 && (
         <div className="mb-6">
           <select
-            value={selectedAssembly}
-            onChange={(e) => setSelectedAssembly(e.target.value)}
+            value={selectedGroup}
+            onChange={(e) => setSelectedGroup(e.target.value)}
             className="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/20 focus:border-accent"
           >
             <option value="all">{t("profileDelegates.allGroups")}</option>
             {data.map((d) => (
-              <option key={d.assembly.id} value={d.assembly.id}>{d.assembly.name}</option>
+              <option key={d.group.id} value={d.group.id}>{d.group.name}</option>
             ))}
           </select>
         </div>
@@ -97,10 +97,10 @@ export function ProfileDelegates() {
         />
       ) : (
         <div className="space-y-4">
-          {filtered.map(({ assembly, profile }) => (
-            <Card key={assembly.id}>
+          {filtered.map(({ group, profile }) => (
+            <Card key={group.id}>
               <CardHeader>
-                <h2 className="font-medium text-text-primary">{assembly.name}</h2>
+                <h2 className="font-medium text-text-primary">{group.name}</h2>
               </CardHeader>
               <CardBody>
                 <div className="space-y-2">

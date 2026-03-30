@@ -6,7 +6,7 @@
  */
 
 import type {
-  Assembly,
+  Group,
   Participant,
   VotingEvent,
   Topic,
@@ -94,45 +94,45 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (await res.json()) as T;
 }
 
-// ---- Assemblies ----
+// ---- Groups ----
 
-export async function listAssemblies(): Promise<Assembly[]> {
-  const data = await request<{ assemblies: Assembly[] }>("GET", "/assemblies");
-  return data.assemblies;
+export async function listGroups(): Promise<Group[]> {
+  const data = await request<{ groups: Group[] }>("GET", "/groups");
+  return data.groups;
 }
 
-export function createAssembly(params: {
+export function createGroup(params: {
   name: string;
   organizationId?: string;
   preset?: string;
   config?: unknown;
   admissionMode?: string;
   websiteUrl?: string;
-}): Promise<Assembly> {
-  return request("POST", "/assemblies", params);
+}): Promise<Group> {
+  return request("POST", "/groups", params);
 }
 
-export function getAssembly(id: string): Promise<Assembly> {
-  return request("GET", `/assemblies/${id}`);
+export function getGroup(id: string): Promise<Group> {
+  return request("GET", `/groups/${id}`);
 }
 
-export function getAssemblyProfile(id: string): Promise<import("./types.js").AssemblyProfile> {
-  return request("GET", `/assemblies/${id}/profile`);
+export function getGroupProfile(id: string): Promise<import("./types.js").GroupProfile> {
+  return request("GET", `/groups/${id}/profile`);
 }
 
-export function createInviteLink(assemblyId: string, options?: { maxUses?: number; expiresAt?: string }): Promise<{ id: string; token: string }> {
-  return request("POST", `/assemblies/${assemblyId}/invitations`, { type: "link", ...options });
+export function createInviteLink(groupId: string, options?: { maxUses?: number; expiresAt?: string }): Promise<{ id: string; token: string }> {
+  return request("POST", `/groups/${groupId}/invitations`, { type: "link", ...options });
 }
 
-export function createDirectInvite(assemblyId: string, inviteeHandle: string): Promise<{ id: string }> {
-  return request("POST", `/assemblies/${assemblyId}/invitations`, { type: "direct", inviteeHandle });
+export function createDirectInvite(groupId: string, inviteeHandle: string): Promise<{ id: string }> {
+  return request("POST", `/groups/${groupId}/invitations`, { type: "direct", inviteeHandle });
 }
 
-export function listMyInvitations(): Promise<{ invitations: Array<{ id: string; assemblyId: string; assemblyName: string | null; invitedBy: string; createdAt: string }> }> {
+export function listMyInvitations(): Promise<{ invitations: Array<{ id: string; groupId: string; groupName: string | null; invitedBy: string; createdAt: string }> }> {
   return request("GET", "/me/invitations");
 }
 
-export function acceptInvitation(invitationId: string): Promise<{ assemblyId: string }> {
+export function acceptInvitation(invitationId: string): Promise<{ groupId: string }> {
   return request("POST", `/me/invitations/${invitationId}/accept`);
 }
 
@@ -152,38 +152,38 @@ export interface BulkInviteResult {
   results: Array<{ handle: string; status: "created" | "skipped"; reason?: string }>;
 }
 
-export function previewBulkInvites(assemblyId: string, csv: string): Promise<BulkInvitePreview> {
-  return request("POST", `/assemblies/${assemblyId}/invitations/preview`, { csv });
+export function previewBulkInvites(groupId: string, csv: string): Promise<BulkInvitePreview> {
+  return request("POST", `/groups/${groupId}/invitations/preview`, { csv });
 }
 
-export function createBulkInvites(assemblyId: string, handles: string[]): Promise<BulkInviteResult> {
-  return request("POST", `/assemblies/${assemblyId}/invitations/bulk`, { handles });
+export function createBulkInvites(groupId: string, handles: string[]): Promise<BulkInviteResult> {
+  return request("POST", `/groups/${groupId}/invitations/bulk`, { handles });
 }
 
-// ---- Assembly Settings ----
+// ---- Group Settings ----
 
-export function getAssemblySettings(assemblyId: string): Promise<{ admissionMode: string; websiteUrl: string | null; voteCreation: string }> {
-  return request("GET", `/assemblies/${assemblyId}/settings`);
+export function getGroupSettings(groupId: string): Promise<{ admissionMode: string; websiteUrl: string | null; voteCreation: string }> {
+  return request("GET", `/groups/${groupId}/settings`);
 }
 
-export function updateAssemblySettings(assemblyId: string, settings: { admissionMode?: string; websiteUrl?: string; voteCreation?: string }): Promise<{ admissionMode: string; websiteUrl: string | null; voteCreation: string }> {
-  return request("PUT", `/assemblies/${assemblyId}/settings`, settings);
+export function updateGroupSettings(groupId: string, settings: { admissionMode?: string; websiteUrl?: string; voteCreation?: string }): Promise<{ admissionMode: string; websiteUrl: string | null; voteCreation: string }> {
+  return request("PUT", `/groups/${groupId}/settings`, settings);
 }
 
 // ---- Join Requests ----
 
 import type { JoinRequest } from "./types.js";
 
-export function listJoinRequests(assemblyId: string): Promise<{ joinRequests: JoinRequest[] }> {
-  return request("GET", `/assemblies/${assemblyId}/join-requests`);
+export function listJoinRequests(groupId: string): Promise<{ joinRequests: JoinRequest[] }> {
+  return request("GET", `/groups/${groupId}/join-requests`);
 }
 
-export function approveJoinRequest(assemblyId: string, requestId: string): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/join-requests/${requestId}/approve`);
+export function approveJoinRequest(groupId: string, requestId: string): Promise<{ status: string }> {
+  return request("POST", `/groups/${groupId}/join-requests/${requestId}/approve`);
 }
 
-export function rejectJoinRequest(assemblyId: string, requestId: string): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/join-requests/${requestId}/reject`);
+export function rejectJoinRequest(groupId: string, requestId: string): Promise<{ status: string }> {
+  return request("POST", `/groups/${groupId}/join-requests/${requestId}/reject`);
 }
 
 export function listMyJoinRequests(): Promise<{ joinRequests: JoinRequest[] }> {
@@ -194,243 +194,243 @@ export function updateProfile(updates: { handle?: string; name?: string; bio?: s
   return request("PUT", "/me/profile", updates);
 }
 
-export function updateMemberProfile(assemblyId: string, updates: { title?: string | null; avatarUrl?: string | null; bannerUrl?: string | null }): Promise<{ ok: true }> {
-  return request("PUT", `/me/assemblies/${assemblyId}/profile`, updates);
+export function updateMemberProfile(groupId: string, updates: { title?: string | null; avatarUrl?: string | null; bannerUrl?: string | null }): Promise<{ ok: true }> {
+  return request("PUT", `/me/groups/${groupId}/profile`, updates);
 }
 
 // ---- Participants ----
 
-export function listParticipants(assemblyId: string): Promise<{ participants: Participant[] }> {
-  return request("GET", `/assemblies/${assemblyId}/participants`);
+export function listParticipants(groupId: string): Promise<{ participants: Participant[] }> {
+  return request("GET", `/groups/${groupId}/participants`);
 }
 
-export function addParticipant(assemblyId: string, name: string): Promise<Participant> {
-  return request("POST", `/assemblies/${assemblyId}/participants`, { name });
+export function addParticipant(groupId: string, name: string): Promise<Participant> {
+  return request("POST", `/groups/${groupId}/participants`, { name });
 }
 
-export function removeParticipant(assemblyId: string, pid: string): Promise<void> {
-  return request("DELETE", `/assemblies/${assemblyId}/participants/${pid}`);
+export function removeParticipant(groupId: string, pid: string): Promise<void> {
+  return request("DELETE", `/groups/${groupId}/participants/${pid}`);
 }
 
 // ---- Voting Events ----
 
-export function listEvents(assemblyId: string): Promise<{ events: VotingEvent[] }> {
-  return request("GET", `/assemblies/${assemblyId}/events`);
+export function listEvents(groupId: string): Promise<{ events: VotingEvent[] }> {
+  return request("GET", `/groups/${groupId}/events`);
 }
 
 export function createEvent(
-  assemblyId: string,
+  groupId: string,
   params: {
     title: string;
     description: string;
     issues: Array<{ title: string; description: string; topicId: string | null; choices?: string[] }>;
     eligibleParticipantIds: string[];
-    /** Start date — system computes full timeline from assembly config. */
+    /** Start date — system computes full timeline from group config. */
     startDate?: string | number;
     /** Explicit timeline (backward compat). */
     timeline?: { deliberationStart: string; votingStart: string; votingEnd: string };
   },
 ): Promise<VotingEvent> {
-  return request("POST", `/assemblies/${assemblyId}/events`, params);
+  return request("POST", `/groups/${groupId}/events`, params);
 }
 
-export function getEvent(assemblyId: string, eventId: string): Promise<VotingEvent> {
-  return request("GET", `/assemblies/${assemblyId}/events/${eventId}`);
+export function getEvent(groupId: string, eventId: string): Promise<VotingEvent> {
+  return request("GET", `/groups/${groupId}/events/${eventId}`);
 }
 
 // ---- Topics ----
 
-export function listTopics(assemblyId: string): Promise<{ topics: Topic[] }> {
-  return request("GET", `/assemblies/${assemblyId}/topics`);
+export function listTopics(groupId: string): Promise<{ topics: Topic[] }> {
+  return request("GET", `/groups/${groupId}/topics`);
 }
 
 export function createTopic(
-  assemblyId: string,
+  groupId: string,
   params: { name: string; parentId?: string | null },
 ): Promise<Topic> {
-  return request("POST", `/assemblies/${assemblyId}/topics`, params);
+  return request("POST", `/groups/${groupId}/topics`, params);
 }
 
-export function getTopicIssues(assemblyId: string, topicId: string): Promise<{
+export function getTopicIssues(groupId: string, topicId: string): Promise<{
   issues: import("./types.js").TopicIssueItem[];
   pagination: import("./types.js").PaginationMeta;
 }> {
-  return request("GET", `/assemblies/${assemblyId}/topics/${topicId}/issues`);
+  return request("GET", `/groups/${groupId}/topics/${topicId}/issues`);
 }
 
-export function getTopicDelegations(assemblyId: string, topicId: string): Promise<{
+export function getTopicDelegations(groupId: string, topicId: string): Promise<{
   delegations: import("./types.js").TopicDelegationItem[];
   pagination: import("./types.js").PaginationMeta;
 }> {
-  return request("GET", `/assemblies/${assemblyId}/topics/${topicId}/delegations`);
+  return request("GET", `/groups/${groupId}/topics/${topicId}/delegations`);
 }
 
 // ---- Delegations ----
 
 export function listDelegations(
-  assemblyId: string,
+  groupId: string,
   sourceId?: string,
 ): Promise<{ delegations: Delegation[] }> {
   const qs = sourceId ? `?sourceId=${sourceId}` : "";
-  return request("GET", `/assemblies/${assemblyId}/delegations${qs}`);
+  return request("GET", `/groups/${groupId}/delegations${qs}`);
 }
 
 export function createDelegation(
-  assemblyId: string,
+  groupId: string,
   params: { targetId: string; topicScope?: string[]; issueScope?: string; retractVoteOnIssue?: string },
 ): Promise<Delegation> {
-  return request("POST", `/assemblies/${assemblyId}/delegations`, params);
+  return request("POST", `/groups/${groupId}/delegations`, params);
 }
 
-export function revokeDelegation(assemblyId: string, delegationId: string): Promise<void> {
-  return request("DELETE", `/assemblies/${assemblyId}/delegations/${delegationId}`);
+export function revokeDelegation(groupId: string, delegationId: string): Promise<void> {
+  return request("DELETE", `/groups/${groupId}/delegations/${delegationId}`);
 }
 
 export function getMyWeight(
-  assemblyId: string,
+  groupId: string,
   issueId: string,
 ): Promise<MyWeight> {
-  return request("GET", `/assemblies/${assemblyId}/delegations/my-weight?issueId=${issueId}`);
+  return request("GET", `/groups/${groupId}/delegations/my-weight?issueId=${issueId}`);
 }
 
 export function resolveChain(
-  assemblyId: string,
+  groupId: string,
   participantId: string,
   issueId: string,
 ): Promise<DelegationChain> {
   return request(
     "GET",
-    `/assemblies/${assemblyId}/delegations/chain?participantId=${participantId}&issueId=${issueId}`,
+    `/groups/${groupId}/delegations/chain?participantId=${participantId}&issueId=${issueId}`,
   );
 }
 
 // ---- Voting ----
 
 export function castVote(
-  assemblyId: string,
+  groupId: string,
   params: { participantId: string; issueId: string; choice: string },
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/votes`, params);
+  return request("POST", `/groups/${groupId}/votes`, params);
 }
 
 export function retractVote(
-  assemblyId: string,
+  groupId: string,
   issueId: string,
 ): Promise<{ status: string }> {
-  return request("DELETE", `/assemblies/${assemblyId}/votes/${issueId}`);
+  return request("DELETE", `/groups/${groupId}/votes/${issueId}`);
 }
 
 export function getTally(
-  assemblyId: string,
+  groupId: string,
   eventId: string,
 ): Promise<{ eventId: string; tallies: Tally[] }> {
-  return request("GET", `/assemblies/${assemblyId}/events/${eventId}/tally`);
+  return request("GET", `/groups/${groupId}/events/${eventId}/tally`);
 }
 
 export function getWeights(
-  assemblyId: string,
+  groupId: string,
   eventId: string,
 ): Promise<{ eventId: string; weights: WeightDist[] }> {
-  return request("GET", `/assemblies/${assemblyId}/events/${eventId}/weights`);
+  return request("GET", `/groups/${groupId}/events/${eventId}/weights`);
 }
 
 export function getParticipation(
-  assemblyId: string,
+  groupId: string,
   eventId: string,
   participantId?: string,
 ): Promise<{ eventId: string; participation: ParticipationRecord[] }> {
   const qs = participantId ? `?participantId=${participantId}` : "";
-  return request("GET", `/assemblies/${assemblyId}/events/${eventId}/participation${qs}`);
+  return request("GET", `/groups/${groupId}/events/${eventId}/participation${qs}`);
 }
 
 // ---- Awareness ----
 
 export function getConcentration(
-  assemblyId: string,
+  groupId: string,
   issueId: string,
 ): Promise<ConcentrationMetrics> {
-  return request("GET", `/assemblies/${assemblyId}/awareness/concentration?issueId=${issueId}`);
+  return request("GET", `/groups/${groupId}/awareness/concentration?issueId=${issueId}`);
 }
 
 export function getVotingHistory(
-  assemblyId: string,
+  groupId: string,
   participantId: string,
 ): Promise<VotingHistory> {
-  return request("GET", `/assemblies/${assemblyId}/awareness/history/${participantId}`);
+  return request("GET", `/groups/${groupId}/awareness/history/${participantId}`);
 }
 
 export function getDelegateProfile(
-  assemblyId: string,
+  groupId: string,
   participantId: string,
 ): Promise<DelegateProfile> {
-  return request("GET", `/assemblies/${assemblyId}/awareness/profile/${participantId}`);
+  return request("GET", `/groups/${groupId}/awareness/profile/${participantId}`);
 }
 
 // ---- Surveys ----
 
 export function listSurveys(
-  assemblyId: string,
+  groupId: string,
   participantId?: string,
 ): Promise<{ surveys: Survey[] }> {
   const qs = participantId ? `?participantId=${participantId}` : "";
-  return request("GET", `/assemblies/${assemblyId}/surveys${qs}`);
+  return request("GET", `/groups/${groupId}/surveys${qs}`);
 }
 
 export function createSurvey(
-  assemblyId: string,
+  groupId: string,
   params: unknown,
 ): Promise<Survey> {
-  return request("POST", `/assemblies/${assemblyId}/surveys`, params);
+  return request("POST", `/groups/${groupId}/surveys`, params);
 }
 
 export function submitSurveyResponse(
-  assemblyId: string,
+  groupId: string,
   surveyId: string,
   params: { participantId: string; answers: Array<{ questionId: string; value: unknown }> },
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/surveys/${surveyId}/respond`, {
+  return request("POST", `/groups/${groupId}/surveys/${surveyId}/respond`, {
     ...params,
     pollId: surveyId,
   });
 }
 
 export function dismissSurvey(
-  assemblyId: string,
+  groupId: string,
   surveyId: string,
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/surveys/${surveyId}/dismiss`);
+  return request("POST", `/groups/${groupId}/surveys/${surveyId}/dismiss`);
 }
 
 export function getSurveyResults(
-  assemblyId: string,
+  groupId: string,
   surveyId: string,
   eligibleCount?: number,
 ): Promise<SurveyResults> {
   const qs = eligibleCount ? `?eligibleCount=${eligibleCount}` : "";
-  return request("GET", `/assemblies/${assemblyId}/surveys/${surveyId}/results${qs}`);
+  return request("GET", `/groups/${groupId}/surveys/${surveyId}/results${qs}`);
 }
 
 // ---- Predictions ----
 
 export function listPredictions(
-  assemblyId: string,
+  groupId: string,
   participantId: string,
 ): Promise<{ predictions: import("./types.js").Prediction[] }> {
-  return request("GET", `/assemblies/${assemblyId}/predictions?participantId=${participantId}`);
+  return request("GET", `/groups/${groupId}/predictions?participantId=${participantId}`);
 }
 
 export function getTrackRecord(
-  assemblyId: string,
+  groupId: string,
   participantId: string,
 ): Promise<import("./types.js").TrackRecord> {
-  return request("GET", `/assemblies/${assemblyId}/track-record/${participantId}`);
+  return request("GET", `/groups/${groupId}/track-record/${participantId}`);
 }
 
 export function evaluatePrediction(
-  assemblyId: string,
+  groupId: string,
   predictionId: string,
 ): Promise<import("./types.js").PredictionEvaluation> {
-  return request("GET", `/assemblies/${assemblyId}/predictions/${predictionId}/eval`);
+  return request("GET", `/groups/${groupId}/predictions/${predictionId}/eval`);
 }
 
 // ---- Notification Preferences ----
@@ -455,13 +455,13 @@ import type { Notification } from "./types.js";
 export function listNotifications(options?: {
   limit?: number;
   offset?: number;
-  assemblyId?: string;
+  groupId?: string;
   unreadOnly?: boolean;
 }): Promise<{ notifications: Notification[]; unreadCount: number; total: number }> {
   const params = new URLSearchParams();
   if (options?.limit) params.set("limit", String(options.limit));
   if (options?.offset) params.set("offset", String(options.offset));
-  if (options?.assemblyId) params.set("assemblyId", options.assemblyId);
+  if (options?.groupId) params.set("groupId", options.groupId);
   if (options?.unreadOnly) params.set("unreadOnly", "true");
   const qs = params.toString();
   return request("GET", `/me/notifications/feed${qs ? `?${qs}` : ""}`);
@@ -475,195 +475,195 @@ export function markNotificationRead(notificationId: string): Promise<void> {
   return request("POST", `/me/notifications/${notificationId}/read`);
 }
 
-export function markAllNotificationsRead(assemblyId?: string): Promise<void> {
-  const qs = assemblyId ? `?assemblyId=${assemblyId}` : "";
+export function markAllNotificationsRead(groupId?: string): Promise<void> {
+  const qs = groupId ? `?groupId=${groupId}` : "";
   return request("POST", `/me/notifications/read-all${qs}`);
 }
 
 // ---- Proposals ----
 
 export function listProposalDrafts(
-  assemblyId: string,
+  groupId: string,
 ): Promise<{ drafts: import("./types.js").ProposalDraft[] }> {
-  return request("GET", `/assemblies/${assemblyId}/proposals/drafts`);
+  return request("GET", `/groups/${groupId}/proposals/drafts`);
 }
 
 export function createProposalDraft(
-  assemblyId: string,
+  groupId: string,
   params: { issueId: string; choiceKey?: string; title: string; markdown?: string },
 ): Promise<import("./types.js").ProposalDraft> {
-  return request("POST", `/assemblies/${assemblyId}/proposals/drafts`, params);
+  return request("POST", `/groups/${groupId}/proposals/drafts`, params);
 }
 
 export function updateProposalDraft(
-  assemblyId: string,
+  groupId: string,
   draftId: string,
   params: { title?: string; markdown?: string; choiceKey?: string },
 ): Promise<import("./types.js").ProposalDraft> {
-  return request("PUT", `/assemblies/${assemblyId}/proposals/drafts/${draftId}`, params);
+  return request("PUT", `/groups/${groupId}/proposals/drafts/${draftId}`, params);
 }
 
-export function deleteProposalDraft(assemblyId: string, draftId: string): Promise<void> {
-  return request("DELETE", `/assemblies/${assemblyId}/proposals/drafts/${draftId}`);
+export function deleteProposalDraft(groupId: string, draftId: string): Promise<void> {
+  return request("DELETE", `/groups/${groupId}/proposals/drafts/${draftId}`);
 }
 
 export function submitProposalDraft(
-  assemblyId: string,
+  groupId: string,
   draftId: string,
 ): Promise<import("./types.js").Proposal> {
-  return request("POST", `/assemblies/${assemblyId}/proposals/drafts/${draftId}/submit`);
+  return request("POST", `/groups/${groupId}/proposals/drafts/${draftId}/submit`);
 }
 
 export function getProposal(
-  assemblyId: string,
+  groupId: string,
   proposalId: string,
 ): Promise<import("./types.js").Proposal> {
-  return request("GET", `/assemblies/${assemblyId}/proposals/${proposalId}`);
+  return request("GET", `/groups/${groupId}/proposals/${proposalId}`);
 }
 
 export function listProposals(
-  assemblyId: string,
+  groupId: string,
   issueId?: string,
 ): Promise<{ proposals: import("./types.js").Proposal[] }> {
   const qs = issueId ? `?issueId=${issueId}` : "";
-  return request("GET", `/assemblies/${assemblyId}/proposals${qs}`);
+  return request("GET", `/groups/${groupId}/proposals${qs}`);
 }
 
 export function createProposalVersion(
-  assemblyId: string,
+  groupId: string,
   proposalId: string,
   params: { markdown: string; assets?: string[]; changeSummary?: string },
 ): Promise<{ currentVersion: number; contentHash: string }> {
-  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/version`, params);
+  return request("POST", `/groups/${groupId}/proposals/${proposalId}/version`, params);
 }
 
 export function featureProposal(
-  assemblyId: string,
+  groupId: string,
   proposalId: string,
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/feature`);
+  return request("POST", `/groups/${groupId}/proposals/${proposalId}/feature`);
 }
 
 export function unfeatureProposal(
-  assemblyId: string,
+  groupId: string,
   proposalId: string,
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/proposals/${proposalId}/unfeature`);
+  return request("POST", `/groups/${groupId}/proposals/${proposalId}/unfeature`);
 }
 
 export function getBookletProposals(
-  assemblyId: string,
+  groupId: string,
   issueId: string,
 ): Promise<import("./types.js").BookletData> {
-  return request("GET", `/assemblies/${assemblyId}/proposals/booklet?issueId=${issueId}`);
+  return request("GET", `/groups/${groupId}/proposals/booklet?issueId=${issueId}`);
 }
 
 export function getRecommendation(
-  assemblyId: string,
+  groupId: string,
   eventId: string,
   issueId: string,
 ): Promise<{ recommendation: import("./types.js").BookletRecommendation | null }> {
-  return request("GET", `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`);
+  return request("GET", `/groups/${groupId}/events/${eventId}/issues/${issueId}/recommendation`);
 }
 
 export function setRecommendation(
-  assemblyId: string,
+  groupId: string,
   eventId: string,
   issueId: string,
   markdown: string,
 ): Promise<{ status: string; contentHash: string }> {
-  return request("POST", `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`, { markdown });
+  return request("POST", `/groups/${groupId}/events/${eventId}/issues/${issueId}/recommendation`, { markdown });
 }
 
 export function deleteRecommendation(
-  assemblyId: string,
+  groupId: string,
   eventId: string,
   issueId: string,
 ): Promise<{ status: string }> {
-  return request("DELETE", `/assemblies/${assemblyId}/events/${eventId}/issues/${issueId}/recommendation`);
+  return request("DELETE", `/groups/${groupId}/events/${eventId}/issues/${issueId}/recommendation`);
 }
 
 // ---- Candidacies ----
 
 export function declareCandidacy(
-  assemblyId: string,
+  groupId: string,
   params: { topicScope: string[]; voteTransparencyOptIn: boolean; markdown: string; websiteUrl?: string },
 ): Promise<import("./types.js").Candidacy> {
-  return request("POST", `/assemblies/${assemblyId}/candidacies`, params);
+  return request("POST", `/groups/${groupId}/candidacies`, params);
 }
 
 export function getCandidacy(
-  assemblyId: string,
+  groupId: string,
   candidacyId: string,
 ): Promise<import("./types.js").Candidacy> {
-  return request("GET", `/assemblies/${assemblyId}/candidacies/${candidacyId}`);
+  return request("GET", `/groups/${groupId}/candidacies/${candidacyId}`);
 }
 
 export function listCandidacies(
-  assemblyId: string,
+  groupId: string,
   status?: string,
 ): Promise<{ candidacies: import("./types.js").Candidacy[] }> {
   const qs = status ? `?status=${status}` : "";
-  return request("GET", `/assemblies/${assemblyId}/candidacies${qs}`);
+  return request("GET", `/groups/${groupId}/candidacies${qs}`);
 }
 
 export function createCandidacyVersion(
-  assemblyId: string,
+  groupId: string,
   candidacyId: string,
   params: { markdown: string; topicScope?: string[]; voteTransparencyOptIn?: boolean; websiteUrl?: string },
 ): Promise<{ currentVersion: number; contentHash: string }> {
-  return request("POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/version`, params);
+  return request("POST", `/groups/${groupId}/candidacies/${candidacyId}/version`, params);
 }
 
 export function withdrawCandidacy(
-  assemblyId: string,
+  groupId: string,
   candidacyId: string,
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/candidacies/${candidacyId}/withdraw`, {});
+  return request("POST", `/groups/${groupId}/candidacies/${candidacyId}/withdraw`, {});
 }
 
 // ---- Entity Endorsements ----
 
 export function upsertEndorsement(
-  assemblyId: string,
+  groupId: string,
   params: { targetType: "candidacy" | "proposal"; targetId: string; value: "endorse" | "dispute" },
 ): Promise<{ targetType: string; targetId: string; value: string }> {
-  return request("PUT", `/assemblies/${assemblyId}/endorsements`, params);
+  return request("PUT", `/groups/${groupId}/endorsements`, params);
 }
 
 export function retractEndorsement(
-  assemblyId: string,
+  groupId: string,
   params: { targetType: "candidacy" | "proposal"; targetId: string },
 ): Promise<{ ok: true }> {
-  return request("DELETE", `/assemblies/${assemblyId}/endorsements`, params);
+  return request("DELETE", `/groups/${groupId}/endorsements`, params);
 }
 
 export function getEndorsements(
-  assemblyId: string,
+  groupId: string,
   targetType: "candidacy" | "proposal",
   targetIds: string[],
 ): Promise<{ endorsements: Record<string, import("./types.js").EndorsementCounts> }> {
-  return request("GET", `/assemblies/${assemblyId}/endorsements?targetType=${targetType}&targetIds=${targetIds.join(",")}`);
+  return request("GET", `/groups/${groupId}/endorsements?targetType=${targetType}&targetIds=${targetIds.join(",")}`);
 }
 
 // ---- Community Notes ----
 
 export function createNote(
-  assemblyId: string,
+  groupId: string,
   params: { markdown: string; targetType: string; targetId: string; targetVersionNumber?: number },
 ): Promise<import("./types.js").CommunityNote> {
-  return request("POST", `/assemblies/${assemblyId}/notes`, params);
+  return request("POST", `/groups/${groupId}/notes`, params);
 }
 
 export function getNote(
-  assemblyId: string,
+  groupId: string,
   noteId: string,
 ): Promise<import("./types.js").CommunityNote> {
-  return request("GET", `/assemblies/${assemblyId}/notes/${noteId}`);
+  return request("GET", `/groups/${groupId}/notes/${noteId}`);
 }
 
 export function listNotes(
-  assemblyId: string,
+  groupId: string,
   targetType?: string,
   targetId?: string,
 ): Promise<{ notes: import("./types.js").CommunityNote[] }> {
@@ -671,22 +671,22 @@ export function listNotes(
   if (targetType) params.set("targetType", targetType);
   if (targetId) params.set("targetId", targetId);
   const qs = params.toString() ? `?${params}` : "";
-  return request("GET", `/assemblies/${assemblyId}/notes${qs}`);
+  return request("GET", `/groups/${groupId}/notes${qs}`);
 }
 
 export function evaluateNote(
-  assemblyId: string,
+  groupId: string,
   noteId: string,
   evaluation: "endorse" | "dispute",
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/notes/${noteId}/evaluate`, { evaluation });
+  return request("POST", `/groups/${groupId}/notes/${noteId}/evaluate`, { evaluation });
 }
 
 export function withdrawNote(
-  assemblyId: string,
+  groupId: string,
   noteId: string,
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/notes/${noteId}/withdraw`);
+  return request("POST", `/groups/${groupId}/notes/${noteId}/withdraw`);
 }
 
 // ---- Push Notification Device Tokens ----
@@ -711,20 +711,20 @@ export function unregisterDevice(deviceId: string): Promise<void> {
 // ---- Scoring ----
 
 export function listScoringEvents(
-  assemblyId: string,
+  groupId: string,
 ): Promise<{ scoringEvents: import("./types.js").ScoringEvent[] }> {
-  return request("GET", `/assemblies/${assemblyId}/scoring`);
+  return request("GET", `/groups/${groupId}/scoring`);
 }
 
 export function getScoringEvent(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
 ): Promise<import("./types.js").ScoringEvent> {
-  return request("GET", `/assemblies/${assemblyId}/scoring/${scoringEventId}`);
+  return request("GET", `/groups/${groupId}/scoring/${scoringEventId}`);
 }
 
 export function createScoringEvent(
-  assemblyId: string,
+  groupId: string,
   params: {
     title: string;
     description: string;
@@ -736,68 +736,68 @@ export function createScoringEvent(
     startAsDraft?: boolean;
   },
 ): Promise<import("./types.js").ScoringEvent> {
-  return request("POST", `/assemblies/${assemblyId}/scoring`, params);
+  return request("POST", `/groups/${groupId}/scoring`, params);
 }
 
 export function submitScorecard(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
   params: { entryId: string; scores: Array<{ dimensionId: string; score: number }> },
 ): Promise<import("./types.js").Scorecard> {
-  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/scorecards`, params);
+  return request("POST", `/groups/${groupId}/scoring/${scoringEventId}/scorecards`, params);
 }
 
 export function reviseScorecard(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
   scorecardId: string,
   params: { entryId: string; scores: Array<{ dimensionId: string; score: number }> },
 ): Promise<import("./types.js").Scorecard> {
-  return request("PUT", `/assemblies/${assemblyId}/scoring/${scoringEventId}/scorecards/${scorecardId}`, params);
+  return request("PUT", `/groups/${groupId}/scoring/${scoringEventId}/scorecards/${scorecardId}`, params);
 }
 
 export function listScorecards(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
 ): Promise<{ scorecards: import("./types.js").Scorecard[] }> {
-  return request("GET", `/assemblies/${assemblyId}/scoring/${scoringEventId}/scorecards`);
+  return request("GET", `/groups/${groupId}/scoring/${scoringEventId}/scorecards`);
 }
 
 export function getScoringResults(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
 ): Promise<import("./types.js").ScoringResult> {
-  return request("GET", `/assemblies/${assemblyId}/scoring/${scoringEventId}/results`);
+  return request("GET", `/groups/${groupId}/scoring/${scoringEventId}/results`);
 }
 
 export function closeScoringEvent(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/close`);
+  return request("POST", `/groups/${groupId}/scoring/${scoringEventId}/close`);
 }
 
 export function openScoringEvent(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
 ): Promise<{ status: string }> {
-  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/open`);
+  return request("POST", `/groups/${groupId}/scoring/${scoringEventId}/open`);
 }
 
 export function extendScoringDeadline(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
   closesAt: string,
 ): Promise<{ closesAt: string; originalClosesAt: string | null }> {
-  return request("POST", `/assemblies/${assemblyId}/scoring/${scoringEventId}/extend`, { closesAt });
+  return request("POST", `/groups/${groupId}/scoring/${scoringEventId}/extend`, { closesAt });
 }
 
 export function updateScoringDraft(
-  assemblyId: string,
+  groupId: string,
   scoringEventId: string,
   params: Record<string, unknown>,
 ): Promise<import("./types.js").ScoringEvent> {
-  return request("PUT", `/assemblies/${assemblyId}/scoring/${scoringEventId}`, params);
+  return request("PUT", `/groups/${groupId}/scoring/${scoringEventId}`, params);
 }
 
 export { ApiError };

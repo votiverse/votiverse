@@ -9,14 +9,14 @@ import { Avatar } from "./avatar.js";
 import { MemberSearch } from "./member-search.js";
 
 export interface QuickDelegateFormProps {
-  assemblyId: string;
+  groupId: string;
   participantId: string;
   participants: Array<{ id: string; name: string }>;
   /** Pre-selected topic IDs from the issue. */
   preselectedTopicIds: string[];
   /** Full topic list for parent resolution. */
   topics: Topic[];
-  /** Whether the assembly supports topic-scoped delegations. */
+  /** Whether the group supports topic-scoped delegations. */
   isTopicScoped: boolean;
   /** The issue ID for issue-scoped delegation. */
   issueId: string;
@@ -39,7 +39,7 @@ type SelectionMode = null | "candidates" | "search";
  * Step 2: Choose delegate (candidates accordion OR search all members).
  */
 export function QuickDelegateForm({
-  assemblyId,
+  groupId,
   participantId,
   participants,
   preselectedTopicIds,
@@ -119,7 +119,7 @@ export function QuickDelegateForm({
     setSubmitting(true);
     setFormError(null);
     try {
-      await api.createDelegation(assemblyId, { targetId: selectedTargetId, ...resolveScope(), retractVoteOnIssue: issueId });
+      await api.createDelegation(groupId, { targetId: selectedTargetId, ...resolveScope(), retractVoteOnIssue: issueId });
       signal("attention");
       onCreated();
     } catch (err: unknown) {
@@ -331,7 +331,7 @@ export function QuickDelegateForm({
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border-subtle">
                           <div className="flex items-center gap-3">
                             <a
-                              href={`/assembly/${assemblyId}/candidacies/${candidate.id}`}
+                              href={`/group/${groupId}/candidacies/${candidate.id}`}
                               target="_blank"
                               rel="noreferrer"
                               className="text-xs font-medium text-info-text hover:underline flex items-center gap-1 min-h-[36px]"
@@ -340,7 +340,7 @@ export function QuickDelegateForm({
                               {t("quickDelegate.viewProfile")} <ExternalLink size={10} />
                             </a>
                             <a
-                              href={`/assembly/${assemblyId}/candidacies/${candidate.id}#notes`}
+                              href={`/group/${groupId}/candidacies/${candidate.id}#notes`}
                               target="_blank"
                               rel="noreferrer"
                               className="text-xs font-medium text-text-muted hover:text-text-secondary flex items-center gap-1 min-h-[36px]"

@@ -5,7 +5,7 @@ import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
 import * as oauthApi from "../api/oauth.js";
-import type { Assembly, DelegateProfile, VotingHistory } from "../api/types.js";
+import type { Group, DelegateProfile, VotingHistory } from "../api/types.js";
 import { Card, CardHeader, CardBody, Button, Input, Label, Spinner, ErrorBox } from "../components/ui.js";
 import { Avatar, AVATAR_STYLES, AVATAR_STYLE_LABELS, avatarUrl, type AvatarStyle } from "../components/avatar.js";
 import { Sun, Monitor, Moon, Globe, Palette, User, Link2, LogOut } from "lucide-react";
@@ -25,8 +25,8 @@ const TAB_ICONS: Record<ProfileTab, typeof User> = {
 
 // ── Main profile page ────────────────────────────────────────────────
 
-interface AssemblyProfileData {
-  assembly: Assembly;
+interface GroupProfileData {
+  group: Group;
   profile: DelegateProfile | null;
   history: VotingHistory | null;
 }
@@ -35,7 +35,7 @@ export function Profile() {
   const { t } = useTranslation("governance");
   const { storeUserId, participantName, handle, email, memberships, clearIdentity } = useIdentity();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [data, setData] = useState<AssemblyProfileData[]>([]);
+  const [data, setData] = useState<GroupProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -59,22 +59,22 @@ export function Profile() {
     (async () => {
       try {
         const membershipMap = new Map(
-          memberships.map((m) => [m.assemblyId, m.participantId]),
+          memberships.map((m) => [m.groupId, m.participantId]),
         );
-        const allAssemblies = await api.listAssemblies();
-        const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
-        const results: AssemblyProfileData[] = [];
+        const allAssemblies = await api.listGroups();
+        const groups = allAssemblies.filter((a) => membershipMap.has(a.id));
+        const results: GroupProfileData[] = [];
 
         await Promise.allSettled(
-          assemblies.map(async (asm) => {
-            const pid = membershipMap.get(asm.id)!;
+          groups.map(async (grp) => {
+            const pid = membershipMap.get(grp.id)!;
             const [profileRes, historyRes] = await Promise.allSettled([
-              api.getDelegateProfile(asm.id, pid),
-              api.getVotingHistory(asm.id, pid),
+              api.getDelegateProfile(grp.id, pid),
+              api.getVotingHistory(grp.id, pid),
             ]);
 
             results.push({
-              assembly: asm,
+              group: grp,
               profile: profileRes.status === "fulfilled" ? profileRes.value : null,
               history: historyRes.status === "fulfilled" ? historyRes.value : null,
             });
@@ -187,7 +187,7 @@ export function Profile() {
 // ── Activity tab ─────────────────────────────────────────────────────
 
 function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
-  data: AssemblyProfileData[];
+  data: GroupProfileData[];
   totalVotes: number;
   totalDelegators: number;
   totalOutbound: number;
@@ -224,15 +224,15 @@ function ActivityTab({ data, totalVotes, totalDelegators, totalOutbound }: {
         </Link>
       </div>
 
-      {/* Per-assembly breakdown */}
+      {/* Per-group breakdown */}
       {data.length > 0 && (
         <h2 className="text-sm font-medium text-text-muted mb-3">{t("profile.activityByGroup")}</h2>
       )}
-      {data.map(({ assembly, profile, history }) => (
-        <Card key={assembly.id} className="mb-4">
+      {data.map(({ group, profile, history }) => (
+        <Card key={group.id} className="mb-4">
           <CardHeader>
-            <Link to={`/assembly/${assembly.id}/events`} className="font-medium text-text-primary hover:text-accent-text transition-colors">
-              {assembly.name}
+            <Link to={`/group/${group.id}/events`} className="font-medium text-text-primary hover:text-accent-text transition-colors">
+              {group.name}
             </Link>
           </CardHeader>
           <CardBody className="space-y-4">

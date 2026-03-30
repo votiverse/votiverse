@@ -3,8 +3,8 @@ import { useParams, Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
-import { useAssembly } from "../hooks/use-assembly.js";
-import { useAssemblyRole } from "../hooks/use-assembly-role.js";
+import { useGroup } from "../hooks/use-group.js";
+import { useGroupRole } from "../hooks/use-group-role.js";
 import * as api from "../api/client.js";
 import type { VotingEvent } from "../api/types.js";
 import { Card, CardBody, Button, Input, Select, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
@@ -13,15 +13,15 @@ import { Countdown } from "../components/countdown.js";
 import { deriveEventStatus } from "../lib/status.js";
 
 /** Fetch full event details (status, timeline) for all events in a list. */
-function useFullEvents(assemblyId: string | undefined, eventIds: string[]) {
+function useFullEvents(groupId: string | undefined, eventIds: string[]) {
   const [fullEvents, setFullEvents] = useState<Record<string, VotingEvent>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!assemblyId || eventIds.length === 0) return;
+    if (!groupId || eventIds.length === 0) return;
     let cancelled = false;
     setLoading(true);
-    Promise.all(eventIds.map((id) => api.getEvent(assemblyId, id).catch(() => null)))
+    Promise.all(eventIds.map((id) => api.getEvent(groupId, id).catch(() => null)))
       .then((results) => {
         if (cancelled) return;
         const map: Record<string, VotingEvent> = {};
@@ -32,31 +32,31 @@ function useFullEvents(assemblyId: string | undefined, eventIds: string[]) {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [assemblyId, eventIds.join(",")]);
+  }, [groupId, eventIds.join(",")]);
 
   return { fullEvents, loading };
 }
 
 export function EventsList() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
-  const { data, loading, error, refetch } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
-  const { assembly: assemblyData } = useAssembly(assemblyId);
-  const timelineConfig = assemblyData?.config.timeline;
-  const voteCreation = assemblyData?.voteCreation ?? "admin";
+  const { groupId } = useParams();
+  const { data, loading, error, refetch } = useApi(() => api.listEvents(groupId!), [groupId]);
+  const { group: groupData } = useGroup(groupId);
+  const timelineConfig = groupData?.config.timeline;
+  const voteCreation = groupData?.voteCreation ?? "admin";
   const [creating, setCreating] = useState(false);
 
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
-  const { isAdmin } = useAssemblyRole(assemblyId);
+  const participantId = groupId ? getParticipantId(groupId) : null;
+  const { isAdmin } = useGroupRole(groupId);
   const { data: historyData } = useApi(
-    () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
-    [assemblyId, participantId],
+    () => participantId ? api.getVotingHistory(groupId!, participantId) : Promise.resolve(null),
+    [groupId, participantId],
   );
 
   const events = data?.events ?? [];
   const eventIds = useMemo(() => events.map((e) => e.id), [events]);
-  const { fullEvents, loading: loadingFull } = useFullEvents(assemblyId, eventIds);
+  const { fullEvents, loading: loadingFull } = useFullEvents(groupId, eventIds);
 
   const STATUS_ORDER: Record<string, number> = { voting: 0, curation: 1, deliberation: 2 };
   const votedIssueIds = useMemo(
@@ -104,7 +104,7 @@ export function EventsList() {
 
       {creating && (
         <CreateEventForm
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           onClose={() => setCreating(false)}
           onCreated={refetch}
         />
@@ -115,7 +115,7 @@ export function EventsList() {
       ) : (
         <div className="space-y-3">
           {sortedEvents.map((evt) => (
-            <EventCard key={evt.id} assemblyId={assemblyId!} event={evt} history={historyData ?? null} timelineConfig={timelineConfig} />
+            <EventCard key={evt.id} groupId={groupId!} event={evt} history={historyData ?? null} timelineConfig={timelineConfig} />
           ))}
         </div>
       )}
@@ -123,7 +123,7 @@ export function EventsList() {
   );
 }
 
-function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemblyId: string; event: VotingEvent; history: { history: Array<{ issueId: string }> } | null; timelineConfig?: { deliberationDays: number; curationDays: number; votingDays: number } }) {
+function EventCard({ groupId, event: evt, history, timelineConfig }: { groupId: string; event: VotingEvent; history: { history: Array<{ issueId: string }> } | null; timelineConfig?: { deliberationDays: number; curationDays: number; votingDays: number } }) {
   const { t } = useTranslation("governance");
   const status = evt.timeline ? deriveEventStatus(evt.timeline, timelineConfig) : undefined;
   const issueIds = evt.issueIds ?? evt.issues?.map((i) => i.id) ?? [];
@@ -137,7 +137,7 @@ function EventCard({ assemblyId, event: evt, history, timelineConfig }: { assemb
   const showProgress = votedCount !== null && issueCount > 0 && (status === "voting" || status === "closed");
 
   return (
-    <Link to={`/assembly/${assemblyId}/events/${evt.id}`} className="block group">
+    <Link to={`/group/${groupId}/events/${evt.id}`} className="block group">
       <Card className="hover:border-accent-muted hover:shadow transition-all">
         <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
@@ -182,7 +182,7 @@ function newIssueDraft(): IssueDraft {
   return { title: "", description: "", topicId: null, voteType: "binary", choices: ["", ""] };
 }
 
-function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: string; onClose: () => void; onCreated: () => void }) {
+function CreateEventForm({ groupId, onClose, onCreated }: { groupId: string; onClose: () => void; onCreated: () => void }) {
   const { t } = useTranslation("governance");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -194,10 +194,10 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
   });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const { data: participantsData } = useApi(() => api.listParticipants(assemblyId), [assemblyId]);
-  const { data: topicsData } = useApi(() => api.listTopics(assemblyId), [assemblyId]);
-  const { assembly: assemblyData } = useAssembly(assemblyId);
-  const tl = assemblyData?.config.timeline;
+  const { data: participantsData } = useApi(() => api.listParticipants(groupId), [groupId]);
+  const { data: topicsData } = useApi(() => api.listTopics(groupId), [groupId]);
+  const { group: groupData } = useGroup(groupId);
+  const tl = groupData?.config.timeline;
 
   const topics = topicsData?.topics ?? [];
   // Build flat list with parent prefix for display
@@ -247,7 +247,7 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
     const participants = participantsData?.participants ?? [];
 
     try {
-      await api.createEvent(assemblyId, {
+      await api.createEvent(groupId, {
         title: title.trim(),
         description: description.trim(),
         issues: issues.map((i) => ({
@@ -397,13 +397,13 @@ function CreateEventForm({ assemblyId, onClose, onCreated }: { assemblyId: strin
             )}
           </div>
 
-          {/* Timeline summary from assembly config */}
+          {/* Timeline summary from group config */}
           {tl && (
             <div className="text-xs text-text-tertiary space-y-0.5">
               <p>
-                {tl.deliberationDays}d {t("assemblyList.deliberation")}
-                {tl.curationDays > 0 && <> + {tl.curationDays}d {t("assemblyList.curation")}</>}
-                {" "}+ {tl.votingDays}d {t("assemblyList.voting")}
+                {tl.deliberationDays}d {t("groupList.deliberation")}
+                {tl.curationDays > 0 && <> + {tl.curationDays}d {t("groupList.curation")}</>}
+                {" "}+ {tl.votingDays}d {t("groupList.voting")}
                 {totalDays && <> {t("eventsList.timelineTotal", { total: totalDays })}</>}
               </p>
               <p>{t("eventsList.allMembersEligible", { count: participantsData?.participants.length ?? 0 })}</p>

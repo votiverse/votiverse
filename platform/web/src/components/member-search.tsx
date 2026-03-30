@@ -1,5 +1,5 @@
 /**
- * Member search — typeahead search for finding assembly members.
+ * Member search — typeahead search for finding group members.
  *
  * Per Paper II Section 2.6: participants can find anyone by name via
  * typeahead search, without exposing the full member list. The searcher
@@ -15,7 +15,7 @@ import { Avatar } from "./avatar.js";
 import { Badge } from "./ui.js";
 
 interface MemberSearchProps {
-  /** All participants in the assembly. */
+  /** All participants in the group. */
   participants: Participant[];
   /** Current user's participant ID (excluded from results). */
   currentParticipantId: string;

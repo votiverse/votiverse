@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useSignal } from "./use-mutation-signal.js";
 import * as api from "../api/client.js";
-import type { Assembly, VotingEvent } from "../api/types.js";
+import type { Group, VotingEvent } from "../api/types.js";
 import { deriveEventStatus, deriveSurveyStatus } from "../lib/status.js";
 
 export interface PendingVote {
-  assemblyId: string;
-  assemblyName: string;
+  groupId: string;
+  groupName: string;
   eventId: string;
   eventTitle: string;
   issueId: string;
@@ -18,8 +18,8 @@ export interface PendingVote {
 }
 
 export interface PendingSurvey {
-  assemblyId: string;
-  assemblyName: string;
+  groupId: string;
+  groupName: string;
   surveyId: string;
   surveyTitle: string;
   questionCount: number;
@@ -31,9 +31,9 @@ export interface AttentionState {
   pendingSurveys: PendingSurvey[];
   totalPending: number;
   totalPendingSurveys: number;
-  pendingByAssembly: Record<string, number>;
-  assemblySummaries: Array<{
-    assembly: Assembly;
+  pendingByGroup: Record<string, number>;
+  groupSummaries: Array<{
+    group: Group;
     activeEventCount: number;
     pendingVoteCount: number;
     pendingSurveyCount: number;
@@ -49,8 +49,8 @@ const defaultState: AttentionState = {
   pendingSurveys: [],
   totalPending: 0,
   totalPendingSurveys: 0,
-  pendingByAssembly: {},
-  assemblySummaries: [],
+  pendingByGroup: {},
+  groupSummaries: [],
   nearestDeadline: null,
   loading: true,
   lastUpdated: 0,
@@ -67,7 +67,7 @@ const POLL_INTERVAL_ACTIVE = 60_000;
 const POLL_INTERVAL_BACKGROUND = 300_000;
 
 export interface MembershipEntry {
-  assemblyId: string;
+  groupId: string;
   participantId: string;
 }
 
@@ -75,7 +75,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
   const [state, setState] = useState<AttentionState>(defaultState);
   const versionRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const assemblySignal = useSignal("assemblies");
+  const groupSignal = useSignal("groups");
   const attentionSignal = useSignal("attention");
 
   const fetchData = useCallback(async () => {
@@ -91,26 +91,26 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
     try {
       // Build membership map from the local identity data (no API call needed)
       const membershipMap = new Map(
-        memberships.map((m) => [m.assemblyId, m.participantId]),
+        memberships.map((m) => [m.groupId, m.participantId]),
       );
 
-      const allAssemblies = await api.listAssemblies();
+      const allGroups = await api.listGroups();
       if (versionRef.current !== version) return;
 
-      // Only process assemblies where the user is a member
-      const assemblies = allAssemblies.filter((a) => membershipMap.has(a.id));
+      // Only process groups where the user is a member
+      const groups = allGroups.filter((a) => membershipMap.has(a.id));
 
-      const summaries: AttentionState["assemblySummaries"] = [];
+      const summaries: AttentionState["groupSummaries"] = [];
       const allPending: PendingVote[] = [];
       const allPendingSurveys: PendingSurvey[] = [];
 
       await Promise.allSettled(
-        assemblies.map(async (asm) => {
-          const participantId = membershipMap.get(asm.id)!;
+        groups.map(async (grp) => {
+          const participantId = membershipMap.get(grp.id)!;
           const [eventsRes, historyRes, surveysRes] = await Promise.allSettled([
-            api.listEvents(asm.id),
-            api.getVotingHistory(asm.id, participantId),
-            api.listSurveys(asm.id, participantId),
+            api.listEvents(grp.id),
+            api.getVotingHistory(grp.id, participantId),
+            api.listSurveys(grp.id, participantId),
           ]);
 
           const events: VotingEvent[] = eventsRes.status === "fulfilled" ? eventsRes.value.events : [];
@@ -118,13 +118,13 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
             historyRes.status === "fulfilled" ? historyRes.value.history.map((h) => h.issueId) : [],
           );
 
-          // Fetch participants once per assembly (used to resolve delegate names)
-          const participantsRes = await api.listParticipants(asm.id).catch(() => ({ participants: [] }));
+          // Fetch participants once per group (used to resolve delegate names)
+          const participantsRes = await api.listParticipants(grp.id).catch(() => ({ participants: [] }));
           const nameMap = new Map(participantsRes.participants.map((p) => [p.id, p.name]));
 
           // For each event, fetch full event to get status
           const eventDetails = await Promise.allSettled(
-            events.map((evt) => api.getEvent(asm.id, evt.id)),
+            events.map((evt) => api.getEvent(grp.id, evt.id)),
           );
 
           let activeCount = 0;
@@ -144,7 +144,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
 
             // Resolve delegation chains for all issues in parallel (engine-backed)
             const chainResults = await Promise.allSettled(
-              issues.map((issue) => api.resolveChain(asm.id, participantId, issue.id)),
+              issues.map((issue) => api.resolveChain(grp.id, participantId, issue.id)),
             );
 
             for (let i = 0; i < issues.length; i++) {
@@ -160,8 +160,8 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
               const delegateName = delegateTargetId ? (nameMap.get(delegateTargetId) ?? null) : null;
 
               const pending: PendingVote = {
-                assemblyId: asm.id,
-                assemblyName: asm.name,
+                groupId: grp.id,
+                groupName: grp.name,
                 eventId: evt.id,
                 eventTitle: evt.title,
                 issueId: issue.id,
@@ -185,8 +185,8 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
               if (deriveSurveyStatus(survey.schedule, survey.closesAt) === "open" && survey.hasResponded === false && !survey.dismissed) {
                 pendingSurveyCount++;
                 allPendingSurveys.push({
-                  assemblyId: asm.id,
-                  assemblyName: asm.name,
+                  groupId: grp.id,
+                  groupName: grp.name,
                   surveyId: survey.id,
                   surveyTitle: survey.title,
                   questionCount: survey.questions?.length ?? 0,
@@ -197,7 +197,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
           }
 
           summaries.push({
-            assembly: asm,
+            group: grp,
             activeEventCount: activeCount,
             pendingVoteCount: pendingCount,
             pendingSurveyCount,
@@ -211,17 +211,17 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
       allPending.sort((a, b) => new Date(a.votingEnd).getTime() - new Date(b.votingEnd).getTime());
 
       const pendingOnly = allPending.filter((v) => !v.hasVoted && !v.isDelegated);
-      const pendingByAssembly: Record<string, number> = {};
+      const pendingByGroup: Record<string, number> = {};
       for (const v of pendingOnly) {
-        pendingByAssembly[v.assemblyId] = (pendingByAssembly[v.assemblyId] ?? 0) + 1;
+        pendingByGroup[v.groupId] = (pendingByGroup[v.groupId] ?? 0) + 1;
       }
 
       // Sort surveys by closest deadline first
       allPendingSurveys.sort((a, b) => a.closesAt - b.closesAt);
 
-      // Include surveys in per-assembly counts
+      // Include surveys in per-group counts
       for (const s of allPendingSurveys) {
-        pendingByAssembly[s.assemblyId] = (pendingByAssembly[s.assemblyId] ?? 0) + 1;
+        pendingByGroup[s.groupId] = (pendingByGroup[s.groupId] ?? 0) + 1;
       }
 
       setState({
@@ -229,8 +229,8 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
         pendingSurveys: allPendingSurveys,
         totalPending: pendingOnly.length,
         totalPendingSurveys: allPendingSurveys.length,
-        pendingByAssembly,
-        assemblySummaries: summaries,
+        pendingByGroup,
+        groupSummaries: summaries,
         nearestDeadline: pendingOnly[0] ?? null,
         loading: false,
         lastUpdated: Date.now(),
@@ -260,7 +260,7 @@ export function useAttentionProvider(memberships: MembershipEntry[] | null): Att
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [fetchData, assemblySignal, attentionSignal]);
+  }, [fetchData, groupSignal, attentionSignal]);
 
   return { ...state, refresh: fetchData };
 }

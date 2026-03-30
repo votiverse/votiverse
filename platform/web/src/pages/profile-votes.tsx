@@ -3,12 +3,12 @@ import { useTranslation } from "react-i18next";
 import { formatDate } from "../lib/format.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import * as api from "../api/client.js";
-import type { Assembly, VotingHistory } from "../api/types.js";
+import type { Group, VotingHistory } from "../api/types.js";
 import { Card, CardBody, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 
 interface VoteEntry {
-  assemblyId: string;
-  assemblyName: string;
+  groupId: string;
+  groupName: string;
   issueId: string;
   issueTitle: string | null;
   choice: string;
@@ -22,10 +22,10 @@ export function ProfileVotes() {
   const { t } = useTranslation("governance");
   const { storeUserId, memberships } = useIdentity();
   const [entries, setEntries] = useState<VoteEntry[]>([]);
-  const [assemblies, setAssemblies] = useState<Assembly[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAssembly, setSelectedAssembly] = useState<string>("all");
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [selectedChoice, setSelectedChoice] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -36,23 +36,23 @@ export function ProfileVotes() {
     (async () => {
       try {
         const membershipMap = new Map(
-          memberships.map((m) => [m.assemblyId, m.participantId]),
+          memberships.map((m) => [m.groupId, m.participantId]),
         );
-        const allAssemblies = await api.listAssemblies();
+        const allAssemblies = await api.listGroups();
         if (cancelled) return;
         const asmList = allAssemblies.filter((a) => membershipMap.has(a.id));
-        setAssemblies(asmList);
+        setGroups(asmList);
 
         const allEntries: VoteEntry[] = [];
         await Promise.allSettled(
-          asmList.map(async (asm) => {
-            const pid = membershipMap.get(asm.id)!;
+          asmList.map(async (grp) => {
+            const pid = membershipMap.get(grp.id)!;
             try {
-              const history: VotingHistory = await api.getVotingHistory(asm.id, pid);
+              const history: VotingHistory = await api.getVotingHistory(grp.id, pid);
               for (const h of history.history) {
                 allEntries.push({
-                  assemblyId: asm.id,
-                  assemblyName: asm.name,
+                  groupId: grp.id,
+                  groupName: grp.name,
                   issueId: h.issueId,
                   issueTitle: h.issueTitle,
                   choice: h.choice,
@@ -79,7 +79,7 @@ export function ProfileVotes() {
 
   const filtered = useMemo(() => {
     return entries
-      .filter((e) => selectedAssembly === "all" || e.assemblyId === selectedAssembly)
+      .filter((e) => selectedGroup === "all" || e.groupId === selectedGroup)
       .filter((e) => selectedChoice === "all" || e.choice === selectedChoice)
       .sort((a, b) => {
         let cmp = 0;
@@ -88,11 +88,11 @@ export function ProfileVotes() {
         } else if (sortField === "choice") {
           cmp = a.choice.localeCompare(b.choice);
         } else if (sortField === "group") {
-          cmp = a.assemblyName.localeCompare(b.assemblyName);
+          cmp = a.groupName.localeCompare(b.groupName);
         }
         return sortDir === "desc" ? -cmp : cmp;
       });
-  }, [entries, selectedAssembly, selectedChoice, sortField, sortDir]);
+  }, [entries, selectedGroup, selectedChoice, sortField, sortDir]);
 
   if (!storeUserId) {
     return (
@@ -117,17 +117,17 @@ export function ProfileVotes() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-1">{t("profileVotes.title")}</h1>
-      <p className="text-sm text-text-muted mb-6">{t("profileVotes.vote", { count: entries.length })} {t("profileVotes.group", { count: new Set(entries.map((e) => e.assemblyId)).size })}</p>
+      <p className="text-sm text-text-muted mb-6">{t("profileVotes.vote", { count: entries.length })} {t("profileVotes.group", { count: new Set(entries.map((e) => e.groupId)).size })}</p>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <select
-          value={selectedAssembly}
-          onChange={(e) => setSelectedAssembly(e.target.value)}
+          value={selectedGroup}
+          onChange={(e) => setSelectedGroup(e.target.value)}
           className="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/20 focus:border-accent"
         >
           <option value="all">{t("profileVotes.allGroups")}</option>
-          {assemblies.map((a) => (
+          {groups.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
         </select>
@@ -175,7 +175,7 @@ export function ProfileVotes() {
                     <Badge color={choiceColor(entry.choice)}>{entry.choice}</Badge>
                     <span className="text-sm text-text-primary truncate">{entry.issueTitle ?? entry.issueId.slice(0, 12)}</span>
                   </div>
-                  <div className="text-xs text-text-tertiary mt-0.5">{entry.assemblyName}</div>
+                  <div className="text-xs text-text-tertiary mt-0.5">{entry.groupName}</div>
                 </div>
                 <span className="text-xs text-text-tertiary shrink-0">
                   {formatDate(entry.votedAt)}

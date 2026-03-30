@@ -179,9 +179,9 @@ function NotificationItem({ notification, onClick }: { notification: Notificatio
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          {notification.assemblyName && (
+          {notification.groupName && (
             <p className="text-[10px] text-text-tertiary uppercase tracking-wide mb-0.5 truncate">
-              {notification.assemblyName}
+              {notification.groupName}
             </p>
           )}
           <p className={`text-sm leading-snug ${notification.read ? "text-text-muted" : "text-text-primary"}`}>

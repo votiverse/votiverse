@@ -17,7 +17,7 @@ import type { GovernanceConfig } from "../api/types.js";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 interface GroupPreview {
-  invitation: { id: string; type: string; assemblyId: string };
+  invitation: { id: string; type: string; groupId: string };
   group: {
     id: string;
     name: string;
@@ -78,14 +78,14 @@ export function InvitePage() {
         setJoinError(data?.error?.message ?? t("invite.joinFailed"));
         return;
       }
-      const data = await res.json() as { status: string; assemblyId: string };
+      const data = await res.json() as { status: string; groupId: string };
 
       if (data.status === "pending") {
         // Approval mode — request created, not joined yet
         setRequestSent(true);
       } else {
         // Open mode — instant join
-        navigate(`/assembly/${data.assemblyId}`);
+        navigate(`/group/${data.groupId}`);
       }
     } catch {
       setJoinError(t("invite.joinFailed"));

@@ -20,20 +20,20 @@ const MarkdownViewer = lazy(() => import("../components/markdown-editor.js").the
 
 export function Proposals() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const [searchParams] = useSearchParams();
   const issueId = searchParams.get("issueId") ?? undefined;
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const participantId = groupId ? getParticipantId(groupId) : null;
 
   const { data, loading, error, refetch } = useApi(
-    () => api.listProposals(assemblyId!, issueId),
-    [assemblyId, issueId],
+    () => api.listProposals(groupId!, issueId),
+    [groupId, issueId],
   );
-  const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
+  const { data: participantsData } = useApi(() => api.listParticipants(groupId!), [groupId]);
   const { data: draftsData, refetch: refetchDrafts } = useApi(
-    () => api.listProposalDrafts(assemblyId!),
-    [assemblyId],
+    () => api.listProposalDrafts(groupId!),
+    [groupId],
   );
 
   const nameMap = new Map((participantsData?.participants ?? []).map((p) => [p.id, p.name]));
@@ -44,16 +44,16 @@ export function Proposals() {
   const proposalIdKey = useMemo(() => proposals.map(p => p.id).join(","), [proposals]);
   const { data: endorsementData } = useApi(
     () => proposalIdKey
-      ? api.getEndorsements(assemblyId!, "proposal", proposalIdKey.split(","))
+      ? api.getEndorsements(groupId!, "proposal", proposalIdKey.split(","))
       : Promise.resolve({ endorsements: {} as Record<string, EndorsementCounts> }),
-    [assemblyId, proposalIdKey],
+    [groupId, proposalIdKey],
   );
 
   const [showDraftForm, setShowDraftForm] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState<string | undefined>(issueId);
 
   // Fetch events to populate the issue picker when no issueId is in the URL
-  const { data: eventsData } = useApi(() => api.listEvents(assemblyId!), [assemblyId]);
+  const { data: eventsData } = useApi(() => api.listEvents(groupId!), [groupId]);
   const deliberationIssues = useMemo(() => {
     if (!eventsData) return [];
     const issues: Array<{ id: string; title: string; eventTitle: string }> = [];
@@ -80,7 +80,7 @@ export function Proposals() {
     <div className="max-w-3xl mx-auto">
       {issueId && parentEvent && (
         <Link
-          to={`/assembly/${assemblyId}/events/${parentEvent.id}`}
+          to={`/group/${groupId}/events/${parentEvent.id}`}
           className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-2"
         >
           <ChevronLeft size={16} />
@@ -122,7 +122,7 @@ export function Proposals() {
       )}
 
       {showDraftForm && effectiveIssueId && (
-        <DraftForm assemblyId={assemblyId!} issueId={effectiveIssueId} onCreated={() => {
+        <DraftForm groupId={groupId!} issueId={effectiveIssueId} onCreated={() => {
           setShowDraftForm(false);
           refetchDrafts();
         }} />
@@ -132,7 +132,7 @@ export function Proposals() {
         <section className="mb-8">
           <h2 className="text-lg font-bold font-display text-text-primary mb-3">{t("proposals.yourDrafts")}</h2>
           {drafts.map((d) => (
-            <DraftCard key={d.id} draft={d} assemblyId={assemblyId!} onAction={() => { refetchDrafts(); refetch(); }} />
+            <DraftCard key={d.id} draft={d} groupId={groupId!} onAction={() => { refetchDrafts(); refetch(); }} />
           ))}
         </section>
       )}
@@ -146,7 +146,7 @@ export function Proposals() {
               key={p.id}
               proposal={p}
               nameMap={nameMap}
-              assemblyId={assemblyId!}
+              groupId={groupId!}
               endorsement={endorsementData?.endorsements?.[p.id] ?? { endorse: p.endorsementCount, dispute: p.disputeCount, my: null }}
             />
           ))}
@@ -160,16 +160,16 @@ export function Proposals() {
 // Compact clickable card (list page)
 // ---------------------------------------------------------------------------
 
-function ProposalCard({ proposal, nameMap, assemblyId, endorsement }: {
+function ProposalCard({ proposal, nameMap, groupId, endorsement }: {
   proposal: Proposal;
   nameMap: Map<string, string>;
-  assemblyId: string;
+  groupId: string;
   endorsement: EndorsementCounts;
 }) {
   const { t } = useTranslation("governance");
   const navigate = useNavigate();
   const statusColor = proposal.status === "locked" ? "blue" : proposal.status === "withdrawn" ? "gray" : "green";
-  const proposalUrl = `/assembly/${assemblyId}/proposals/${proposal.id}`;
+  const proposalUrl = `/group/${groupId}/proposals/${proposal.id}`;
   const [copied, setCopied] = useState(false);
 
   const copyLink = async (e: React.MouseEvent) => {
@@ -225,23 +225,23 @@ function ProposalCard({ proposal, nameMap, assemblyId, endorsement }: {
 
 export function ProposalDetailPage() {
   const { t } = useTranslation("governance");
-  const { assemblyId, proposalId } = useParams();
+  const { groupId, proposalId } = useParams();
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const participantId = groupId ? getParticipantId(groupId) : null;
 
   const { data: proposal, loading, error, refetch } = useApi(
-    () => api.getProposal(assemblyId!, proposalId!),
-    [assemblyId, proposalId],
+    () => api.getProposal(groupId!, proposalId!),
+    [groupId, proposalId],
   );
   const { data: participantsData } = useApi(
-    () => api.listParticipants(assemblyId!),
-    [assemblyId],
+    () => api.listParticipants(groupId!),
+    [groupId],
   );
 
   // Endorsement state (same pattern as candidacy-profile)
   const { data: endorsementData } = useApi(
-    () => api.getEndorsements(assemblyId!, "proposal", [proposalId!]),
-    [assemblyId, proposalId],
+    () => api.getEndorsements(groupId!, "proposal", [proposalId!]),
+    [groupId, proposalId],
   );
   const [localEndorsement, setLocalEndorsement] = useState<EndorsementCounts | null>(null);
   const endorsement: EndorsementCounts = localEndorsement
@@ -251,7 +251,7 @@ export function ProposalDetailPage() {
   // Copy link state
   const [copied, setCopied] = useState(false);
   const copyLink = async () => {
-    const fullUrl = `${window.location.origin}/assembly/${assemblyId}/proposals/${proposalId}`;
+    const fullUrl = `${window.location.origin}/group/${groupId}/proposals/${proposalId}`;
     await navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -279,7 +279,7 @@ export function ProposalDetailPage() {
     if (!versionMarkdown.trim()) return;
     setPublishing(true);
     try {
-      await api.createProposalVersion(assemblyId!, proposalId!, {
+      await api.createProposalVersion(groupId!, proposalId!, {
         markdown: versionMarkdown,
         changeSummary: changeSummary.trim() || undefined,
       });
@@ -298,7 +298,7 @@ export function ProposalDetailPage() {
     return (
       <div className="max-w-3xl mx-auto py-8">
         <Link
-          to={`/assembly/${assemblyId}/proposals`}
+          to={`/group/${groupId}/proposals`}
           className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-6"
         >
           <ChevronLeft size={16} />
@@ -320,7 +320,7 @@ export function ProposalDetailPage() {
     <div className="max-w-3xl mx-auto space-y-5 animate-page-in">
       {/* Back link */}
       <Link
-        to={`/assembly/${assemblyId}/proposals`}
+        to={`/group/${groupId}/proposals`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
       >
         <ChevronLeft size={16} />
@@ -371,7 +371,7 @@ export function ProposalDetailPage() {
                   value={versionMarkdown}
                   onChange={setVersionMarkdown}
                   placeholder={t("proposals.editorPlaceholder")}
-                  assemblyId={assemblyId!}
+                  groupId={groupId!}
                   minHeight={250}
                 />
               </Suspense>
@@ -411,7 +411,7 @@ export function ProposalDetailPage() {
           </h2>
         </CardHeader>
         <CardBody>
-          <NotesList assemblyId={assemblyId!} targetType="proposal" targetId={proposalId!} nameMap={nameMap} />
+          <NotesList groupId={groupId!} targetType="proposal" targetId={proposalId!} nameMap={nameMap} />
         </CardBody>
       </Card>
 
@@ -423,7 +423,7 @@ export function ProposalDetailPage() {
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           {canEndorse && (
             <EndorseButton
-              assemblyId={assemblyId!}
+              groupId={groupId!}
               targetType="proposal"
               targetId={proposalId!}
               counts={endorsement}
@@ -459,7 +459,7 @@ export function ProposalDetailPage() {
 // Draft management (unchanged)
 // ---------------------------------------------------------------------------
 
-function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; assemblyId: string; onAction: () => void }) {
+function DraftCard({ draft, groupId, onAction }: { draft: ProposalDraft; groupId: string; onAction: () => void }) {
   const { t } = useTranslation("governance");
   const [editing, setEditing] = useState(!draft.markdown);
   const [title, setTitle] = useState(draft.title);
@@ -470,9 +470,9 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
     setSubmitting(true);
     try {
       if (title !== draft.title || markdown !== draft.markdown) {
-        await api.updateProposalDraft(assemblyId, draft.id, { title, markdown });
+        await api.updateProposalDraft(groupId, draft.id, { title, markdown });
       }
-      await api.submitProposalDraft(assemblyId, draft.id);
+      await api.submitProposalDraft(groupId, draft.id);
       onAction();
     } catch (err) {
       alert(err instanceof Error ? err.message : t("proposals.submitFailed"));
@@ -482,7 +482,7 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
   };
 
   const handleDelete = async () => {
-    await api.deleteProposalDraft(assemblyId, draft.id);
+    await api.deleteProposalDraft(groupId, draft.id);
     onAction();
   };
 
@@ -513,7 +513,7 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
                 value={markdown}
                 onChange={setMarkdown}
                 placeholder={t("proposals.editorPlaceholder")}
-                assemblyId={assemblyId}
+                groupId={groupId}
                 minHeight={250}
               />
             </Suspense>
@@ -537,14 +537,14 @@ function DraftCard({ draft, assemblyId, onAction }: { draft: ProposalDraft; asse
   );
 }
 
-function DraftForm({ assemblyId, issueId, onCreated }: { assemblyId: string; issueId: string; onCreated: () => void }) {
+function DraftForm({ groupId, issueId, onCreated }: { groupId: string; issueId: string; onCreated: () => void }) {
   const { t } = useTranslation("governance");
   const [title, setTitle] = useState("");
   const [choiceKey, setChoiceKey] = useState("for");
 
   const handleCreate = async () => {
     if (!title.trim()) return;
-    await api.createProposalDraft(assemblyId, { issueId, choiceKey, title });
+    await api.createProposalDraft(groupId, { issueId, choiceKey, title });
     onCreated();
   };
 

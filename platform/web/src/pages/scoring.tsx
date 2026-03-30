@@ -3,8 +3,8 @@ import { useParams, Link, useSearchParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, LinkIcon, Check, Plus, Trash2, X, Search, Trophy, Users, Clock, Play, Square, CalendarPlus } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
-import { useAssembly } from "../hooks/use-assembly.js";
-import { useAssemblyRole } from "../hooks/use-assembly-role.js";
+import { useGroup } from "../hooks/use-group.js";
+import { useGroupRole } from "../hooks/use-group-role.js";
 import { useApi } from "../hooks/use-api.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
@@ -27,9 +27,9 @@ function eventStatus(e: ScoringEvent) {
 
 export function Scoring() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
-  const { assembly } = useAssembly(assemblyId);
-  const { isAdmin } = useAssemblyRole(assemblyId);
+  const { groupId } = useParams();
+  const { group } = useGroup(groupId);
+  const { isAdmin } = useGroupRole(groupId);
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (searchParams.get("tab") === "closed" ? "closed" : "open") as ScoringTab;
   const setTab = (value: ScoringTab) => {
@@ -42,13 +42,13 @@ export function Scoring() {
   const scoringEnabled = true; // Capability gating moves to backend in Tier 2
 
   useEffect(() => {
-    if (!assemblyId) return;
+    if (!groupId) return;
     setLoading(true);
-    api.listScoringEvents(assemblyId)
+    api.listScoringEvents(groupId)
       .then((data) => setEvents(data.scoringEvents))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [assemblyId]);
+  }, [groupId]);
 
   const draftEvents = useMemo(() =>
     events.filter((e) => eventStatus(e) === "draft")
@@ -90,7 +90,7 @@ export function Scoring() {
           {t("scoring.backToScores")}
         </button>
         <CreateScoringForm
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           onClose={() => setShowCreate(false)}
           onCreated={(event) => {
             setEvents([event, ...events]);
@@ -120,7 +120,7 @@ export function Scoring() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-text-tertiary mb-3">{t("scoring.draftsSection")}</h3>
             <div className="space-y-3">
               {draftEvents.map((event) => (
-                <ScoringEventCard key={event.id} assemblyId={assemblyId!} event={event} />
+                <ScoringEventCard key={event.id} groupId={groupId!} event={event} />
               ))}
             </div>
           </div>
@@ -161,7 +161,7 @@ export function Scoring() {
         ) : (
           <div className="space-y-3">
             {visibleEvents.map((event) => (
-              <ScoringEventCard key={event.id} assemblyId={assemblyId!} event={event} />
+              <ScoringEventCard key={event.id} groupId={groupId!} event={event} />
             ))}
           </div>
         )}
@@ -174,7 +174,7 @@ export function Scoring() {
 // Scoring event card — shown in the list view
 // ---------------------------------------------------------------------------
 
-function ScoringEventCard({ assemblyId, event }: { assemblyId: string; event: ScoringEvent }) {
+function ScoringEventCard({ groupId, event }: { groupId: string; event: ScoringEvent }) {
   const { t } = useTranslation("governance");
   const status = eventStatus(event);
   const isClosed = status === "closed";
@@ -183,7 +183,7 @@ function ScoringEventCard({ assemblyId, event }: { assemblyId: string; event: Sc
   const closesLabel = closesIn > 0
     ? t("scoring.closesIn", { days: Math.ceil(closesIn / 86400000) })
     : undefined;
-  const eventUrl = `/assembly/${assemblyId}/scoring/${event.id}`;
+  const eventUrl = `/group/${groupId}/scoring/${event.id}`;
   const [copied, setCopied] = useState(false);
 
   const totalDimensions = event.rubric.categories.reduce(
@@ -252,27 +252,27 @@ function ScoringEventCard({ assemblyId, event }: { assemblyId: string; event: Sc
 }
 
 // ---------------------------------------------------------------------------
-// Scoring detail page — mounted at /assembly/:assemblyId/scoring/:scoringEventId
+// Scoring detail page — mounted at /group/:groupId/scoring/:scoringEventId
 // ---------------------------------------------------------------------------
 
 export function ScoringDetailPage() {
   const { t } = useTranslation("governance");
-  const { assemblyId, scoringEventId } = useParams();
+  const { groupId, scoringEventId } = useParams();
   const [event, setEvent] = useState<ScoringEvent | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isAdmin } = useAssemblyRole(assemblyId);
+  const { isAdmin } = useGroupRole(groupId);
   const [showExtend, setShowExtend] = useState(false);
   const [newDeadline, setNewDeadline] = useState("");
   const [extending, setExtending] = useState(false);
 
   useEffect(() => {
-    if (!assemblyId || !scoringEventId) return;
+    if (!groupId || !scoringEventId) return;
     setLoading(true);
-    api.getScoringEvent(assemblyId, scoringEventId)
+    api.getScoringEvent(groupId, scoringEventId)
       .then(setEvent)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [assemblyId, scoringEventId]);
+  }, [groupId, scoringEventId]);
 
   if (loading) {
     return (
@@ -286,7 +286,7 @@ export function ScoringDetailPage() {
     return (
       <div className="max-w-3xl mx-auto">
         <Link
-          to={`/assembly/${assemblyId}/scoring`}
+          to={`/group/${groupId}/scoring`}
           className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-6"
         >
           <ChevronLeft size={16} />
@@ -300,28 +300,28 @@ export function ScoringDetailPage() {
   const status = eventStatus(event);
 
   const handleOpen = async () => {
-    if (!assemblyId || !scoringEventId) return;
-    await api.openScoringEvent(assemblyId, scoringEventId);
+    if (!groupId || !scoringEventId) return;
+    await api.openScoringEvent(groupId, scoringEventId);
     signal("scoring");
-    const updated = await api.getScoringEvent(assemblyId, scoringEventId);
+    const updated = await api.getScoringEvent(groupId, scoringEventId);
     setEvent(updated);
   };
 
   const handleClose = async () => {
-    if (!assemblyId || !scoringEventId) return;
-    await api.closeScoringEvent(assemblyId, scoringEventId);
+    if (!groupId || !scoringEventId) return;
+    await api.closeScoringEvent(groupId, scoringEventId);
     signal("scoring");
-    const updated = await api.getScoringEvent(assemblyId, scoringEventId);
+    const updated = await api.getScoringEvent(groupId, scoringEventId);
     setEvent(updated);
   };
 
   const handleExtend = async () => {
-    if (!assemblyId || !scoringEventId || !newDeadline) return;
+    if (!groupId || !scoringEventId || !newDeadline) return;
     setExtending(true);
     try {
-      await api.extendScoringDeadline(assemblyId, scoringEventId, new Date(newDeadline).toISOString());
+      await api.extendScoringDeadline(groupId, scoringEventId, new Date(newDeadline).toISOString());
       signal("scoring");
-      const updated = await api.getScoringEvent(assemblyId, scoringEventId);
+      const updated = await api.getScoringEvent(groupId, scoringEventId);
       setEvent(updated);
       setShowExtend(false);
     } finally {
@@ -332,13 +332,13 @@ export function ScoringDetailPage() {
   return (
     <div className="max-w-3xl mx-auto animate-page-in">
       {status === "draft" ? (
-        <DraftView assemblyId={assemblyId!} event={event} isAdmin={isAdmin} onOpen={handleOpen} onDiscard={handleClose} />
+        <DraftView groupId={groupId!} event={event} isAdmin={isAdmin} onOpen={handleOpen} onDiscard={handleClose} />
       ) : status === "closed" ? (
-        <ScoringResults assemblyId={assemblyId!} event={event} />
+        <ScoringResults groupId={groupId!} event={event} />
       ) : (
         <>
           <ScoringForm
-            assemblyId={assemblyId!}
+            groupId={groupId!}
             event={event}
             adminControls={isAdmin ? (
               <div className="flex flex-wrap gap-3">
@@ -385,13 +385,13 @@ export function ScoringDetailPage() {
 // ---------------------------------------------------------------------------
 
 function DraftView({
-  assemblyId,
+  groupId,
   event,
   isAdmin,
   onOpen,
   onDiscard,
 }: {
-  assemblyId: string;
+  groupId: string;
   event: ScoringEvent;
   isAdmin: boolean;
   onOpen: () => void;
@@ -406,7 +406,7 @@ function DraftView({
   return (
     <div className="space-y-6 pb-12">
       <Link
-        to={`/assembly/${assemblyId}/scoring`}
+        to={`/group/${groupId}/scoring`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
       >
         <ChevronLeft size={16} />
@@ -466,11 +466,11 @@ function DraftView({
 // Scoring form — submit scorecards for an open event
 // ---------------------------------------------------------------------------
 
-function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string; event: ScoringEvent; adminControls?: React.ReactNode }) {
+function ScoringForm({ groupId, event, adminControls }: { groupId: string; event: ScoringEvent; adminControls?: React.ReactNode }) {
   const { t } = useTranslation("governance");
   const navigate = useNavigate();
   const { getParticipantId } = useParticipant();
-  const participantId = getParticipantId(assemblyId);
+  const participantId = getParticipantId(groupId);
   const [activeEntryIndex, setActiveEntryIndex] = useState(0);
   const [scorecards, setScorecards] = useState<Record<string, Record<string, number>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -480,8 +480,8 @@ function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string;
 
   // Load existing scorecards for this participant
   useEffect(() => {
-    if (!assemblyId || !participantId) return;
-    api.listScorecards(assemblyId, event.id)
+    if (!groupId || !participantId) return;
+    api.listScorecards(groupId, event.id)
       .then((data) => {
         const mine = data.scorecards.filter((sc) => sc.evaluatorId === participantId);
         setExistingScorecards(mine);
@@ -498,7 +498,7 @@ function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string;
       .catch(() => {
         // secretScores may return 403 — ignore
       });
-  }, [assemblyId, event.id, participantId]);
+  }, [groupId, event.id, participantId]);
 
   const activeEntry = event.entries[activeEntryIndex];
   const currentScores = activeEntry ? scorecards[activeEntry.id] ?? {} : {};
@@ -540,19 +540,19 @@ function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string;
         }));
         const existing = existingScorecards.find((sc) => sc.entryId === entry.id);
         if (existing) {
-          await api.reviseScorecard(assemblyId, event.id, existing.id, {
+          await api.reviseScorecard(groupId, event.id, existing.id, {
             entryId: entry.id,
             scores,
           });
         } else {
-          await api.submitScorecard(assemblyId, event.id, {
+          await api.submitScorecard(groupId, event.id, {
             entryId: entry.id,
             scores,
           });
         }
       }
       signal("scoring");
-      navigate(`/assembly/${assemblyId}/scoring`);
+      navigate(`/group/${groupId}/scoring`);
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : t("scoring.submitError"));
       setSubmitting(false);
@@ -560,7 +560,7 @@ function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string;
   };
 
   const copyLink = async () => {
-    const fullUrl = `${window.location.origin}/assembly/${assemblyId}/scoring/${event.id}`;
+    const fullUrl = `${window.location.origin}/group/${groupId}/scoring/${event.id}`;
     await navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -575,7 +575,7 @@ function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string;
     <div className="space-y-5 pb-24">
       {/* Back navigation */}
       <Link
-        to={`/assembly/${assemblyId}/scoring`}
+        to={`/group/${groupId}/scoring`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
       >
         <ChevronLeft size={16} />
@@ -758,7 +758,7 @@ function ScoringForm({ assemblyId, event, adminControls }: { assemblyId: string;
 // Scoring results — displayed when the event is closed
 // ---------------------------------------------------------------------------
 
-function ScoringResults({ assemblyId, event }: { assemblyId: string; event: ScoringEvent }) {
+function ScoringResults({ groupId, event }: { groupId: string; event: ScoringEvent }) {
   const { t } = useTranslation("governance");
   const [results, setResults] = useState<ScoringResult | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
@@ -766,7 +766,7 @@ function ScoringResults({ assemblyId, event }: { assemblyId: string; event: Scor
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    api.getScoringResults(assemblyId, event.id)
+    api.getScoringResults(groupId, event.id)
       .then(setResults)
       .catch((err: unknown) => {
         if (err instanceof Error && err.message.includes("secret")) {
@@ -776,10 +776,10 @@ function ScoringResults({ assemblyId, event }: { assemblyId: string; event: Scor
         }
       })
       .finally(() => setLoading(false));
-  }, [assemblyId, event.id, t]);
+  }, [groupId, event.id, t]);
 
   const copyLink = async () => {
-    const fullUrl = `${window.location.origin}/assembly/${assemblyId}/scoring/${event.id}`;
+    const fullUrl = `${window.location.origin}/group/${groupId}/scoring/${event.id}`;
     await navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -808,7 +808,7 @@ function ScoringResults({ assemblyId, event }: { assemblyId: string; event: Scor
     <div className="space-y-6 pb-12">
       {/* Back navigation */}
       <Link
-        to={`/assembly/${assemblyId}/scoring`}
+        to={`/group/${groupId}/scoring`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
       >
         <ChevronLeft size={16} />
@@ -1019,11 +1019,11 @@ function emptyEntry(): EntryDraft {
 }
 
 function CreateScoringForm({
-  assemblyId,
+  groupId,
   onClose,
   onCreated,
 }: {
-  assemblyId: string;
+  groupId: string;
   onClose: () => void;
   onCreated: (event: ScoringEvent) => void;
 }) {
@@ -1046,7 +1046,7 @@ function CreateScoringForm({
   const [formError, setFormError] = useState<string | null>(null);
 
   // Load participants for panel search
-  const { data: participantsData } = useApi(() => api.listParticipants(assemblyId), [assemblyId]);
+  const { data: participantsData } = useApi(() => api.listParticipants(groupId), [groupId]);
   const allParticipants = participantsData?.participants ?? [];
 
   const filteredParticipants = useMemo(() => {
@@ -1101,7 +1101,7 @@ function CreateScoringForm({
     setFormError(null);
     const now = Date.now();
     try {
-      const event = await api.createScoringEvent(assemblyId, {
+      const event = await api.createScoringEvent(groupId, {
         title: title.trim(),
         description: description.trim(),
         entries: entries.map((e) => ({

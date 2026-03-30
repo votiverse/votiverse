@@ -14,8 +14,8 @@ import { signal } from "../hooks/use-mutation-signal.js";
 import { FileText, Clock, Building2, CheckCircle2, X } from "lucide-react";
 
 interface VoteGroup {
-  assemblyId: string;
-  assemblyName: string;
+  groupId: string;
+  groupName: string;
   eventId: string;
   eventTitle: string;
   votingEnd: string;
@@ -27,12 +27,12 @@ interface VoteGroup {
 function groupByEvent(votes: PendingVote[]): VoteGroup[] {
   const map = new Map<string, VoteGroup>();
   for (const vote of votes) {
-    const key = `${vote.assemblyId}:${vote.eventId}`;
+    const key = `${vote.groupId}:${vote.eventId}`;
     let group = map.get(key);
     if (!group) {
       group = {
-        assemblyId: vote.assemblyId,
-        assemblyName: vote.assemblyName,
+        groupId: vote.groupId,
+        groupName: vote.groupName,
         eventId: vote.eventId,
         eventTitle: vote.eventTitle,
         votingEnd: vote.votingEnd,
@@ -69,7 +69,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
     pendingSurveys,
     totalPending,
     totalPendingSurveys,
-    assemblySummaries,
+    groupSummaries,
     nearestDeadline,
     loading,
   } = useAttention();
@@ -123,7 +123,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
             </div>
             {nearestDeadline && (
               <Link
-                to={`/assembly/${nearestDeadline.assemblyId}/events/${nearestDeadline.eventId}`}
+                to={`/group/${nearestDeadline.groupId}/events/${nearestDeadline.eventId}`}
                 className="inline-flex items-center justify-center px-6 py-3 bg-surface-raised text-accent-text font-bold rounded-xl hover:bg-interactive-hover active:scale-[0.97] transition-all min-h-[44px] shrink-0 shadow-sm"
               >
                 {t("dashboard.voteNow")}
@@ -158,14 +158,14 @@ function DashboardContent({ participantName }: { participantName: string | null 
             <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-3 sm:mb-4">{t("dashboard.activeVotes")}</h2>
             <div className="space-y-4">
               {groups.map((group) => {
-                const eventPath = `/assembly/${group.assemblyId}/events/${group.eventId}`;
+                const eventPath = `/group/${group.groupId}/events/${group.eventId}`;
                 return (
-                <Card key={`${group.assemblyId}-${group.eventId}`} className="overflow-hidden hover:border-accent-muted transition-all">
+                <Card key={`${group.groupId}-${group.eventId}`} className="overflow-hidden hover:border-accent-muted transition-all">
                     {/* Event header — links to event page top */}
                     <Link to={eventPath} className="block bg-surface-sunken px-4 sm:px-5 py-3 border-b border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-surface-sunken/80 transition-colors">
                       <div className="min-w-0">
                         <span className="text-[10px] font-bold text-accent-text uppercase tracking-widest bg-accent-subtle px-2 py-0.5 rounded-md">
-                          {group.assemblyName}
+                          {group.groupName}
                         </span>
                         <p className="text-base font-bold font-display text-text-primary mt-1 truncate">{group.eventTitle}</p>
                       </div>
@@ -213,23 +213,23 @@ function DashboardContent({ participantName }: { participantName: string | null 
         </div>
       )}
 
-      {/* Assembly cards */}
-      {assemblySummaries.length > 0 && (
+      {/* Group cards */}
+      {groupSummaries.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-3 sm:mb-4">{t("dashboard.yourGroups")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {assemblySummaries.map(({ assembly, activeEventCount, pendingVoteCount, pendingSurveyCount }) => (
-              <Link key={assembly.id} to={`/assembly/${assembly.id}/events`} className="block">
+            {groupSummaries.map(({ group, activeEventCount, pendingVoteCount, pendingSurveyCount }) => (
+              <Link key={group.id} to={`/group/${group.id}/events`} className="block">
                 <Card className="hover:border-accent-muted hover:-translate-y-0.5 transition-all duration-200 h-full">
                   <CardBody className="p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-surface-sunken border border-border-default rounded-xl flex items-center justify-center text-base font-bold text-text-muted font-display shadow-sm shrink-0">
-                        {assembly.name[0]}
+                        {group.name[0]}
                       </div>
-                      <Badge color="gray">{quadrantLabel(assembly.config, t)}</Badge>
+                      <Badge color="gray">{quadrantLabel(group.config, t)}</Badge>
                     </div>
                     <h3 className="font-bold font-display text-text-primary text-base leading-tight mb-4">
-                      {assembly.name}
+                      {group.name}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border-subtle">
                       <Badge color={activeEventCount > 0 ? "blue" : "gray"}>
@@ -250,10 +250,10 @@ function DashboardContent({ participantName }: { participantName: string | null 
         </div>
       )}
 
-      {assemblySummaries.length === 0 && pendingVotes.length === 0 && (
+      {groupSummaries.length === 0 && pendingVotes.length === 0 && (
         <div className="text-center py-12">
           <p className="text-text-muted">{t("dashboard.noGroups")}</p>
-          <Link to="/assemblies" className="text-sm text-accent-text hover:text-accent-muted mt-2 inline-block">
+          <Link to="/groups" className="text-sm text-accent-text hover:text-accent-muted mt-2 inline-block">
             {t("dashboard.browseGroups")}
           </Link>
         </div>
@@ -307,7 +307,7 @@ function SurveyCard({ survey }: { survey: PendingSurvey }) {
     e.stopPropagation();
     setDismissing(true);
     try {
-      await api.dismissSurvey(survey.assemblyId, survey.surveyId);
+      await api.dismissSurvey(survey.groupId, survey.surveyId);
       setDismissed(true);
       signal("attention");
     } catch {
@@ -321,12 +321,12 @@ function SurveyCard({ survey }: { survey: PendingSurvey }) {
 
   return (
     <div className="relative group">
-      <Link to={`/assembly/${survey.assemblyId}/surveys`} className="block">
+      <Link to={`/group/${survey.groupId}/surveys`} className="block">
         <Card className="hover:border-accent-muted transition-all">
           <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="text-[10px] font-bold text-accent-text uppercase tracking-widest bg-accent-subtle px-2 py-0.5 rounded-md">
-                {survey.assemblyName}
+                {survey.groupName}
               </span>
               <p className="text-base font-bold font-display text-text-primary mt-1 truncate">{survey.surveyTitle}</p>
               <p className="text-sm text-text-muted mt-0.5">{t("surveys.question", { count: survey.questionCount })}</p>
@@ -371,7 +371,7 @@ function PendingJoinRequests() {
             <CardBody className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5">
               <div className="min-w-0">
                 <p className="text-sm font-bold text-text-secondary">
-                  {t("dashboard.requestToJoin", { name: req.assemblyName ?? "a group" })}
+                  {t("dashboard.requestToJoin", { name: req.groupName ?? "a group" })}
                 </p>
                 <p className="text-xs text-text-tertiary mt-1">
                   {t("dashboard.submitted", { date: formatDate(req.createdAt) })}
@@ -395,11 +395,11 @@ function PendingInvitations() {
   const invitations = data?.invitations ?? [];
   if (invitations.length === 0) return null;
 
-  const handleAccept = async (inv: { id: string; assemblyId: string }) => {
+  const handleAccept = async (inv: { id: string; groupId: string }) => {
     setProcessing(inv.id);
     try {
       const result = await api.acceptInvitation(inv.id);
-      navigate(`/assembly/${result.assemblyId}`);
+      navigate(`/group/${result.groupId}`);
     } catch {
       setProcessing(null);
     }
@@ -430,7 +430,7 @@ function PendingInvitations() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-text-primary">
-                    {t("dashboard.invitedToJoin", { name: inv.assemblyName ?? "a group" })}
+                    {t("dashboard.invitedToJoin", { name: inv.groupName ?? "a group" })}
                   </p>
                   <p className="text-xs text-text-muted mt-0.5">{formatDate(inv.createdAt)}</p>
                 </div>

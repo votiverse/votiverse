@@ -11,19 +11,19 @@ import { Avatar } from "../components/avatar.js";
 
 export function TopicPage() {
   const { t } = useTranslation("governance");
-  const { assemblyId, topicId } = useParams();
+  const { groupId, topicId } = useParams();
 
   const { data: topicsData, loading: topicsLoading } = useApi(
-    () => api.listTopics(assemblyId!),
-    [assemblyId],
+    () => api.listTopics(groupId!),
+    [groupId],
   );
   const { data: issuesData, loading: issuesLoading, error, refetch } = useApi(
-    () => api.getTopicIssues(assemblyId!, topicId!),
-    [assemblyId, topicId],
+    () => api.getTopicIssues(groupId!, topicId!),
+    [groupId, topicId],
   );
   const { data: delegationsData } = useApi(
-    () => api.getTopicDelegations(assemblyId!, topicId!),
-    [assemblyId, topicId],
+    () => api.getTopicDelegations(groupId!, topicId!),
+    [groupId, topicId],
   );
   const { myDelegations, participantNames } = useMyDelegations();
 
@@ -73,7 +73,7 @@ export function TopicPage() {
       {/* Breadcrumb */}
       <div className="mb-1 text-xs text-text-tertiary flex items-center gap-1">
         <Link
-          to={`/assembly/${assemblyId}/topics`}
+          to={`/group/${groupId}/topics`}
           className="hover:text-text-secondary transition-colors"
         >
           {t("topicPage.breadcrumbTopics")}
@@ -82,7 +82,7 @@ export function TopicPage() {
           <>
             <span>›</span>
             <Link
-              to={`/assembly/${assemblyId}/topics/${parent.id}`}
+              to={`/group/${groupId}/topics/${parent.id}`}
               className="hover:text-text-secondary transition-colors"
             >
               {parent.name}
@@ -105,7 +105,7 @@ export function TopicPage() {
         {delegationStatus && (
           <DelegationBadge
             status={delegationStatus}
-            assemblyId={assemblyId!}
+            groupId={groupId!}
           />
         )}
       </div>
@@ -118,7 +118,7 @@ export function TopicPage() {
             {children.map((child) => (
               <Link
                 key={child.id}
-                to={`/assembly/${assemblyId}/topics/${child.id}`}
+                to={`/group/${groupId}/topics/${child.id}`}
                 className="text-sm text-text-secondary hover:text-text-primary bg-surface-sunken hover:bg-interactive-active rounded-full px-3 py-1 transition-colors"
               >
                 {child.name}
@@ -130,18 +130,18 @@ export function TopicPage() {
 
       {/* Issues sections */}
       <IssuesSection
-        assemblyId={assemblyId!}
+        groupId={groupId!}
         label={t("topicPage.votingNow")}
         issues={activeIssues}
         showBadge
       />
       <IssuesSection
-        assemblyId={assemblyId!}
+        groupId={groupId!}
         label={t("topicPage.upcoming")}
         issues={upcomingIssues}
       />
       <IssuesSection
-        assemblyId={assemblyId!}
+        groupId={groupId!}
         label={t("topicPage.closed")}
         issues={closedIssues}
       />
@@ -180,12 +180,12 @@ export function TopicPage() {
 }
 
 function IssuesSection({
-  assemblyId,
+  groupId,
   label,
   issues,
   showBadge,
 }: {
-  assemblyId: string;
+  groupId: string;
   label: string;
   issues: TopicIssueItem[];
   showBadge?: boolean;
@@ -202,20 +202,20 @@ function IssuesSection({
       </h2>
       <div className="space-y-2">
         {issues.map((item) => (
-          <IssueRow key={item.issue.id} item={item} assemblyId={assemblyId} />
+          <IssueRow key={item.issue.id} item={item} groupId={groupId} />
         ))}
       </div>
     </div>
   );
 }
 
-function IssueRow({ item, assemblyId }: { item: TopicIssueItem; assemblyId: string }) {
+function IssueRow({ item, groupId }: { item: TopicIssueItem; groupId: string }) {
   const { t } = useTranslation("governance");
   const { issue, event } = item;
 
   return (
     <Link
-      to={`/assembly/${assemblyId}/events/${event.id}`}
+      to={`/group/${groupId}/events/${event.id}`}
       className="block"
     >
       <Card className="hover:border-border-strong transition-colors">
@@ -262,15 +262,15 @@ function DelegateRow({ item, isMyDelegate }: { item: TopicDelegationItem; isMyDe
 /** Compact delegation indicator: delegate avatar + "Delegated" label. */
 function DelegationBadge({
   status,
-  assemblyId,
+  groupId,
 }: {
   status: TopicDelegationStatus;
-  assemblyId: string;
+  groupId: string;
 }) {
   const { t } = useTranslation("governance");
   return (
     <Link
-      to={`/assembly/${assemblyId}/delegations`}
+      to={`/group/${groupId}/delegations`}
       className="flex flex-col items-center gap-0.5 shrink-0 group"
       title={status.label}
     >

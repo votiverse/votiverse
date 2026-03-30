@@ -11,13 +11,13 @@ import type { BulkInvitePreview } from "../api/client.js";
 import { Card, CardBody, Button, Badge, ErrorBox } from "./ui.js";
 
 interface BulkInviteProps {
-  assemblyId: string;
+  groupId: string;
   onClose: () => void;
 }
 
 type Phase = "upload" | "preview" | "sending" | "done";
 
-export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
+export function BulkInvite({ groupId, onClose }: BulkInviteProps) {
   const { t } = useTranslation("onboarding");
   const [phase, setPhase] = useState<Phase>("upload");
   const [preview, setPreview] = useState<BulkInvitePreview | null>(null);
@@ -35,7 +35,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
         setError(t("bulk.fileEmpty"));
         return;
       }
-      const data = await api.previewBulkInvites(assemblyId, csv);
+      const data = await api.previewBulkInvites(groupId, csv);
       setPreview(data);
       setPhase("preview");
     } catch (err: unknown) {
@@ -43,7 +43,7 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
     } finally {
       setLoading(false);
     }
-  }, [assemblyId]);
+  }, [groupId]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -62,14 +62,14 @@ export function BulkInvite({ assemblyId, onClose }: BulkInviteProps) {
     setPhase("sending");
     setError(null);
     try {
-      const data = await api.createBulkInvites(assemblyId, handles);
+      const data = await api.createBulkInvites(groupId, handles);
       setResult(data);
       setPhase("done");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("bulk.sendError"));
       setPhase("preview");
     }
-  }, [assemblyId, preview]);
+  }, [groupId, preview]);
 
   return (
     <Card className="mb-4">

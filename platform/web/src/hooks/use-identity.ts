@@ -13,8 +13,8 @@ import { registerDevice } from "../api/client.js";
 import { isTauri } from "../lib/tauri.js";
 
 export interface IdentityMembership {
-  assemblyId: string;
-  assemblyName: string;
+  groupId: string;
+  groupName: string;
   participantId: string;
 }
 
@@ -27,10 +27,10 @@ export interface IdentityCtx {
   handle: string | null;
   /** User email. */
   email: string | null;
-  /** Assembly memberships. */
+  /** Group memberships. */
   memberships: IdentityMembership[];
-  /** Get the assembly-specific participant ID for the current user. */
-  getParticipantId: (assemblyId: string) => string | null;
+  /** Get the group-specific participant ID for the current user. */
+  getParticipantId: (groupId: string) => string | null;
   /** Whether the initial auth check is in progress. */
   loading: boolean;
   /** Login with email/password. */
@@ -103,8 +103,8 @@ export function useIdentityProvider(): IdentityCtx {
             handle: me.handle ?? null,
             email: me.email,
             memberships: me.memberships.map((m) => ({
-              assemblyId: m.assemblyId,
-              assemblyName: m.assemblyName,
+              groupId: m.groupId,
+              groupName: m.groupName,
               participantId: m.participantId,
             })),
           });
@@ -119,10 +119,10 @@ export function useIdentityProvider(): IdentityCtx {
     return () => { cancelled = true; };
   }, []);
 
-  // Re-fetch profile when assemblies change (new membership after group creation)
-  const assemblySignal = useSignal("assemblies");
+  // Re-fetch profile when groups change (new membership after group creation)
+  const groupSignal = useSignal("groups");
   useEffect(() => {
-    if (assemblySignal === 0 || !user) return; // skip initial render
+    if (groupSignal === 0 || !user) return; // skip initial render
     let cancelled = false;
     auth.getMe().then((me) => {
       if (!cancelled && me) {
@@ -132,15 +132,15 @@ export function useIdentityProvider(): IdentityCtx {
           handle: me.handle ?? null,
           email: me.email,
           memberships: me.memberships.map((m) => ({
-            assemblyId: m.assemblyId,
-            assemblyName: m.assemblyName,
+            groupId: m.groupId,
+            groupName: m.groupName,
             participantId: m.participantId,
           })),
         });
       }
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [assemblySignal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [groupSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for auth-expired events (fired by API client when refresh fails)
   useEffect(() => {
@@ -163,8 +163,8 @@ export function useIdentityProvider(): IdentityCtx {
         handle: me.handle ?? null,
         email: me.email,
         memberships: me.memberships.map((m) => ({
-          assemblyId: m.assemblyId,
-          assemblyName: m.assemblyName,
+          groupId: m.groupId,
+          groupName: m.groupName,
           participantId: m.participantId,
         })),
       });
@@ -188,9 +188,9 @@ export function useIdentityProvider(): IdentityCtx {
     window.location.href = "/login";
   }, []);
 
-  const getParticipantId = useCallback((assemblyId: string): string | null => {
+  const getParticipantId = useCallback((groupId: string): string | null => {
     if (!user) return null;
-    return user.memberships.find((m) => m.assemblyId === assemblyId)?.participantId ?? null;
+    return user.memberships.find((m) => m.groupId === groupId)?.participantId ?? null;
   }, [user]);
 
   return {

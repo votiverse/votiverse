@@ -31,9 +31,9 @@ export interface MeResponse {
   bio?: string;
   locale?: string;
   memberships: Array<{
-    assemblyId: string;
+    groupId: string;
     participantId: string;
-    assemblyName: string;
+    groupName: string;
     joinedAt: string;
   }>;
 }

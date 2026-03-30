@@ -10,12 +10,12 @@ import { signal } from "../hooks/use-mutation-signal.js";
 function usePresets() {
   const { t } = useTranslation("governance");
   return [
-    { value: "LIQUID_DELEGATION", label: t("assemblyList.presetLiquidDelegation"), desc: t("assemblyList.presetLiquidDelegationDesc") },
-    { value: "DIRECT_DEMOCRACY", label: t("assemblyList.presetDirectDemocracy"), desc: t("assemblyList.presetDirectDemocracyDesc") },
-    { value: "SWISS_VOTATION", label: t("assemblyList.presetSwissVotation"), desc: t("assemblyList.presetSwissVotationDesc") },
-    { value: "LIQUID_OPEN", label: t("assemblyList.presetLiquidOpen"), desc: t("assemblyList.presetLiquidOpenDesc") },
-    { value: "REPRESENTATIVE", label: t("assemblyList.presetRepresentative"), desc: t("assemblyList.presetRepresentativeDesc") },
-    { value: "CIVIC", label: t("assemblyList.presetCivic"), desc: t("assemblyList.presetCivicDesc") },
+    { value: "LIQUID_DELEGATION", label: t("groupList.presetLiquidDelegation"), desc: t("groupList.presetLiquidDelegationDesc") },
+    { value: "DIRECT_DEMOCRACY", label: t("groupList.presetDirectDemocracy"), desc: t("groupList.presetDirectDemocracyDesc") },
+    { value: "SWISS_VOTATION", label: t("groupList.presetSwissVotation"), desc: t("groupList.presetSwissVotationDesc") },
+    { value: "LIQUID_OPEN", label: t("groupList.presetLiquidOpen"), desc: t("groupList.presetLiquidOpenDesc") },
+    { value: "REPRESENTATIVE", label: t("groupList.presetRepresentative"), desc: t("groupList.presetRepresentativeDesc") },
+    { value: "CIVIC", label: t("groupList.presetCivic"), desc: t("groupList.presetCivicDesc") },
   ];
 }
 
@@ -41,7 +41,7 @@ function getDefaultConfig(): ConfigDraft {
 
 // ── Page ─────────────────────────────────────────────────────────────
 
-export function CreateAssembly() {
+export function CreateGroup() {
   const { t } = useTranslation("governance");
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -62,17 +62,17 @@ export function CreateAssembly() {
     setSubmitting(true);
     setError(null);
     try {
-      const params: Parameters<typeof api.createAssembly>[0] = { name: name.trim(), admissionMode, websiteUrl: websiteUrl.trim() || undefined };
+      const params: Parameters<typeof api.createGroup>[0] = { name: name.trim(), admissionMode, websiteUrl: websiteUrl.trim() || undefined };
       if (isCustomized) {
         params.config = config;
       } else {
         params.preset = config.preset;
       }
-      const assembly = await api.createAssembly(params);
-      signal("assemblies");
-      navigate(`/assembly/${assembly.id}/members`);
+      const group = await api.createGroup(params);
+      signal("groups");
+      navigate(`/group/${group.id}/members`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("assemblyList.createError"));
+      setError(err instanceof Error ? err.message : t("groupList.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +82,7 @@ export function CreateAssembly() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("createAssembly.title")}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary mb-6">{t("createGroup.title")}</h1>
 
       <Card>
         <CardBody>
@@ -90,79 +90,79 @@ export function CreateAssembly() {
             {error && <ErrorBox message={error} />}
 
             <div>
-              <Label>{t("assemblyList.nameLabel")}</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("assemblyList.namePlaceholder")} autoFocus />
+              <Label>{t("groupList.nameLabel")}</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groupList.namePlaceholder")} autoFocus />
             </div>
 
             {/* Governance summary */}
             <div className="flex items-center justify-between text-sm">
               <span className="text-text-muted">
-                {t("assemblyList.governance")} <span className="font-medium text-text-secondary">{presetInfo?.label ?? t("assemblyList.presetLiquidDelegation")}</span>
-                {isCustomized && <span className="text-warning-text ml-1">{t("assemblyList.customized")}</span>}
+                {t("groupList.governance")} <span className="font-medium text-text-secondary">{presetInfo?.label ?? t("groupList.presetLiquidDelegation")}</span>
+                {isCustomized && <span className="text-warning-text ml-1">{t("groupList.customized")}</span>}
               </span>
               <button
                 type="button"
                 onClick={() => setShowCustomize(true)}
                 className="text-accent-text hover:text-accent-text text-sm font-medium"
               >
-                {t("assemblyList.customizeRules")}
+                {t("groupList.customizeRules")}
               </button>
             </div>
             <p className="text-xs text-text-tertiary -mt-2">
-              {t("assemblyList.rulesPermanent")}
+              {t("groupList.rulesPermanent")}
             </p>
 
             {/* Timeline */}
             <div>
-              <Label>{t("assemblyList.timelinePerVote")}</Label>
+              <Label>{t("groupList.timelinePerVote")}</Label>
               <div className="flex items-center gap-4 mt-1">
                 <div className="flex items-center gap-1.5">
                   <Input type="number" min={1} max={90} value={config.timeline.deliberationDays} onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, deliberationDays: Number(e.target.value) } }))} className="w-16" />
-                  <span className="text-xs text-text-muted">{t("assemblyList.deliberation")}</span>
+                  <span className="text-xs text-text-muted">{t("groupList.deliberation")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Input type="number" min={0} max={30} value={config.timeline.curationDays} onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, curationDays: Number(e.target.value) } }))} className="w-16" />
-                  <span className="text-xs text-text-muted">{t("assemblyList.curation")}</span>
+                  <span className="text-xs text-text-muted">{t("groupList.curation")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Input type="number" min={1} max={90} value={config.timeline.votingDays} onChange={(e) => setConfig((prev) => ({ ...prev, timeline: { ...prev.timeline, votingDays: Number(e.target.value) } }))} className="w-16" />
-                  <span className="text-xs text-text-muted">{t("assemblyList.voting")}</span>
+                  <span className="text-xs text-text-muted">{t("groupList.voting")}</span>
                 </div>
-                <span className="text-xs text-text-tertiary">{t("assemblyList.days")}</span>
+                <span className="text-xs text-text-tertiary">{t("groupList.days")}</span>
               </div>
               <p className="text-xs text-text-tertiary mt-1">{t("eventsList.timelineTotal", { total: totalDays })}</p>
             </div>
 
             {/* Admission mode */}
             <div>
-              <Label>{t("assemblyList.whoCanJoin")}</Label>
+              <Label>{t("groupList.whoCanJoin")}</Label>
               <Select value={admissionMode} onChange={(e) => setAdmissionMode(e.target.value as "open" | "approval" | "invite-only")}>
-                <option value="approval">{t("assemblyList.admissionApproval")}</option>
-                <option value="open">{t("assemblyList.admissionOpen")}</option>
-                <option value="invite-only">{t("assemblyList.admissionInviteOnly")}</option>
+                <option value="approval">{t("groupList.admissionApproval")}</option>
+                <option value="open">{t("groupList.admissionOpen")}</option>
+                <option value="invite-only">{t("groupList.admissionInviteOnly")}</option>
               </Select>
               <p className="text-xs text-text-tertiary mt-1">
-                {admissionMode === "approval" && t("assemblyList.admissionApprovalDesc")}
-                {admissionMode === "open" && t("assemblyList.admissionOpenDesc")}
-                {admissionMode === "invite-only" && t("assemblyList.admissionInviteOnlyDesc")}
+                {admissionMode === "approval" && t("groupList.admissionApprovalDesc")}
+                {admissionMode === "open" && t("groupList.admissionOpenDesc")}
+                {admissionMode === "invite-only" && t("groupList.admissionInviteOnlyDesc")}
               </p>
               {admissionMode === "open" && (
                 <p className="text-xs text-warning-text bg-warning-subtle border border-warning-border rounded px-2 py-1.5 mt-1.5">
-                  {t("assemblyList.sybilWarning")}
+                  {t("groupList.sybilWarning")}
                 </p>
               )}
-              <p className="text-xs text-text-tertiary mt-1">{t("assemblyList.changeableNote")}</p>
+              <p className="text-xs text-text-tertiary mt-1">{t("groupList.changeableNote")}</p>
             </div>
 
             {/* Website URL */}
             <div>
-              <Label>{t("assemblyList.websiteLabel")}</Label>
+              <Label>{t("groupList.websiteLabel")}</Label>
               <Input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://..." />
               {!websiteUrl && (
                 <p className="text-xs text-text-tertiary mt-1">
-                  {t("assemblyList.websiteHelper")}{" "}
+                  {t("groupList.websiteHelper")}{" "}
                   <a href="https://uniweb.app/templates?category=organization" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
-                    {t("assemblyList.browseTemplates")} →
+                    {t("groupList.browseTemplates")} →
                   </a>
                 </p>
               )}
@@ -171,7 +171,7 @@ export function CreateAssembly() {
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="secondary" onClick={() => navigate(-1)}>{t("common:cancel")}</Button>
               <Button type="submit" disabled={submitting || !name.trim()}>
-                {submitting ? t("assemblyList.creating") : t("assemblyList.createGroup")}
+                {submitting ? t("groupList.creating") : t("groupList.createGroup")}
               </Button>
             </div>
           </form>
@@ -205,13 +205,13 @@ function ConfigModal({ config, onChange, onClose, presets, presetConfigs }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <Card className="w-full max-w-lg max-h-[85vh] overflow-y-auto">
         <CardBody className="space-y-4">
-          <h3 className="font-medium text-text-primary">{t("assemblyList.governanceRules")}</h3>
-          <p className="text-sm text-text-muted">{t("assemblyList.governanceRulesDesc")}</p>
+          <h3 className="font-medium text-text-primary">{t("groupList.governanceRules")}</h3>
+          <p className="text-sm text-text-muted">{t("groupList.governanceRulesDesc")}</p>
 
           {/* Preset selector */}
           <div>
-            <Label>{t("assemblyList.startFromPreset")}</Label>
-            <p className="text-xs text-text-tertiary mb-2">{t("assemblyList.presetResetsAll")}</p>
+            <Label>{t("groupList.startFromPreset")}</Label>
+            <p className="text-xs text-text-tertiary mb-2">{t("groupList.presetResetsAll")}</p>
             <Select value={config.preset} onChange={(e) => { const p = presetConfigs[e.target.value]; if (p) onChange(structuredClone(p)); }}>
               {presets.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
             </Select>
@@ -219,40 +219,40 @@ function ConfigModal({ config, onChange, onClose, presets, presetConfigs }: {
 
           {/* Delegation */}
           <div>
-            <Label>{t("assemblyList.sectionDelegation")}</Label>
+            <Label>{t("groupList.sectionDelegation")}</Label>
             <div className="space-y-2 mt-1">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={config.delegation.candidacy} onChange={(e) => onChange({ ...config, delegation: { ...config.delegation, candidacy: e.target.checked } })} className="rounded" />
-                {t("assemblyList.declaredCandidates")}
+                {t("groupList.declaredCandidates")}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={config.delegation.transferable} onChange={(e) => onChange({ ...config, delegation: { ...config.delegation, transferable: e.target.checked } })} className="rounded" />
-                {t("assemblyList.transferableAnyMember")}
+                {t("groupList.transferableAnyMember")}
               </label>
             </div>
           </div>
 
           {/* Ballot */}
           <div>
-            <Label>{t("assemblyList.sectionBallot")}</Label>
+            <Label>{t("groupList.sectionBallot")}</Label>
             <div className="space-y-2 mt-1">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={config.ballot.secret} onChange={(e) => onChange({ ...config, ballot: { ...config.ballot, secret: e.target.checked } })} className="rounded" />
-                {t("assemblyList.secretBallot")}
+                {t("groupList.secretBallot")}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={config.ballot.liveResults} onChange={(e) => onChange({ ...config, ballot: { ...config.ballot, liveResults: e.target.checked } })} className="rounded" />
-                {t("assemblyList.liveResults")}
+                {t("groupList.liveResults")}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={config.ballot.allowVoteChange} onChange={(e) => onChange({ ...config, ballot: { ...config.ballot, allowVoteChange: e.target.checked } })} className="rounded" />
-                {t("assemblyList.allowVoteChange")}
+                {t("groupList.allowVoteChange")}
               </label>
             </div>
           </div>
 
           <div className="flex gap-2 justify-end pt-2">
-            <Button onClick={onClose}>{t("assemblyList.done")}</Button>
+            <Button onClick={onClose}>{t("groupList.done")}</Button>
           </div>
         </CardBody>
       </Card>

@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router";
 import { useTranslation, Trans } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
-import { useAssembly } from "../hooks/use-assembly.js";
+import { useGroup } from "../hooks/use-group.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
 import { useAttention } from "../hooks/use-attention.js";
 import { signal } from "../hooks/use-mutation-signal.js";
@@ -65,52 +65,52 @@ function findApplicableDelegation(
 
 export function EventDetail() {
   const { t } = useTranslation("governance");
-  const { assemblyId, eventId } = useParams();
+  const { groupId, eventId } = useParams();
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
-  const { assembly } = useAssembly(assemblyId);
+  const participantId = groupId ? getParticipantId(groupId) : null;
+  const { group } = useGroup(groupId);
   const { data: event, loading, error, refetch } = useApi(
-    () => api.getEvent(assemblyId!, eventId!),
-    [assemblyId, eventId],
+    () => api.getEvent(groupId!, eventId!),
+    [groupId, eventId],
   );
   const { data: tallyData, refetch: refetchTally } = useApi(
-    () => api.getTally(assemblyId!, eventId!),
-    [assemblyId, eventId],
+    () => api.getTally(groupId!, eventId!),
+    [groupId, eventId],
   );
   const { data: weightsData } = useApi(
-    () => api.getWeights(assemblyId!, eventId!).catch((err) => {
+    () => api.getWeights(groupId!, eventId!).catch((err) => {
       // 403 is expected for secret ballots or sealed results — suppress
       if (err instanceof api.ApiError && err.status === 403) return { eventId: eventId!, weights: [] };
       throw err;
     }),
-    [assemblyId, eventId],
+    [groupId, eventId],
   );
   const { data: participantsData } = useApi(
-    () => api.listParticipants(assemblyId!),
-    [assemblyId],
+    () => api.listParticipants(groupId!),
+    [groupId],
   );
   const { data: topicsData } = useApi(
-    () => api.listTopics(assemblyId!),
-    [assemblyId],
+    () => api.listTopics(groupId!),
+    [groupId],
   );
 
-  const delegationCandidacy = assembly?.config.delegation.candidacy ?? false;
+  const delegationCandidacy = group?.config.delegation.candidacy ?? false;
   const { data: candidaciesData } = useApi(
-    () => delegationCandidacy ? api.listCandidacies(assemblyId!, "active") : Promise.resolve({ candidacies: [] }),
-    [assemblyId, delegationCandidacy],
+    () => delegationCandidacy ? api.listCandidacies(groupId!, "active") : Promise.resolve({ candidacies: [] }),
+    [groupId, delegationCandidacy],
   );
 
   // Fetch outgoing delegations for the current user (used for inline delegation management)
   const { data: delegationsData, refetch: refetchDelegations } = useApi(
-    () => participantId ? api.listDelegations(assemblyId!, participantId) : Promise.resolve({ delegations: [] }),
-    [assemblyId, participantId],
+    () => participantId ? api.listDelegations(groupId!, participantId) : Promise.resolve({ delegations: [] }),
+    [groupId, participantId],
   );
   const myDelegations = useMemo(() => delegationsData?.delegations ?? [], [delegationsData]);
 
-  // Fetch all proposals in the assembly (one call, grouped per issue client-side)
+  // Fetch all proposals in the group (one call, grouped per issue client-side)
   const { data: proposalsData } = useApi(
-    () => api.listProposals(assemblyId!),
-    [assemblyId],
+    () => api.listProposals(groupId!),
+    [groupId],
   );
 
   const proposalsByIssue = useMemo(() => {
@@ -130,9 +130,9 @@ export function EventDetail() {
   const { data: participationData } = useApi(
     () =>
       status === "closed" && participantId
-        ? api.getParticipation(assemblyId!, eventId!, participantId)
+        ? api.getParticipation(groupId!, eventId!, participantId)
         : Promise.resolve(null),
-    [assemblyId, eventId, participantId, status],
+    [groupId, eventId, participantId, status],
   );
 
   // Build a map from issueId → ParticipationRecord (must be before early returns — rules of hooks)
@@ -146,20 +146,20 @@ export function EventDetail() {
     return map;
   }, [participationData]);
 
-  // Extract config from assembly (must be before early returns — rules of hooks)
+  // Extract config from group (must be before early returns — rules of hooks)
   const delegationConfig: DelegationConfig = useMemo(() => ({
-    enabled: (assembly?.config.delegation.candidacy || assembly?.config.delegation.transferable) ?? false,
-    topicScoped: (assembly?.config.delegation.candidacy || assembly?.config.delegation.transferable) ?? false,
-  }), [assembly]);
+    enabled: (group?.config.delegation.candidacy || group?.config.delegation.transferable) ?? false,
+    topicScoped: (group?.config.delegation.candidacy || group?.config.delegation.transferable) ?? false,
+  }), [group]);
 
-  const resultsVisibility = assembly?.config.ballot.secret ? "sealed" : (assembly?.config.ballot.liveResults ? "live" : "sealed");
-  const allowVoteChange = assembly?.config.ballot.allowVoteChange ?? true;
+  const resultsVisibility = group?.config.ballot.secret ? "sealed" : (group?.config.ballot.liveResults ? "live" : "sealed");
+  const allowVoteChange = group?.config.ballot.allowVoteChange ?? true;
   const attention = useAttention();
 
   // Fetch voting history at event level — used for issue sorting and summary
   const { data: historyData, refetch: refetchHistory } = useApi(
-    () => participantId ? api.getVotingHistory(assemblyId!, participantId) : Promise.resolve(null),
-    [assemblyId, participantId],
+    () => participantId ? api.getVotingHistory(groupId!, participantId) : Promise.resolve(null),
+    [groupId, participantId],
   );
 
   // Set of issue IDs the user has voted on (used for sorting + summary)
@@ -217,7 +217,7 @@ export function EventDetail() {
     <div className="max-w-3xl mx-auto">
       {/* Back navigation */}
       <Link
-        to={`/assembly/${assemblyId}/events`}
+        to={`/group/${groupId}/events`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-4"
       >
         <ChevronLeft size={16} />
@@ -260,7 +260,7 @@ export function EventDetail() {
           return (
             <div key={issue.id} id={`issue-${issue.id}`}>
             <IssueVotingCard
-              assemblyId={assemblyId!}
+              groupId={groupId!}
               eventId={eventId!}
               issueId={issue.id}
               title={issue.title}
@@ -369,12 +369,12 @@ function VoteProgress({ votedCount, totalCount }: {
 function TopicEyebrow({
   topicId,
   topicMap,
-  assemblyId,
+  groupId,
   className = "",
 }: {
   topicId: string;
   topicMap: Map<string, { id: string; name: string; parentId: string | null }>;
-  assemblyId?: string;
+  groupId?: string;
   className?: string;
 }) {
   const topic = topicMap.get(topicId);
@@ -382,8 +382,8 @@ function TopicEyebrow({
   const parent = topic.parentId ? topicMap.get(topic.parentId) : null;
 
   const label = (tid: string, name: string) =>
-    assemblyId ? (
-      <Link to={`/assembly/${assemblyId}/topics/${tid}`} className="hover:text-text-secondary transition-colors">
+    groupId ? (
+      <Link to={`/group/${groupId}/topics/${tid}`} className="hover:text-text-secondary transition-colors">
         {name}
       </Link>
     ) : (
@@ -410,7 +410,7 @@ function TopicEyebrow({
 // ---------------------------------------------------------------------------
 
 function IssueVotingCard({
-  assemblyId,
+  groupId,
   eventId,
   issueId,
   title,
@@ -435,7 +435,7 @@ function IssueVotingCard({
   isCreator,
   onVoted,
 }: {
-  assemblyId: string;
+  groupId: string;
   eventId: string;
   issueId: string;
   title: string;
@@ -462,8 +462,8 @@ function IssueVotingCard({
 }) {
   const { t } = useTranslation("governance");
   const { getParticipantId } = useIdentity();
-  const participantId = getParticipantId(assemblyId);
-  const issueStatus = useIssueStatus(assemblyId, participantId, issueId);
+  const participantId = getParticipantId(groupId);
+  const issueStatus = useIssueStatus(groupId, participantId, issueId);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   // Optimistic vote choice — shown immediately after voting, before refetch completes
@@ -497,7 +497,7 @@ function IssueVotingCard({
     setVoting(true);
     setVoteError(null);
     try {
-      await api.castVote(assemblyId, { participantId, issueId, choice });
+      await api.castVote(groupId, { participantId, issueId, choice });
       setOptimisticChoice(choice);
       setOptimisticRetracted(false);
       setExpandedOverride(false);
@@ -516,7 +516,7 @@ function IssueVotingCard({
     setVoting(true);
     setVoteError(null);
     try {
-      await api.retractVote(assemblyId, issueId);
+      await api.retractVote(groupId, issueId);
       setOptimisticChoice(null);
       setOptimisticRetracted(true);
       setExpandedOverride(null);
@@ -549,7 +549,7 @@ function IssueVotingCard({
         <CardHeader>
           <div className="flex items-center justify-between opacity-50">
             {topicId && (
-              <TopicEyebrow topicId={topicId} topicMap={topicMap} assemblyId={assemblyId} className="line-through" />
+              <TopicEyebrow topicId={topicId} topicMap={topicMap} groupId={groupId} className="line-through" />
             )}
             <Badge color="red">{t("eventDetail.cancelled")}</Badge>
           </div>
@@ -567,7 +567,7 @@ function IssueVotingCard({
         {(topicId || needsVote || (tally?.winner && eventStatus === "closed")) && (
           <div className="flex items-center justify-between mb-1">
             {topicId ? (
-              <TopicEyebrow topicId={topicId} topicMap={topicMap} assemblyId={assemblyId} />
+              <TopicEyebrow topicId={topicId} topicMap={topicMap} groupId={groupId} />
             ) : (
               <span />
             )}
@@ -629,7 +629,7 @@ function IssueVotingCard({
         {/* Open voting: unified voting section (delegation card + vote buttons) */}
         {votingOpen && participantId && !issueStatus.loading && (
           <VotingSection
-            assemblyId={assemblyId}
+            groupId={groupId}
             issueId={issueId}
             choices={choices}
             issueStatus={issueStatus}
@@ -677,14 +677,14 @@ function IssueVotingCard({
         {eventStatus === "deliberation" && (
           <div className="flex items-center gap-2 flex-wrap pt-2">
             <Link
-              to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+              to={`/group/${groupId}/proposals?issueId=${issueId}`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-accent-text bg-accent-subtle border border-accent-muted rounded-lg hover:bg-accent-muted transition-colors"
             >
               {t("eventDetail.writeProposal")}
             </Link>
             {proposals.length > 0 && (
               <Link
-                to={`/assembly/${assemblyId}/proposals?issueId=${issueId}`}
+                to={`/group/${groupId}/proposals?issueId=${issueId}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary border border-border-default rounded-lg hover:bg-interactive-hover transition-colors"
               >
                 {t("eventDetail.viewAllProposals")}
@@ -698,7 +698,7 @@ function IssueVotingCard({
       {/* Voting booklet modal */}
       {bookletOpen && (
         <VotingBooklet
-          assemblyId={assemblyId}
+          groupId={groupId}
           eventId={eventId}
           issueId={issueId}
           issueTitle={title}
@@ -719,7 +719,7 @@ function IssueVotingCard({
 // ---------------------------------------------------------------------------
 
 function VotingSection({
-  assemblyId,
+  groupId,
   issueId,
   choices,
   issueStatus,
@@ -745,7 +745,7 @@ function VotingSection({
   onDelegationCreated,
   onDelegationRevoked,
 }: {
-  assemblyId: string;
+  groupId: string;
   issueId: string;
   choices?: string[];
   issueStatus: ReturnType<typeof useIssueStatus>;
@@ -839,7 +839,7 @@ function VotingSection({
       {showDelegateForm ? (
         /* Delegation form replaces voting buttons */
         <QuickDelegateForm
-          assemblyId={assemblyId}
+          groupId={groupId}
           participantId={participantId}
           participants={participants}
           preselectedTopicIds={issueTopicIds}
@@ -927,7 +927,7 @@ function VotingSection({
 
           {/* Delegation info (already delegated state) */}
           <DelegationCard
-            assemblyId={assemblyId}
+            groupId={groupId}
             issueId={issueId}
             delegationConfig={delegationConfig}
             isDelegated={issueStatus.isDelegated}
@@ -955,7 +955,7 @@ function VotingSection({
 // ---------------------------------------------------------------------------
 
 function DelegationCard({
-  assemblyId,
+  groupId,
   issueId,
   delegationConfig,
   isDelegated,
@@ -972,7 +972,7 @@ function DelegationCard({
   onDelegationCreated,
   onDelegationRevoked,
 }: {
-  assemblyId: string;
+  groupId: string;
   issueId: string;
   delegationConfig: DelegationConfig;
   isDelegated: boolean;
@@ -1000,7 +1000,7 @@ function DelegationCard({
     setRevoking(true);
     setRevokeError(null);
     try {
-      await api.revokeDelegation(assemblyId, activeDelegation.id);
+      await api.revokeDelegation(groupId, activeDelegation.id);
       signal("attention");
       onDelegationRevoked();
       setManaging(false);
@@ -1021,7 +1021,7 @@ function DelegationCard({
     if (showForm) {
       return (
         <QuickDelegateForm
-          assemblyId={assemblyId}
+          groupId={groupId}
           participantId={participantId}
           participants={participants}
           preselectedTopicIds={issueTopicIds}
@@ -1102,7 +1102,7 @@ function DelegationCard({
                   {t("eventDetail.delegationScopeBroad", { scope: scopeLabel })}
                 </p>
                 <Link
-                  to={`/assembly/${assemblyId}/delegations`}
+                  to={`/group/${groupId}/delegations`}
                   className="inline-flex px-3 py-1.5 text-xs font-medium text-accent-text bg-accent-subtle border border-accent-muted rounded-lg hover:bg-accent-subtle/80 transition-colors"
                 >
                   {t("delegates.goToDelegates")}
@@ -1120,7 +1120,7 @@ function DelegationCard({
     return null;
   }
 
-  // State 3: Delegation not available for this assembly
+  // State 3: Delegation not available for this group
   return (
     <Tooltip text="This group's governance rules don't include delegation">
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-surface border border-border-subtle w-full opacity-60">

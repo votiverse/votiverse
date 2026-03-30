@@ -103,22 +103,22 @@ export function resolveRootTopicDelegation(
 }
 
 /**
- * Hook that fetches the current user's outgoing delegations for the current assembly.
+ * Hook that fetches the current user's outgoing delegations for the current group.
  * Also fetches participant names for delegate display.
  */
 export function useMyDelegations() {
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const { getParticipantId } = useIdentity();
-  const myParticipantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const myParticipantId = groupId ? getParticipantId(groupId) : null;
 
   const { data: delegationsData } = useApi(
-    () => myParticipantId ? api.listDelegations(assemblyId!, myParticipantId) : Promise.resolve({ delegations: [] }),
-    [assemblyId, myParticipantId],
+    () => myParticipantId ? api.listDelegations(groupId!, myParticipantId) : Promise.resolve({ delegations: [] }),
+    [groupId, myParticipantId],
   );
 
   const { data: participantsData } = useApi(
-    () => assemblyId ? api.listParticipants(assemblyId) : Promise.resolve({ participants: [] }),
-    [assemblyId],
+    () => groupId ? api.listParticipants(groupId) : Promise.resolve({ participants: [] }),
+    [groupId],
   );
 
   const myDelegations = delegationsData?.delegations ?? [];

@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useParams, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../hooks/use-identity.js";
-import { useAssembly } from "../hooks/use-assembly.js";
-import { useAssemblyTabs } from "../hooks/use-assembly-tabs.js";
+import { useGroup } from "../hooks/use-group.js";
+import { useGroupTabs } from "../hooks/use-group-tabs.js";
 import { useAttention } from "../hooks/use-attention.js";
 import { Avatar } from "./avatar.js";
 import { NotificationBell } from "./notification-bell.js";
@@ -36,11 +36,11 @@ import {
 // ============================================================================
 
 export function Sidebar() {
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const location = useLocation();
   const { t } = useTranslation();
   const { storeUserId, participantName, handle, memberships, logout } = useIdentity();
-  const { pendingByAssembly, totalPending, totalPendingSurveys } = useAttention();
+  const { pendingByGroup, totalPending, totalPendingSurveys } = useAttention();
 
   if (!storeUserId) return null;
 
@@ -71,7 +71,7 @@ export function Sidebar() {
             <div className="flex items-center justify-between px-3 mb-2 mt-6">
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">{t("nav.myGroups")}</span>
               <Link
-                to="/assemblies/new"
+                to="/groups/new"
                 className="p-0.5 text-text-tertiary hover:text-accent-text transition-colors rounded"
                 aria-label={t("nav.createGroup")}
               >
@@ -79,12 +79,12 @@ export function Sidebar() {
               </Link>
             </div>
             {memberships.map((m) => {
-              const isActive = assemblyId === m.assemblyId;
-              const pending = pendingByAssembly[m.assemblyId] ?? 0;
+              const isActive = groupId === m.groupId;
+              const pending = pendingByGroup[m.groupId] ?? 0;
               return (
                 <Link
-                  key={m.assemblyId}
-                  to={`/assembly/${m.assemblyId}/events`}
+                  key={m.groupId}
+                  to={`/group/${m.groupId}/events`}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
                     isActive
                       ? "bg-accent-subtle text-accent-text"
@@ -92,9 +92,9 @@ export function Sidebar() {
                   }`}
                 >
                   <div className="w-5 h-5 rounded-md flex items-center justify-center bg-surface-sunken border border-border-default text-[10px] font-bold text-text-muted shrink-0">
-                    {m.assemblyName[0]}
+                    {m.groupName[0]}
                   </div>
-                  <span className="truncate flex-1">{m.assemblyName}</span>
+                  <span className="truncate flex-1">{m.groupName}</span>
                   {pending > 0 && <BadgeDot count={pending} />}
                 </Link>
               );
@@ -156,27 +156,27 @@ function SidebarLink({ to, icon: Icon, label, active, badge = 0 }: {
 }
 
 // ============================================================================
-// Assembly Content Header (desktop only — sticky tab bar within content area)
+// Group Content Header (desktop only — sticky tab bar within content area)
 // ============================================================================
 
-export function AssemblyContentHeader() {
-  const { assemblyId } = useParams();
-  const { assembly } = useAssembly(assemblyId);
-  const tabs = useAssemblyTabs(assemblyId, assembly?.config);
+export function GroupContentHeader() {
+  const { groupId } = useParams();
+  const { group } = useGroup(groupId);
+  const tabs = useGroupTabs(groupId, group?.config);
   const location = useLocation();
 
-  if (!assemblyId) return null;
+  if (!groupId) return null;
 
   return (
     <div className="hidden lg:block sticky top-0 z-10 bg-surface border-b border-border-subtle">
       <div className="max-w-5xl mx-auto px-6 lg:px-8">
-        {/* Assembly name */}
+        {/* Group name */}
         <div className="pt-4 pb-2">
           <Link
-            to={`/assembly/${assemblyId}`}
+            to={`/group/${groupId}`}
             className="text-lg font-bold font-display text-text-primary hover:text-accent-text transition-colors"
           >
-            {assembly?.name ?? "…"}
+            {group?.name ?? "…"}
           </Link>
         </div>
         {/* Scrollable tab bar */}
@@ -208,13 +208,13 @@ export function AssemblyContentHeader() {
 // ============================================================================
 
 export function MobileHeader() {
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const { participantName, storeUserId } = useIdentity();
-  const { assembly } = useAssembly(assemblyId);
+  const { group } = useGroup(groupId);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const inAssembly = Boolean(assemblyId);
+  const inGroup = Boolean(groupId);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -230,7 +230,7 @@ export function MobileHeader() {
         <div className="flex items-center justify-between h-14">
           {/* Left: logo / back */}
           <div className="flex items-center gap-4">
-            {inAssembly ? (
+            {inGroup ? (
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={handleBack}
@@ -247,10 +247,10 @@ export function MobileHeader() {
                   <Home size={16} strokeWidth={2} />
                 </Link>
                 <Link
-                  to={`/assembly/${assemblyId}`}
+                  to={`/group/${groupId}`}
                   className="text-sm font-medium text-text-primary hover:text-accent-text truncate max-w-[55vw] sm:max-w-[280px] ml-1"
                 >
-                  {assembly?.name ?? t("loading")}
+                  {group?.name ?? t("loading")}
                 </Link>
               </div>
             ) : (
@@ -267,7 +267,7 @@ export function MobileHeader() {
           <div className="flex items-center gap-1 sm:gap-2">
             {storeUserId && <NotificationBell />}
             {storeUserId && <IdentityIndicator name={participantName} />}
-            {storeUserId && inAssembly && (
+            {storeUserId && inGroup && (
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="p-2 -mr-2 text-text-muted hover:text-text-primary min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -281,7 +281,7 @@ export function MobileHeader() {
       </div>
 
       {/* Mobile dropdown menu with backdrop */}
-      {menuOpen && inAssembly && (
+      {menuOpen && inGroup && (
         <>
           <div
             className="fixed inset-0 top-14 bg-[var(--overlay-backdrop)] z-10"
@@ -289,7 +289,7 @@ export function MobileHeader() {
             aria-hidden="true"
           />
           <div className="absolute left-0 right-0 border-t border-border-subtle bg-surface-overlay px-4 py-3 space-y-1 z-20 shadow-lg">
-            <MobileMenuLinks assemblyId={assemblyId!} onNavigate={() => setMenuOpen(false)} />
+            <MobileMenuLinks groupId={groupId!} onNavigate={() => setMenuOpen(false)} />
           </div>
         </>
       )}
@@ -387,30 +387,30 @@ function IdentityIndicator({ name }: { name: string | null }) {
 // ============================================================================
 
 export function BottomTabs() {
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const location = useLocation();
   const { storeUserId } = useIdentity();
-  const { assembly } = useAssembly(assemblyId);
+  const { group } = useGroup(groupId);
   const { t } = useTranslation();
-  const inAssembly = Boolean(assemblyId);
+  const inGroup = Boolean(groupId);
 
   const globalTabs = [
     { to: "/", key: "Home", label: t("nav.home"), icon: TabHome, exact: true },
-    { to: "/assemblies", key: "MyGroups", label: t("nav.myGroups"), icon: TabGrid, exact: true },
+    { to: "/groups", key: "MyGroups", label: t("nav.myGroups"), icon: TabGrid, exact: true },
     { to: "/profile", key: "Me", label: t("nav.me"), icon: TabUser, exact: true },
   ];
 
-  const assemblyTabDefs = useAssemblyTabs(assemblyId, assembly?.config);
+  const groupTabDefs = useGroupTabs(groupId, group?.config);
 
   // Must be after all hooks
   if (!storeUserId) return null;
-  const assemblyTabs = assemblyTabDefs.map((tab) => ({
+  const groupTabs = groupTabDefs.map((tab) => ({
     ...tab,
     icon: TAB_ICONS[tab.key] ?? TabHome,
     exact: false,
   }));
 
-  const tabs = inAssembly ? assemblyTabs : globalTabs;
+  const tabs = inGroup ? groupTabs : globalTabs;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface-raised/95 backdrop-blur-xl border-t border-border-default z-20 safe-bottom">
@@ -438,12 +438,12 @@ export function BottomTabs() {
 }
 
 // ============================================================================
-// Mobile menu links (hamburger dropdown when in assembly)
+// Mobile menu links (hamburger dropdown when in group)
 // ============================================================================
 
-function MobileMenuLinks({ assemblyId, onNavigate }: { assemblyId: string; onNavigate: () => void }) {
-  const { assembly } = useAssembly(assemblyId);
-  const tabs = useAssemblyTabs(assemblyId, assembly?.config);
+function MobileMenuLinks({ groupId, onNavigate }: { groupId: string; onNavigate: () => void }) {
+  const { group } = useGroup(groupId);
+  const tabs = useGroupTabs(groupId, group?.config);
 
   return (
     <>

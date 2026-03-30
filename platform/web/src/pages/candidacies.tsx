@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
-import { useAssembly } from "../hooks/use-assembly.js";
+import { useGroup } from "../hooks/use-group.js";
 import * as api from "../api/client.js";
 import type { Candidacy, EndorsementCounts } from "../api/types.js";
 import { Card, CardBody, Button, Label, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
@@ -15,16 +15,16 @@ const MarkdownEditor = lazy(() => import("../components/markdown-editor.js").the
 
 export function Candidacies() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
-  const { assembly } = useAssembly(assemblyId);
-  const { data: participantsData } = useApi(() => api.listParticipants(assemblyId!), [assemblyId]);
-  const { data: topicsData } = useApi(() => api.listTopics(assemblyId!), [assemblyId]);
+  const participantId = groupId ? getParticipantId(groupId) : null;
+  const { group } = useGroup(groupId);
+  const { data: participantsData } = useApi(() => api.listParticipants(groupId!), [groupId]);
+  const { data: topicsData } = useApi(() => api.listTopics(groupId!), [groupId]);
 
   const { data, loading, error, refetch } = useApi(
-    () => api.listCandidacies(assemblyId!, "active"),
-    [assemblyId],
+    () => api.listCandidacies(groupId!, "active"),
+    [groupId],
   );
 
   const nameMap = new Map((participantsData?.participants ?? []).map((p) => [p.id, p.name]));
@@ -34,14 +34,14 @@ export function Candidacies() {
   // Fetch endorsement counts for all candidacies
   const candidacyIds = candidacies.map((c) => c.id);
   const { data: endorsementData } = useApi(
-    () => candidacyIds.length > 0 ? api.getEndorsements(assemblyId!, "candidacy", candidacyIds) : Promise.resolve({ endorsements: {} }),
-    [assemblyId, candidacyIds.join(",")],
+    () => candidacyIds.length > 0 ? api.getEndorsements(groupId!, "candidacy", candidacyIds) : Promise.resolve({ endorsements: {} }),
+    [groupId, candidacyIds.join(",")],
   );
   const endorsementMap: Record<string, EndorsementCounts> = endorsementData?.endorsements ?? {};
 
   const [showDeclareForm, setShowDeclareForm] = useState(false);
 
-  const delegationCandidacy = assembly?.config.delegation.candidacy ?? false;
+  const delegationCandidacy = group?.config.delegation.candidacy ?? false;
 
   // Check if the current user already has an active candidacy
   const myActiveCandidacy = participantId
@@ -71,7 +71,7 @@ export function Candidacies() {
 
       {showDeclareForm && (
         <CandidacyForm
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           onDone={() => { setShowDeclareForm(false); refetch(); }}
         />
       )}
@@ -86,7 +86,7 @@ export function Candidacies() {
               candidacy={c}
               nameMap={nameMap}
               topicNameMap={topicNameMap}
-              assemblyId={assemblyId!}
+              groupId={groupId!}
               endorsement={endorsementMap[c.id]}
             />
           ))}
@@ -96,11 +96,11 @@ export function Candidacies() {
   );
 }
 
-function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, endorsement }: {
+function CandidacyCard({ candidacy, nameMap, topicNameMap, groupId, endorsement }: {
   candidacy: Candidacy;
   nameMap: Map<string, string>;
   topicNameMap: Map<string, string>;
-  assemblyId: string;
+  groupId: string;
   endorsement?: EndorsementCounts;
 }) {
   const { t } = useTranslation("governance");
@@ -108,7 +108,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, endorseme
   const name = nameMap.get(candidacy.participantId) ?? candidacy.participantId;
   const title = candidacy.title ?? null;
   const topics = candidacy.topicScope.map((tt) => topicNameMap.get(tt) ?? tt);
-  const profileUrl = `/assembly/${assemblyId}/candidacies/${candidacy.id}`;
+  const profileUrl = `/group/${groupId}/candidacies/${candidacy.id}`;
 
   return (
     <Card
@@ -159,7 +159,7 @@ function CandidacyCard({ candidacy, nameMap, topicNameMap, assemblyId, endorseme
 // ---------------------------------------------------------------------------
 
 function CandidacyForm({
-  assemblyId,
+  groupId,
   candidacyId,
   initialMarkdown = "",
   initialWebsiteUrl = "",
@@ -168,7 +168,7 @@ function CandidacyForm({
   onDone,
   onCancel,
 }: {
-  assemblyId: string;
+  groupId: string;
   candidacyId?: string;
   initialMarkdown?: string;
   initialWebsiteUrl?: string;
@@ -190,14 +190,14 @@ function CandidacyForm({
     setSubmitting(true);
     try {
       if (isEdit) {
-        await api.createCandidacyVersion(assemblyId, candidacyId, {
+        await api.createCandidacyVersion(groupId, candidacyId, {
           markdown,
           topicScope: topicScope.length > 0 ? topicScope : undefined,
           voteTransparencyOptIn: voteTransparency,
           websiteUrl: websiteUrl.trim() || undefined,
         });
       } else {
-        await api.declareCandidacy(assemblyId, {
+        await api.declareCandidacy(groupId, {
           topicScope,
           voteTransparencyOptIn: voteTransparency,
           markdown,
@@ -228,7 +228,7 @@ function CandidacyForm({
             value={markdown}
             onChange={setMarkdown}
             placeholder={t("candidacies.editorPlaceholder")}
-            assemblyId={assemblyId}
+            groupId={groupId}
             minHeight={250}
           />
         </Suspense>
@@ -256,7 +256,7 @@ function CandidacyForm({
         <div className="mb-4">
           <Label>{t("candidacies.topicScopeLabel")}</Label>
           <p className="text-xs text-text-tertiary mb-2">{t("candidacies.topicScopeHint")}</p>
-          <TopicPicker assemblyId={assemblyId} value={topicScope} onChange={setTopicScope} />
+          <TopicPicker groupId={groupId} value={topicScope} onChange={setTopicScope} />
         </div>
         <label className="flex items-center gap-2 text-sm text-text-secondary mb-4">
           <input

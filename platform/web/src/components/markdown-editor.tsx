@@ -31,8 +31,8 @@ interface MarkdownEditorProps {
   onChange: (markdown: string) => void;
   /** Placeholder text. */
   placeholder?: string;
-  /** Assembly ID for asset uploads. */
-  assemblyId?: string;
+  /** Group ID for asset uploads. */
+  groupId?: string;
   /** Minimum editor height in pixels. */
   minHeight?: number;
 }
@@ -41,7 +41,7 @@ export function MarkdownEditor({
   value,
   onChange,
   placeholder,
-  assemblyId,
+  groupId,
   minHeight = 200,
 }: MarkdownEditorProps) {
   const { t } = useTranslation();
@@ -75,7 +75,7 @@ export function MarkdownEditor({
   const handleImageUpload = useCallback(async (file: File) => {
     if (!editor) return;
 
-    if (assemblyId) {
+    if (groupId) {
       // Upload to backend asset store, use the returned URL
       try {
         const formData = new FormData();
@@ -83,7 +83,7 @@ export function MarkdownEditor({
 
         const token = (await import("../api/auth.js")).getAccessToken();
         const baseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
-        const res = await fetch(`${baseUrl}/assemblies/${assemblyId}/assets`, {
+        const res = await fetch(`${baseUrl}/groups/${groupId}/assets`, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
@@ -106,7 +106,7 @@ export function MarkdownEditor({
       editor.chain().focus().setImage({ src: reader.result as string }).run();
     };
     reader.readAsDataURL(file);
-  }, [editor, assemblyId]);
+  }, [editor, groupId]);
 
   const handleImageButton = useCallback(() => {
     fileInputRef.current?.click();

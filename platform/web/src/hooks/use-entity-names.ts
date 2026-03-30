@@ -11,13 +11,13 @@ import type { CommunityNote } from "../api/types.js";
 import { extractEntityRefs } from "../components/community-notes.js";
 
 export function useEntityNames(
-  assemblyId: string | undefined,
+  groupId: string | undefined,
   notes: CommunityNote[],
 ): Map<string, string> {
   const [names, setNames] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
-    if (!assemblyId || notes.length === 0) return;
+    if (!groupId || notes.length === 0) return;
 
     // Collect all entity references from note content
     const allRefs: Array<{ type: string; id: string }> = [];
@@ -43,7 +43,7 @@ export function useEntityNames(
 
     if (byType.has("surveys")) {
       fetches.push(
-        api.listSurveys(assemblyId).then((data) => {
+        api.listSurveys(groupId).then((data) => {
           for (const s of data.surveys ?? []) {
             resolved.set(s.id, s.title);
           }
@@ -55,7 +55,7 @@ export function useEntityNames(
       const ids = byType.get("events")!;
       for (const id of ids) {
         fetches.push(
-          api.getEvent(assemblyId, id).then((event) => {
+          api.getEvent(groupId, id).then((event) => {
             if (event?.title) resolved.set(id, event.title);
           }).catch(() => {}),
         );
@@ -64,7 +64,7 @@ export function useEntityNames(
 
     if (byType.has("topics")) {
       fetches.push(
-        api.listTopics(assemblyId).then((data) => {
+        api.listTopics(groupId).then((data) => {
           for (const t of data.topics ?? []) {
             resolved.set(t.id, t.name);
           }
@@ -76,7 +76,7 @@ export function useEntityNames(
       const ids = byType.get("candidacies")!;
       for (const id of ids) {
         fetches.push(
-          api.getCandidacy(assemblyId, id).then((c) => {
+          api.getCandidacy(groupId, id).then((c) => {
             const name = c?.content?.title || c?.participantName || c?.handle;
             if (name) resolved.set(id, name);
           }).catch(() => {}),
@@ -88,7 +88,7 @@ export function useEntityNames(
       const ids = byType.get("proposals")!;
       for (const id of ids) {
         fetches.push(
-          api.getProposal(assemblyId, id).then((p) => {
+          api.getProposal(groupId, id).then((p) => {
             if (p?.title) resolved.set(id, p.title);
           }).catch(() => {}),
         );
@@ -98,7 +98,7 @@ export function useEntityNames(
     Promise.all(fetches).then(() => {
       if (resolved.size > 0) setNames(new Map(resolved));
     });
-  }, [assemblyId, notes]);
+  }, [groupId, notes]);
 
   return names;
 }

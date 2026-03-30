@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
-import { useAssemblyRole } from "../hooks/use-assembly-role.js";
+import { useGroupRole } from "../hooks/use-group-role.js";
 import { useMyDelegations, resolveRootTopicDelegation } from "../hooks/use-my-delegations.js";
 import * as api from "../api/client.js";
 import type { Topic, VotingEvent, Delegation } from "../api/types.js";
@@ -50,19 +50,19 @@ function buildTree(
 
 export function TopicsList() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
-  const { isAdmin } = useAssemblyRole(assemblyId);
+  const { groupId } = useParams();
+  const { isAdmin } = useGroupRole(groupId);
   const { data: topicsData, loading, error, refetch } = useApi(
-    () => api.listTopics(assemblyId!),
-    [assemblyId],
+    () => api.listTopics(groupId!),
+    [groupId],
   );
   const { data: eventsData } = useApi(
-    () => api.listEvents(assemblyId!),
-    [assemblyId],
+    () => api.listEvents(groupId!),
+    [groupId],
   );
   const { data: delegationsData } = useApi(
-    () => api.listDelegations(assemblyId!),
-    [assemblyId],
+    () => api.listDelegations(groupId!),
+    [groupId],
   );
   const { myDelegations, participantNames } = useMyDelegations();
 
@@ -99,7 +99,7 @@ export function TopicsList() {
 
       {showCreateForm && (
         <CreateTopicForm
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           rootTopics={topics.filter((t) => !t.parentId)}
           onCreated={() => { setShowCreateForm(false); refetch(); }}
           onCancel={() => setShowCreateForm(false)}
@@ -114,7 +114,7 @@ export function TopicsList() {
             <TopicCard
               key={node.topic.id}
               node={node}
-              assemblyId={assemblyId!}
+              groupId={groupId!}
               delegationStatus={
                 myDelegations.length > 0
                   ? resolveRootTopicDelegation(node.topic.id, topics, myDelegations, participantNames)
@@ -129,12 +129,12 @@ export function TopicsList() {
 }
 
 function CreateTopicForm({
-  assemblyId,
+  groupId,
   rootTopics,
   onCreated,
   onCancel,
 }: {
-  assemblyId: string;
+  groupId: string;
   rootTopics: Topic[];
   onCreated: () => void;
   onCancel: () => void;
@@ -151,7 +151,7 @@ function CreateTopicForm({
     setSubmitting(true);
     setFormError(null);
     try {
-      await api.createTopic(assemblyId, {
+      await api.createTopic(groupId, {
         name: name.trim(),
         parentId: parentId || null,
       });
@@ -210,11 +210,11 @@ function CreateTopicForm({
 
 function TopicCard({
   node,
-  assemblyId,
+  groupId,
   delegationStatus,
 }: {
   node: TopicNode;
-  assemblyId: string;
+  groupId: string;
   delegationStatus: TopicDelegationStatus | null;
 }) {
   const { t } = useTranslation("governance");
@@ -224,7 +224,7 @@ function TopicCard({
   return (
     <Card
       className="cursor-pointer hover:border-accent-border transition-colors"
-      onClick={() => navigate(`/assembly/${assemblyId}/topics/${topic.id}`)}
+      onClick={() => navigate(`/group/${groupId}/topics/${topic.id}`)}
     >
       <CardBody>
         <div className="flex items-start justify-between gap-2">
@@ -243,7 +243,7 @@ function TopicCard({
             {children.map((child) => (
               <Link
                 key={child.id}
-                to={`/assembly/${assemblyId}/topics/${child.id}`}
+                to={`/group/${groupId}/topics/${child.id}`}
                 onClick={(e) => e.stopPropagation()}
                 className="text-xs text-text-muted hover:text-text-secondary bg-surface-sunken hover:bg-interactive-active rounded-full px-2.5 py-0.5 transition-colors"
               >

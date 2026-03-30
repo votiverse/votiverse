@@ -1,7 +1,7 @@
 /**
- * useAssemblyRole — determines the current user's admin/owner status in an assembly.
+ * useGroupRole — determines the current user's admin/owner status in a group.
  *
- * Fetches the assembly profile (cached by useApi) and checks whether
+ * Fetches the group profile (cached by useApi) and checks whether
  * the user's participant ID appears in the owners or admins arrays.
  */
 
@@ -10,7 +10,7 @@ import { useApi } from "./use-api.js";
 import { useIdentity } from "./use-identity.js";
 import * as api from "../api/client.js";
 
-interface AssemblyRole {
+interface GroupRoleResult {
   /** True if the user is an owner or admin. */
   isAdmin: boolean;
   /** True if the user is specifically an owner. */
@@ -19,12 +19,12 @@ interface AssemblyRole {
   loading: boolean;
 }
 
-export function useAssemblyRole(assemblyId: string | undefined): AssemblyRole {
+export function useGroupRole(groupId: string | undefined): GroupRoleResult {
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const participantId = groupId ? getParticipantId(groupId) : null;
   const { data: profile, loading } = useApi(
-    () => api.getAssemblyProfile(assemblyId!),
-    [assemblyId],
+    () => api.getGroupProfile(groupId!),
+    [groupId],
   );
 
   return useMemo(() => {

@@ -8,7 +8,7 @@ import { TopicPicker } from "../../components/topic-picker.js";
 import { ChevronLeft } from "lucide-react";
 
 export function ConfigureDelegation({
-  assemblyId,
+  groupId,
   targetId,
   targetName,
   candidacyTopics,
@@ -16,7 +16,7 @@ export function ConfigureDelegation({
   onConfirm,
   onBack,
 }: {
-  assemblyId: string;
+  groupId: string;
   targetId: string;
   targetName: string;
   candidacyTopics?: string[];
@@ -37,7 +37,7 @@ export function ConfigureDelegation({
     setFormError(null);
     try {
       const resolvedScope = scopeMode === "specific" ? topicScope : [];
-      await api.createDelegation(assemblyId, { targetId, topicScope: resolvedScope });
+      await api.createDelegation(groupId, { targetId, topicScope: resolvedScope });
       signal("attention");
       onConfirm();
     } catch (err: unknown) {
@@ -138,7 +138,7 @@ export function ConfigureDelegation({
               {scopeMode === "specific" && (
                 <div className="ml-7 mt-2 p-3 bg-surface rounded-lg border border-border-subtle">
                   <TopicPicker
-                    assemblyId={assemblyId}
+                    groupId={groupId}
                     value={topicScope}
                     onChange={setTopicScope}
                     highlightTopics={candidacyTopics}

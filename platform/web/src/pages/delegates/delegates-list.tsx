@@ -26,7 +26,7 @@ function topicDisplayName(topicId: string, topics: Topic[]): string {
 // ---------------------------------------------------------------------------
 
 export function DelegatesList({
-  assemblyId,
+  groupId,
   participantId: _participantId,
   myOutgoing,
   issueDelegations,
@@ -38,7 +38,7 @@ export function DelegatesList({
   onBrowse,
   onViewProfile,
 }: {
-  assemblyId: string;
+  groupId: string;
   participantId: string;
   myOutgoing: Delegation[];
   issueDelegations?: Delegation[];
@@ -90,9 +90,9 @@ export function DelegatesList({
                   delegation={d}
                   nameMap={nameMap}
                   topics={topics}
-                  assemblyId={assemblyId}
+                  groupId={groupId}
                   onClickProfile={candidacyId ? () => onViewProfile(candidacyId) : undefined}
-                  revokeSlot={<RevokeButton assemblyId={assemblyId} delegationId={d.id} onRevoked={refetch} />}
+                  revokeSlot={<RevokeButton groupId={groupId} delegationId={d.id} onRevoked={refetch} />}
                 />
               );
             })}
@@ -121,7 +121,7 @@ export function DelegatesList({
                         </p>
                       </div>
                     </div>
-                    <RevokeButton assemblyId={assemblyId} delegationId={d.id} onRevoked={refetch} />
+                    <RevokeButton groupId={groupId} delegationId={d.id} onRevoked={refetch} />
                   </div>
                 );
               })}
@@ -141,14 +141,14 @@ function DelegationRow({
   delegation: d,
   nameMap,
   topics,
-  assemblyId,
+  groupId,
   onClickProfile,
   revokeSlot,
 }: {
   delegation: Delegation;
   nameMap: Map<string, string>;
   topics: Topic[];
-  assemblyId?: string;
+  groupId?: string;
   onClickProfile?: () => void;
   revokeSlot?: React.ReactNode;
 }) {
@@ -160,10 +160,10 @@ function DelegationRow({
     ? t("delegations.allTopics")
     : d.topicScope.map((id) => topicDisplayName(id, topics)).join(", ");
 
-  const scopeLink = d.topicScope.length === 1 && assemblyId
-    ? `/assembly/${assemblyId}/topics/${d.topicScope[0]}`
-    : d.topicScope.length === 0 && assemblyId
-      ? `/assembly/${assemblyId}/topics`
+  const scopeLink = d.topicScope.length === 1 && groupId
+    ? `/group/${groupId}/topics/${d.topicScope[0]}`
+    : d.topicScope.length === 0 && groupId
+      ? `/group/${groupId}/topics`
       : null;
 
   const nameContent = (
@@ -207,7 +207,7 @@ function DelegationRow({
 // Revoke button with confirmation
 // ---------------------------------------------------------------------------
 
-function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: string; delegationId: string; onRevoked: () => void }) {
+function RevokeButton({ groupId, delegationId, onRevoked }: { groupId: string; delegationId: string; onRevoked: () => void }) {
   const { t } = useTranslation("governance");
   const [confirming, setConfirming] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
@@ -215,7 +215,7 @@ function RevokeButton({ assemblyId, delegationId, onRevoked }: { assemblyId: str
   const handleRevoke = async () => {
     setRevokeError(null);
     try {
-      await api.revokeDelegation(assemblyId, delegationId);
+      await api.revokeDelegation(groupId, delegationId);
       onRevoked();
     } catch (err: unknown) {
       if (err instanceof api.ApiError && err.status === 403) {

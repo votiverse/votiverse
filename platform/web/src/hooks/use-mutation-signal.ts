@@ -1,9 +1,9 @@
 /**
  * Lightweight cross-component cache invalidation.
  *
- * When a mutation happens (assembly created, event created, etc.),
- * the mutating component calls `signal("assemblies")` or similar.
- * Components that depend on that data subscribe via `useSignal("assemblies")`
+ * When a mutation happens (group created, event created, etc.),
+ * the mutating component calls `signal("groups")` or similar.
+ * Components that depend on that data subscribe via `useSignal("groups")`
  * and re-fetch when the signal fires.
  *
  * This avoids Redux/Zustand while solving the stale-data-after-mutation

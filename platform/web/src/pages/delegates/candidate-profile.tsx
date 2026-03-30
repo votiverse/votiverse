@@ -16,7 +16,7 @@ const MarkdownViewer = lazy(() =>
 );
 
 export function CandidateProfile({
-  assemblyId,
+  groupId,
   candidacyId,
   candidacies,
   nameMap,
@@ -25,7 +25,7 @@ export function CandidateProfile({
   onNavigate,
   onBack,
 }: {
-  assemblyId: string;
+  groupId: string;
   candidacyId: string;
   candidacies: Candidacy[];
   nameMap: Map<string, string>;
@@ -38,8 +38,8 @@ export function CandidateProfile({
 
   // Endorsement state — fetched per candidacy, with optimistic local updates
   const { data: endorsementData } = useApi(
-    () => api.getEndorsements(assemblyId, "candidacy", [candidacyId]),
-    [assemblyId, candidacyId],
+    () => api.getEndorsements(groupId, "candidacy", [candidacyId]),
+    [groupId, candidacyId],
   );
   const [localEndorsement, setLocalEndorsement] = useState<EndorsementCounts | null>(null);
   const endorsement: EndorsementCounts = localEndorsement
@@ -55,8 +55,8 @@ export function CandidateProfile({
 
   // Full content (lazy-loaded)
   const { data: fullCandidacy, loading } = useApi(
-    () => api.getCandidacy(assemblyId, candidacyId),
-    [assemblyId, candidacyId],
+    () => api.getCandidacy(groupId, candidacyId),
+    [groupId, candidacyId],
   );
 
   const websiteUrl = fullCandidacy?.websiteUrl ?? listCandidacy?.websiteUrl ?? null;
@@ -64,7 +64,7 @@ export function CandidateProfile({
   const linkCopiedKey = `link-copied-${candidacyId}`;
 
   const handleCopyLink = async () => {
-    const url = `${window.location.origin}/assembly/${assemblyId}/candidacies/${candidacyId}`;
+    const url = `${window.location.origin}/group/${groupId}/candidacies/${candidacyId}`;
     await navigator.clipboard.writeText(url);
     // Brief visual feedback via button text change handled by state if needed
   };
@@ -179,7 +179,7 @@ export function CandidateProfile({
           </h2>
         </CardHeader>
         <CardBody>
-          <NotesList assemblyId={assemblyId} targetType="candidacy" targetId={candidacyId} />
+          <NotesList groupId={groupId} targetType="candidacy" targetId={candidacyId} />
         </CardBody>
       </Card>
 
@@ -187,7 +187,7 @@ export function CandidateProfile({
       <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-surface-raised/95 backdrop-blur-md border-t border-border-default z-40">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <EndorseButton
-            assemblyId={assemblyId}
+            groupId={groupId}
             targetType="candidacy"
             targetId={candidacyId}
             counts={endorsement}

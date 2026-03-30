@@ -115,8 +115,8 @@ function NotificationCard({ notification, onClick }: { notification: Notificatio
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-0.5">
-                {notification.assemblyName && (
-                  <span className="text-xs text-text-tertiary truncate">{notification.assemblyName}</span>
+                {notification.groupName && (
+                  <span className="text-xs text-text-tertiary truncate">{notification.groupName}</span>
                 )}
                 {!notification.read && urgencyBadge}
               </div>

@@ -3,12 +3,12 @@ import { BrowserRouter, Routes, Route, Outlet, Navigate, useParams, useLocation,
 import { IdentityContext, useIdentityProvider } from "./hooks/use-identity.js";
 import { AttentionContext, useAttentionProvider } from "./hooks/use-attention.js";
 import { ThemeContext, useThemeProvider } from "./hooks/use-theme.js";
-import { Sidebar, MobileHeader, AssemblyContentHeader, BottomTabs } from "./components/layout.js";
+import { Sidebar, MobileHeader, GroupContentHeader, BottomTabs } from "./components/layout.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
 import { Dashboard } from "./pages/dashboard.js";
-import { AssemblyList } from "./pages/assembly-list.js";
-import { CreateAssembly } from "./pages/create-assembly.js";
-import { AssemblyDashboard } from "./pages/assembly-dashboard.js";
+import { GroupList } from "./pages/group-list.js";
+import { CreateGroup } from "./pages/create-group.js";
+import { GroupDashboard } from "./pages/group-dashboard.js";
 import { Members } from "./pages/members.js";
 import { EventsList } from "./pages/events-list.js";
 import { EventDetail } from "./pages/event-detail.js";
@@ -96,8 +96,8 @@ function Layout() {
         {/* Mobile header (below lg) */}
         <MobileHeader />
 
-        {/* Assembly tab bar (desktop only, when inside an assembly) */}
-        <AssemblyContentHeader />
+        {/* Group tab bar (desktop only, when inside a group) */}
+        <GroupContentHeader />
 
         {/* Scrollable content */}
         <main ref={mainRef} className="flex-1 overflow-y-auto py-6 px-4 sm:py-8 sm:px-6 lg:px-8 pb-20 lg:pb-8 animate-page-in">
@@ -113,10 +113,10 @@ function Layout() {
   );
 }
 
-/** Redirect /assembly/:id → /assembly/:id/events (Votes is the default tab). */
-function AssemblyRedirect() {
-  const { assemblyId } = useParams();
-  return <Navigate to={`/assembly/${assemblyId}/events`} replace />;
+/** Redirect /group/:id → /group/:id/events (Votes is the default tab). */
+function GroupRedirect() {
+  const { groupId } = useParams();
+  return <Navigate to={`/group/${groupId}/events`} replace />;
 }
 
 export function App() {
@@ -139,8 +139,8 @@ export function App() {
             <Route element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="invite/:token" element={<InvitePage />} />
-              <Route path="assemblies" element={<AssemblyList />} />
-              <Route path="assemblies/new" element={<CreateAssembly />} />
+              <Route path="groups" element={<GroupList />} />
+              <Route path="groups/new" element={<CreateGroup />} />
               <Route path="profile" element={<Profile />} />
               <Route path="profile/delegators" element={<ProfileDelegators />} />
               <Route path="profile/delegates" element={<ProfileDelegates />} />
@@ -149,24 +149,24 @@ export function App() {
               <Route path="settings/notifications" element={<NotificationSettings />} />
               <Route path="settings/language" element={<Navigate to="/profile?tab=language" replace />} />
               <Route path="settings/appearance" element={<Navigate to="/profile?tab=appearance" replace />} />
-              <Route path="assembly/:assemblyId" element={<AssemblyRedirect />} />
-              <Route path="assembly/:assemblyId/about" element={<AssemblyDashboard />} />
-              <Route path="assembly/:assemblyId/members" element={<Members />} />
-              <Route path="assembly/:assemblyId/events" element={<EventsList />} />
-              <Route path="assembly/:assemblyId/events/:eventId" element={<EventDetail />} />
-              <Route path="assembly/:assemblyId/delegations" element={<Delegations />} />
-              <Route path="assembly/:assemblyId/surveys" element={<Surveys />} />
-              <Route path="assembly/:assemblyId/surveys/:surveyId" element={<SurveyDetailPage />} />
-              <Route path="assembly/:assemblyId/scoring" element={<Scoring />} />
-              <Route path="assembly/:assemblyId/scoring/:scoringEventId" element={<ScoringDetailPage />} />
-              <Route path="assembly/:assemblyId/predictions" element={<Predictions />} />
-              <Route path="assembly/:assemblyId/notes" element={<Notes />} />
-              <Route path="assembly/:assemblyId/proposals" element={<Proposals />} />
-              <Route path="assembly/:assemblyId/proposals/:proposalId" element={<ProposalDetailPage />} />
-              <Route path="assembly/:assemblyId/candidacies" element={<Candidacies />} />
-              <Route path="assembly/:assemblyId/candidacies/:candidacyId" element={<CandidacyProfile />} />
-              <Route path="assembly/:assemblyId/topics" element={<TopicsList />} />
-              <Route path="assembly/:assemblyId/topics/:topicId" element={<TopicPage />} />
+              <Route path="group/:groupId" element={<GroupRedirect />} />
+              <Route path="group/:groupId/about" element={<GroupDashboard />} />
+              <Route path="group/:groupId/members" element={<Members />} />
+              <Route path="group/:groupId/events" element={<EventsList />} />
+              <Route path="group/:groupId/events/:eventId" element={<EventDetail />} />
+              <Route path="group/:groupId/delegations" element={<Delegations />} />
+              <Route path="group/:groupId/surveys" element={<Surveys />} />
+              <Route path="group/:groupId/surveys/:surveyId" element={<SurveyDetailPage />} />
+              <Route path="group/:groupId/scoring" element={<Scoring />} />
+              <Route path="group/:groupId/scoring/:scoringEventId" element={<ScoringDetailPage />} />
+              <Route path="group/:groupId/predictions" element={<Predictions />} />
+              <Route path="group/:groupId/notes" element={<Notes />} />
+              <Route path="group/:groupId/proposals" element={<Proposals />} />
+              <Route path="group/:groupId/proposals/:proposalId" element={<ProposalDetailPage />} />
+              <Route path="group/:groupId/candidacies" element={<Candidacies />} />
+              <Route path="group/:groupId/candidacies/:candidacyId" element={<CandidacyProfile />} />
+              <Route path="group/:groupId/topics" element={<TopicsList />} />
+              <Route path="group/:groupId/topics/:topicId" element={<TopicPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

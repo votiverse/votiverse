@@ -26,24 +26,24 @@ function targetTypeLabel(type: string, t: TFn): string {
 }
 
 /** Build a link to the page where this note's target lives. */
-function targetLink(assemblyId: string, target: CommunityNote["target"]): string {
+function targetLink(groupId: string, target: CommunityNote["target"]): string {
   switch (target.type) {
     case "proposal":
-      return `/assembly/${assemblyId}/proposals`;
+      return `/group/${groupId}/proposals`;
     case "candidacy":
-      return `/assembly/${assemblyId}/candidacies`;
+      return `/group/${groupId}/candidacies`;
     case "survey":
-      return `/assembly/${assemblyId}/surveys`;
+      return `/group/${groupId}/surveys`;
     default:
-      return `/assembly/${assemblyId}/notes`;
+      return `/group/${groupId}/notes`;
   }
 }
 
 export function Notes() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
+  const { groupId } = useParams();
   const { getParticipantId } = useIdentity();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const participantId = groupId ? getParticipantId(groupId) : null;
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") ?? "all";
   const setFilter = (value: string) => {
@@ -51,12 +51,12 @@ export function Notes() {
   };
 
   const { data, loading, error, refetch } = useApi(
-    () => api.listNotes(assemblyId!),
-    [assemblyId],
+    () => api.listNotes(groupId!),
+    [groupId],
   );
   const { data: participantsData } = useApi(
-    () => api.listParticipants(assemblyId!),
-    [assemblyId],
+    () => api.listParticipants(groupId!),
+    [groupId],
   );
 
   const nameMap = useMemo(
@@ -65,7 +65,7 @@ export function Notes() {
   );
 
   const allNotes = data?.notes ?? [];
-  const entityNames = useEntityNames(assemblyId, allNotes);
+  const entityNames = useEntityNames(groupId, allNotes);
 
   // Count my notes
   const myNoteCount = useMemo(
@@ -133,7 +133,7 @@ export function Notes() {
             <NoteCard
               key={note.id}
               note={note}
-              assemblyId={assemblyId!}
+              groupId={groupId!}
               nameMap={nameMap}
               participantId={participantId}
               entityNames={entityNames}
@@ -166,9 +166,9 @@ function FilterChip({ label, count, active, onClick }: {
   );
 }
 
-function NoteCard({ note, assemblyId, nameMap, participantId, entityNames, onChanged }: {
+function NoteCard({ note, groupId, nameMap, participantId, entityNames, onChanged }: {
   note: CommunityNote;
-  assemblyId: string;
+  groupId: string;
   nameMap: Map<string, string>;
   participantId: string | null;
   entityNames?: Map<string, string>;
@@ -180,7 +180,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, entityNames, onCha
   const handleWithdraw = async () => {
     setWithdrawing(true);
     try {
-      await api.withdrawNote(assemblyId, note.id);
+      await api.withdrawNote(groupId, note.id);
       onChanged();
     } catch {
       // Already withdrawn or not author
@@ -211,7 +211,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, entityNames, onCha
           <span className="text-sm font-semibold text-text-primary">{authorName}</span>
           <span className="text-xs text-text-tertiary">{formatDate(note.createdAt)}</span>
           <span className="text-xs text-text-tertiary">{t("notesPage.on")}</span>
-          <Link to={targetLink(assemblyId, note.target)} className="hover:opacity-80 transition-opacity">
+          <Link to={targetLink(groupId, note.target)} className="hover:opacity-80 transition-opacity">
             <Badge color="gray">{targetLabel}</Badge>
           </Link>
         </div>
@@ -247,7 +247,7 @@ function NoteCard({ note, assemblyId, nameMap, participantId, entityNames, onCha
 
         <div className="flex items-center gap-3">
           <Link
-            to={targetLink(assemblyId, note.target)}
+            to={targetLink(groupId, note.target)}
             className="text-xs font-medium text-text-tertiary hover:text-text-secondary"
           >
             {t("notesPage.viewInContext")}

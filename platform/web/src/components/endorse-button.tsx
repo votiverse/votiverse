@@ -8,13 +8,13 @@ import type { EndorsementCounts } from "../api/types.js";
  * Shows: [👍 12] [👎 3] with active state highlighting.
  */
 export function EndorseButton({
-  assemblyId,
+  groupId,
   targetType,
   targetId,
   counts,
   onUpdate,
 }: {
-  assemblyId: string;
+  groupId: string;
   targetType: "candidacy" | "proposal";
   targetId: string;
   counts: EndorsementCounts;
@@ -28,7 +28,7 @@ export function EndorseButton({
     try {
       if (counts.my === value) {
         // Retract
-        await api.retractEndorsement(assemblyId, { targetType, targetId });
+        await api.retractEndorsement(groupId, { targetType, targetId });
         onUpdate({
           endorse: counts.endorse - (value === "endorse" ? 1 : 0),
           dispute: counts.dispute - (value === "dispute" ? 1 : 0),
@@ -36,7 +36,7 @@ export function EndorseButton({
         });
       } else {
         // Upsert
-        await api.upsertEndorsement(assemblyId, { targetType, targetId, value });
+        await api.upsertEndorsement(groupId, { targetType, targetId, value });
         const prev = counts.my;
         onUpdate({
           endorse: counts.endorse + (value === "endorse" ? 1 : 0) - (prev === "endorse" ? 1 : 0),

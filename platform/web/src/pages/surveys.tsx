@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, LinkIcon, Check } from "lucide-react";
 import { useParticipant } from "../hooks/use-participant.js";
-import { useAssembly } from "../hooks/use-assembly.js";
+import { useGroup } from "../hooks/use-group.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
 import type { Survey, SurveyQuestion, SurveyResults } from "../api/types.js";
@@ -32,10 +32,10 @@ const RESULT_COLORS = [
 
 export function Surveys() {
   const { t } = useTranslation("governance");
-  const { assemblyId } = useParams();
-  const { assembly } = useAssembly(assemblyId);
+  const { groupId } = useParams();
+  const { group } = useGroup(groupId);
   const { getParticipantId } = useParticipant();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const participantId = groupId ? getParticipantId(groupId) : null;
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,13 +48,13 @@ export function Surveys() {
   const surveysEnabled = true; // Capability gating moves to backend in Tier 2
 
   useEffect(() => {
-    if (!assemblyId) return;
+    if (!groupId) return;
     setLoading(true);
-    api.listSurveys(assemblyId, participantId ?? undefined)
+    api.listSurveys(groupId, participantId ?? undefined)
       .then((data) => setSurveys(data.surveys))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [assemblyId, participantId]);
+  }, [groupId, participantId]);
 
   // To Do: open surveys the user hasn't responded to, sorted by closest deadline
   const todoSurveys = useMemo(() => {
@@ -93,7 +93,7 @@ export function Surveys() {
         </button>
 
         <CreateSurveyForm
-          assemblyId={assemblyId!}
+          groupId={groupId!}
           onClose={() => setShowCreate(false)}
           onCreated={(survey) => {
             setSurveys([...surveys, survey]);
@@ -154,7 +154,7 @@ export function Surveys() {
             {visibleSurveys.map((survey) => (
               <SurveySummaryCard
                 key={survey.id}
-                assemblyId={assemblyId!}
+                groupId={groupId!}
                 survey={survey}
               />
             ))}
@@ -169,7 +169,7 @@ export function Surveys() {
 // Summary card — shown in the list view
 // ---------------------------------------------------------------------------
 
-function SurveySummaryCard({ assemblyId, survey }: { assemblyId: string; survey: Survey }) {
+function SurveySummaryCard({ groupId, survey }: { groupId: string; survey: Survey }) {
   const { t } = useTranslation("governance");
   const status = deriveSurveyStatus(survey.schedule, survey.closesAt);
   const isClosed = status === "closed";
@@ -178,7 +178,7 @@ function SurveySummaryCard({ assemblyId, survey }: { assemblyId: string; survey:
   const closesLabel = closesIn > 0
     ? t("surveys.closesIn", { days: Math.ceil(closesIn / 86400000) })
     : undefined;
-  const surveyUrl = `/assembly/${assemblyId}/surveys/${survey.id}`;
+  const surveyUrl = `/group/${groupId}/surveys/${survey.id}`;
   const [copied, setCopied] = useState(false);
 
   const copyLink = async (e: React.MouseEvent) => {
@@ -249,15 +249,15 @@ function SurveySummaryCard({ assemblyId, survey }: { assemblyId: string; survey:
 // ---------------------------------------------------------------------------
 
 function SurveyDetail({
-  assemblyId,
+  groupId,
   survey,
 }: {
-  assemblyId: string;
+  groupId: string;
   survey: Survey;
 }) {
   const { t } = useTranslation("governance");
   const { getParticipantId } = useParticipant();
-  const participantId = getParticipantId(assemblyId);
+  const participantId = getParticipantId(groupId);
   const [results, setResults] = useState<SurveyResults | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
@@ -282,13 +282,13 @@ function SurveyDetail({
 
   const loadResults = useCallback(async () => {
     try {
-      const r = await api.getSurveyResults(assemblyId, survey.id);
+      const r = await api.getSurveyResults(groupId, survey.id);
       setResults(r);
       setResultsError(null);
     } catch (err: unknown) {
       setResultsError(err instanceof Error ? err.message : "Failed to load results");
     }
-  }, [assemblyId, survey.id]);
+  }, [groupId, survey.id]);
 
   const selectAnswer = (questionId: string, value: unknown) => {
     setSelected((prev) => ({ ...prev, [questionId]: value }));
@@ -306,7 +306,7 @@ function SurveyDetail({
         questionId: q.id,
         value: selected[q.id],
       }));
-      await api.submitSurveyResponse(assemblyId, survey.id, { participantId, answers });
+      await api.submitSurveyResponse(groupId, survey.id, { participantId, answers });
       setResponded(true);
       signal("attention");
       await loadResults();
@@ -325,7 +325,7 @@ function SurveyDetail({
   };
 
   const copyLink = async () => {
-    const fullUrl = `${window.location.origin}/assembly/${assemblyId}/surveys/${survey.id}`;
+    const fullUrl = `${window.location.origin}/group/${groupId}/surveys/${survey.id}`;
     await navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -335,7 +335,7 @@ function SurveyDetail({
     <div className="space-y-5">
       {/* Back navigation */}
       <Link
-        to={`/assembly/${assemblyId}/surveys`}
+        to={`/group/${groupId}/surveys`}
         className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px]"
       >
         <ChevronLeft size={16} />
@@ -512,17 +512,17 @@ function emptyQuestion(): QuestionDraft {
 }
 
 function CreateSurveyForm({
-  assemblyId,
+  groupId,
   onClose,
   onCreated,
 }: {
-  assemblyId: string;
+  groupId: string;
   onClose: () => void;
   onCreated: (survey: Survey) => void;
 }) {
   const { t } = useTranslation("governance");
   const { getParticipantId } = useParticipant();
-  const participantId = getParticipantId(assemblyId);
+  const participantId = getParticipantId(groupId);
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion()]);
   const [submitting, setSubmitting] = useState(false);
@@ -568,7 +568,7 @@ function CreateSurveyForm({
     setFormError(null);
     const now = Date.now();
     try {
-      const survey = await api.createSurvey(assemblyId, {
+      const survey = await api.createSurvey(groupId, {
         title: title.trim(),
         topicScope: [],
         questions: questions.map((q) => ({
@@ -740,25 +740,25 @@ function QuestionButtons({
 }
 
 // ---------------------------------------------------------------------------
-// Standalone survey detail page — mounted at /assembly/:assemblyId/surveys/:surveyId
+// Standalone survey detail page — mounted at /group/:groupId/surveys/:surveyId
 // ---------------------------------------------------------------------------
 
 export function SurveyDetailPage() {
   const { t } = useTranslation("governance");
-  const { assemblyId, surveyId } = useParams();
+  const { groupId, surveyId } = useParams();
   const { getParticipantId } = useParticipant();
-  const participantId = assemblyId ? getParticipantId(assemblyId) : null;
+  const participantId = groupId ? getParticipantId(groupId) : null;
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!assemblyId) return;
+    if (!groupId) return;
     setLoading(true);
-    api.listSurveys(assemblyId, participantId ?? undefined)
+    api.listSurveys(groupId, participantId ?? undefined)
       .then((data) => setSurveys(data.surveys))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [assemblyId, participantId]);
+  }, [groupId, participantId]);
 
   const survey = surveys.find((s) => s.id === surveyId);
 
@@ -774,7 +774,7 @@ export function SurveyDetailPage() {
     return (
       <div className="max-w-3xl mx-auto">
         <Link
-          to={`/assembly/${assemblyId}/surveys`}
+          to={`/group/${groupId}/surveys`}
           className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text-primary transition-colors min-h-[36px] mb-6"
         >
           <ChevronLeft size={16} />
@@ -787,7 +787,7 @@ export function SurveyDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto animate-page-in">
-      <SurveyDetail assemblyId={assemblyId!} survey={survey} />
+      <SurveyDetail groupId={groupId!} survey={survey} />
     </div>
   );
 }

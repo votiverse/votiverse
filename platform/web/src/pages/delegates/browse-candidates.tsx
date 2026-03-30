@@ -7,7 +7,7 @@ import { CandidateCard } from "./candidate-card.js";
 import { ChevronLeft, Search } from "lucide-react";
 
 export function BrowseCandidates({
-  assemblyId: _assemblyId,
+  groupId: _groupId,
   participantId,
   candidacies,
   participants,
@@ -18,7 +18,7 @@ export function BrowseCandidates({
   onSearchSelect,
   onBack,
 }: {
-  assemblyId: string;
+  groupId: string;
   participantId: string;
   candidacies: Candidacy[];
   participants: Array<{ id: string; name: string }>;

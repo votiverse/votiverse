@@ -48,18 +48,18 @@ function parseInternalUrl(href: string): { path: string; entityType?: string; en
   if (typeof window !== "undefined" && href.startsWith(window.location.origin)) {
     path = href.slice(window.location.origin.length);
   }
-  // Match /assembly/:assemblyId/:type/:entityId
-  const detailMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics|scoring)\/([^/?#]+)/.exec(path);
+  // Match /group/:groupId/:type/:entityId
+  const detailMatch = /^\/group\/[^/]+\/(surveys|events|candidacies|proposals|topics|scoring)\/([^/?#]+)/.exec(path);
   if (detailMatch) {
     return { path, entityType: detailMatch[1], entityId: detailMatch[2] };
   }
-  // Match /assembly/:assemblyId/:type (list page)
-  const listMatch = /^\/assembly\/[^/]+\/(surveys|events|candidacies|proposals|topics|scoring)\/?$/.exec(path);
+  // Match /group/:groupId/:type (list page)
+  const listMatch = /^\/group\/[^/]+\/(surveys|events|candidacies|proposals|topics|scoring)\/?$/.exec(path);
   if (listMatch) {
     return { path, entityType: listMatch[1] };
   }
-  // Match any other /assembly/ route
-  if (path.startsWith("/assembly/")) {
+  // Match any other /group/ route
+  if (path.startsWith("/group/")) {
     return { path };
   }
   return null;
@@ -163,22 +163,22 @@ export function extractEntityRefs(text: string): Array<{ type: string; id: strin
   return refs;
 }
 
-export function NotesList({ assemblyId, targetType, targetId, nameMap }: {
-  assemblyId: string;
+export function NotesList({ groupId, targetType, targetId, nameMap }: {
+  groupId: string;
   targetType: string;
   targetId: string;
   nameMap?: Map<string, string>;
 }) {
   const { t } = useTranslation("governance");
   const { data, loading, refetch } = useApi(
-    () => api.listNotes(assemblyId, targetType, targetId),
-    [assemblyId, targetType, targetId],
+    () => api.listNotes(groupId, targetType, targetId),
+    [groupId, targetType, targetId],
   );
   const [showForm, setShowForm] = useState(false);
 
   const rawNotes = data?.notes ?? [];
   const notes = useMemo(() => sortNotesByRelevance(rawNotes), [rawNotes]);
-  const entityNames = useEntityNames(assemblyId, rawNotes);
+  const entityNames = useEntityNames(groupId, rawNotes);
 
   return (
     <div>
@@ -196,7 +196,7 @@ export function NotesList({ assemblyId, targetType, targetId, nameMap }: {
 
       {showForm && (
         <NoteForm
-          assemblyId={assemblyId}
+          groupId={groupId}
           targetType={targetType}
           targetId={targetId}
           onCreated={() => { setShowForm(false); refetch(); }}
@@ -211,16 +211,16 @@ export function NotesList({ assemblyId, targetType, targetId, nameMap }: {
 
       <div className="space-y-3">
         {notes.map((note) => (
-          <NoteCard key={note.id} note={note} assemblyId={assemblyId} authorName={nameMap?.get(note.authorId)} entityNames={entityNames} onEvaluated={refetch} />
+          <NoteCard key={note.id} note={note} groupId={groupId} authorName={nameMap?.get(note.authorId)} entityNames={entityNames} onEvaluated={refetch} />
         ))}
       </div>
     </div>
   );
 }
 
-function NoteCard({ note, assemblyId, authorName, entityNames, onEvaluated }: {
+function NoteCard({ note, groupId, authorName, entityNames, onEvaluated }: {
   note: CommunityNote;
-  assemblyId: string;
+  groupId: string;
   authorName?: string;
   entityNames?: Map<string, string>;
   onEvaluated: () => void;
@@ -231,7 +231,7 @@ function NoteCard({ note, assemblyId, authorName, entityNames, onEvaluated }: {
   const handleEvaluate = async (evaluation: "endorse" | "dispute") => {
     setEvaluating(true);
     try {
-      await api.evaluateNote(assemblyId, note.id, evaluation);
+      await api.evaluateNote(groupId, note.id, evaluation);
       onEvaluated();
     } catch {
       // Self-evaluation or other errors
@@ -303,8 +303,8 @@ function NoteCard({ note, assemblyId, authorName, entityNames, onEvaluated }: {
   );
 }
 
-function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
-  assemblyId: string;
+function NoteForm({ groupId, targetType, targetId, onCreated }: {
+  groupId: string;
   targetType: string;
   targetId: string;
   onCreated: () => void;
@@ -317,7 +317,7 @@ function NoteForm({ assemblyId, targetType, targetId, onCreated }: {
     if (!markdown.trim()) return;
     setSubmitting(true);
     try {
-      await api.createNote(assemblyId, { markdown, targetType, targetId });
+      await api.createNote(groupId, { markdown, targetType, targetId });
       setMarkdown("");
       onCreated();
     } catch (err) {

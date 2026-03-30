@@ -397,346 +397,346 @@
     }
   },
   "governance": {
-    "assemblyDashboard.admins": {
+    "groupDashboard.admins": {
       "hash": "8273a67b"
     },
-    "assemblyDashboard.assemblyNotFound": {
+    "groupDashboard.groupNotFound": {
       "hash": "54141514"
     },
-    "assemblyDashboard.ballot": {
+    "groupDashboard.ballot": {
       "hash": "e964e32c"
     },
-    "assemblyDashboard.candidatesLabel": {
+    "groupDashboard.candidatesLabel": {
       "hash": "fdc9c0f6"
     },
-    "assemblyDashboard.communityNotes": {
+    "groupDashboard.communityNotes": {
       "hash": "b607506e"
     },
-    "assemblyDashboard.configuration": {
+    "groupDashboard.configuration": {
       "hash": "b332c349"
     },
-    "assemblyDashboard.curation": {
+    "groupDashboard.curation": {
       "hash": "bba16837"
     },
-    "assemblyDashboard.curationNone": {
+    "groupDashboard.curationNone": {
       "hash": "dc937b59"
     },
-    "assemblyDashboard.day_one": {
+    "groupDashboard.day_one": {
       "hash": "02b4fc59"
     },
-    "assemblyDashboard.day_other": {
+    "groupDashboard.day_other": {
       "hash": "ca4c4a68"
     },
-    "assemblyDashboard.decisionModel": {
+    "groupDashboard.decisionModel": {
       "hash": "9aa9d2da"
     },
-    "assemblyDashboard.deliberation": {
+    "groupDashboard.deliberation": {
       "hash": "60c34b5e"
     },
-    "assemblyDashboard.features": {
+    "groupDashboard.features": {
       "hash": "5697d03d"
     },
-    "assemblyDashboard.governanceSettings": {
+    "groupDashboard.governanceSettings": {
       "hash": "35762d35"
     },
-    "assemblyDashboard.leadership": {
+    "groupDashboard.leadership": {
       "hash": "ec75f790"
     },
-    "assemblyDashboard.liveResults": {
+    "groupDashboard.liveResults": {
       "hash": "6a23e624"
     },
-    "assemblyDashboard.majority": {
+    "groupDashboard.majority": {
       "hash": "15fbf197"
     },
-    "assemblyDashboard.members": {
+    "groupDashboard.members": {
       "hash": "1044a4c0"
     },
-    "assemblyDashboard.moreMembers": {
+    "groupDashboard.moreMembers": {
       "hash": "48380bad"
     },
-    "assemblyDashboard.nQuestions": {
+    "groupDashboard.nQuestions": {
       "hash": "1f9e5add"
     },
-    "assemblyDashboard.ownerBadge": {
+    "groupDashboard.ownerBadge": {
       "hash": "4b1b8aa3"
     },
-    "assemblyDashboard.owners": {
+    "groupDashboard.owners": {
       "hash": "58f5df9b"
     },
-    "assemblyDashboard.predictionsLabel": {
+    "groupDashboard.predictionsLabel": {
       "hash": "d3176397"
     },
-    "assemblyDashboard.public": {
+    "groupDashboard.public": {
       "hash": "591935b1"
     },
-    "assemblyDashboard.quorum": {
+    "groupDashboard.quorum": {
       "hash": "18ed8b6c"
     },
-    "assemblyDashboard.recentVotes": {
+    "groupDashboard.recentVotes": {
       "hash": "20ff0633"
     },
-    "assemblyDashboard.rulesPermanent": {
+    "groupDashboard.rulesPermanent": {
       "hash": "2a94ab78"
     },
-    "assemblyDashboard.secret": {
+    "groupDashboard.secret": {
       "hash": "7e32a729"
     },
-    "assemblyDashboard.statMembers": {
+    "groupDashboard.statMembers": {
       "hash": "1044a4c0"
     },
-    "assemblyDashboard.statVotes": {
+    "groupDashboard.statVotes": {
       "hash": "cd8e974b"
     },
-    "assemblyDashboard.statYourDelegates": {
+    "groupDashboard.statYourDelegates": {
       "hash": "31b095bf"
     },
-    "assemblyDashboard.statYourVotes": {
+    "groupDashboard.statYourVotes": {
       "hash": "9729de7a"
     },
-    "assemblyDashboard.supermajority": {
+    "groupDashboard.supermajority": {
       "hash": "71b84afb"
     },
-    "assemblyDashboard.surveysLabel": {
+    "groupDashboard.surveysLabel": {
       "hash": "7c763b8f"
     },
-    "assemblyDashboard.timeline": {
+    "groupDashboard.timeline": {
       "hash": "9dcff98e"
     },
-    "assemblyDashboard.totalDaysPerVote": {
+    "groupDashboard.totalDaysPerVote": {
       "hash": "144f0835"
     },
-    "assemblyDashboard.transferableLabel": {
+    "groupDashboard.transferableLabel": {
       "hash": "4ef7138e"
     },
-    "assemblyDashboard.usesGovernance": {
+    "groupDashboard.usesGovernance": {
       "hash": "a4c7dff0"
     },
-    "assemblyDashboard.viewAll": {
+    "groupDashboard.viewAll": {
       "hash": "30a64216"
     },
-    "assemblyDashboard.viewAllN": {
+    "groupDashboard.viewAllN": {
       "hash": "a1bdd394"
     },
-    "assemblyDashboard.voteChangeAllowed": {
+    "groupDashboard.voteChangeAllowed": {
       "hash": "1bb201d1"
     },
-    "assemblyDashboard.voteChangeFinal": {
+    "groupDashboard.voteChangeFinal": {
       "hash": "2e53c1d9"
     },
-    "assemblyDashboard.voteChanges": {
+    "groupDashboard.voteChanges": {
       "hash": "0ab7f387"
     },
-    "assemblyDashboard.voting": {
+    "groupDashboard.voting": {
       "hash": "aca2f665"
     },
-    "assemblyDashboard.votingMethod": {
+    "groupDashboard.votingMethod": {
       "hash": "315c5e78"
     },
-    "assemblyDashboard.welcomeTo": {
+    "groupDashboard.welcomeTo": {
       "hash": "cca0a088"
     },
-    "assemblyList.admissionApproval": {
+    "groupList.admissionApproval": {
       "hash": "71d62143"
     },
-    "assemblyList.admissionApprovalDesc": {
+    "groupList.admissionApprovalDesc": {
       "hash": "3d924edd"
     },
-    "assemblyList.admissionInviteOnly": {
+    "groupList.admissionInviteOnly": {
       "hash": "a140ffe8"
     },
-    "assemblyList.admissionInviteOnlyDesc": {
+    "groupList.admissionInviteOnlyDesc": {
       "hash": "bd3e2e53"
     },
-    "assemblyList.admissionOpen": {
+    "groupList.admissionOpen": {
       "hash": "a1c7094a"
     },
-    "assemblyList.admissionOpenDesc": {
+    "groupList.admissionOpenDesc": {
       "hash": "cd8be2a9"
     },
-    "assemblyList.allowVoteChanges": {
+    "groupList.allowVoteChanges": {
       "hash": "8e3cf05e"
     },
-    "assemblyList.apply": {
+    "groupList.apply": {
       "hash": "31e392d1"
     },
-    "assemblyList.browseTemplates": {
+    "groupList.browseTemplates": {
       "hash": "ce7653fa"
     },
-    "assemblyList.changeableNote": {
+    "groupList.changeableNote": {
       "hash": "984c5cdd"
     },
-    "assemblyList.createError": {
+    "groupList.createError": {
       "hash": "8848db90"
     },
-    "assemblyList.createGroup": {
+    "groupList.createGroup": {
       "hash": "12133946"
     },
-    "assemblyList.creating": {
+    "groupList.creating": {
       "hash": "c79ed949"
     },
-    "assemblyList.curation": {
+    "groupList.curation": {
       "hash": "2c4fe4bf"
     },
-    "assemblyList.customizeRules": {
+    "groupList.customizeRules": {
       "hash": "c4e0d595"
     },
-    "assemblyList.customized": {
+    "groupList.customized": {
       "hash": "125a46dc"
     },
-    "assemblyList.days": {
+    "groupList.days": {
       "hash": "ab51004e"
     },
-    "assemblyList.declaredCandidates": {
+    "groupList.declaredCandidates": {
       "hash": "1a5bfebb"
     },
-    "assemblyList.deliberation": {
+    "groupList.deliberation": {
       "hash": "02a67270"
     },
-    "assemblyList.featureCommunityNotes": {
+    "groupList.featureCommunityNotes": {
       "hash": "1828955e"
     },
-    "assemblyList.featurePredictions": {
+    "groupList.featurePredictions": {
       "hash": "d3176397"
     },
-    "assemblyList.featureSurveys": {
+    "groupList.featureSurveys": {
       "hash": "7c763b8f"
     },
-    "assemblyList.governance": {
+    "groupList.governance": {
       "hash": "56d178dd"
     },
-    "assemblyList.governanceRules": {
+    "groupList.governanceRules": {
       "hash": "835ddee8"
     },
-    "assemblyList.governanceRulesDesc": {
+    "groupList.governanceRulesDesc": {
       "hash": "1c625a32"
     },
-    "assemblyList.liveResultsToggle": {
+    "groupList.liveResultsToggle": {
       "hash": "8630f079"
     },
-    "assemblyList.majority": {
+    "groupList.majority": {
       "hash": "15fbf197"
     },
-    "assemblyList.nameLabel": {
+    "groupList.nameLabel": {
       "hash": "dcd1d522"
     },
-    "assemblyList.namePlaceholder": {
+    "groupList.namePlaceholder": {
       "hash": "762ebb70"
     },
-    "assemblyList.needsYou_one": {
+    "groupList.needsYou_one": {
       "hash": "af9f85ab"
     },
-    "assemblyList.needsYou_other": {
+    "groupList.needsYou_other": {
       "hash": "05352065"
     },
-    "assemblyList.newGroup": {
+    "groupList.newGroup": {
       "hash": "3726836b"
     },
-    "assemblyList.newGroupTitle": {
+    "groupList.newGroupTitle": {
       "hash": "3726836b"
     },
-    "assemblyList.noGroups": {
+    "groupList.noGroups": {
       "hash": "07514d06"
     },
-    "assemblyList.noGroupsDesc": {
+    "groupList.noGroupsDesc": {
       "hash": "9efeebac"
     },
-    "assemblyList.openVote_one": {
+    "groupList.openVote_one": {
       "hash": "9309e503"
     },
-    "assemblyList.openVote_other": {
+    "groupList.openVote_other": {
       "hash": "207862a4"
     },
-    "assemblyList.presetCivic": {
+    "groupList.presetCivic": {
       "hash": "a6e75391"
     },
-    "assemblyList.presetCivicDesc": {
+    "groupList.presetCivicDesc": {
       "hash": "da675f8e"
     },
-    "assemblyList.presetDirectDemocracy": {
+    "groupList.presetDirectDemocracy": {
       "hash": "0e73c495"
     },
-    "assemblyList.presetDirectDemocracyDesc": {
+    "groupList.presetDirectDemocracyDesc": {
       "hash": "dc6bcdd9"
     },
-    "assemblyList.presetLiquidDelegation": {
+    "groupList.presetLiquidDelegation": {
       "hash": "aefc0e56"
     },
-    "assemblyList.presetLiquidDelegationDesc": {
+    "groupList.presetLiquidDelegationDesc": {
       "hash": "2eee4a53"
     },
-    "assemblyList.presetLiquidOpen": {
+    "groupList.presetLiquidOpen": {
       "hash": "a5133663"
     },
-    "assemblyList.presetLiquidOpenDesc": {
+    "groupList.presetLiquidOpenDesc": {
       "hash": "6909532b"
     },
-    "assemblyList.presetRepresentative": {
+    "groupList.presetRepresentative": {
       "hash": "5753cbd6"
     },
-    "assemblyList.presetRepresentativeDesc": {
+    "groupList.presetRepresentativeDesc": {
       "hash": "20d4b42f"
     },
-    "assemblyList.presetResetsAll": {
+    "groupList.presetResetsAll": {
       "hash": "f4d3fe34"
     },
-    "assemblyList.presetSwissVotation": {
+    "groupList.presetSwissVotation": {
       "hash": "615978fe"
     },
-    "assemblyList.presetSwissVotationDesc": {
+    "groupList.presetSwissVotationDesc": {
       "hash": "7c2bf48c"
     },
-    "assemblyList.quorum": {
+    "groupList.quorum": {
       "hash": "18ed8b6c"
     },
-    "assemblyList.rulesPermanent": {
+    "groupList.rulesPermanent": {
       "hash": "b96ae382"
     },
-    "assemblyList.secretBallot": {
+    "groupList.secretBallot": {
       "hash": "3ecf7bf7"
     },
-    "assemblyList.sectionBallot": {
+    "groupList.sectionBallot": {
       "hash": "fe19edba"
     },
-    "assemblyList.sectionDelegation": {
+    "groupList.sectionDelegation": {
       "hash": "a6d910ba"
     },
-    "assemblyList.sectionFeatures": {
+    "groupList.sectionFeatures": {
       "hash": "5697d03d"
     },
-    "assemblyList.startFromPreset": {
+    "groupList.startFromPreset": {
       "hash": "765fe22c"
     },
-    "assemblyList.subtitle": {
+    "groupList.subtitle": {
       "hash": "ce81c1c0"
     },
-    "assemblyList.supermajority": {
+    "groupList.supermajority": {
       "hash": "71b84afb"
     },
-    "assemblyList.sybilWarning": {
+    "groupList.sybilWarning": {
       "hash": "2b1922d3"
     },
-    "assemblyList.timelinePerVote": {
+    "groupList.timelinePerVote": {
       "hash": "849b98b0"
     },
-    "assemblyList.title": {
+    "groupList.title": {
       "hash": "e9db9ced"
     },
-    "assemblyList.transferableAnyMember": {
+    "groupList.transferableAnyMember": {
       "hash": "2e876107"
     },
-    "assemblyList.voting": {
+    "groupList.voting": {
       "hash": "82e31d50"
     },
-    "assemblyList.votingMethodLabel": {
+    "groupList.votingMethodLabel": {
       "hash": "d16e34ba"
     },
-    "assemblyList.websiteHelper": {
+    "groupList.websiteHelper": {
       "hash": "ae4a8e90"
     },
-    "assemblyList.websiteLabel": {
+    "groupList.websiteLabel": {
       "hash": "06821408"
     },
-    "assemblyList.whoCanJoin": {
+    "groupList.whoCanJoin": {
       "hash": "35c68535"
     },
     "booklet.close": {
@@ -958,7 +958,7 @@
     "candidates.declared": {
       "hash": "ba2ac744"
     },
-    "createAssembly.title": {
+    "createGroup.title": {
       "hash": "76e9f305"
     },
     "dashboard.accept": {

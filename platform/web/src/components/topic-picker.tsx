@@ -4,7 +4,7 @@ import type { Topic } from "../api/types.js";
 import { Spinner } from "./ui.js";
 
 interface TopicPickerProps {
-  assemblyId: string;
+  groupId: string;
   value: string[];
   onChange: (topicIds: string[]) => void;
   disabled?: boolean;
@@ -29,14 +29,14 @@ function buildTree(topics: Topic[]): Array<{ topic: Topic; children: Topic[] }> 
   }));
 }
 
-export function TopicPicker({ assemblyId, value, onChange, disabled, highlightTopics }: TopicPickerProps) {
-  const { data, loading } = useApi(() => api.listTopics(assemblyId), [assemblyId]);
+export function TopicPicker({ groupId, value, onChange, disabled, highlightTopics }: TopicPickerProps) {
+  const { data, loading } = useApi(() => api.listTopics(groupId), [groupId]);
 
   if (loading) return <Spinner />;
 
   const topics = data?.topics ?? [];
   if (topics.length === 0) {
-    return <p className="text-sm text-text-tertiary">No topics defined for this assembly.</p>;
+    return <p className="text-sm text-text-tertiary">No topics defined for this group.</p>;
   }
 
   const selected = new Set(value);

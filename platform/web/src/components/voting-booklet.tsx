@@ -25,7 +25,7 @@ const MarkdownViewer = lazy(() =>
 type EventPhase = "deliberation" | "voting" | "closed";
 
 interface BookletProps {
-  assemblyId: string;
+  groupId: string;
   eventId: string;
   issueId: string;
   issueTitle: string;
@@ -85,7 +85,7 @@ function positionAccent(key: string): string {
 }
 
 export function VotingBooklet({
-  assemblyId,
+  groupId,
   eventId,
   issueId,
   issueTitle,
@@ -123,14 +123,14 @@ export function VotingBooklet({
   useEffect(() => {
     if (eventPhase === "deliberation") return;
     let cancelled = false;
-    api.getBookletProposals(assemblyId, issueId)
+    api.getBookletProposals(groupId, issueId)
       .then((data) => { if (!cancelled) setBookletData(data); })
       .catch(() => {});
-    api.getRecommendation(assemblyId, eventId, issueId)
+    api.getRecommendation(groupId, eventId, issueId)
       .then((data) => { if (!cancelled) setRecommendation(data.recommendation); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [assemblyId, eventId, issueId, eventPhase]);
+  }, [groupId, eventId, issueId, eventPhase]);
 
   // Close on Escape
   useEffect(() => {
@@ -245,7 +245,7 @@ export function VotingBooklet({
                 activeProposals.map((proposal) => (
                   <ProposalSection
                     key={proposal.id}
-                    assemblyId={assemblyId}
+                    groupId={groupId}
                     proposal={proposal}
                     showEndorse
                   />
@@ -270,14 +270,14 @@ export function VotingBooklet({
                         </div>
                       )}
                       <ProposalSection
-                        assemblyId={assemblyId}
+                        groupId={groupId}
                         proposal={featured}
                       />
                     </div>
                     <SeeAllExpander
                       proposals={activeProposals}
                       featuredId={featured.id}
-                      assemblyId={assemblyId}
+                      groupId={groupId}
                     />
                   </>
                 );
@@ -303,7 +303,7 @@ export function VotingBooklet({
           {/* Curation panel (event creator during deliberation) */}
           {showCuration && isCreator && eventPhase === "deliberation" && (
             <CurationPanel
-              assemblyId={assemblyId}
+              groupId={groupId}
               eventId={eventId}
               issueId={issueId}
               proposals={activeProposals}
@@ -342,10 +342,10 @@ export function VotingBooklet({
 }
 
 /** "See all N proposals" expander for non-featured proposals. */
-function SeeAllExpander({ proposals, featuredId, assemblyId }: {
+function SeeAllExpander({ proposals, featuredId, groupId }: {
   proposals: Proposal[];
   featuredId: string;
-  assemblyId: string;
+  groupId: string;
 }) {
   const { t } = useTranslation("governance");
   const [expanded, setExpanded] = useState(false);
@@ -365,7 +365,7 @@ function SeeAllExpander({ proposals, featuredId, assemblyId }: {
       {expanded && (
         <div className="mt-4 space-y-6">
           {others.map((p) => (
-            <ProposalSection key={p.id} assemblyId={assemblyId} proposal={p} />
+            <ProposalSection key={p.id} groupId={groupId} proposal={p} />
           ))}
         </div>
       )}
@@ -374,8 +374,8 @@ function SeeAllExpander({ proposals, featuredId, assemblyId }: {
 }
 
 /** Individual proposal within a position section. Fetches full content on mount. */
-function ProposalSection({ assemblyId, proposal, showEndorse }: {
-  assemblyId: string;
+function ProposalSection({ groupId, proposal, showEndorse }: {
+  groupId: string;
   proposal: Proposal;
   showEndorse?: boolean;
 }) {
@@ -386,8 +386,8 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
 
   // Endorsement state via entity endorsement system
   const { data: endorsementData } = useApi(
-    () => api.getEndorsements(assemblyId, "proposal", [proposal.id]),
-    [assemblyId, proposal.id],
+    () => api.getEndorsements(groupId, "proposal", [proposal.id]),
+    [groupId, proposal.id],
   );
   const [localEndorsement, setLocalEndorsement] = useState<EndorsementCounts | null>(null);
   const endorsement: EndorsementCounts = localEndorsement
@@ -397,14 +397,14 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
   useEffect(() => {
     if (content) return;
     let cancelled = false;
-    api.getProposal(assemblyId, proposal.id)
+    api.getProposal(groupId, proposal.id)
       .then((full) => {
         if (!cancelled) setContent(full.content?.markdown ?? null);
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [assemblyId, proposal.id, content]);
+  }, [groupId, proposal.id, content]);
 
   const score = endorsement.endorse - endorsement.dispute;
 
@@ -452,7 +452,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
         {showEndorse && (
           <div className="ml-auto">
             <EndorseButton
-              assemblyId={assemblyId}
+              groupId={groupId}
               targetType="proposal"
               targetId={proposal.id}
               counts={endorsement}
@@ -464,7 +464,7 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
 
       {showNotes && (
         <div className="mt-3">
-          <NotesList assemblyId={assemblyId} targetType="proposal" targetId={proposal.id} />
+          <NotesList groupId={groupId} targetType="proposal" targetId={proposal.id} />
         </div>
       )}
     </div>
@@ -472,8 +472,8 @@ function ProposalSection({ assemblyId, proposal, showEndorse }: {
 }
 
 /** Curation panel — event creator can pin/unpin featured proposals and manage recommendation. */
-function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, recommendation, onRecommendationChange }: {
-  assemblyId: string;
+function CurationPanel({ groupId, eventId, issueId, proposals, positionKey, recommendation, onRecommendationChange }: {
+  groupId: string;
   eventId: string;
   issueId: string;
   proposals: Proposal[];
@@ -488,9 +488,9 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
   const handleFeature = async (proposalId: string, featured: boolean) => {
     try {
       if (featured) {
-        await api.unfeatureProposal(assemblyId, proposalId);
+        await api.unfeatureProposal(groupId, proposalId);
       } else {
-        await api.featureProposal(assemblyId, proposalId);
+        await api.featureProposal(groupId, proposalId);
       }
       // Force page reload to get updated data
       window.location.reload();
@@ -501,7 +501,7 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
     if (!recText.trim()) return;
     setSaving(true);
     try {
-      await api.setRecommendation(assemblyId, eventId, issueId, recText);
+      await api.setRecommendation(groupId, eventId, issueId, recText);
       onRecommendationChange({ markdown: recText, contentHash: "" });
     } catch { /* ignore */ }
     setSaving(false);
@@ -510,7 +510,7 @@ function CurationPanel({ assemblyId, eventId, issueId, proposals, positionKey, r
   const handleDeleteRecommendation = async () => {
     setSaving(true);
     try {
-      await api.deleteRecommendation(assemblyId, eventId, issueId);
+      await api.deleteRecommendation(groupId, eventId, issueId);
       onRecommendationChange(null);
       setRecText("");
     } catch { /* ignore */ }
