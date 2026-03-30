@@ -94,7 +94,7 @@ export function EventDetail() {
     [groupId],
   );
 
-  const delegationCandidacy = group?.config.delegation.candidacy ?? false;
+  const delegationCandidacy = group?.config?.delegation.candidacy ?? false;
   const { data: candidaciesData } = useApi(
     () => delegationCandidacy ? api.listCandidacies(groupId!, "active") : Promise.resolve({ candidacies: [] }),
     [groupId, delegationCandidacy],
@@ -148,12 +148,12 @@ export function EventDetail() {
 
   // Extract config from group (must be before early returns — rules of hooks)
   const delegationConfig: DelegationConfig = useMemo(() => ({
-    enabled: (group?.config.delegation.candidacy || group?.config.delegation.transferable) ?? false,
-    topicScoped: (group?.config.delegation.candidacy || group?.config.delegation.transferable) ?? false,
+    enabled: (group?.config?.delegation.candidacy || group?.config?.delegation.transferable) ?? false,
+    topicScoped: (group?.config?.delegation.candidacy || group?.config?.delegation.transferable) ?? false,
   }), [group]);
 
-  const resultsVisibility = group?.config.ballot.secret ? "sealed" : (group?.config.ballot.liveResults ? "live" : "sealed");
-  const allowVoteChange = group?.config.ballot.allowVoteChange ?? true;
+  const resultsVisibility = group?.config?.ballot.secret ? "sealed" : (group?.config?.ballot.liveResults ? "live" : "sealed");
+  const allowVoteChange = group?.config?.ballot.allowVoteChange ?? true;
   const attention = useAttention();
 
   // Fetch voting history at event level — used for issue sorting and summary

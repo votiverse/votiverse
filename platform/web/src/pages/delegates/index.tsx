@@ -40,8 +40,8 @@ export function Delegations() {
   const { data: participantsData } = useApi(() => api.listParticipants(groupId!), [groupId]);
   const { data: topicsData } = useApi(() => api.listTopics(groupId!), [groupId]);
 
-  const delegationCandidacy = group?.config.delegation.candidacy ?? false;
-  const delegationEnabled = delegationCandidacy || (group?.config.delegation.transferable ?? false);
+  const delegationCandidacy = group?.config?.delegation.candidacy ?? false;
+  const delegationEnabled = delegationCandidacy || (group?.config?.delegation.transferable ?? false);
   const { data: candidaciesData } = useApi(
     () => delegationCandidacy ? api.listCandidacies(groupId!, "active") : Promise.resolve({ candidacies: [] }),
     [groupId, delegationCandidacy],
