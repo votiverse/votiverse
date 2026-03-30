@@ -143,6 +143,30 @@ export function meRoutes(
     }
   });
 
+  // ── Feedback ────────────────────────────────────────────────────
+
+  /**
+   * POST /feedback — submit user feedback.
+   * Sanitizes input, stores with user ID and timestamp.
+   */
+  app.post("/feedback", async (c) => {
+    const user = getUser(c);
+    const body = await c.req.json<{ message: string }>();
+    const message = body.message?.trim();
+    if (!message || message.length === 0) {
+      throw new ValidationError("Message is required");
+    }
+    if (message.length > 10000) {
+      throw new ValidationError("Message is too long (max 10,000 characters)");
+    }
+    const id = crypto.randomUUID();
+    await database.run(
+      "INSERT INTO feedback (id, user_id, message) VALUES (?, ?, ?)",
+      [id, user.id, message],
+    );
+    return c.json({ id, status: "ok" }, 201);
+  });
+
   // ── Internal seed-only routes ────────────────────────────────────
   // These endpoints are only available in development/test environments.
   // They allow direct data manipulation for seeding and are NOT

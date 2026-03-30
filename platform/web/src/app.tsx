@@ -29,6 +29,8 @@ import { ProfileVotes } from "./pages/profile-votes.js";
 import { NotificationSettings } from "./pages/notification-settings.js";
 import { GroupSettings } from "./pages/group-settings.js";
 import { Notifications } from "./pages/notifications.js";
+import { FeedbackPage } from "./pages/feedback.js";
+import { TermsPage } from "./pages/terms.js";
 import { InvitePage } from "./pages/invite.js";
 import { LoginPage } from "./pages/login.js";
 import { DevClock } from "./components/dev-clock.js";
@@ -147,6 +149,8 @@ export function App() {
               <Route path="profile/delegates" element={<ProfileDelegates />} />
               <Route path="profile/votes" element={<ProfileVotes />} />
               <Route path="notifications" element={<Notifications />} />
+              <Route path="feedback" element={<FeedbackPage />} />
+              <Route path="terms" element={<TermsPage />} />
               <Route path="settings/notifications" element={<NotificationSettings />} />
               <Route path="settings/language" element={<Navigate to="/profile?tab=language" replace />} />
               <Route path="settings/appearance" element={<Navigate to="/profile?tab=appearance" replace />} />

@@ -170,6 +170,12 @@ export function updateGroupSettings(groupId: string, settings: { admissionMode?:
   return request("PUT", `/groups/${groupId}/settings`, settings);
 }
 
+// ---- Feedback ----
+
+export function submitFeedback(message: string): Promise<{ id: string }> {
+  return request("POST", "/feedback", { message });
+}
+
 // ---- Capabilities ----
 
 export function enableCapability(groupId: string, capability: string, body?: { config?: unknown }): Promise<{ capabilities: string[] }> {

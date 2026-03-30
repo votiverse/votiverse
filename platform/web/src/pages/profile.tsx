@@ -113,24 +113,20 @@ export function Profile() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{t("profile.title")}</h1>
         <div className="flex items-center gap-4">
-          <a
-            href="https://votiverse.org/feedback"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to="/feedback"
             className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text-secondary transition-colors"
           >
             <MessageSquare size={15} />
             {t("profile.feedback")}
-          </a>
-          <a
-            href="https://votiverse.org/terms"
-            target="_blank"
-            rel="noopener noreferrer"
+          </Link>
+          <Link
+            to="/terms"
             className="flex items-center gap-1.5 text-sm text-text-muted hover:text-text-secondary transition-colors"
           >
             <FileText size={15} />
             {t("profile.terms")}
-          </a>
+          </Link>
           <button
             onClick={() => clearIdentity()}
             className="flex items-center gap-1.5 text-sm text-text-muted hover:text-error-text transition-colors"
