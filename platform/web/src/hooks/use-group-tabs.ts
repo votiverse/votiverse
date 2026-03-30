@@ -44,6 +44,9 @@ export function useGroupTabs(
     // Delegation-related tabs (only when voting with delegation)
     if (has("voting") && config && delegationEnabled(config)) {
       tabs.push({ to: `/group/${groupId}/delegations`, key: "Delegates", label: t("nav.delegates") });
+      // TBD: Topics are currently tied to delegation, but could be useful as basic
+      // labelling even without delegation. Revisit whether Topics should always
+      // appear when voting is enabled, regardless of delegation model.
       tabs.push({ to: `/group/${groupId}/topics`, key: "Topics", label: t("nav.topics") });
     }
     if (has("voting") && config?.delegation.candidacy) {
