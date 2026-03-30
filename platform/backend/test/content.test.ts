@@ -14,15 +14,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const MIGRATIONS_DIR = join(__dirname, "..", "migrations");
 
+/** Seed a user and group for FK-constrained tables (assets). Returns group ID. */
+async function seedGroup(db: SQLiteAdapter): Promise<string> {
+  await db.run(
+    "INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)",
+    ["user-1", "test@example.com", "hash", "Test User"],
+  );
+  await db.run(
+    `INSERT INTO groups (id, name, handle, created_by) VALUES (?, ?, ?, ?)`,
+    ["grp-1", "Test Group", "test-group", "user-1"],
+  );
+  return "grp-1";
+}
+
 describe("ContentService", () => {
   let db: SQLiteAdapter;
   let service: ContentService;
+  let groupId: string;
 
   beforeEach(async () => {
     db = new SQLiteAdapter(":memory:");
     await db.initialize();
     await runMigrations(db, MIGRATIONS_DIR);
     service = new ContentService(db);
+    groupId = await seedGroup(db);
   });
 
   afterEach(() => { void db.close(); });
@@ -163,7 +178,7 @@ describe("ContentService", () => {
     it("stores and retrieves a binary asset", async () => {
       const data = Buffer.from("fake image data");
       const result = await service.storeAsset({
-        assemblyId: "asm-1",
+        assemblyId: groupId,
         filename: "photo.jpg",
         mimeType: "image/jpeg",
         data,

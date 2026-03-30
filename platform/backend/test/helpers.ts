@@ -14,6 +14,7 @@ const __dirname = dirname(__filename);
 const MIGRATIONS_DIR = join(__dirname, "..", "migrations");
 import { SessionService } from "../src/services/session-service.js";
 import { MembershipService } from "../src/services/membership-service.js";
+import { GroupService } from "../src/services/group-service.js";
 import { AssemblyCacheService } from "../src/services/assembly-cache.js";
 import { TopicCacheService } from "../src/services/topic-cache.js";
 import { SurveyCacheService } from "../src/services/survey-cache.js";
@@ -71,6 +72,7 @@ export interface TestBackend {
   userService: UserService;
   sessionService: SessionService;
   membershipService: MembershipService;
+  groupService: GroupService;
   assemblyCacheService: AssemblyCacheService;
   topicCacheService: TopicCacheService;
   surveyCacheService: SurveyCacheService;
@@ -81,6 +83,8 @@ export interface TestBackend {
   request: (method: string, path: string, body?: unknown, headers?: Record<string, string>) => Promise<{ status: number; json: () => Promise<unknown> }>;
   /** Register a user and return the access token. */
   registerAndLogin: (email: string, password: string, name: string) => Promise<{ accessToken: string; refreshToken: string; userId: string }>;
+  /** Auto-verify a user's email (for tests where users register via raw request). */
+  verifyUserEmail: (userId: string) => Promise<void>;
 }
 
 export async function createTestBackend(): Promise<TestBackend> {
@@ -91,16 +95,17 @@ export async function createTestBackend(): Promise<TestBackend> {
   const userService = new UserService(db);
   const sessionService = new SessionService(db, TEST_JWT_SECRET, "1h", "30d");
   const vcpClient = new VCPClient(TEST_CONFIG.vcpBaseUrl, TEST_CONFIG.vcpApiKey);
+  const groupService = new GroupService(db);
   const assemblyCacheService = new AssemblyCacheService(db);
   const topicCacheService = new TopicCacheService(db);
   const surveyCacheService = new SurveyCacheService(db);
-  const membershipService = new MembershipService(db, vcpClient, assemblyCacheService);
+  const membershipService = new MembershipService(db, vcpClient, groupService, assemblyCacheService);
   const notificationAdapter = new ConsoleNotificationAdapter();
-  const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl);
+  const notificationService = new NotificationService(db, notificationAdapter, vcpClient, TEST_CONFIG.vcpBaseUrl, groupService);
   const contentService = new ContentService(db);
   const joinRequestService = new JoinRequestService(db);
 
-  const app = createApp({ database: db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, contentService, vcpClient, config: TEST_CONFIG });
+  const app = createApp({ database: db, userService, sessionService, membershipService, groupService, assemblyCacheService, topicCacheService, surveyCacheService, notificationService, notificationAdapter, contentService, vcpClient, config: TEST_CONFIG });
 
   const cleanup = () => {
     void db.close();
@@ -128,7 +133,7 @@ export async function createTestBackend(): Promise<TestBackend> {
   const registerAndLogin = async (email: string, password: string, name: string) => {
     const res = await request("POST", "/auth/register", { email, password, name });
     const data = await res.json() as { user: { id: string }; accessToken: string; refreshToken: string };
-    // Auto-verify email in tests so assembly joins work
+    // Auto-verify email in tests so group joins work
     await db.run("UPDATE users SET email_verified = ? WHERE id = ?", [true, data.user.id]);
     return { accessToken: data.accessToken, refreshToken: data.refreshToken, userId: data.user.id };
   };
@@ -138,5 +143,5 @@ export async function createTestBackend(): Promise<TestBackend> {
     await db.run("UPDATE users SET email_verified = ? WHERE id = ?", [true, userId]);
   };
 
-  return { app, db, userService, sessionService, membershipService, assemblyCacheService, topicCacheService, surveyCacheService, vcpClient, notificationAdapter, joinRequestService, cleanup, request, registerAndLogin, verifyUserEmail };
+  return { app, db, userService, sessionService, membershipService, groupService, assemblyCacheService, topicCacheService, surveyCacheService, vcpClient, notificationAdapter, joinRequestService, cleanup, request, registerAndLogin, verifyUserEmail };
 }

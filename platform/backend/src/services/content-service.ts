@@ -307,7 +307,7 @@ export class ContentService {
     const now = Date.now();
 
     await this.db.run(
-      `INSERT INTO assets (id, assembly_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at, data)
+      `INSERT INTO assets (id, group_id, filename, mime_type, size_bytes, hash, uploaded_by, uploaded_at, data)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, params.assemblyId, params.filename, params.mimeType, sizeBytes, hash, params.uploadedBy, now, params.data],
     );

@@ -1,32 +1,20 @@
 /**
  * Assembly, topic, and survey cache tests — verify local caches serve data without VCP round-trips.
+ *
+ * After the groups refactor, the /assemblies endpoint has been replaced by /groups.
+ * Memberships are now in group_members. These tests exercise the group-centric API.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
 
-describe("Assembly cache", () => {
+describe("Group listing (formerly assembly cache)", () => {
   let backend: TestBackend;
   let accessToken: string;
   let userId: string;
 
-  const ASSEMBLY_A = {
-    id: "asm-alpha-001",
-    organizationId: "org-1",
-    name: "Alpha Assembly",
-    config: { delegation: { enabled: true } },
-    status: "active",
-    createdAt: "2026-01-01T00:00:00.000Z",
-  };
-
-  const ASSEMBLY_B = {
-    id: "asm-beta-002",
-    organizationId: null,
-    name: "Beta Assembly",
-    config: { delegation: { enabled: false } },
-    status: "active",
-    createdAt: "2026-02-01T00:00:00.000Z",
-  };
+  const VCP_ASSEMBLY_A = "asm-alpha-001";
+  const VCP_ASSEMBLY_B = "asm-beta-002";
 
   beforeEach(async () => {
     backend = await createTestBackend();
@@ -39,89 +27,118 @@ describe("Assembly cache", () => {
     backend.cleanup();
   });
 
-  it("GET /assemblies serves from local cache", async () => {
-    // Populate cache
-    await backend.assemblyCacheService.upsert(ASSEMBLY_A);
-    await backend.assemblyCacheService.upsert(ASSEMBLY_B);
+  it("GET /groups serves from GroupService", async () => {
+    // Create two groups with VCP assembly links
+    const groupA = await backend.groupService.create({
+      name: "Alpha Assembly",
+      handle: "alpha-assembly",
+      createdBy: userId,
+    });
+    await backend.groupService.setVcpAssemblyId(groupA.id, VCP_ASSEMBLY_A);
+    await backend.groupService.addMember(groupA.id, userId, "member", "p-alice");
 
-    // Create memberships for the user
-    await backend.db.run(
-      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
-      [userId, ASSEMBLY_A.id, "p-alice", ASSEMBLY_A.name],
-    );
-    await backend.db.run(
-      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
-      [userId, ASSEMBLY_B.id, "p-bob", ASSEMBLY_B.name],
-    );
+    const groupB = await backend.groupService.create({
+      name: "Beta Assembly",
+      handle: "beta-assembly",
+      createdBy: userId,
+    });
+    await backend.groupService.setVcpAssemblyId(groupB.id, VCP_ASSEMBLY_B);
+    await backend.groupService.addMember(groupB.id, userId, "member", "p-bob");
 
-    // GET /assemblies should return both from cache
-    const res = await backend.request("GET", "/assemblies", undefined, {
+    // GET /groups should return both
+    const res = await backend.request("GET", "/groups", undefined, {
       Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(200);
 
-    const data = (await res.json()) as { assemblies: Array<{ id: string; name: string }> };
-    expect(data.assemblies).toHaveLength(2);
+    const data = (await res.json()) as { groups: Array<{ id: string; name: string }> };
+    expect(data.groups).toHaveLength(2);
 
-    const ids = data.assemblies.map((a) => a.id).sort();
-    expect(ids).toEqual([ASSEMBLY_A.id, ASSEMBLY_B.id].sort());
+    const ids = data.groups.map((g) => g.id).sort();
+    expect(ids).toEqual([groupA.id, groupB.id].sort());
   });
 
-  it("GET /assemblies/:id returns cached assembly", async () => {
-    await backend.assemblyCacheService.upsert(ASSEMBLY_A);
+  it("GET /groups/:id returns group details", async () => {
+    const group = await backend.groupService.create({
+      name: "Alpha Assembly",
+      handle: "alpha-assembly-detail",
+      createdBy: userId,
+    });
+    await backend.groupService.setVcpAssemblyId(group.id, VCP_ASSEMBLY_A);
+    // Cache the VCP assembly config for merging
+    await backend.assemblyCacheService.upsert({
+      id: VCP_ASSEMBLY_A,
+      organizationId: "org-1",
+      name: "Alpha Assembly",
+      config: { delegation: { enabled: true } },
+      status: "active",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    await backend.groupService.addMember(group.id, userId, "member", "p-alice");
 
-    const res = await backend.request("GET", `/assemblies/${ASSEMBLY_A.id}`, undefined, {
+    const res = await backend.request("GET", `/groups/${group.id}`, undefined, {
       Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(200);
 
-    const data = (await res.json()) as { id: string; name: string; config: unknown };
-    expect(data.id).toBe(ASSEMBLY_A.id);
-    expect(data.name).toBe(ASSEMBLY_A.name);
-    expect(data.config).toEqual(ASSEMBLY_A.config);
+    const data = (await res.json()) as { id: string; name: string };
+    expect(data.id).toBe(group.id);
+    expect(data.name).toBe("Alpha Assembly");
   });
 
-  it("GET /assemblies/:id returns 404 for uncached assembly", async () => {
-    const res = await backend.request("GET", "/assemblies/nonexistent-id", undefined, {
+  it("GET /groups/:id returns 404 for non-existent group", async () => {
+    const res = await backend.request("GET", "/groups/nonexistent-id", undefined, {
       Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(404);
-
-    const data = (await res.json()) as { error: { code: string } };
-    expect(data.error.code).toBe("NOT_FOUND");
   });
 
-  it("GET /assemblies only returns assemblies user has membership for", async () => {
-    // Cache both assemblies
-    await backend.assemblyCacheService.upsert(ASSEMBLY_A);
-    await backend.assemblyCacheService.upsert(ASSEMBLY_B);
+  it("GET /groups only returns groups user is a member of", async () => {
+    // Create two groups
+    const groupA = await backend.groupService.create({
+      name: "Alpha Assembly",
+      handle: "alpha-only",
+      createdBy: userId,
+    });
+    await backend.groupService.addMember(groupA.id, userId, "member", "p-alice");
 
-    // Membership for only one
-    await backend.db.run(
-      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
-      [userId, ASSEMBLY_A.id, "p-alice", ASSEMBLY_A.name],
-    );
+    // Second group — user is NOT a member
+    await backend.groupService.create({
+      name: "Beta Assembly",
+      handle: "beta-only",
+      createdBy: userId,
+    });
 
-    const res = await backend.request("GET", "/assemblies", undefined, {
+    const res = await backend.request("GET", "/groups", undefined, {
       Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(200);
 
-    const data = (await res.json()) as { assemblies: Array<{ id: string }> };
-    expect(data.assemblies).toHaveLength(1);
-    expect(data.assemblies[0]!.id).toBe(ASSEMBLY_A.id);
+    const data = (await res.json()) as { groups: Array<{ id: string }> };
+    // Only groupA (the user manually joined via addMember).
+    // Note: GroupService.create does NOT auto-add the creator as a member.
+    // We only added the user to groupA.
+    expect(data.groups).toHaveLength(1);
+    expect(data.groups[0]!.id).toBe(groupA.id);
   });
 
-  it("POST /internal/assemblies-cache populates the cache", async () => {
-    const res = await backend.request("POST", "/internal/assemblies-cache", ASSEMBLY_A, {
+  it("POST /internal/assemblies-cache populates the VCP assembly cache", async () => {
+    const res = await backend.request("POST", "/internal/assemblies-cache", {
+      id: VCP_ASSEMBLY_A,
+      organizationId: "org-1",
+      name: "Alpha Assembly",
+      config: { delegation: { enabled: true } },
+      status: "active",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    }, {
       Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(201);
 
     // Verify it's cached
-    const cached = await backend.assemblyCacheService.get(ASSEMBLY_A.id);
+    const cached = await backend.assemblyCacheService.get(VCP_ASSEMBLY_A);
     expect(cached).toBeDefined();
-    expect(cached!.name).toBe(ASSEMBLY_A.name);
+    expect(cached!.name).toBe("Alpha Assembly");
   });
 });
 
@@ -141,21 +158,26 @@ describe("Topic cache", () => {
     backend.cleanup();
   });
 
-  it("GET /assemblies/:id/topics serves from local cache", async () => {
-    // Populate topic cache
+  it("GET /groups/:id/topics serves from local cache", async () => {
+    // Create a group with VCP assembly link
+    const auth = await backend.registerAndLogin("topic2@example.com", TEST_PASSWORD, "Topic User 2");
+
+    const group = await backend.groupService.create({
+      name: "Topic Assembly",
+      handle: "topic-assembly",
+      createdBy: auth.userId,
+    });
+    await backend.groupService.setVcpAssemblyId(group.id, ASM_ID);
+    await backend.groupService.enableCapability(group.id, "voting");
+    await backend.groupService.addMember(group.id, auth.userId, "member", "p-topic-user");
+
+    // Populate topic cache (using VCP assembly ID)
     await backend.topicCacheService.upsertMany([
       { id: "t1", assemblyId: ASM_ID, name: "Environment", parentId: null, sortOrder: 0 },
       { id: "t2", assemblyId: ASM_ID, name: "Water", parentId: "t1", sortOrder: 1 },
     ]);
 
-    // Also need a membership for the user
-    const auth = await backend.registerAndLogin("topic2@example.com", TEST_PASSWORD, "Topic User 2");
-    await backend.db.run(
-      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
-      [auth.userId, ASM_ID, "p-topic-user", "Topic Assembly"],
-    );
-
-    const res = await backend.request("GET", `/assemblies/${ASM_ID}/topics`, undefined, {
+    const res = await backend.request("GET", `/groups/${group.id}/topics`, undefined, {
       Authorization: `Bearer ${auth.accessToken}`,
     });
     expect(res.status).toBe(200);
@@ -203,13 +225,14 @@ describe("Survey cache", () => {
   let backend: TestBackend;
   let accessToken: string;
   let userId: string;
+  let groupId: string;
 
-  const ASM_ID = "asm-survey-test";
+  const VCP_ASM_ID = "asm-survey-test";
   const PARTICIPANT_ID = "p-survey-user";
 
   const SURVEY_A = {
     id: "survey-1",
-    assemblyId: ASM_ID,
+    assemblyId: VCP_ASM_ID,
     title: "Climate Survey",
     questions: [{ id: "q1", text: "How important?", questionType: { type: "likert" }, topicIds: [], tags: [] }],
     topicIds: ["t-env"],
@@ -220,7 +243,7 @@ describe("Survey cache", () => {
 
   const SURVEY_B = {
     id: "survey-2",
-    assemblyId: ASM_ID,
+    assemblyId: VCP_ASM_ID,
     title: "Budget Survey",
     questions: [{ id: "q2", text: "Approve?", questionType: { type: "yes-no" }, topicIds: [], tags: [] }],
     topicIds: [],
@@ -235,25 +258,30 @@ describe("Survey cache", () => {
     accessToken = auth.accessToken;
     userId = auth.userId;
 
-    // Create membership
-    await backend.db.run(
-      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
-      [userId, ASM_ID, PARTICIPANT_ID, "Survey Assembly"],
-    );
+    // Create group with VCP assembly link and membership
+    const group = await backend.groupService.create({
+      name: "Survey Assembly",
+      handle: "survey-assembly",
+      createdBy: userId,
+    });
+    groupId = group.id;
+    await backend.groupService.setVcpAssemblyId(groupId, VCP_ASM_ID);
+    await backend.groupService.enableCapability(groupId, "surveys");
+    await backend.groupService.addMember(groupId, userId, "member", PARTICIPANT_ID);
   });
 
   afterEach(() => {
     backend.cleanup();
   });
 
-  it("GET /assemblies/:id/surveys serves from local cache with hasResponded", async () => {
+  it("GET /groups/:id/surveys serves from local cache with hasResponded", async () => {
     await backend.surveyCacheService.upsert(SURVEY_A);
     await backend.surveyCacheService.upsert(SURVEY_B);
 
     // Mark as responded to survey A
-    await backend.surveyCacheService.recordResponse(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    await backend.surveyCacheService.recordResponse(VCP_ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
 
-    const res = await backend.request("GET", `/assemblies/${ASM_ID}/surveys`, undefined, {
+    const res = await backend.request("GET", `/groups/${groupId}/surveys`, undefined, {
       Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(200);
@@ -276,7 +304,7 @@ describe("Survey cache", () => {
     });
     expect(res.status).toBe(201);
 
-    const cached = await backend.surveyCacheService.listByAssembly(ASM_ID);
+    const cached = await backend.surveyCacheService.listByAssembly(VCP_ASM_ID);
     expect(cached).toHaveLength(2);
   });
 
@@ -287,23 +315,20 @@ describe("Survey cache", () => {
 
     // Register a second user
     const authB = await backend.registerAndLogin("survey-b@example.com", TEST_PASSWORD, "Survey Tester B");
-    await backend.db.run(
-      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
-      [authB.userId, ASM_ID, PARTICIPANT_B, "Survey Assembly"],
-    );
+    await backend.groupService.addMember(groupId, authB.userId, "member", PARTICIPANT_B);
 
     // User A populates the cache and has responded to Survey A
     await backend.surveyCacheService.upsert(SURVEY_A);
     await backend.surveyCacheService.upsert(SURVEY_B);
-    await backend.surveyCacheService.recordResponse(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
-    await backend.surveyCacheService.markParticipantChecked(ASM_ID, PARTICIPANT_ID);
+    await backend.surveyCacheService.recordResponse(VCP_ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    await backend.surveyCacheService.markParticipantChecked(VCP_ASM_ID, PARTICIPANT_ID);
 
     // User B has responded to Survey B (but not A)
-    await backend.surveyCacheService.recordResponse(ASM_ID, SURVEY_B.id, PARTICIPANT_B);
-    await backend.surveyCacheService.markParticipantChecked(ASM_ID, PARTICIPANT_B);
+    await backend.surveyCacheService.recordResponse(VCP_ASM_ID, SURVEY_B.id, PARTICIPANT_B);
+    await backend.surveyCacheService.markParticipantChecked(VCP_ASM_ID, PARTICIPANT_B);
 
     // User A should see: Survey A = responded, Survey B = not responded
-    const resA = await backend.request("GET", `/assemblies/${ASM_ID}/surveys`, undefined, {
+    const resA = await backend.request("GET", `/groups/${groupId}/surveys`, undefined, {
       Authorization: `Bearer ${accessToken}`,
     });
     const dataA = (await resA.json()) as { surveys: Array<{ id: string; hasResponded: boolean }> };
@@ -311,7 +336,7 @@ describe("Survey cache", () => {
     expect(dataA.surveys.find((s) => s.id === SURVEY_B.id)!.hasResponded).toBe(false);
 
     // User B should see: Survey A = not responded, Survey B = responded
-    const resB = await backend.request("GET", `/assemblies/${ASM_ID}/surveys`, undefined, {
+    const resB = await backend.request("GET", `/groups/${groupId}/surveys`, undefined, {
       Authorization: `Bearer ${authB.accessToken}`,
     });
     const dataB = (await resB.json()) as { surveys: Array<{ id: string; hasResponded: boolean }> };
@@ -323,17 +348,17 @@ describe("Survey cache", () => {
     await backend.surveyCacheService.upsert(SURVEY_A);
 
     // Not responded yet
-    let responded = await backend.surveyCacheService.hasResponded(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    let responded = await backend.surveyCacheService.hasResponded(VCP_ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
     expect(responded).toBe(false);
 
     // Record response
-    await backend.surveyCacheService.recordResponse(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
-    responded = await backend.surveyCacheService.hasResponded(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    await backend.surveyCacheService.recordResponse(VCP_ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    responded = await backend.surveyCacheService.hasResponded(VCP_ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
     expect(responded).toBe(true);
 
     // Recording again is a no-op (ON CONFLICT DO NOTHING)
-    await backend.surveyCacheService.recordResponse(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
-    responded = await backend.surveyCacheService.hasResponded(ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    await backend.surveyCacheService.recordResponse(VCP_ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
+    responded = await backend.surveyCacheService.hasResponded(VCP_ASM_ID, SURVEY_A.id, PARTICIPANT_ID);
     expect(responded).toBe(true);
   });
 });

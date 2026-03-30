@@ -18,15 +18,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const MIGRATIONS_DIR = join(__dirname, "..", "migrations");
 
+/** Seed a user and group for FK-constrained tables (assets). Returns group ID. */
+async function seedGroup(db: SQLiteAdapter): Promise<string> {
+  await db.run(
+    "INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)",
+    ["user-alice", "alice@example.com", "hash", "Alice"],
+  );
+  await db.run(
+    `INSERT INTO groups (id, name, handle, created_by) VALUES (?, ?, ?, ?)`,
+    ["grp-1", "Test Group", "test-group", "user-alice"],
+  );
+  return "grp-1";
+}
+
 describe("Content integration — full draft-to-content lifecycle", () => {
   let db: SQLiteAdapter;
   let service: ContentService;
+  let groupId: string;
 
   beforeEach(async () => {
     db = new SQLiteAdapter(":memory:");
     await db.initialize();
     await runMigrations(db, MIGRATIONS_DIR);
     service = new ContentService(db);
+    groupId = await seedGroup(db);
   });
 
   afterEach(() => { void db.close(); });
@@ -150,11 +165,11 @@ describe("Content integration — full draft-to-content lifecycle", () => {
   it("stores and retrieves assets with integrity hashes", async () => {
     const imageData = Buffer.from("PNG fake image data here");
     const asset = await service.storeAsset({
-      assemblyId: "asm-1",
+      assemblyId: groupId,
       filename: "park-photo.png",
       mimeType: "image/png",
       data: imageData,
-      uploadedBy: "user-1",
+      uploadedBy: "user-alice",
     });
 
     expect(asset.hash).toMatch(/^[a-f0-9]{64}$/);
@@ -165,11 +180,11 @@ describe("Content integration — full draft-to-content lifecycle", () => {
 
     // Hash is deterministic
     const asset2 = await service.storeAsset({
-      assemblyId: "asm-1",
+      assemblyId: groupId,
       filename: "same-content.png",
       mimeType: "image/png",
       data: imageData,
-      uploadedBy: "user-1",
+      uploadedBy: "user-alice",
     });
     expect(asset2.hash).toBe(asset.hash);
   });

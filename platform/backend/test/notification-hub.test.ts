@@ -5,39 +5,41 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from "vitest";
 import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
-import type { VCPRole, VCPAssembly, VCPParticipant } from "../src/services/vcp-client.js";
+import type { VCPAssembly, VCPParticipant } from "../src/services/vcp-client.js";
 
-const ASSEMBLY_ID = "asm-hub-001";
-const ASSEMBLY_NAME = "Hub Test Assembly";
-const ASSEMBLY_CONFIG = { preset: "LIQUID_DELEGATION" };
+const GROUP_NAME = "Hub Test Assembly";
+const VCP_ASSEMBLY_ID = "asm-hub-001";
 
 function authHeader(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
-async function seedAssembly(backend: TestBackend, admissionMode = "approval"): Promise<void> {
-  await backend.assemblyCacheService.upsert({
-    id: ASSEMBLY_ID, organizationId: null, name: ASSEMBLY_NAME,
-    config: ASSEMBLY_CONFIG, status: "active", createdAt: new Date().toISOString(),
-    admissionMode: admissionMode as "open" | "approval" | "invite-only",
+/** Create a group (with VCP assembly link) and add the user as admin/owner. */
+async function seedGroup(backend: TestBackend, userId: string, admissionMode: "open" | "approval" | "invite-only" = "approval"): Promise<string> {
+  const group = await backend.groupService.create({
+    name: GROUP_NAME,
+    handle: "hub-test",
+    createdBy: userId,
+    admissionMode,
   });
+  await backend.groupService.setVcpAssemblyId(group.id, VCP_ASSEMBLY_ID);
+  // Also cache the VCP assembly config (for surveys/topics resolution)
+  await backend.assemblyCacheService.upsert({
+    id: VCP_ASSEMBLY_ID, organizationId: null, name: GROUP_NAME,
+    config: { preset: "LIQUID_DELEGATION" }, status: "active", createdAt: new Date().toISOString(),
+  });
+  return group.id;
 }
 
-async function seedMembership(backend: TestBackend, userId: string, participantId: string): Promise<void> {
-  await backend.membershipService.createMembership(userId, ASSEMBLY_ID, participantId, ASSEMBLY_NAME);
+async function seedMembership(backend: TestBackend, groupId: string, userId: string, participantId: string, role: "owner" | "admin" | "member" = "member"): Promise<void> {
+  await backend.groupService.addMember(groupId, userId, role, participantId);
 }
 
-function mockAdminRole(backend: TestBackend, participantId: string): MockInstance {
-  return vi.spyOn(backend.vcpClient, "listRoles").mockResolvedValue([
-    { participantId, role: "owner", grantedBy: "system", grantedAt: Date.now() },
-  ] as VCPRole[]);
-}
-
-function mockJoinAssembly(backend: TestBackend): void {
+function mockJoinGroup(backend: TestBackend): void {
   let counter = 0;
   vi.spyOn(backend.vcpClient, "getAssembly").mockResolvedValue({
-    id: ASSEMBLY_ID, name: ASSEMBLY_NAME, organizationId: null,
-    config: ASSEMBLY_CONFIG, status: "active", createdAt: new Date().toISOString(),
+    id: VCP_ASSEMBLY_ID, name: GROUP_NAME, organizationId: null,
+    config: { preset: "LIQUID_DELEGATION" }, status: "active", createdAt: new Date().toISOString(),
   } as VCPAssembly);
   vi.spyOn(backend.vcpClient, "createParticipant").mockImplementation(
     async (_asmId: string, name: string) => ({
@@ -87,19 +89,19 @@ describe("Notification hub", () => {
   describe("Admin notifications", () => {
     let adminToken: string;
     let adminUserId: string;
+    let groupId: string;
     let inviteToken: string;
 
     beforeEach(async () => {
       const admin = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       adminToken = admin.accessToken;
       adminUserId = admin.userId;
-      await seedAssembly(backend, "approval");
-      await seedMembership(backend, adminUserId, "p-admin");
-      mockAdminRole(backend, "p-admin");
+      groupId = await seedGroup(backend, adminUserId, "approval");
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       // Create invite link
       const createRes = await backend.request(
-        "POST", `/assemblies/${ASSEMBLY_ID}/invitations`,
+        "POST", `/groups/${groupId}/invitations`,
         { type: "link" }, authHeader(adminToken),
       );
       const data = (await createRes.json()) as { token: string };
@@ -123,7 +125,7 @@ describe("Notification hub", () => {
       expect(joinNotif).toBeDefined();
       expect(joinNotif!.urgency).toBe("action");
       expect(joinNotif!.title).toContain("Joiner");
-      expect(joinNotif!.title).toContain(ASSEMBLY_NAME);
+      expect(joinNotif!.title).toContain(GROUP_NAME);
     });
 
     it("notifies requester when join request is approved", async () => {
@@ -131,9 +133,9 @@ describe("Notification hub", () => {
       const reqRes = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(joinerToken));
       const { joinRequestId } = (await reqRes.json()) as { joinRequestId: string };
 
-      mockJoinAssembly(backend);
+      mockJoinGroup(backend);
       await backend.request(
-        "POST", `/assemblies/${ASSEMBLY_ID}/join-requests/${joinRequestId}/approve`,
+        "POST", `/groups/${groupId}/join-requests/${joinRequestId}/approve`,
         undefined, authHeader(adminToken),
       );
 
@@ -145,7 +147,7 @@ describe("Notification hub", () => {
       const approvedNotif = data.notifications.find((n) => n.type === "join_request_approved");
       expect(approvedNotif).toBeDefined();
       expect(approvedNotif!.urgency).toBe("info");
-      expect(approvedNotif!.title).toContain(ASSEMBLY_NAME);
+      expect(approvedNotif!.title).toContain(GROUP_NAME);
     });
 
     it("notifies requester when join request is rejected", async () => {
@@ -154,7 +156,7 @@ describe("Notification hub", () => {
       const { joinRequestId } = (await reqRes.json()) as { joinRequestId: string };
 
       await backend.request(
-        "POST", `/assemblies/${ASSEMBLY_ID}/join-requests/${joinRequestId}/reject`,
+        "POST", `/groups/${groupId}/join-requests/${joinRequestId}/reject`,
         undefined, authHeader(adminToken),
       );
 
@@ -174,11 +176,14 @@ describe("Notification hub", () => {
     it("marks a single notification as read", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
+      // Create a group for the FK
+      const groupId = await seedGroup(backend, userId);
+
       // Insert a notification directly via the DB
       await backend.db.run(
-        `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
+        `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, created_at)
          VALUES ('ntf-1', ?, ?, 'vote_created', 'timely', 'Test notification', ?)`,
-        [userId, ASSEMBLY_ID, new Date().toISOString()],
+        [userId, groupId, new Date().toISOString()],
       );
 
       // Verify unread
@@ -199,12 +204,15 @@ describe("Notification hub", () => {
     it("marks all notifications as read", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
+      // Create a group for the FK
+      const groupId = await seedGroup(backend, userId);
+
       // Insert multiple notifications
       for (let i = 0; i < 3; i++) {
         await backend.db.run(
-          `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
+          `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, created_at)
            VALUES (?, ?, ?, 'vote_created', 'timely', ?, ?)`,
-          [`ntf-${i}`, userId, ASSEMBLY_ID, `Notification ${i}`, new Date().toISOString()],
+          [`ntf-${i}`, userId, groupId, `Notification ${i}`, new Date().toISOString()],
         );
       }
 
@@ -227,21 +235,24 @@ describe("Notification hub", () => {
     it("returns unread action items first, then timely, then info", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
+      // Create a group for the FK
+      const groupId = await seedGroup(backend, userId);
+
       // Insert in reverse urgency order
       await backend.db.run(
-        `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
+        `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, created_at)
          VALUES ('ntf-info', ?, ?, 'results_available', 'info', 'Info', ?)`,
-        [userId, ASSEMBLY_ID, new Date().toISOString()],
+        [userId, groupId, new Date().toISOString()],
       );
       await backend.db.run(
-        `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
+        `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, created_at)
          VALUES ('ntf-action', ?, ?, 'voting_open', 'action', 'Action', ?)`,
-        [userId, ASSEMBLY_ID, new Date().toISOString()],
+        [userId, groupId, new Date().toISOString()],
       );
       await backend.db.run(
-        `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
+        `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, created_at)
          VALUES ('ntf-timely', ?, ?, 'vote_created', 'timely', 'Timely', ?)`,
-        [userId, ASSEMBLY_ID, new Date().toISOString()],
+        [userId, groupId, new Date().toISOString()],
       );
 
       const res = await backend.request("GET", "/me/notifications/feed", undefined, authHeader(accessToken));
@@ -254,15 +265,18 @@ describe("Notification hub", () => {
     it("filters by unreadOnly", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
 
+      // Create a group for the FK
+      const groupId = await seedGroup(backend, userId);
+
       await backend.db.run(
-        `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
+        `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, created_at)
          VALUES ('ntf-unread', ?, ?, 'vote_created', 'timely', 'Unread', ?)`,
-        [userId, ASSEMBLY_ID, new Date().toISOString()],
+        [userId, groupId, new Date().toISOString()],
       );
       await backend.db.run(
-        `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, read_at, created_at)
+        `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, read_at, created_at)
          VALUES ('ntf-read', ?, ?, 'results_available', 'info', 'Read', ?, ?)`,
-        [userId, ASSEMBLY_ID, new Date().toISOString(), new Date().toISOString()],
+        [userId, groupId, new Date().toISOString(), new Date().toISOString()],
       );
 
       const res = await backend.request("GET", "/me/notifications/feed?unreadOnly=true", undefined, authHeader(accessToken));
@@ -271,19 +285,21 @@ describe("Notification hub", () => {
       expect(data.notifications[0].id).toBe("ntf-unread");
     });
 
-    it("enriches notifications with assembly names", async () => {
+    it("enriches notifications with group names", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("user@example.com", TEST_PASSWORD, "User");
-      await seedAssembly(backend);
+
+      // Create a group for the FK
+      const groupId = await seedGroup(backend, userId);
 
       await backend.db.run(
-        `INSERT INTO notifications (id, user_id, assembly_id, type, urgency, title, created_at)
+        `INSERT INTO notifications (id, user_id, group_id, type, urgency, title, created_at)
          VALUES ('ntf-1', ?, ?, 'vote_created', 'timely', 'Test', ?)`,
-        [userId, ASSEMBLY_ID, new Date().toISOString()],
+        [userId, groupId, new Date().toISOString()],
       );
 
       const res = await backend.request("GET", "/me/notifications/feed", undefined, authHeader(accessToken));
-      const data = (await res.json()) as { notifications: Array<{ assemblyName: string }> };
-      expect(data.notifications[0].assemblyName).toBe(ASSEMBLY_NAME);
+      const data = (await res.json()) as { notifications: Array<{ groupName: string }> };
+      expect(data.notifications[0].groupName).toBe(GROUP_NAME);
     });
   });
 
@@ -292,8 +308,8 @@ describe("Notification hub", () => {
   describe("Scheduler creates hub records", () => {
     it("processScheduledNotifications creates notification records for tracked events", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("member@example.com", TEST_PASSWORD, "Member");
-      await seedAssembly(backend, "open");
-      await seedMembership(backend, userId, "p-member");
+      const groupId = await seedGroup(backend, userId, "open");
+      await seedMembership(backend, groupId, userId, "p-member");
 
       // Track an event with voting already open (votingStart in past)
       const pastDate = new Date(Date.now() - 86400000).toISOString();
@@ -301,26 +317,22 @@ describe("Notification hub", () => {
       await backend.db.run(
         `INSERT INTO tracked_events (id, assembly_id, title, voting_start, voting_end)
          VALUES ('evt-1', ?, 'Budget Vote', ?, ?)`,
-        [ASSEMBLY_ID, pastDate, futureDate],
+        [VCP_ASSEMBLY_ID, pastDate, futureDate],
       );
 
       // Mock VCP for delegation check (needed by resolveRecipients)
       vi.spyOn(backend.vcpClient, "request").mockResolvedValue({ status: 200, body: { delegations: [] } });
 
-      // Run the scheduler — this is normally called by setInterval in main.ts
-      // We need to access the NotificationService from the app context.
-      // Since tests use createTestBackend which doesn't expose notificationService directly,
-      // let's use the internal endpoint to verify the feed after the scheduler would run.
-      // Actually, we can create a NotificationService directly for this test.
+      // Create a NotificationService and hub for this test
       const { NotificationService } = await import("../src/services/notification-service.js");
       const { NotificationHubService } = await import("../src/services/notification-hub.js");
       const { ConsoleNotificationAdapter } = await import("../src/services/notification-adapter.js");
 
       const adapter = new ConsoleNotificationAdapter();
-      const notifService = new NotificationService(backend.db, adapter, backend.vcpClient, "http://localhost:3000");
+      const notifService = new NotificationService(backend.db, adapter, backend.vcpClient, "http://localhost:3000", backend.groupService);
       const hub = new NotificationHubService(
-        backend.db, backend.membershipService, backend.assemblyCacheService,
-        adapter, notifService, backend.vcpClient,
+        backend.db, backend.groupService,
+        adapter, notifService,
       );
       notifService.setHub(hub);
 

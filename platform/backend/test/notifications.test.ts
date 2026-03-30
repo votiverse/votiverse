@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { SQLiteAdapter } from "../src/adapters/database/sqlite.js";
 import { runMigrations } from "../src/adapters/database/migrator.js";
 import { NotificationService } from "../src/services/notification-service.js";
+import { GroupService } from "../src/services/group-service.js";
 import { VCPClient } from "../src/services/vcp-client.js";
 import type { NotificationAdapter, NotificationParams } from "../src/services/notification-adapter.js";
 import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
@@ -36,6 +37,7 @@ describe("NotificationService", () => {
   let db: SQLiteAdapter;
   let spy: SpyNotificationAdapter;
   let vcpClient: VCPClient;
+  let groupService: GroupService;
   let service: NotificationService;
 
   beforeEach(async () => {
@@ -44,17 +46,26 @@ describe("NotificationService", () => {
     await runMigrations(db, MIGRATIONS_DIR);
     spy = new SpyNotificationAdapter();
     vcpClient = new VCPClient("http://localhost:3000", "test_key");
-    service = new NotificationService(db, spy, vcpClient, "http://localhost:5173");
+    groupService = new GroupService(db);
+    service = new NotificationService(db, spy, vcpClient, "http://localhost:5173", groupService);
 
-    // Seed a user and membership for recipient resolution
+    // Seed a user
     await db.run(
       "INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)",
       ["u1", "alice@example.com", "hash", "Alice"],
     );
-    await db.run(
-      "INSERT INTO memberships (user_id, assembly_id, participant_id, assembly_name) VALUES (?, ?, ?, ?)",
-      ["u1", "asm-1", "p1", "Test Assembly"],
-    );
+
+    // Seed a group and membership for recipient resolution
+    await groupService.create({
+      name: "Test Assembly",
+      handle: "test-assembly",
+      createdBy: "u1",
+    });
+    const group = await groupService.getByHandle("test-assembly");
+    // Link the group to VCP assembly ID "asm-1"
+    await groupService.setVcpAssemblyId(group!.id, "asm-1");
+    // Add user as member
+    await groupService.addMember(group!.id, "u1", "member", "p1");
   });
 
   afterEach(async () => {

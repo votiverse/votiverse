@@ -4,13 +4,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from "vitest";
 import { createTestBackend, TEST_PASSWORD, type TestBackend } from "./helpers.js";
-import type { VCPRole, VCPAssembly, VCPParticipant } from "../src/services/vcp-client.js";
+import type { VCPAssembly, VCPParticipant } from "../src/services/vcp-client.js";
 
 // ── Test constants ───────────────────────────────────────────────────
 
-const ASSEMBLY_ID = "asm-test-001";
-const ASSEMBLY_NAME = "Test Assembly";
-const ASSEMBLY_CONFIG = { preset: "LIQUID_DELEGATION" };
+const GROUP_NAME = "Test Assembly";
+const VCP_ASSEMBLY_ID = "asm-test-001";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -18,52 +17,48 @@ function authHeader(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
-/** Seed a cached assembly directly into the DB (avoids needing a real VCP). */
-async function seedAssemblyCache(backend: TestBackend, id = ASSEMBLY_ID, name = ASSEMBLY_NAME, admissionMode: "open" | "approval" | "invite-only" = "open"): Promise<void> {
-  await backend.assemblyCacheService.upsert({
-    id,
-    organizationId: null,
-    name,
-    config: ASSEMBLY_CONFIG,
-    status: "active",
-    createdAt: new Date().toISOString(),
-    admissionMode,
-  });
-}
-
-/** Create a membership record directly (bypasses VCP). */
-async function seedMembership(
+/** Create a group with VCP assembly link. Returns the group ID. */
+async function seedGroup(
   backend: TestBackend,
   userId: string,
-  assemblyId: string,
+  name = GROUP_NAME,
+  admissionMode: "open" | "approval" | "invite-only" = "open",
+): Promise<string> {
+  const group = await backend.groupService.create({
+    name,
+    handle: `grp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    createdBy: userId,
+    admissionMode,
+  });
+  await backend.groupService.setVcpAssemblyId(group.id, VCP_ASSEMBLY_ID);
+  // Also cache VCP assembly config
+  await backend.assemblyCacheService.upsert({
+    id: VCP_ASSEMBLY_ID, organizationId: null, name,
+    config: { preset: "LIQUID_DELEGATION" }, status: "active", createdAt: new Date().toISOString(),
+  });
+  return group.id;
+}
+
+/** Add a user as a member of a group with the specified role. */
+async function seedMembership(
+  backend: TestBackend,
+  groupId: string,
+  userId: string,
   participantId: string,
-  assemblyName = ASSEMBLY_NAME,
+  role: "owner" | "admin" | "member" = "member",
 ): Promise<void> {
-  await backend.membershipService.createMembership(userId, assemblyId, participantId, assemblyName);
+  await backend.groupService.addMember(groupId, userId, role, participantId);
 }
 
-/** Set up VCP mocks so the admin role check succeeds for the given participant. */
-function mockAdminRole(
+/** Mock VCP calls needed for joinGroup (getAssembly + createParticipant). */
+function mockJoinGroup(
   backend: TestBackend,
-  participantId: string,
-  assemblyId = ASSEMBLY_ID,
-): MockInstance {
-  return vi.spyOn(backend.vcpClient, "listRoles").mockResolvedValue([
-    { participantId, role: "owner", grantedBy: "system", grantedAt: Date.now() },
-  ] as VCPRole[]);
-}
-
-/** Mock VCP calls needed for joinAssembly (getAssembly + createParticipant). */
-function mockJoinAssembly(
-  backend: TestBackend,
-  assemblyId = ASSEMBLY_ID,
-  assemblyName = ASSEMBLY_NAME,
 ): { getAssemblySpy: MockInstance; createParticipantSpy: MockInstance } {
   const getAssemblySpy = vi.spyOn(backend.vcpClient, "getAssembly").mockResolvedValue({
-    id: assemblyId,
-    name: assemblyName,
+    id: VCP_ASSEMBLY_ID,
+    name: GROUP_NAME,
     organizationId: null,
-    config: ASSEMBLY_CONFIG,
+    config: { preset: "LIQUID_DELEGATION" },
     status: "active",
     createdAt: new Date().toISOString(),
   } as VCPAssembly);
@@ -97,17 +92,15 @@ describe("Invitation flows", () => {
 
   // ── Link invite creation ─────────────────────────────────────────
 
-  describe("POST /assemblies/:id/invitations (link)", () => {
+  describe("POST /groups/:id/invitations (link)", () => {
     it("creates a link invite when user is admin", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link" },
         authHeader(accessToken),
       );
@@ -117,20 +110,18 @@ describe("Invitation flows", () => {
       expect(data.type).toBe("link");
       expect(data.token).toBeTruthy();
       expect(data.status).toBe("active");
-      expect(data.assemblyId).toBe(ASSEMBLY_ID);
+      expect(data.groupId).toBe(groupId);
     });
 
     it("creates a link invite with maxUses and expiresAt", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const expiresAt = new Date(Date.now() + 86400000).toISOString();
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link", maxUses: 5, expiresAt },
         authHeader(accessToken),
       );
@@ -142,16 +133,18 @@ describe("Invitation flows", () => {
     });
 
     it("rejects non-admin users with 403", async () => {
+      // Create a different user as owner first so we can create a group
+      const { userId: ownerUserId } = await backend.registerAndLogin("owner@example.com", TEST_PASSWORD, "Owner");
+      const groupId = await seedGroup(backend, ownerUserId);
+      await seedMembership(backend, groupId, ownerUserId, "p-owner", "owner");
+
+      // Register a regular member
       const { accessToken, userId } = await backend.registerAndLogin("member@example.com", TEST_PASSWORD, "Member");
-      const participantId = "p-member";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      // listRoles returns empty — user is not an admin
-      vi.spyOn(backend.vcpClient, "listRoles").mockResolvedValue([]);
+      await seedMembership(backend, groupId, userId, "p-member", "member");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link" },
         authHeader(accessToken),
       );
@@ -160,7 +153,7 @@ describe("Invitation flows", () => {
     });
 
     it("rejects unauthenticated requests with 401", async () => {
-      const res = await backend.request("POST", `/assemblies/${ASSEMBLY_ID}/invitations`, { type: "link" });
+      const res = await backend.request("POST", "/groups/some-group-id/invitations", { type: "link" });
       expect(res.status).toBe(401);
     });
   });
@@ -170,15 +163,13 @@ describe("Invitation flows", () => {
   describe("GET /invite/:token", () => {
     it("returns group preview for valid token (no auth required)", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Create the invite
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link" },
         authHeader(accessToken),
       );
@@ -189,9 +180,8 @@ describe("Invitation flows", () => {
 
       expect(previewRes.status).toBe(200);
       const data = (await previewRes.json()) as { invitation: Record<string, unknown>; group: Record<string, unknown> };
-      expect(data.group.name).toBe(ASSEMBLY_NAME);
-      expect(data.group.config).toBeTruthy();
-      expect(data.invitation.assemblyId).toBe(ASSEMBLY_ID);
+      expect(data.group.name).toBe(GROUP_NAME);
+      expect(data.invitation.groupId).toBe(groupId);
     });
 
     it("returns 404 for non-existent token", async () => {
@@ -201,16 +191,14 @@ describe("Invitation flows", () => {
 
     it("returns 410 for expired invitation", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Create invite with past expiration
       const pastDate = new Date(Date.now() - 86400000).toISOString();
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link", expiresAt: pastDate },
         authHeader(accessToken),
       );
@@ -222,14 +210,12 @@ describe("Invitation flows", () => {
 
     it("returns 404 for revoked invitation", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link" },
         authHeader(accessToken),
       );
@@ -238,7 +224,7 @@ describe("Invitation flows", () => {
       // Revoke the invitation
       await backend.request(
         "DELETE",
-        `/assemblies/${ASSEMBLY_ID}/invitations/${invite.id}`,
+        `/groups/${groupId}/invitations/${invite.id}`,
         undefined,
         authHeader(accessToken),
       );
@@ -253,6 +239,7 @@ describe("Invitation flows", () => {
   describe("POST /invite/:token/accept", () => {
     let adminToken: string;
     let adminUserId: string;
+    let groupId: string;
     let inviteToken: string;
 
     beforeEach(async () => {
@@ -260,15 +247,13 @@ describe("Invitation flows", () => {
       const admin = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
       adminToken = admin.accessToken;
       adminUserId = admin.userId;
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, adminUserId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      groupId = await seedGroup(backend, adminUserId);
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       // Create the invite
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link" },
         authHeader(adminToken),
       );
@@ -276,9 +261,9 @@ describe("Invitation flows", () => {
       inviteToken = data.token;
     });
 
-    it("successfully joins the assembly", async () => {
+    it("successfully joins the group", async () => {
       const { accessToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
-      mockJoinAssembly(backend);
+      mockJoinGroup(backend);
 
       const res = await backend.request(
         "POST",
@@ -288,9 +273,9 @@ describe("Invitation flows", () => {
       );
 
       expect(res.status).toBe(201);
-      const data = (await res.json()) as { status: string; assemblyId: string };
+      const data = (await res.json()) as { status: string; groupId: string };
       expect(data.status).toBe("joined");
-      expect(data.assemblyId).toBe(ASSEMBLY_ID);
+      expect(data.groupId).toBe(groupId);
     });
 
     it("returns 401 without auth", async () => {
@@ -312,7 +297,7 @@ describe("Invitation flows", () => {
     it("returns 409 when user is already a member", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
       // Pre-seed membership
-      await seedMembership(backend, userId, ASSEMBLY_ID, "p-existing");
+      await seedMembership(backend, groupId, userId, "p-existing");
 
       const res = await backend.request(
         "POST",
@@ -325,7 +310,7 @@ describe("Invitation flows", () => {
     });
 
     it("increments use_count on acceptance", async () => {
-      mockJoinAssembly(backend);
+      mockJoinGroup(backend);
 
       const { accessToken: t1 } = await backend.registerAndLogin("user1@example.com", TEST_PASSWORD, "User 1");
       await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(t1));
@@ -333,7 +318,7 @@ describe("Invitation flows", () => {
       // Check via admin list endpoint
       const listRes = await backend.request(
         "GET",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         undefined,
         authHeader(adminToken),
       );
@@ -346,13 +331,13 @@ describe("Invitation flows", () => {
       // Create a new invite with maxUses=1
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link", maxUses: 1 },
         authHeader(adminToken),
       );
       const { token: limitedToken } = (await createRes.json()) as { token: string };
 
-      mockJoinAssembly(backend);
+      mockJoinGroup(backend);
 
       // First user accepts — should succeed
       const { accessToken: t1 } = await backend.registerAndLogin("user1@example.com", TEST_PASSWORD, "User 1");
@@ -372,7 +357,7 @@ describe("Invitation flows", () => {
       const pastDate = new Date(Date.now() - 86400000).toISOString();
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link", expiresAt: pastDate },
         authHeader(adminToken),
       );
@@ -392,7 +377,7 @@ describe("Invitation flows", () => {
     });
 
     it("allows multiple users to accept the same link invite", async () => {
-      mockJoinAssembly(backend);
+      mockJoinGroup(backend);
 
       const { accessToken: t1 } = await backend.registerAndLogin("user1@example.com", TEST_PASSWORD, "User 1");
       const res1 = await backend.request("POST", `/invite/${inviteToken}/accept`, undefined, authHeader(t1));
@@ -406,36 +391,32 @@ describe("Invitation flows", () => {
 
   // ── Admin invitation management ──────────────────────────────────
 
-  describe("GET /assemblies/:id/invitations", () => {
-    it("lists all invitations for the assembly", async () => {
+  describe("GET /groups/:id/invitations", () => {
+    it("lists all invitations for the group", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Create two invitations
-      await backend.request("POST", `/assemblies/${ASSEMBLY_ID}/invitations`, { type: "link" }, authHeader(accessToken));
-      await backend.request("POST", `/assemblies/${ASSEMBLY_ID}/invitations`, { type: "direct", inviteeHandle: "someone" }, authHeader(accessToken));
+      await backend.request("POST", `/groups/${groupId}/invitations`, { type: "link" }, authHeader(accessToken));
+      await backend.request("POST", `/groups/${groupId}/invitations`, { type: "direct", inviteeHandle: "someone" }, authHeader(accessToken));
 
-      const res = await backend.request("GET", `/assemblies/${ASSEMBLY_ID}/invitations`, undefined, authHeader(accessToken));
+      const res = await backend.request("GET", `/groups/${groupId}/invitations`, undefined, authHeader(accessToken));
       expect(res.status).toBe(200);
       const { invitations } = (await res.json()) as { invitations: unknown[] };
       expect(invitations).toHaveLength(2);
     });
   });
 
-  describe("DELETE /assemblies/:id/invitations/:invId", () => {
+  describe("DELETE /groups/:id/invitations/:invId", () => {
     it("revokes an invitation", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link" },
         authHeader(accessToken),
       );
@@ -443,7 +424,7 @@ describe("Invitation flows", () => {
 
       const deleteRes = await backend.request(
         "DELETE",
-        `/assemblies/${ASSEMBLY_ID}/invitations/${invite.id}`,
+        `/groups/${groupId}/invitations/${invite.id}`,
         undefined,
         authHeader(accessToken),
       );
@@ -455,17 +436,15 @@ describe("Invitation flows", () => {
 
   // ── Direct invite creation ───────────────────────────────────────
 
-  describe("POST /assemblies/:id/invitations (direct)", () => {
+  describe("POST /groups/:id/invitations (direct)", () => {
     it("creates a direct invite with invitee handle", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(accessToken),
       );
@@ -479,14 +458,12 @@ describe("Invitation flows", () => {
 
     it("normalizes handle to lowercase", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "Target-User" },
         authHeader(accessToken),
       );
@@ -498,14 +475,12 @@ describe("Invitation flows", () => {
 
     it("returns 400 when inviteeHandle is missing for direct type", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct" },
         authHeader(accessToken),
       );
@@ -520,10 +495,8 @@ describe("Invitation flows", () => {
     it("lists pending direct invitations for the current user", async () => {
       // Create admin + invite
       const { accessToken: adminAccessToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, adminUserId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, adminUserId);
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       // Create target user with a known handle
       const targetRes = await backend.request("POST", "/auth/register", {
@@ -537,7 +510,7 @@ describe("Invitation flows", () => {
       // Admin sends direct invite
       await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(adminAccessToken),
       );
@@ -546,10 +519,10 @@ describe("Invitation flows", () => {
       const res = await backend.request("GET", "/me/invitations", undefined, authHeader(targetData.accessToken));
 
       expect(res.status).toBe(200);
-      const { invitations } = (await res.json()) as { invitations: Array<{ assemblyId: string; assemblyName: string | null }> };
+      const { invitations } = (await res.json()) as { invitations: Array<{ groupId: string; groupName: string | null }> };
       expect(invitations).toHaveLength(1);
-      expect(invitations[0].assemblyId).toBe(ASSEMBLY_ID);
-      expect(invitations[0].assemblyName).toBe(ASSEMBLY_NAME);
+      expect(invitations[0].groupId).toBe(groupId);
+      expect(invitations[0].groupName).toBe(GROUP_NAME);
     });
 
     it("returns empty array for user without handle", async () => {
@@ -565,15 +538,13 @@ describe("Invitation flows", () => {
 
     it("does not show invitations for other users", async () => {
       const { accessToken: adminAccessToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, adminUserId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, adminUserId);
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       // Invite target-user
       await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(adminAccessToken),
       );
@@ -590,10 +561,8 @@ describe("Invitation flows", () => {
     it("accepts a direct invitation and creates membership", async () => {
       // Set up admin + invite
       const { accessToken: adminAccessToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, adminUserId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, adminUserId);
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       // Create target user
       const targetRes = await backend.request("POST", "/auth/register", {
@@ -608,14 +577,14 @@ describe("Invitation flows", () => {
       // Admin sends direct invite
       const inviteRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(adminAccessToken),
       );
       const invite = (await inviteRes.json()) as { id: string };
 
       // Target user accepts
-      mockJoinAssembly(backend);
+      mockJoinGroup(backend);
       const res = await backend.request(
         "POST",
         `/me/invitations/${invite.id}/accept`,
@@ -624,9 +593,9 @@ describe("Invitation flows", () => {
       );
 
       expect(res.status).toBe(201);
-      const data = (await res.json()) as { status: string; assemblyId: string };
+      const data = (await res.json()) as { status: string; groupId: string };
       expect(data.status).toBe("joined");
-      expect(data.assemblyId).toBe(ASSEMBLY_ID);
+      expect(data.groupId).toBe(groupId);
     });
 
     it("returns 404 for non-existent invitation", async () => {
@@ -642,10 +611,8 @@ describe("Invitation flows", () => {
 
     it("removes accepted invitation from pending list", async () => {
       const { accessToken: adminAccessToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, adminUserId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, adminUserId);
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       const targetRes = await backend.request("POST", "/auth/register", {
         email: "target@example.com",
@@ -657,14 +624,14 @@ describe("Invitation flows", () => {
 
       const inviteRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(adminAccessToken),
       );
       const invite = (await inviteRes.json()) as { id: string };
 
       // Accept
-      mockJoinAssembly(backend);
+      mockJoinGroup(backend);
       await backend.request("POST", `/me/invitations/${invite.id}/accept`, undefined, authHeader(targetData.accessToken));
 
       // Pending list should now be empty (invitation use_count incremented, status still 'active' but membership exists)
@@ -682,10 +649,8 @@ describe("Invitation flows", () => {
   describe("POST /me/invitations/:invId/decline", () => {
     it("declines a direct invitation", async () => {
       const { accessToken: adminAccessToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, adminUserId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, adminUserId);
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       const targetRes = await backend.request("POST", "/auth/register", {
         email: "target@example.com",
@@ -697,7 +662,7 @@ describe("Invitation flows", () => {
 
       const inviteRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(adminAccessToken),
       );
@@ -727,21 +692,19 @@ describe("Invitation flows", () => {
   describe("Edge cases", () => {
     it("revoked link invite cannot be accepted", async () => {
       const { accessToken: adminAccessToken, userId: adminUserId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, adminUserId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, adminUserId);
+      await seedMembership(backend, groupId, adminUserId, "p-admin", "owner");
 
       const createRes = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "link" },
         authHeader(adminAccessToken),
       );
       const invite = (await createRes.json()) as { id: string; token: string };
 
       // Revoke
-      await backend.request("DELETE", `/assemblies/${ASSEMBLY_ID}/invitations/${invite.id}`, undefined, authHeader(adminAccessToken));
+      await backend.request("DELETE", `/groups/${groupId}/invitations/${invite.id}`, undefined, authHeader(adminAccessToken));
 
       // Attempt to accept
       const { accessToken: joinerToken } = await backend.registerAndLogin("joiner@example.com", TEST_PASSWORD, "Joiner");
@@ -753,10 +716,8 @@ describe("Invitation flows", () => {
 
     it("creating a direct invite sends an email notification to the invitee", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Create target user so their email can be resolved
       await backend.request("POST", "/auth/register", {
@@ -770,7 +731,7 @@ describe("Invitation flows", () => {
 
       await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(accessToken),
       );
@@ -781,16 +742,14 @@ describe("Invitation flows", () => {
       expect(sendSpy).toHaveBeenCalledOnce();
       const call = sendSpy.mock.calls[0][0];
       expect(call.to).toBe("target@example.com");
-      expect(call.subject).toContain(ASSEMBLY_NAME);
+      expect(call.subject).toContain(GROUP_NAME);
       expect(call.subject).toContain("invited");
     });
 
     it("email notification does not fail the request if send throws", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       await backend.request("POST", "/auth/register", {
         email: "target@example.com",
@@ -804,7 +763,7 @@ describe("Invitation flows", () => {
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "target-user" },
         authHeader(accessToken),
       );
@@ -815,17 +774,15 @@ describe("Invitation flows", () => {
 
     it("no email sent for direct invite if handle has no registered user", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const sendSpy = vi.spyOn(backend.notificationAdapter, "send");
 
       // Invite a handle that doesn't exist as a registered user
       await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "ghost-user" },
         authHeader(accessToken),
       );
@@ -837,15 +794,13 @@ describe("Invitation flows", () => {
 
     it("link invite defaults to type link when type is omitted", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Omit type — should default to "link"
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         {},
         authHeader(accessToken),
       );
@@ -859,13 +814,11 @@ describe("Invitation flows", () => {
 
   // ── Bulk CSV import ──────────────────────────────────────────────
 
-  describe("POST /assemblies/:id/invitations/preview", () => {
+  describe("POST /groups/:id/invitations/preview", () => {
     it("previews a CSV of handles with correct categorization", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Create target users
       await backend.request("POST", "/auth/register", { email: "alice@example.com", password: TEST_PASSWORD, name: "Alice", handle: "alice" });
@@ -874,7 +827,7 @@ describe("Invitation flows", () => {
       const csv = "handle\nalice\nbob-smith\nghost-user";
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations/preview`,
+        `/groups/${groupId}/invitations/preview`,
         { csv },
         authHeader(accessToken),
       );
@@ -894,20 +847,18 @@ describe("Invitation flows", () => {
 
     it("detects already-member handles", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Create Alice and make her a member already
       const aliceRes = await backend.request("POST", "/auth/register", { email: "alice@example.com", password: TEST_PASSWORD, name: "Alice", handle: "alice" });
       const aliceData = (await aliceRes.json()) as { user: { id: string } };
-      await seedMembership(backend, aliceData.user.id, ASSEMBLY_ID, "p-alice");
+      await seedMembership(backend, groupId, aliceData.user.id, "p-alice");
 
       const csv = "alice";
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations/preview`,
+        `/groups/${groupId}/invitations/preview`,
         { csv },
         authHeader(accessToken),
       );
@@ -919,15 +870,16 @@ describe("Invitation flows", () => {
     });
 
     it("returns 403 for non-admin", async () => {
+      const { userId: ownerUserId } = await backend.registerAndLogin("owner@example.com", TEST_PASSWORD, "Owner");
+      const groupId = await seedGroup(backend, ownerUserId);
+      await seedMembership(backend, groupId, ownerUserId, "p-owner", "owner");
+
       const { accessToken, userId } = await backend.registerAndLogin("member@example.com", TEST_PASSWORD, "Member");
-      const participantId = "p-member";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      vi.spyOn(backend.vcpClient, "listRoles").mockResolvedValue([]);
+      await seedMembership(backend, groupId, userId, "p-member", "member");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations/preview`,
+        `/groups/${groupId}/invitations/preview`,
         { csv: "alice" },
         authHeader(accessToken),
       );
@@ -935,17 +887,15 @@ describe("Invitation flows", () => {
     });
   });
 
-  describe("POST /assemblies/:id/invitations/bulk", () => {
+  describe("POST /groups/:id/invitations/bulk", () => {
     it("creates direct invitations for each handle", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations/bulk`,
+        `/groups/${groupId}/invitations/bulk`,
         { handles: ["alice", "bob-smith"] },
         authHeader(accessToken),
       );
@@ -958,15 +908,13 @@ describe("Invitation flows", () => {
 
     it("skips handles with existing pending invitations", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       // Create an existing invitation for alice
       await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations`,
+        `/groups/${groupId}/invitations`,
         { type: "direct", inviteeHandle: "alice" },
         authHeader(accessToken),
       );
@@ -974,7 +922,7 @@ describe("Invitation flows", () => {
       // Bulk create — alice should be skipped
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations/bulk`,
+        `/groups/${groupId}/invitations/bulk`,
         { handles: ["alice", "bob-smith"] },
         authHeader(accessToken),
       );
@@ -989,14 +937,12 @@ describe("Invitation flows", () => {
 
     it("returns 400 when handles array is empty", async () => {
       const { accessToken, userId } = await backend.registerAndLogin("admin@example.com", TEST_PASSWORD, "Admin");
-      const participantId = "p-admin";
-      await seedAssemblyCache(backend);
-      await seedMembership(backend, userId, ASSEMBLY_ID, participantId);
-      mockAdminRole(backend, participantId);
+      const groupId = await seedGroup(backend, userId);
+      await seedMembership(backend, groupId, userId, "p-admin", "owner");
 
       const res = await backend.request(
         "POST",
-        `/assemblies/${ASSEMBLY_ID}/invitations/bulk`,
+        `/groups/${groupId}/invitations/bulk`,
         { handles: [] },
         authHeader(accessToken),
       );
