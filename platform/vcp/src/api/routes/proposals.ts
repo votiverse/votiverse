@@ -311,6 +311,12 @@ export function proposalRoutes(manager: AssemblyManager) {
       const assemblyId = c.req.param("id");
       const proposalId = c.req.param("pid");
       const body = await c.req.json<{ evaluation: string }>();
+      if (body.evaluation !== "endorse" && body.evaluation !== "dispute") {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: "evaluation must be 'endorse' or 'dispute'" } },
+          400,
+        );
+      }
       const participantId = c.get("participantId") as string;
 
       const { engine } = await manager.getEngine(assemblyId);
