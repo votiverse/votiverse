@@ -96,18 +96,18 @@ export function GroupDashboard() {
       {/* Governance settings — 3 boxes */}
       {config && (
         <div className="mb-4 sm:mb-6">
-          <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-widest mb-3">{t("groupDashboard.governanceSettings")}</h2>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-widest">{t("groupDashboard.governanceSettings")}</h2>
+            {isAdmin && (
+              <Link to={`/group/${groupId}/settings`} className="text-text-tertiary hover:text-text-secondary" title={t("groupDashboard.editSettings")}>
+                <Pencil className="w-3.5 h-3.5" />
+              </Link>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.ballot")}</h3>
-                  {isAdmin && (
-                    <Link to={`/group/${groupId}/members`} className="text-text-tertiary hover:text-text-secondary">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Link>
-                  )}
-                </div>
+                <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.ballot")}</h3>
               </CardHeader>
               <CardBody className="space-y-2">
                 <ConfigRow label={t("groupDashboard.ballot")} value={config.ballot.secret ? t("groupDashboard.secret") : t("groupDashboard.public")} />
@@ -119,14 +119,7 @@ export function GroupDashboard() {
             </Card>
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.timeline")}</h3>
-                  {isAdmin && (
-                    <Link to={`/group/${groupId}/members`} className="text-text-tertiary hover:text-text-secondary">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Link>
-                  )}
-                </div>
+                <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.timeline")}</h3>
               </CardHeader>
               <CardBody className="space-y-2">
                 <ConfigRow label={t("groupDashboard.deliberation")} value={t("groupDashboard.day", { count: config.timeline.deliberationDays })} />
@@ -139,14 +132,7 @@ export function GroupDashboard() {
             </Card>
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.delegationAndNotes")}</h3>
-                  {isAdmin && (
-                    <Link to={`/group/${groupId}/members`} className="text-text-tertiary hover:text-text-secondary">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Link>
-                  )}
-                </div>
+                <h3 className="font-medium text-text-primary text-sm">{t("groupDashboard.delegationAndNotes")}</h3>
               </CardHeader>
               <CardBody className="space-y-2">
                 <ConfigRow label={t("groupDashboard.delegation")} value={humanizeBoolean(config.delegation.transferable, "enabled-disabled", t)} />

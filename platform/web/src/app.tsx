@@ -27,6 +27,7 @@ import { ProfileDelegators } from "./pages/profile-delegators.js";
 import { ProfileDelegates } from "./pages/profile-delegates.js";
 import { ProfileVotes } from "./pages/profile-votes.js";
 import { NotificationSettings } from "./pages/notification-settings.js";
+import { GroupSettings } from "./pages/group-settings.js";
 import { Notifications } from "./pages/notifications.js";
 import { InvitePage } from "./pages/invite.js";
 import { LoginPage } from "./pages/login.js";
@@ -151,6 +152,7 @@ export function App() {
               <Route path="settings/appearance" element={<Navigate to="/profile?tab=appearance" replace />} />
               <Route path="group/:groupId" element={<GroupRedirect />} />
               <Route path="group/:groupId/about" element={<GroupDashboard />} />
+              <Route path="group/:groupId/settings" element={<GroupSettings />} />
               <Route path="group/:groupId/members" element={<Members />} />
               <Route path="group/:groupId/events" element={<EventsList />} />
               <Route path="group/:groupId/events/:eventId" element={<EventDetail />} />
