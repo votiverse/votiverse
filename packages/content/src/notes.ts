@@ -26,7 +26,6 @@ import {
   InvalidStateError,
   ValidationError,
 } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
 import type { NoteMetadata, NoteStatus, NoteTarget, NoteVisibility, CreateNoteParams } from "./types.js";
 
 /**
@@ -35,18 +34,16 @@ import type { NoteMetadata, NoteStatus, NoteTarget, NoteVisibility, CreateNotePa
 export class NoteService {
   constructor(
     private readonly eventStore: EventStore,
-    private readonly config: GovernanceConfig,
     private readonly timeProvider: TimeProvider,
   ) {}
 
   /**
    * Create a new community note attached to a target.
+   *
+   * Capability gating (whether community notes are enabled for a group)
+   * is the backend's responsibility, not the engine's.
    */
   async create(params: CreateNoteParams): Promise<NoteMetadata> {
-    if (!this.config.features.communityNotes) {
-      throw new ValidationError("communityNotes", "Community notes are disabled in this assembly");
-    }
-
     const id = generateNoteId();
     const ts = this.timeProvider.now();
 

@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@votiverse/core": "workspace:*",
-    "@votiverse/config": "workspace:*",
     "@votiverse/delegation": "workspace:*",
     "@votiverse/voting": "workspace:*",
     "@votiverse/prediction": "workspace:*",

@@ -14,7 +14,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore, TestClock } from "@votiverse/core";
 import type { ContentHash, IssueId, ParticipantId, TopicId } from "@votiverse/core";
-import { getPreset } from "@votiverse/config";
 import { ProposalService } from "../../src/proposals.js";
 import { CandidacyService } from "../../src/candidacies.js";
 import { NoteService } from "../../src/notes.js";
@@ -23,11 +22,6 @@ function iid(s: string): IssueId { return s as IssueId; }
 function pid(s: string): ParticipantId { return s as ParticipantId; }
 function tid(s: string): TopicId { return s as TopicId; }
 function hash(s: string): ContentHash { return s as ContentHash; }
-
-const config = {
-  ...getPreset("LIQUID_DELEGATION"),
-  features: { ...getPreset("LIQUID_DELEGATION").features, communityNotes: true },
-};
 
 describe("Immutability guarantees", () => {
   let store: InstanceType<typeof InMemoryEventStore>;
@@ -142,7 +136,7 @@ describe("Immutability guarantees", () => {
 
   describe("note content immutability", () => {
     it("note content hash never changes — only evaluations and status", async () => {
-      const notes = new NoteService(store, config, clock);
+      const notes = new NoteService(store, clock);
       const note = await notes.create({
         authorId: pid("alice"),
         contentHash: hash("original-content"),
@@ -161,7 +155,7 @@ describe("Immutability guarantees", () => {
     });
 
     it("withdrawn note preserves its content hash", async () => {
-      const notes = new NoteService(store, config, clock);
+      const notes = new NoteService(store, clock);
       const note = await notes.create({
         authorId: pid("alice"),
         contentHash: hash("content"),
@@ -178,7 +172,7 @@ describe("Immutability guarantees", () => {
 
   describe("note evaluation idempotency", () => {
     it("multiple evaluations by the same participant count as one (latest wins)", async () => {
-      const notes = new NoteService(store, config, clock);
+      const notes = new NoteService(store, clock);
       const note = await notes.create({
         authorId: pid("alice"),
         contentHash: hash("h1"),

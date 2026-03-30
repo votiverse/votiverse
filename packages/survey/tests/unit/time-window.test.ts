@@ -9,7 +9,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore, TestClock, timestamp } from "@votiverse/core";
 import type { ParticipantId, Timestamp, TopicId } from "@votiverse/core";
-import { getPreset } from "@votiverse/config";
 import { SurveyService } from "../../src/survey-service.js";
 import type { CreateSurveyParams } from "../../src/types.js";
 
@@ -26,7 +25,7 @@ describe("Survey time window enforcement", () => {
   beforeEach(() => {
     store = new InMemoryEventStore();
     clock = new TestClock();
-    service = new SurveyService(store, getPreset("LIQUID_DELEGATION"), clock);
+    service = new SurveyService(store, clock);
   });
 
   function makeSurveyParams(overrides?: Partial<CreateSurveyParams>): CreateSurveyParams {

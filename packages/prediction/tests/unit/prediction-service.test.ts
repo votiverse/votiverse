@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore } from "@votiverse/core";
 import type { ParticipantId, ProposalId, PredictionId, Timestamp } from "@votiverse/core";
-import { getPreset } from "@votiverse/config";
 import { PredictionService } from "../../src/prediction-service.js";
 import type { PredictionClaim } from "../../src/types.js";
 
@@ -13,7 +12,7 @@ describe("PredictionService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new PredictionService(store, getPreset("LIQUID_DELEGATION"));
+    service = new PredictionService(store);
   });
 
   const claim: PredictionClaim = {
@@ -47,17 +46,6 @@ describe("PredictionService", () => {
       const events = await store.getAll();
       expect(events).toHaveLength(1);
       expect(events[0]!.type).toBe("PredictionCommitted");
-    });
-
-    it("throws when predictions are disabled", async () => {
-      const disabled = new PredictionService(store, getPreset("DIRECT_DEMOCRACY"));
-      await expect(
-        disabled.commit({
-          proposalId: "prop-1" as ProposalId,
-          participantId: "p-1" as ParticipantId,
-          claim,
-        }),
-      ).rejects.toThrow("disabled");
     });
 
     it("validates claim has non-empty variable", async () => {

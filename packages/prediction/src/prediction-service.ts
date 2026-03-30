@@ -23,7 +23,6 @@ import {
   NotFoundError,
   ValidationError,
 } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
 import type {
   Prediction,
   OutcomeRecord,
@@ -44,21 +43,16 @@ import { evaluate } from "./evaluation.js";
 export class PredictionService {
   constructor(
     private readonly eventStore: EventStore,
-    private readonly config: GovernanceConfig,
   ) {}
 
   /**
    * Commit a new prediction. Computes the commitment hash and records
    * a PredictionCommitted event. The prediction is immutable after this.
+   *
+   * Predictions are always available as a platform-level feature.
+   * Capability gating (if any) is the backend's responsibility.
    */
   async commit(params: CommitPredictionParams): Promise<Prediction> {
-    if (!this.config.features.predictions) {
-      throw new ValidationError(
-        "predictions",
-        "Predictions are disabled in the current configuration",
-      );
-    }
-
     validateClaim(params.claim);
 
     const id = generatePredictionId();

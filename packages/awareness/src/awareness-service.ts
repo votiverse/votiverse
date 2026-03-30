@@ -9,7 +9,6 @@
  */
 
 import type { EventStore, ParticipantId, IssueId, TopicId, Timestamp } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
 import {
   buildActiveDelegations,
   getDirectVoters,
@@ -62,16 +61,15 @@ export class AwarenessService {
 
   constructor(
     private readonly eventStore: EventStore,
-    private readonly config: GovernanceConfig,
   ) {
-    this.predictionService = new PredictionService(eventStore, config);
-    this.surveyService = new SurveyService(eventStore, config);
+    this.predictionService = new PredictionService(eventStore);
+    this.surveyService = new SurveyService(eventStore);
     // Content services are read-only from awareness perspective —
     // used to query candidacy profiles, proposals, and note counts.
     const readOnlyTimeProvider = { now: () => Date.now() as Timestamp };
     this.proposalService = new ProposalService(eventStore, readOnlyTimeProvider);
     this.candidacyService = new CandidacyService(eventStore, readOnlyTimeProvider);
-    this.noteService = new NoteService(eventStore, config, readOnlyTimeProvider);
+    this.noteService = new NoteService(eventStore, readOnlyTimeProvider);
   }
 
   // -----------------------------------------------------------------------
@@ -371,7 +369,7 @@ export class AwarenessService {
 
     // Poll trends
     const surveyTrends: TopicTrend[] = [];
-    if (this.config.features.surveys && ctx.topicId !== null) {
+    if (ctx.topicId !== null) {
       try {
         const trend = await this.surveyService.trends(
           ctx.topicId,

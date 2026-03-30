@@ -26,7 +26,6 @@ import {
   ValidationError,
   InvalidStateError,
 } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
 import type {
   Survey,
   SurveyQuestion,
@@ -53,7 +52,6 @@ export class SurveyService {
 
   constructor(
     private readonly eventStore: EventStore,
-    private readonly config: GovernanceConfig,
     timeProvider?: TimeProvider,
   ) {
     this.timeProvider = timeProvider ?? systemTime;
@@ -63,10 +61,6 @@ export class SurveyService {
    * Create a new survey. Records a PollCreated event.
    */
   async create(params: CreateSurveyParams): Promise<Survey> {
-    if (!this.config.features.surveys) {
-      throw new ValidationError("surveys", "Surveys are disabled in the current configuration");
-    }
-
     if (params.questions.length === 0) {
       throw new ValidationError("questions", "Survey must have at least one question");
     }

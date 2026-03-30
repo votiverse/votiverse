@@ -5,8 +5,6 @@ import {
   timestamp,
 } from "@votiverse/core";
 import type { ParticipantId, EntryId, ScoringEventId, Timestamp } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
-import { getPreset, deriveConfig } from "@votiverse/config";
 import { ScoringService } from "../../src/index.js";
 import type {
   Rubric,
@@ -17,14 +15,6 @@ import type {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const SCORING_CONFIG = deriveConfig(getPreset("REPRESENTATIVE"), {});
-
-function makeConfig(scoring = true): GovernanceConfig {
-  return deriveConfig(getPreset("REPRESENTATIVE"), {
-    features: { scoring },
-  });
-}
 
 function makeRubric(): Rubric {
   return {
@@ -79,7 +69,7 @@ describe("ScoringService", () => {
   beforeEach(() => {
     store = new InMemoryEventStore();
     clock = new TestClock(timestamp(500));
-    service = new ScoringService(store, SCORING_CONFIG, clock);
+    service = new ScoringService(store, clock);
   });
 
   // =========================================================================
@@ -126,13 +116,6 @@ describe("ScoringService", () => {
       };
       await expect(service.create(makeParams({ rubric }))).rejects.toThrow(
         "At least one category",
-      );
-    });
-
-    it("rejects when scoring is disabled", async () => {
-      const disabledService = new ScoringService(store, makeConfig(false), clock);
-      await expect(disabledService.create(makeParams())).rejects.toThrow(
-        "Scoring is not enabled",
       );
     });
 
@@ -826,7 +809,7 @@ describe("ScoringService", () => {
       });
 
       // Create a new service with the same store
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const restored = newService.getScoringEvent(event.id);
@@ -844,7 +827,7 @@ describe("ScoringService", () => {
       const event = await service.create(makeParams());
       await service.close(event.id);
 
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const restored = newService.getScoringEvent(event.id)!;
@@ -857,7 +840,7 @@ describe("ScoringService", () => {
       clock.set(timestamp(3000));
       await service.open(event.id);
 
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const restored = newService.getScoringEvent(event.id)!;
@@ -871,7 +854,7 @@ describe("ScoringService", () => {
       await service.open(event.id);
       await service.extendDeadline(event.id, timestamp(200000));
 
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const restored = newService.getScoringEvent(event.id)!;
@@ -886,7 +869,7 @@ describe("ScoringService", () => {
         entries: [{ title: "New Entry" }],
       });
 
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const restored = newService.getScoringEvent(event.id)!;
@@ -926,7 +909,7 @@ describe("ScoringService", () => {
         ],
       });
 
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const scorecard = newService.getScorecard(event.id, "j1" as ParticipantId, entryId);
@@ -941,7 +924,7 @@ describe("ScoringService", () => {
       await service.extendDeadline(event.id, timestamp(200000));
       await service.close(event.id);
 
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const restored = newService.getScoringEvent(event.id)!;
@@ -956,7 +939,7 @@ describe("ScoringService", () => {
       // Simulate v1 event (no startAsDraft in payload)
       const event = await service.create(makeParams());
 
-      const newService = new ScoringService(store, SCORING_CONFIG, clock);
+      const newService = new ScoringService(store, clock);
       await newService.rehydrate();
 
       const restored = newService.getScoringEvent(event.id)!;

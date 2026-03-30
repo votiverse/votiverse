@@ -1,21 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore, TestClock } from "@votiverse/core";
 import type { ContentHash, NoteId, ParticipantId } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
-import { getPreset } from "@votiverse/config";
 import { NoteService, computeNoteVisibility } from "../../src/notes.js";
 
 function pid(s: string): ParticipantId { return s as ParticipantId; }
 function hash(s: string): ContentHash { return s as ContentHash; }
-
-/** Create a config with community notes enabled. */
-function notesConfig(overrides?: Partial<GovernanceConfig["features"]>): GovernanceConfig {
-  const base = getPreset("LIQUID_DELEGATION"); // has communityNotes: true
-  return {
-    ...base,
-    features: { ...base.features, ...overrides },
-  };
-}
 
 describe("NoteService", () => {
   let store: InstanceType<typeof InMemoryEventStore>;
@@ -25,7 +14,7 @@ describe("NoteService", () => {
   beforeEach(() => {
     store = new InMemoryEventStore();
     clock = new TestClock();
-    service = new NoteService(store, notesConfig(), clock);
+    service = new NoteService(store, clock);
   });
 
   describe("create", () => {
@@ -46,18 +35,7 @@ describe("NoteService", () => {
       expect(note.target.versionNumber).toBe(2);
     });
 
-    it("rejects when community notes are disabled", async () => {
-      const disabledService = new NoteService(store, notesConfig({ communityNotes: false }), clock);
 
-      await expect(
-        disabledService.create({
-          authorId: pid("alice"),
-          contentHash: hash("h1"),
-          targetType: "proposal",
-          targetId: "p1",
-        }),
-      ).rejects.toThrow("disabled");
-    });
 
     it("supports all target types", async () => {
       for (const targetType of ["proposal", "candidacy", "survey", "community-note"] as const) {

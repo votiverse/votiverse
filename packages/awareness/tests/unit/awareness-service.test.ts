@@ -13,7 +13,6 @@ import type {
   DelegationCreatedEvent,
   VoteCastEvent,
 } from "@votiverse/core";
-import { getPreset } from "@votiverse/config";
 import { AwarenessService } from "../../src/awareness-service.js";
 import type { IssueContext } from "../../src/awareness-service.js";
 
@@ -69,7 +68,7 @@ describe("AwarenessService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new AwarenessService(store, getPreset("LIQUID_OPEN"));
+    service = new AwarenessService(store);
     ts = 1000;
   });
 

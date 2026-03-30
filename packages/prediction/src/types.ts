@@ -94,8 +94,9 @@ export type PredictionPattern =
 // ---------------------------------------------------------------------------
 
 /**
- * A structured, falsifiable claim attached to a proposal.
+ * A structured, falsifiable claim about a future outcome.
  * This is the immutable content that gets hashed for commitment.
+ * Predictions may be standalone or linked to a proposal.
  */
 export interface PredictionClaim {
   /** The measurable variable. E.g., "youth sports participation". */
@@ -119,7 +120,8 @@ export interface PredictionClaim {
  */
 export interface Prediction {
   readonly id: PredictionId;
-  readonly proposalId: ProposalId;
+  /** Optional proposal link. Standalone predictions have no associated proposal. */
+  readonly proposalId?: ProposalId;
   /** Who made this prediction. */
   readonly participantId: ParticipantId;
   /** The structured claim. */
@@ -215,7 +217,8 @@ export interface TrackRecord {
 // ---------------------------------------------------------------------------
 
 export interface CommitPredictionParams {
-  readonly proposalId: ProposalId;
+  /** Optional proposal link. Omit for standalone predictions. */
+  readonly proposalId?: ProposalId;
   readonly participantId: ParticipantId;
   readonly claim: PredictionClaim;
 }

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryEventStore } from "@votiverse/core";
 import type { ParticipantId, SurveyId, TopicId, Timestamp } from "@votiverse/core";
-import { getPreset } from "@votiverse/config";
 import { SurveyService } from "../../src/survey-service.js";
 
 const ts = (n: number) => n as Timestamp;
@@ -13,7 +12,7 @@ describe("SurveyService", () => {
 
   beforeEach(() => {
     store = new InMemoryEventStore();
-    service = new SurveyService(store, getPreset("LIQUID_DELEGATION"));
+    service = new SurveyService(store);
   });
 
   describe("create()", () => {
@@ -41,27 +40,6 @@ describe("SurveyService", () => {
       const events = await store.getAll();
       expect(events).toHaveLength(1);
       expect(events[0]!.type).toBe("PollCreated");
-    });
-
-    it("throws when surveys are disabled", async () => {
-      const disabled = new SurveyService(store, getPreset("DIRECT_DEMOCRACY"));
-      await expect(
-        disabled.create({
-          title: "Test",
-          topicScope: [],
-          questions: [
-            {
-              text: "Q",
-              questionType: { type: "yes-no" },
-              topicIds: [],
-              tags: [],
-            },
-          ],
-          schedule: ts(1000),
-          closesAt: ts(50000),
-          createdBy: "admin" as ParticipantId,
-        }),
-      ).rejects.toThrow("disabled");
     });
 
     it("throws for empty questions", async () => {

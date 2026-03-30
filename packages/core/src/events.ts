@@ -180,7 +180,8 @@ export interface IssueCancelledPayload {
 
 export interface PredictionCommittedPayload {
   readonly predictionId: PredictionId;
-  readonly proposalId: ProposalId;
+  /** Optional — standalone predictions have no associated proposal. */
+  readonly proposalId?: ProposalId;
   readonly participantId: ParticipantId;
   readonly predictionData: Readonly<Record<string, unknown>>;
   readonly commitmentHash: string;

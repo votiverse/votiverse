@@ -41,8 +41,6 @@ import {
   InvalidStateError,
   NotFoundError,
 } from "@votiverse/core";
-import type { GovernanceConfig } from "@votiverse/config";
-
 import type {
   ScoringEvent,
   ScoringStatus,
@@ -65,7 +63,6 @@ export class ScoringService {
 
   constructor(
     private readonly eventStore: EventStore,
-    private readonly config: GovernanceConfig,
     timeProvider?: TimeProvider,
   ) {
     this.timeProvider = timeProvider ?? systemTime;
@@ -77,7 +74,6 @@ export class ScoringService {
 
   /** Create a new scoring event. Initial commanded status is always "draft". */
   async create(params: CreateScoringEventParams): Promise<ScoringEvent> {
-    this.requireScoringEnabled();
 
     if (!params.title.trim()) {
       throw new ValidationError("title", "Title is required");
@@ -140,7 +136,6 @@ export class ScoringService {
 
   /** Open a draft scoring event. Transitions draft → open. */
   async open(scoringEventId: ScoringEventId): Promise<ScoringEvent> {
-    this.requireScoringEnabled();
 
     const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
     const effectiveStatus = this.getStatus(scoringEvent);
@@ -182,7 +177,6 @@ export class ScoringService {
     scoringEventId: ScoringEventId,
     newClosesAt: Timestamp,
   ): Promise<ScoringEvent> {
-    this.requireScoringEnabled();
 
     const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
     const effectiveStatus = this.getStatus(scoringEvent);
@@ -232,7 +226,6 @@ export class ScoringService {
     scoringEventId: ScoringEventId,
     updates: UpdateDraftParams,
   ): Promise<ScoringEvent> {
-    this.requireScoringEnabled();
 
     const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
     const effectiveStatus = this.getStatus(scoringEvent);
@@ -313,7 +306,6 @@ export class ScoringService {
 
   /** Submit a scorecard for an entry. */
   async submitScorecard(params: SubmitScorecardParams): Promise<Scorecard> {
-    this.requireScoringEnabled();
 
     const scoringEvent = this.getScoringEventOrThrow(params.scoringEventId);
     this.requireOpen(scoringEvent);
@@ -364,7 +356,6 @@ export class ScoringService {
 
   /** Revise a previously submitted scorecard. */
   async reviseScorecard(params: ReviseScorecardParams): Promise<Scorecard> {
-    this.requireScoringEnabled();
 
     const scoringEvent = this.getScoringEventOrThrow(params.scoringEventId);
     this.requireOpen(scoringEvent);
@@ -411,7 +402,6 @@ export class ScoringService {
 
   /** Close a scoring event. Works from both draft (discard) and open (early close). */
   async close(scoringEventId: ScoringEventId): Promise<void> {
-    this.requireScoringEnabled();
 
     const scoringEvent = this.getScoringEventOrThrow(scoringEventId);
     const effectiveStatus = this.getStatus(scoringEvent);
@@ -607,12 +597,6 @@ export class ScoringService {
   // ---------------------------------------------------------------------------
   // Validation helpers
   // ---------------------------------------------------------------------------
-
-  private requireScoringEnabled(): void {
-    if (!this.config.features.scoring) {
-      throw new InvalidStateError("Scoring is not enabled for this group");
-    }
-  }
 
   private getScoringEventOrThrow(id: ScoringEventId): ScoringEvent {
     const se = this.scoringEvents.get(id);

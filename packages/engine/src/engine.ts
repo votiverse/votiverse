@@ -178,12 +178,12 @@ export class VotiverseEngine {
 
     this.delegationService = new DelegationService(this.eventStore, this.governanceConfig);
     this.votingService = new VotingService(this.eventStore, this.governanceConfig);
-    this.predictionService = new PredictionService(this.eventStore, this.governanceConfig);
-    this.surveyService = new SurveyService(this.eventStore, this.governanceConfig, this.timeProvider);
+    this.predictionService = new PredictionService(this.eventStore);
+    this.surveyService = new SurveyService(this.eventStore, this.timeProvider);
     this.proposalService = new ProposalService(this.eventStore, this.timeProvider);
     this.candidacyService = new CandidacyService(this.eventStore, this.timeProvider);
-    this.noteService = new NoteService(this.eventStore, this.governanceConfig, this.timeProvider);
-    this.scoringService = new ScoringService(this.eventStore, this.governanceConfig, this.timeProvider);
+    this.noteService = new NoteService(this.eventStore, this.timeProvider);
+    this.scoringService = new ScoringService(this.eventStore, this.timeProvider);
   }
 
   /**
