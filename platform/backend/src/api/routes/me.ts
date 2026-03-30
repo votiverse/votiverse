@@ -159,7 +159,7 @@ export function meRoutes(
     if (message.length > 10000) {
       throw new ValidationError("Message is too long (max 10,000 characters)");
     }
-    const id = crypto.randomUUID();
+    const id = uuidv7();
     await database.run(
       "INSERT INTO feedback (id, user_id, message) VALUES (?, ?, ?)",
       [id, user.id, message],

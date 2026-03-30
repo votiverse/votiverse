@@ -7,7 +7,7 @@
  */
 
 import type { DatabaseAdapter } from "../adapters/database/interface.js";
-import { v4 as uuid } from "uuid";
+import { v7 as uuidv7 } from "uuid";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -140,7 +140,7 @@ export class GroupService {
   // ── Group CRUD ────────────────────────────────────────────────────────────
 
   async create(params: CreateGroupParams): Promise<Group> {
-    const id = uuid();
+    const id = uuidv7();
     const now = new Date().toISOString();
     await this.db.run(
       `INSERT INTO groups (id, name, handle, avatar_style, website_url, admission_mode, vote_creation, created_by, created_at)
