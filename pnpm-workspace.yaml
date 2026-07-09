@@ -3,3 +3,10 @@ packages:
   - "platform/vcp"
   - "platform/web"
   - "platform/backend"
+
+# Dependencies allowed to run install/build scripts. pnpm 10 reads this here;
+# the deprecated `pnpm.onlyBuiltDependencies` field in package.json is ignored,
+# which breaks fresh installs (CI, new dev machines, the EC2 deploy).
+onlyBuiltDependencies:
+  - esbuild
+  - better-sqlite3
