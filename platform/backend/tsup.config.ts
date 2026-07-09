@@ -7,10 +7,9 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   target: "node22",
-  // tsup auto-externalizes dependencies + peerDependencies, but NOT
-  // optionalDependencies. The AWS SDK is an optionalDependency loaded via
-  // guarded dynamic import() only when S3 asset storage is enabled, so it
-  // must stay external — otherwise esbuild tries to bundle it and fails to
-  // resolve its transitive `tslib` import (@aws-crypto/*).
+  // The AWS SDK is loaded via dynamic import() at runtime (S3 asset storage),
+  // never bundled. It's a regular dependency (so tsup auto-externalizes it),
+  // but list it explicitly so the build never tries to inline it and choke on
+  // its transitive `tslib` import (@aws-crypto/*).
   external: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
 });
