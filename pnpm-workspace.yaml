@@ -4,9 +4,13 @@ packages:
   - "platform/web"
   - "platform/backend"
 
-# Dependencies allowed to run install/build scripts. pnpm 10 reads this here;
-# the deprecated `pnpm.onlyBuiltDependencies` field in package.json is ignored,
-# which breaks fresh installs (CI, new dev machines, the EC2 deploy).
-onlyBuiltDependencies:
-  - esbuild
-  - better-sqlite3
+# Dependencies allowed to run install/build scripts. pnpm 11 replaced the
+# v10 `onlyBuiltDependencies` list with `allowBuilds` (a map of package
+# matcher -> boolean). Under the default `strictDepBuilds: true`, a fresh
+# install (CI, a new dev machine, the EC2 deploy) exits non-zero unless every
+# dependency with a build script is explicitly allowed or denied here.
+#   esbuild        - fetches its platform binary (used by tsup/tsx/vite)
+#   better-sqlite3 - compiles its native addon (SQLite fallback adapter)
+allowBuilds:
+  esbuild: true
+  better-sqlite3: true
