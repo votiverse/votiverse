@@ -28,7 +28,7 @@ import { getUser } from "../middleware/auth.js";
 import { logger } from "../../lib/logger.js";
 import { ValidationError, NotFoundError, ForbiddenError } from "../middleware/error-handler.js";
 import { safeWebsiteUrl } from "../../lib/validation.js";
-import { isAdminOfGroup } from "../../lib/admin-check.js";
+import { isAdminOfGroup, isOwnerOfGroup } from "../../lib/admin-check.js";
 
 export function proxyRoutes(
   groupService: GroupService,
@@ -75,7 +75,10 @@ export function proxyRoutes(
    */
   app.get("/groups", async (c) => {
     const user = getUser(c);
-    const groups = await groupService.getUserGroups(user.id);
+    // ?archived=true lists the caller's archived (owned) groups for the restore UI.
+    const groups = c.req.query("archived") === "true"
+      ? await groupService.getUserArchivedGroups(user.id)
+      : await groupService.getUserGroups(user.id);
 
     // Enrich with capabilities
     const enriched = await Promise.all(groups.map(async (g) => {
@@ -260,6 +263,40 @@ export function proxyRoutes(
       admins,
       memberCount,
     });
+  });
+
+  /**
+   * POST /groups/:id/archive — soft-archive a group (owner-only).
+   * Hides it from active lists and rejects further governance mutations.
+   * All data is retained so the owner can restore it later. The VCP assembly
+   * is left untouched. Registered before the /:groupId/* catch-all so the
+   * catch-all does not intercept it.
+   */
+  app.post("/groups/:id/archive", async (c) => {
+    const id = c.req.param("id");
+    const user = getUser(c);
+    const group = await groupService.get(id);
+    if (!group) throw new NotFoundError(`Group "${id}" not found`);
+    if (!(await isOwnerOfGroup(user.id, id, groupService))) {
+      throw new ForbiddenError("Only the group owner can archive it");
+    }
+    await groupService.archive(id);
+    return c.json({ ok: true });
+  });
+
+  /**
+   * POST /groups/:id/restore — restore an archived group (owner-only).
+   */
+  app.post("/groups/:id/restore", async (c) => {
+    const id = c.req.param("id");
+    const user = getUser(c);
+    const group = await groupService.get(id);
+    if (!group) throw new NotFoundError(`Group "${id}" not found`);
+    if (!(await isOwnerOfGroup(user.id, id, groupService))) {
+      throw new ForbiddenError("Only the group owner can restore it");
+    }
+    await groupService.restore(id);
+    return c.json({ ok: true });
   });
 
   /**
@@ -533,6 +570,15 @@ export function proxyRoutes(
   app.all("/groups/:groupId/*", async (c) => {
     const user = getUser(c);
     const groupId = c.req.param("groupId");
+
+    // Reject governance mutations on archived groups. GET is still allowed so
+    // the owner can view/restore; only the owner can un-archive (see /restore).
+    if (c.req.method !== "GET") {
+      const group = await groupService.get(groupId);
+      if (group?.archivedAt) {
+        throw new ForbiddenError("This group is archived");
+      }
+    }
 
     // Resolve group → VCP assembly
     const vcpAssemblyId = await resolveVcpAssemblyId(groupId);

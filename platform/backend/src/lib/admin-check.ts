@@ -20,3 +20,17 @@ export async function isAdminOfGroup(
   if (!member) return false;
   return member.role === "admin" || member.role === "owner";
 }
+
+/**
+ * Check if a user is the owner of a group.
+ * Gates the most destructive group-level actions (e.g. archiving).
+ */
+export async function isOwnerOfGroup(
+  userId: string,
+  groupId: string,
+  groupService: GroupService,
+): Promise<boolean> {
+  const member = await groupService.getMember(groupId, userId);
+  if (!member) return false;
+  return member.role === "owner";
+}

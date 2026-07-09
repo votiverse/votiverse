@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "react-router";
+import { useParams, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useGroupRole } from "../hooks/use-group-role.js";
@@ -15,7 +15,7 @@ export function GroupSettings() {
   const { t } = useTranslation("governance");
   const { groupId } = useParams();
   const location = useLocation();
-  const { isAdmin, loading: roleLoading } = useGroupRole(groupId);
+  const { isAdmin, isOwner, loading: roleLoading } = useGroupRole(groupId);
   const { group } = useGroup(groupId);
   const { data: settingsData, loading, refetch } = useApi(() => api.getGroupSettings(groupId!), [groupId]);
 
@@ -63,7 +63,75 @@ export function GroupSettings() {
       <section id="general" className="mb-6">
         <GeneralSection groupId={groupId!} settings={settingsData} onSaved={refetch} t={t} />
       </section>
+
+      {/* Section 5: Danger zone — owner-only */}
+      {isOwner && (
+        <section id="danger" className="mb-6">
+          <DangerZone groupId={groupId!} groupName={group?.name ?? ""} t={t} />
+        </section>
+      )}
     </div>
+  );
+}
+
+// ── Danger Zone (owner-only) ─────────────────────────────────────────────
+
+function DangerZone({ groupId, groupName, t }: {
+  groupId: string;
+  groupName: string;
+  t: (key: string) => string;
+}) {
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleArchive = async () => {
+    setArchiving(true);
+    setError(null);
+    try {
+      await api.archiveGroup(groupId);
+      signal("groups"); // refresh sidebar/dashboard so the archived group disappears
+      navigate("/groups");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("settings.archiveError"));
+      setArchiving(false);
+    }
+  };
+
+  return (
+    <Card className="border-error-border">
+      <CardHeader>
+        <h2 className="font-medium text-error-text">{t("settings.dangerZone")}</h2>
+      </CardHeader>
+      <CardBody className="space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm text-text-secondary">{groupName}</p>
+            <p className="text-xs text-text-muted mt-1">{t("settings.archiveGroupDesc")}</p>
+          </div>
+          {!confirming && (
+            <Button variant="danger" size="sm" className="shrink-0" onClick={() => setConfirming(true)}>
+              {t("settings.archiveGroup")}
+            </Button>
+          )}
+        </div>
+        {error && <ErrorBox message={error} />}
+        {confirming && (
+          <div className="rounded-lg border border-error-border bg-error-subtle p-3 space-y-3">
+            <p className="text-sm text-text-secondary">{t("settings.archiveConfirm")}</p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="secondary" size="sm" disabled={archiving} onClick={() => setConfirming(false)}>
+                {t("common:cancel")}
+              </Button>
+              <Button variant="danger" size="sm" disabled={archiving} onClick={handleArchive}>
+                {archiving ? t("common:loading") : t("settings.archiveConfirmButton")}
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardBody>
+    </Card>
   );
 }
 

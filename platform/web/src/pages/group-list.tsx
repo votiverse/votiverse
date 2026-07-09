@@ -90,7 +90,8 @@ function getDefaultConfig(): ConfigDraft {
 
 export function GroupList() {
   const { t } = useTranslation("governance");
-  const { data: groups, loading, error, refetch } = useApi(() => api.listGroups());
+  const { data: groups, loading, error, refetch } = useApi(() => api.listGroups(), [], "groups");
+  const { data: archived } = useApi(() => api.listArchivedGroups(), [], "groups");
   const { pendingByGroup, groupSummaries } = useAttention();
   const activeByGroup = Object.fromEntries(groupSummaries.map((s) => [s.group.id, s.activeEventCount]));
   const [creating, setCreating] = useState(false);
@@ -145,7 +146,51 @@ export function GroupList() {
           ))}
         </div>
       )}
+
+      {archived && archived.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-3">{t("groupList.archivedTitle")}</h2>
+          <div className="space-y-3">
+            {archived.map((grp) => (
+              <Card key={grp.id} className="opacity-75">
+                <CardBody>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <GroupInitial name={grp.name} />
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-text-primary truncate">{grp.name}</h3>
+                        <p className="text-sm text-text-muted mt-0.5">{t("groupList.archivedLabel")}</p>
+                      </div>
+                    </div>
+                    <RestoreButton groupId={grp.id} t={t} />
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// ── Restore button (archived groups) ──────────────────────────────────
+
+function RestoreButton({ groupId, t }: { groupId: string; t: (key: string) => string }) {
+  const [restoring, setRestoring] = useState(false);
+  const handleRestore = async () => {
+    setRestoring(true);
+    try {
+      await api.restoreGroup(groupId);
+      signal("groups"); // refetches active + archived lists and the sidebar
+    } catch {
+      setRestoring(false);
+    }
+  };
+  return (
+    <Button variant="secondary" size="sm" className="shrink-0" disabled={restoring} onClick={handleRestore}>
+      {restoring ? t("common:loading") : t("groupList.restore")}
+    </Button>
   );
 }
 

@@ -116,6 +116,22 @@ export function getGroup(id: string): Promise<Group> {
   return request("GET", `/groups/${id}`);
 }
 
+/** List the current user's archived (owned) groups, for the restore UI. */
+export async function listArchivedGroups(): Promise<Group[]> {
+  const data = await request<{ groups: Group[] }>("GET", "/groups?archived=true");
+  return data.groups;
+}
+
+/** Soft-archive a group (owner-only). Hides it from active lists; data is retained. */
+export function archiveGroup(id: string): Promise<{ ok: boolean }> {
+  return request("POST", `/groups/${id}/archive`);
+}
+
+/** Restore a previously archived group (owner-only). */
+export function restoreGroup(id: string): Promise<{ ok: boolean }> {
+  return request("POST", `/groups/${id}/restore`);
+}
+
 export function getGroupProfile(id: string): Promise<import("./types.js").GroupProfile> {
   return request("GET", `/groups/${id}/profile`);
 }

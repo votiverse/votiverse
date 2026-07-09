@@ -27,6 +27,8 @@ export interface Group {
   createdBy: string;
   createdAt: string;
   vcpAssemblyId: string | null;
+  /** ISO timestamp when the group was soft-archived, or null if active. */
+  archivedAt: string | null;
 }
 
 export interface GroupCapability {
@@ -71,6 +73,7 @@ interface GroupRow {
   created_by: string;
   created_at: string;
   vcp_assembly_id: string | null;
+  archived_at: string | null;
 }
 
 interface CapabilityRow {
@@ -106,6 +109,7 @@ function rowToGroup(row: GroupRow): Group {
     createdBy: row.created_by,
     createdAt: row.created_at,
     vcpAssemblyId: row.vcp_assembly_id,
+    archivedAt: row.archived_at,
   };
 }
 
@@ -168,6 +172,7 @@ export class GroupService {
       createdBy: params.createdBy,
       createdAt: now,
       vcpAssemblyId: null,
+      archivedAt: null,
     };
   }
 
@@ -296,12 +301,13 @@ export class GroupService {
     return rows.map(rowToMember);
   }
 
+  /** List the user's active (non-archived) group memberships. */
   async getUserGroups(userId: string): Promise<Array<Group & { role: GroupRole; participantId: string | null; joinedAt: string }>> {
     const rows = await this.db.query<GroupRow & { role: string; participant_id: string | null; joined_at: string }>(
       `SELECT g.*, gm.role, gm.participant_id, gm.joined_at AS joined_at
        FROM groups g
        JOIN group_members gm ON g.id = gm.group_id
-       WHERE gm.user_id = ?
+       WHERE gm.user_id = ? AND g.archived_at IS NULL
        ORDER BY gm.joined_at`,
       [userId],
     );
@@ -311,6 +317,43 @@ export class GroupService {
       participantId: row.participant_id,
       joinedAt: row.joined_at,
     }));
+  }
+
+  /**
+   * List archived groups the user owns. Only owners can restore, so the
+   * restore UI only needs to surface groups the caller owns.
+   */
+  async getUserArchivedGroups(userId: string): Promise<Array<Group & { role: GroupRole; participantId: string | null; joinedAt: string }>> {
+    const rows = await this.db.query<GroupRow & { role: string; participant_id: string | null; joined_at: string }>(
+      `SELECT g.*, gm.role, gm.participant_id, gm.joined_at AS joined_at
+       FROM groups g
+       JOIN group_members gm ON g.id = gm.group_id
+       WHERE gm.user_id = ? AND gm.role = 'owner' AND g.archived_at IS NOT NULL
+       ORDER BY g.archived_at DESC`,
+      [userId],
+    );
+    return rows.map((row) => ({
+      ...rowToGroup(row),
+      role: row.role as GroupRole,
+      participantId: row.participant_id,
+      joinedAt: row.joined_at,
+    }));
+  }
+
+  /** Soft-archive a group (hides it from active lists; data is retained). Idempotent. */
+  async archive(id: string): Promise<void> {
+    await this.db.run(
+      "UPDATE groups SET archived_at = CURRENT_TIMESTAMP WHERE id = ? AND archived_at IS NULL",
+      [id],
+    );
+  }
+
+  /** Restore a previously archived group. Idempotent. */
+  async restore(id: string): Promise<void> {
+    await this.db.run(
+      "UPDATE groups SET archived_at = NULL WHERE id = ?",
+      [id],
+    );
   }
 
   async getMemberCount(groupId: string): Promise<number> {

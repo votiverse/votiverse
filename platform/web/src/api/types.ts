@@ -21,6 +21,8 @@ export interface Group {
   websiteUrl?: string | null;
   voteCreation?: VoteCreation;
   capabilities?: string[];
+  /** ISO timestamp when the group was soft-archived, or null/absent if active. */
+  archivedAt?: string | null;
 }
 
 export interface GroupRole {
