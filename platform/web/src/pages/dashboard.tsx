@@ -253,7 +253,7 @@ function DashboardContent({ participantName }: { participantName: string | null 
       {groupSummaries.length === 0 && pendingVotes.length === 0 && (
         <div className="text-center py-12">
           <p className="text-text-muted">{t("dashboard.noGroups")}</p>
-          <Link to="/groups" className="text-sm text-accent-text hover:text-accent-muted mt-2 inline-block">
+          <Link to="/groups" className="text-sm text-accent-text hover:text-accent-strong-text mt-2 inline-block">
             {t("dashboard.browseGroups")}
           </Link>
         </div>
