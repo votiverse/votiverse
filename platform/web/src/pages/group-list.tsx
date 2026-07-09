@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useAttention } from "../hooks/use-attention.js";
+import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
 import { Card, CardBody, Button, Input, Label, Select, Spinner, ErrorBox, EmptyState, Badge } from "../components/ui.js";
 import { quadrantLabel } from "../lib/presets.js";
@@ -179,6 +180,7 @@ function CreateGroupForm({ onClose, onCreated }: { onClose: () => void; onCreate
         params.preset = config.preset;
       }
       const group = await api.createGroup(params);
+      signal("groups"); // refresh sidebar memberships via useIdentity (mirrors create-group.tsx)
       onCreated();
       onClose();
       // Navigate directly to the new group's dashboard

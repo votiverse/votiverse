@@ -66,41 +66,48 @@ export function Sidebar() {
         <SidebarLink to="/" icon={Home} label={t("nav.home")} active={location.pathname === "/"} badge={totalPendingAll} />
         <SidebarLink to="/notifications" icon={Bell} label={t("nav.notifications")} active={location.pathname.startsWith("/notifications")} />
 
-        {/* Assemblies section */}
-        {memberships.length > 0 && (
-          <>
-            <div className="flex items-center justify-between px-3 mb-2 mt-6">
-              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">{t("nav.myGroups")}</span>
+        {/* Groups section — header and create button stay visible even with no groups,
+            so the user always has a clear affordance to create their first group. */}
+        <div className="flex items-center justify-between px-3 mb-2 mt-6">
+          <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">{t("nav.myGroups")}</span>
+          <Link
+            to="/groups/new"
+            className="p-0.5 text-text-tertiary hover:text-accent-text transition-colors rounded"
+            aria-label={t("nav.createGroup")}
+          >
+            <Plus size={14} />
+          </Link>
+        </div>
+        {memberships.length > 0 ? (
+          memberships.map((m) => {
+            const isActive = groupId === m.groupId;
+            const pending = pendingByGroup[m.groupId] ?? 0;
+            return (
               <Link
-                to="/groups/new"
-                className="p-0.5 text-text-tertiary hover:text-accent-text transition-colors rounded"
-                aria-label={t("nav.createGroup")}
+                key={m.groupId}
+                to={`/group/${m.groupId}`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                  isActive
+                    ? "bg-accent-subtle text-accent-text"
+                    : "text-text-secondary hover:bg-surface-sunken"
+                }`}
               >
-                <Plus size={14} />
+                <div className="w-5 h-5 rounded-md flex items-center justify-center bg-surface-sunken border border-border-default text-[10px] font-bold text-text-muted shrink-0">
+                  {m.groupName[0]}
+                </div>
+                <span className="truncate flex-1">{m.groupName}</span>
+                {pending > 0 && <BadgeDot count={pending} />}
               </Link>
-            </div>
-            {memberships.map((m) => {
-              const isActive = groupId === m.groupId;
-              const pending = pendingByGroup[m.groupId] ?? 0;
-              return (
-                <Link
-                  key={m.groupId}
-                  to={`/group/${m.groupId}`}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                    isActive
-                      ? "bg-accent-subtle text-accent-text"
-                      : "text-text-secondary hover:bg-surface-sunken"
-                  }`}
-                >
-                  <div className="w-5 h-5 rounded-md flex items-center justify-center bg-surface-sunken border border-border-default text-[10px] font-bold text-text-muted shrink-0">
-                    {m.groupName[0]}
-                  </div>
-                  <span className="truncate flex-1">{m.groupName}</span>
-                  {pending > 0 && <BadgeDot count={pending} />}
-                </Link>
-              );
-            })}
-          </>
+            );
+          })
+        ) : (
+          <Link
+            to="/groups/new"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-text-muted hover:bg-surface-sunken hover:text-accent-text transition-colors"
+          >
+            <Plus size={16} />
+            <span>{t("nav.createGroup")}</span>
+          </Link>
         )}
 
       </div>
