@@ -20,6 +20,7 @@ The repository has three layers:
 - `docs/papers/paper-i-whitepaper.md` — governance model, formal properties, design rationale
 - `docs/papers/paper-ii-self-sustaining-governance.md` — proposals, candidacies, community notes, self-sustaining governance
 - `docs/design/groups-and-capabilities.md` — **implemented**: Group entity, capabilities as layers, VCP/backend boundary, GovernanceConfig cleanup
+- `docs/design/governance-parameter-space.md` — the governance config parameter space: 10 params (delegation/ballot/timeline), 6 presets, delegation 2×2. Its visual companion `docs/research/governance-config-reference.html` is a **generated snapshot** — regenerate it from `packages/config` when the config changes; do not hand-edit.
 - `docs/design/app-design-system.md` — web UI design system: brand palette, tokens, typography, layout, components, dark mode
 - `docs/design/content-architecture.md` — design for proposals, candidacies, community notes, asset storage
 - `docs/design/candidacy-lifecycle.md` — candidacy versioning, withdrawal, note persistence principle, website URL
