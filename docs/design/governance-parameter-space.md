@@ -5,6 +5,8 @@
 
 ---
 
+> **Amendment — 2026-07-10.** Since this v1.0 redesign, the *groups-and-capabilities* refactor moved the **Features** section (§3.3) out of `GovernanceConfig` and into the backend's per-group **capability registry**. The governance config is therefore now **10 parameters across 3 sections** (delegation 2 + ballot 5 + timeline 3), not 13 across 4. Community notes, surveys, and scoring are **capabilities** (`voting | scoring | surveys | community_notes`), toggled per group; **predictions** are an always-on platform feature, not a toggle. Sections 3.3, 4.1, 5.2, and 7 are annotated inline. Current source of truth: `packages/config/src/{types,presets}.ts`; capability model: `docs/design/groups-and-capabilities.md`.
+
 ## 1. Motivation
 
 The governance configuration has grown organically. The `DelegationConfig` alone has 8 fields, the `BallotConfig` has 8 more, `FeatureConfig` has 8, plus thresholds and topics. Many of these parameters are implementation tuning disguised as governance choices, and several are not orthogonal — they conflate independent concerns or represent derived values that shouldn't be configured directly.
@@ -68,7 +70,7 @@ This is not configurable because there's no principled reason to restrict it. If
 
 ## 3. The Minimal Parameter Space
 
-The full governance configuration is reduced to 13 parameters across 4 sections. Every parameter represents a governance decision that a group creator can understand and reason about.
+The full governance configuration is reduced to **10 parameters across 3 sections** — delegation (2), ballot (5), timeline (3). Every parameter represents a governance decision that a group creator can understand and reason about. *(As originally designed this was 13 across 4; the Features section in §3.3 has since moved to the backend capability registry — see the amendment above.)*
 
 ### 3.1 Delegation (2 parameters)
 
@@ -128,7 +130,9 @@ These five parameters interact to produce recognizable voting patterns:
 - Delegate vote visibility: delegates are always accountable to their delegators — when delegation exists, a delegator can see how their delegate voted, regardless of ballot secrecy. This is a structural property of delegation, not a configuration choice.
 - Participation mode: always voluntary. Mandatory voting is a rare institutional requirement that can be added later if needed.
 
-### 3.3 Features (3 parameters)
+### 3.3 Features (superseded — now backend capabilities)
+
+> **Superseded 2026-07-10.** `FeatureConfig` was removed from `GovernanceConfig`. Community notes and surveys are now **capabilities** in the backend's `group_capabilities` registry (alongside `voting` and `scoring`), toggled per group and checked by the backend before proxying to the VCP. **Predictions** became an always-on platform feature (no toggle). The original design is preserved below for rationale.
 
 ```typescript
 interface FeatureConfig {
@@ -178,7 +182,7 @@ Timeline is unchanged from the current design but is surfaced differently in the
 
 ## 4. Named Presets
 
-Presets are named points in the 13-parameter space. Each represents a genuinely different governance philosophy — not a parameter tweak.
+Presets are named points in the parameter space (originally 13; **now 10** — see §3.3). Each represents a genuinely different governance philosophy — not a parameter tweak.
 
 ### 4.1 Preset table
 
@@ -190,6 +194,8 @@ Presets are named points in the 13-parameter space. Each represents a genuinely 
 | `LIQUID_OPEN` | Liquid Open | false | true | false | true | true | 10% | majority | off | off | off | 5 | 0 | 5 |
 | `REPRESENTATIVE` | Representative | true | false | true | false | true | 50% | majority | off | off | off | 3 | 0 | 3 |
 | `CIVIC` | Civic Participatory | true | true | true | false | true | 10% | majority | on | on | on | 14 | 3 | 14 |
+
+> **Note (2026-07-10):** the **notes**, **predictions**, and **surveys** columns predate the capabilities refactor. They are no longer part of `GovernanceConfig` and are **not** set by presets — they describe each preset's *original* intent. Today notes and surveys are per-group **capabilities** and predictions are always on. The remaining columns (delegation, ballot, timeline) are the current 10-parameter config and match `presets.ts` exactly.
 
 ### 4.2 Preset rationale
 
@@ -239,9 +245,9 @@ The customization modal ("Customize rules") loses the Timeline section (moved to
 1. **Preset selector** — dropdown with the 6 presets, each with a one-line description
 2. **Delegation** — candidacy toggle, transferable toggle
 3. **Ballot** — secret toggle, live results toggle, vote change toggle, quorum slider, method selector
-4. **Features** — community notes toggle, predictions toggle, surveys toggle
+4. **Capabilities** *(separate from the governance rules)* — community notes, surveys, and scoring toggles (predictions are always on)
 
-This is 13 parameters total: 2 + 5 + 3 + 3 (timeline in main form). Each one has a clear label and a binary or simple-value control. No nested sub-sections, no conditional fields (like supermajority threshold appearing only when supermajority is selected).
+This is **10 governance parameters** total: 2 + 5 + 3 (timeline in main form). The former **Features** row is now the **Capabilities** toggle above, managed separately from the governance rules. Each parameter has a clear label and a binary or simple-value control. No nested sub-sections, no conditional fields (like supermajority threshold appearing only when supermajority is selected).
 
 ---
 
@@ -275,9 +281,9 @@ Config validation enforces the single constraint: there are no invalid parameter
 
 ## 7. What Researchers Can Do
 
-The 13-parameter space is small enough to enumerate but expressive enough for meaningful experiments. Every combination is valid — there are no invalid states.
+The parameter space is small enough to enumerate but expressive enough for meaningful experiments. Every combination is valid — there are no invalid states.
 
-The parameter space produces `2 × 2 × 2 × 2 × 2 × continuous × 2 × 2 × 2 × 2 × continuous × continuous × continuous = 512 discrete combinations × continuous ranges` for the boolean/enum params alone.
+The governance config (post-refactor) has **5 booleans × 1 two-value method enum = 64 discrete combinations**, multiplied by the continuous `quorum` and the three timeline ranges. *(The original 13-parameter figure was 512 — it counted the three feature booleans, now backend capabilities. Varying capabilities independently multiplies the surface further.)*
 
 Some research-relevant configurations not covered by named presets:
 
@@ -326,3 +332,4 @@ The name describes the mechanism, not the aspiration. The mechanism is what make
 | Rename BOARD_PROXY → REPRESENTATIVE | The proxy model applies broadly (unions, HOAs, committees), not just boards. |
 | Timeline in main form, not in customization modal | Timeline is operational ("how long?"), not structural ("how does it work?"). Different kind of setting, deserves direct access. |
 | Removed presets are parameter tweaks, not philosophies | Each surviving preset occupies a distinct position in the delegation 2×2 grid or represents a meaningfully different deliberation structure. |
+| **Move Features out of `GovernanceConfig` (2026-07-10)** | The groups-and-capabilities refactor made community notes / surveys / scoring backend **capabilities** and predictions always-on. Governance config dropped from 13 → 10 parameters across 3 sections. |
