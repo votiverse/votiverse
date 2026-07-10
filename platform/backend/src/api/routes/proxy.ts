@@ -627,6 +627,16 @@ export function proxyRoutes(
           }
         }
       }
+      // Event/issue cancellation: always admin-only. The VCP cancel routes only
+      // verify participant identity, so the authorization gate lives here.
+      if (
+        /^\/events\/[^/]+\/cancel\/?$/.test(subpath) ||
+        /^\/events\/[^/]+\/issues\/[^/]+\/cancel\/?$/.test(subpath)
+      ) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
+          throw new ForbiddenError("Only admins can cancel votes in this group");
+        }
+      }
       // Topic creation: always admin-only
       if (/^\/topics\/?$/.test(subpath)) {
         if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
