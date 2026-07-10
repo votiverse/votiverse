@@ -637,6 +637,13 @@ export function proxyRoutes(
           throw new ForbiddenError("Only admins can cancel votes in this group");
         }
       }
+      // Adding questions to an existing vote: always admin-only. (Distinct from
+      // the issue-cancel subpath, which has a trailing /:iid/cancel.)
+      if (/^\/events\/[^/]+\/issues\/?$/.test(subpath)) {
+        if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
+          throw new ForbiddenError("Only admins can add questions to a vote in this group");
+        }
+      }
       // Topic creation: always admin-only
       if (/^\/topics\/?$/.test(subpath)) {
         if (!(await isAdminOfGroup(user.id, groupId, groupService))) {
