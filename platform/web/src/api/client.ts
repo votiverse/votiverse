@@ -279,6 +279,15 @@ export function cancelEvent(
   return request("POST", `/groups/${groupId}/events/${eventId}/cancel`, { reason });
 }
 
+/** Add one or more questions to a voting event before voting opens (admin-only). */
+export function addIssues(
+  groupId: string,
+  eventId: string,
+  issues: Array<{ title: string; description: string; topicId: string | null; choices?: string[] }>,
+): Promise<VotingEvent> {
+  return request("POST", `/groups/${groupId}/events/${eventId}/issues`, { issues });
+}
+
 // ---- Topics ----
 
 export function listTopics(groupId: string): Promise<{ topics: Topic[] }> {

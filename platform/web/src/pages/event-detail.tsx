@@ -9,9 +9,10 @@ import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-statu
 import { useAttention } from "../hooks/use-attention.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
-import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy, Delegation } from "../api/types.js";
-import { Lock, ChevronLeft, Ban } from "lucide-react";
+import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy, Delegation, Topic } from "../api/types.js";
+import { Lock, ChevronLeft, Ban, Plus } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
+import { IssueListEditor, newIssueDraft, issueDraftToApi, type IssueDraft } from "../components/issue-list-editor.js";
 import { deriveEventStatus } from "../lib/status.js";
 import { formatDateTime } from "../lib/format.js";
 import { Card, CardHeader, CardBody, Button, Spinner, ErrorBox, Badge, Tooltip } from "../components/ui.js";
@@ -303,7 +304,110 @@ export function EventDetail() {
           );
         })}
       </div>
+
+      {/* Admin: add questions to the vote before it opens */}
+      {isAdmin && !event.cancelled && status !== "voting" && status !== "closed" && (
+        <AddIssuesControl
+          groupId={groupId!}
+          eventId={eventId!}
+          topics={topicsData?.topics ?? []}
+          inCuration={deriveEventStatus(event.timeline, group?.config.timeline) === "curation"}
+          onAdded={() => {
+            refetch();
+            refetchTally();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Admin: add questions to a voting event before it opens ────────────
+function AddIssuesControl({
+  groupId,
+  eventId,
+  topics,
+  inCuration,
+  onAdded,
+}: {
+  groupId: string;
+  eventId: string;
+  topics: Topic[];
+  inCuration: boolean;
+  onAdded: () => void;
+}) {
+  const { t } = useTranslation("governance");
+  const [open, setOpen] = useState(false);
+  const [issues, setIssues] = useState<IssueDraft[]>([newIssueDraft()]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const topicOptions = useMemo(() => {
+    const parentMap = new Map(topics.map((tp) => [tp.id, tp]));
+    return [...topics]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((tp) => ({
+        id: tp.id,
+        label: tp.parentId ? `${parentMap.get(tp.parentId)?.name ?? ""} › ${tp.name}` : tp.name,
+      }));
+  }, [topics]);
+
+  const canSubmit = issues.every((i) => i.title.trim());
+
+  const submit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.addIssues(groupId, eventId, issues.map(issueDraftToApi));
+      signal("attention");
+      onAdded();
+      setOpen(false);
+      setIssues([newIssueDraft()]);
+    } catch (err) {
+      setError(err instanceof api.ApiError ? err.message : t("eventDetail.addIssuesError"));
+      setSubmitting(false);
+    }
+  };
+
+  const reset = () => {
+    setOpen(false);
+    setIssues([newIssueDraft()]);
+    setError(null);
+  };
+
+  if (!open) {
+    return (
+      <div className="mt-4">
+        <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+          <Plus size={15} className="mr-1.5" />
+          {t("eventDetail.addQuestions")}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Card className="mt-4">
+      <CardBody className="space-y-3">
+        <h3 className="font-medium text-text-primary">{t("eventDetail.addQuestions")}</h3>
+        {inCuration && (
+          <p className="text-sm text-warning-text bg-warning-subtle border border-warning-border rounded-lg px-3 py-2">
+            {t("eventDetail.addDuringCurationWarning")}
+          </p>
+        )}
+        <IssueListEditor issues={issues} onChange={setIssues} topicOptions={topicOptions} />
+        {error && <p className="text-sm text-error-text">{error}</p>}
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="secondary" size="sm" disabled={submitting} onClick={reset}>
+            {t("common:cancel")}
+          </Button>
+          <Button size="sm" disabled={submitting || !canSubmit} onClick={submit}>
+            {submitting ? t("common:loading") : t("eventDetail.addQuestionsButton")}
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 

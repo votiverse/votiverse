@@ -7,8 +7,9 @@ import { useGroup } from "../hooks/use-group.js";
 import { useGroupRole } from "../hooks/use-group-role.js";
 import * as api from "../api/client.js";
 import type { VotingEvent } from "../api/types.js";
-import { Card, CardBody, Button, Input, Select, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
-import { X, ChevronRight } from "lucide-react";
+import { Card, CardBody, Button, Input, Label, Spinner, ErrorBox, EmptyState, Badge, StatusBadge } from "../components/ui.js";
+import { ChevronRight } from "lucide-react";
+import { IssueListEditor, newIssueDraft, issueDraftToApi, type IssueDraft } from "../components/issue-list-editor.js";
 import { Countdown } from "../components/countdown.js";
 import { deriveEventStatus } from "../lib/status.js";
 
@@ -176,18 +177,6 @@ function EventCard({ groupId, event: evt, history, timelineConfig }: { groupId: 
   );
 }
 
-interface IssueDraft {
-  title: string;
-  description: string;
-  topicId: string | null;
-  voteType: "binary" | "choices";
-  choices: string[];
-}
-
-function newIssueDraft(): IssueDraft {
-  return { title: "", description: "", topicId: null, voteType: "binary", choices: ["", ""] };
-}
-
 function CreateEventForm({ groupId, onClose, onCreated }: { groupId: string; onClose: () => void; onCreated: () => void }) {
   const { t } = useTranslation("governance");
   const [title, setTitle] = useState("");
@@ -217,32 +206,6 @@ function CreateEventForm({ groupId, onClose, onCreated }: { groupId: string; onC
       }));
   }, [topics]);
 
-  const addIssue = () => setIssues([...issues, newIssueDraft()]);
-  const removeIssue = (idx: number) => {
-    if (issues.length <= 1) return;
-    setIssues(issues.filter((_, i) => i !== idx));
-  };
-  const updateIssue = <K extends keyof IssueDraft>(idx: number, field: K, value: IssueDraft[K]) => {
-    setIssues(issues.map((issue, i) => (i === idx ? { ...issue, [field]: value } : issue)));
-  };
-  const updateChoice = (issueIdx: number, choiceIdx: number, value: string) => {
-    setIssues(issues.map((issue, i) => {
-      if (i !== issueIdx) return issue;
-      const choices = [...issue.choices];
-      choices[choiceIdx] = value;
-      return { ...issue, choices };
-    }));
-  };
-  const addChoice = (issueIdx: number) => {
-    setIssues(issues.map((issue, i) => (i === issueIdx ? { ...issue, choices: [...issue.choices, ""] } : issue)));
-  };
-  const removeChoice = (issueIdx: number, choiceIdx: number) => {
-    setIssues(issues.map((issue, i) => {
-      if (i !== issueIdx || issue.choices.length <= 2) return issue;
-      return { ...issue, choices: issue.choices.filter((_, ci) => ci !== choiceIdx) };
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || issues.some((i) => !i.title.trim())) return;
@@ -256,12 +219,7 @@ function CreateEventForm({ groupId, onClose, onCreated }: { groupId: string; onC
       await api.createEvent(groupId, {
         title: title.trim(),
         description: description.trim(),
-        issues: issues.map((i) => ({
-          title: i.title.trim(),
-          description: i.description.trim(),
-          topicId: i.topicId,
-          ...(i.voteType === "choices" ? { choices: i.choices.map((c) => c.trim()).filter(Boolean) } : {}),
-        })),
+        issues: issues.map(issueDraftToApi),
         eligibleParticipantIds: participants.map((p) => p.id),
         startDate: start,
       });
@@ -294,90 +252,7 @@ function CreateEventForm({ groupId, onClose, onCreated }: { groupId: string; onC
           {/* Issues */}
           <div>
             <Label>{t("eventsList.issuesLabel")}</Label>
-            <div className="space-y-4">
-              {issues.map((issue, idx) => (
-                <div key={idx} className="border border-border-default rounded-xl p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-text-muted">{t("eventsList.issueNumber", { n: idx + 1 })}</span>
-                    {issues.length > 1 && (
-                      <button type="button" onClick={() => removeIssue(idx)} className="ml-auto text-text-tertiary hover:text-error-text">
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  <Input
-                    value={issue.title}
-                    onChange={(e) => updateIssue(idx, "title", e.target.value)}
-                    placeholder={t("eventsList.issueTitlePlaceholder")}
-                  />
-                  <Input
-                    value={issue.description}
-                    onChange={(e) => updateIssue(idx, "description", e.target.value)}
-                    placeholder={t("eventsList.descOptionalPlaceholder")}
-                  />
-
-                  {/* Topic selector */}
-                  {topicOptions.length > 0 && (
-                    <Select
-                      value={issue.topicId ?? ""}
-                      onChange={(e) => updateIssue(idx, "topicId", e.target.value || null)}
-                    >
-                      <option value="">{t("eventsList.noTopic")}</option>
-                      {topicOptions.map((tp) => (
-                        <option key={tp.id} value={tp.id}>{tp.label}</option>
-                      ))}
-                    </Select>
-                  )}
-
-                  {/* Vote type */}
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={issue.voteType === "binary"}
-                        onChange={() => updateIssue(idx, "voteType", "binary")}
-                      />
-                      {t("eventsList.forAgainst")}
-                    </label>
-                    <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={issue.voteType === "choices"}
-                        onChange={() => updateIssue(idx, "voteType", "choices")}
-                      />
-                      {t("eventsList.multipleChoice")}
-                    </label>
-                  </div>
-
-                  {/* Custom choices */}
-                  {issue.voteType === "choices" && (
-                    <div className="space-y-1.5 ml-4">
-                      {issue.choices.map((choice, ci) => (
-                        <div key={ci} className="flex items-center gap-1.5">
-                          <Input
-                            value={choice}
-                            onChange={(e) => updateChoice(idx, ci, e.target.value)}
-                            placeholder={t("eventsList.choicePlaceholder", { n: ci + 1 })}
-                            className="flex-1"
-                          />
-                          {issue.choices.length > 2 && (
-                            <button type="button" onClick={() => removeChoice(idx, ci)} className="text-text-tertiary hover:text-error-text p-1">
-                              <X size={14} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      <button type="button" onClick={() => addChoice(idx)} className="text-xs text-accent-text hover:text-accent-text">
-                        {t("eventsList.addChoice")}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-              <button type="button" onClick={addIssue} className="text-sm text-accent-text hover:text-accent-text min-h-[44px] sm:min-h-0 flex items-center">
-                {t("eventsList.addIssue")}
-              </button>
-            </div>
+            <IssueListEditor issues={issues} onChange={setIssues} topicOptions={topicOptions} />
           </div>
 
           {/* Start time */}
