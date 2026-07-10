@@ -3,7 +3,7 @@
  */
 
 import { Hono } from "hono";
-import type { ParticipantId, TopicId, IssueId } from "@votiverse/core";
+import type { ParticipantId, TopicId, IssueId, VotingEventId } from "@votiverse/core";
 import { timestamp } from "@votiverse/core";
 import type { VotiverseEngine } from "@votiverse/engine";
 import type { AssemblyManager } from "../../engine/assembly-manager.js";
@@ -72,6 +72,7 @@ function buildEventResponse(engine: VotiverseEngine, e: VotingEventLike) {
     issueIds: e.issueIds,
     issues: e.issueIds.map((id) => buildIssueResponse(engine, id)),
     eligibleParticipantIds: e.eligibleParticipantIds,
+    cancelled: engine.events.isEventCancelled(e.id as VotingEventId),
     timeline: {
       deliberationStart: new Date(e.timeline.deliberationStart).toISOString(),
       votingStart: new Date(e.timeline.votingStart).toISOString(),
@@ -242,6 +243,50 @@ export function eventRoutes(manager: AssemblyManager) {
       );
 
       return c.json({ ok: true, issueId: iid, cancelled: true });
+    },
+  );
+
+  /** POST /assemblies/:id/events/:eid/cancel — cancel an entire voting event. */
+  app.post(
+    "/assemblies/:id/events/:eid/cancel",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const eid = c.req.param("eid");
+      const participantId = getParticipantId(c);
+
+      if (!participantId) {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: "Participant identity is required" } },
+          400,
+        );
+      }
+
+      const body = await c.req.json<{ reason: string }>();
+      if (!body.reason) {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: "reason is required" } },
+          400,
+        );
+      }
+
+      const { engine } = await manager.getEngine(assemblyId);
+
+      const votingEvent = engine.events.get(eid as VotingEventId);
+      if (!votingEvent) {
+        return c.json(
+          { error: { code: "NOT_FOUND", message: `Voting event "${eid}" not found` } },
+          404,
+        );
+      }
+
+      await engine.events.cancelEvent(
+        eid as VotingEventId,
+        participantId as ParticipantId,
+        body.reason,
+      );
+
+      return c.json({ ok: true, eventId: eid, cancelled: true });
     },
   );
 
