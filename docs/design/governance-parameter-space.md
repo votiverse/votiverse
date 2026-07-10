@@ -7,6 +7,8 @@
 
 > **Amendment — 2026-07-10.** Since this v1.0 redesign, the *groups-and-capabilities* refactor moved the **Features** section (§3.3) out of `GovernanceConfig` and into the backend's per-group **capability registry**. The governance config is therefore now **10 parameters across 3 sections** (delegation 2 + ballot 5 + timeline 3), not 13 across 4. Community notes, surveys, and scoring are **capabilities** (`voting | scoring | surveys | community_notes`), toggled per group; **predictions** are an always-on platform feature, not a toggle. Sections 3.3, 4.1, 5.2, and 7 are annotated inline. Current source of truth: `packages/config/src/{types,presets}.ts`; capability model: `docs/design/groups-and-capabilities.md`.
 
+*Visual companion: a rendered, at-a-glance version of this parameter space — the 10 parameters, the full preset matrix, the delegation 2×2, and capabilities — is tracked at [`docs/research/governance-config-reference.html`](../research/governance-config-reference.html) (open in a browser).*
+
 ## 1. Motivation
 
 The governance configuration has grown organically. The `DelegationConfig` alone has 8 fields, the `BallotConfig` has 8 more, `FeatureConfig` has 8, plus thresholds and topics. Many of these parameters are implementation tuning disguised as governance choices, and several are not orthogonal — they conflate independent concerns or represent derived values that shouldn't be configured directly.

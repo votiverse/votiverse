@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Generated reference. Source of truth: packages/config/src/{types,presets}.ts + docs/design/governance-parameter-space.md -->
+<title>Votiverse — Governance Configuration Reference</title>
+<style>
+  :root {
+    --paper:#F5F7F6; --card:#FFFFFF; --card-2:#FBFCFB;
+    --ink:#14201D; --ink-soft:#3B4B47; --ink-faint:#6E7E79;
+    --line:#DCE4E0; --line-soft:#EAEFEC;
+    --accent:#0E7B6C; --accent-ink:#0A5A4F; --accent-soft:#E4F0ED;
+    --brass:#8F6427; --good:#2E7D5B; --warn:#B4791F;
+    --shadow:0 1px 2px rgba(20,32,29,.04), 0 8px 24px -12px rgba(20,32,29,.10);
+    --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#0E1513; --card:#151F1C; --card-2:#111917;
+      --ink:#E7ECE9; --ink-soft:#AEBAB5; --ink-faint:#7C8A85;
+      --line:#25332E; --line-soft:#1B2622;
+      --accent:#45B9A7; --accent-ink:#8CD8CC; --accent-soft:#14302B;
+      --brass:#C79A5A; --good:#5FB98C; --warn:#D6A94E;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0E1513; --card:#151F1C; --card-2:#111917;
+    --ink:#E7ECE9; --ink-soft:#AEBAB5; --ink-faint:#7C8A85;
+    --line:#25332E; --line-soft:#1B2622;
+    --accent:#45B9A7; --accent-ink:#8CD8CC; --accent-soft:#14302B;
+    --brass:#C79A5A; --good:#5FB98C; --warn:#D6A94E;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+  }
+  :root[data-theme="light"] {
+    --paper:#F5F7F6; --card:#FFFFFF; --card-2:#FBFCFB;
+    --ink:#14201D; --ink-soft:#3B4B47; --ink-faint:#6E7E79;
+    --line:#DCE4E0; --line-soft:#EAEFEC;
+    --accent:#0E7B6C; --accent-ink:#0A5A4F; --accent-soft:#E4F0ED;
+    --brass:#8F6427; --good:#2E7D5B; --warn:#B4791F;
+    --shadow:0 1px 2px rgba(20,32,29,.04), 0 8px 24px -12px rgba(20,32,29,.10);
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:980px; margin:0 auto; padding:clamp(28px,5vw,72px) clamp(18px,4vw,40px) 80px; }
+
+  /* ---- rhythm ---- */
+  section { margin-top:64px; }
+  section:first-of-type { margin-top:0; }
+  .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--accent); font-weight:600; margin:0 0 10px; }
+  h1 { font-family:var(--serif); font-weight:600; font-size:clamp(30px,5vw,46px);
+    line-height:1.05; letter-spacing:-.01em; margin:0 0 14px; text-wrap:balance; }
+  h2 { font-family:var(--serif); font-weight:600; font-size:clamp(22px,3.2vw,29px);
+    line-height:1.12; margin:0 0 6px; text-wrap:balance; letter-spacing:-.005em; }
+  h3 { font-family:var(--serif); font-weight:600; font-size:18px; margin:0 0 4px; }
+  p { margin:0 0 14px; max-width:68ch; color:var(--ink-soft); }
+  .lede { font-size:clamp(17px,2.2vw,20px); color:var(--ink-soft); max-width:64ch; }
+  .lede strong { color:var(--ink); font-weight:600; }
+  .kicker { color:var(--ink-faint); font-size:14px; max-width:70ch; margin-top:4px; }
+  a { color:var(--accent-ink); text-underline-offset:2px; }
+  code, .mono { font-family:var(--mono); font-size:.86em; }
+  em.term { font-style:normal; color:var(--ink); font-weight:600; }
+
+  /* ---- masthead ---- */
+  .mast { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:8px; }
+  .mast .mark { font-family:var(--mono); font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--ink-faint); }
+  .mast .dot { width:7px; height:7px; border-radius:50%; background:var(--accent);
+    display:inline-block; margin-right:7px; vertical-align:middle; }
+
+  /* ---- generic card ---- */
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow); }
+
+  /* ---- param groups ---- */
+  .params { display:grid; gap:16px; margin-top:22px; }
+  .pgroup { padding:20px 22px; }
+  .pgroup > header { display:flex; align-items:baseline; justify-content:space-between;
+    gap:12px; border-bottom:1px solid var(--line-soft); padding-bottom:10px; margin-bottom:4px; }
+  .pgroup > header .n { font-family:var(--mono); font-size:12px; color:var(--ink-faint); }
+  .prow { display:grid; grid-template-columns:minmax(150px,1.1fr) minmax(120px,.9fr) 2.4fr;
+    gap:8px 18px; padding:12px 0; border-bottom:1px solid var(--line-soft); align-items:baseline; }
+  .prow:last-child { border-bottom:0; }
+  .prow .pname { font-family:var(--mono); font-weight:600; color:var(--ink); font-size:14px; }
+  .prow .ptype { font-family:var(--mono); font-size:12.5px; color:var(--accent-ink); }
+  .prow .pdesc { color:var(--ink-soft); font-size:14.5px; }
+  .prow .pdesc b { color:var(--ink); font-weight:600; }
+  .derived { margin-top:14px; padding:12px 16px; background:var(--card-2);
+    border:1px dashed var(--line); border-radius:10px; font-size:13.5px; color:var(--ink-faint); }
+  .derived b { color:var(--ink-soft); }
+
+  /* ---- 2x2 grid ---- */
+  .grid2 { display:grid; grid-template-columns:auto 1fr 1fr; grid-template-rows:auto 1fr 1fr;
+    gap:10px; margin-top:20px; align-items:stretch; }
+  .grid2 .axis { display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-faint); text-align:center; }
+  .grid2 .axis.side { writing-mode:vertical-rl; transform:rotate(180deg); }
+  .grid2 .corner { }
+  .quad { padding:14px 15px; border-radius:12px; border:1px solid var(--line);
+    background:var(--card); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:5px; }
+  .quad.on { border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
+    background:linear-gradient(180deg, var(--accent-soft), var(--card)); }
+  .quad .qname { font-family:var(--serif); font-weight:600; font-size:16px; color:var(--ink); }
+  .quad .qmeta { font-family:var(--mono); font-size:11px; color:var(--accent-ink); }
+  .quad .qdesc { font-size:13px; color:var(--ink-soft); }
+  .quad .qtag { margin-top:auto; font-size:11.5px; color:var(--ink-faint); font-family:var(--mono); }
+
+  /* ---- matrix table ---- */
+  .scroll { overflow-x:auto; margin-top:22px; border:1px solid var(--line);
+    border-radius:14px; box-shadow:var(--shadow); background:var(--card); }
+  table.matrix { border-collapse:collapse; width:100%; min-width:840px; font-size:13.5px; }
+  table.matrix th, table.matrix td { padding:11px 12px; text-align:center;
+    border-bottom:1px solid var(--line-soft); white-space:nowrap; }
+  table.matrix thead th { position:sticky; top:0; background:var(--card);
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-faint); font-weight:600; border-bottom:1px solid var(--line); z-index:1; }
+  table.matrix tbody th { text-align:left; }
+  table.matrix .preset { position:sticky; left:0; background:var(--card); text-align:left;
+    min-width:180px; z-index:1; }
+  table.matrix tbody tr:hover td, table.matrix tbody tr:hover .preset { background:var(--card-2); }
+  .pk { font-family:var(--serif); font-weight:600; font-size:15px; color:var(--ink); display:block; }
+  .pkk { font-family:var(--mono); font-size:11px; color:var(--accent-ink); }
+  .num { font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--ink); }
+  .on-dot, .off-dot { display:inline-block; width:11px; height:11px; border-radius:50%; }
+  .on-dot { background:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .off-dot { background:transparent; border:1.5px solid var(--line); }
+  .scale-cell { text-align:left !important; white-space:normal !important;
+    color:var(--ink-soft); font-size:12.5px; min-width:200px; }
+  .quadchip { font-family:var(--mono); font-size:10.5px; color:var(--accent-ink);
+    background:var(--accent-soft); padding:2px 7px; border-radius:20px; white-space:nowrap; }
+
+  .legend { display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; font-size:12.5px;
+    color:var(--ink-faint); font-family:var(--mono); }
+  .legend span { display:inline-flex; align-items:center; gap:7px; }
+
+  /* ---- rationale cards ---- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:14px; margin-top:22px; }
+  .rcard { padding:16px 18px; }
+  .rcard h3 { display:flex; align-items:baseline; gap:8px; }
+  .rcard .rk { font-family:var(--mono); font-size:11px; color:var(--accent-ink); font-weight:600; }
+  .rcard p { font-size:13.5px; margin-bottom:0; }
+  .rcard .use { margin-top:9px; font-size:12.5px; color:var(--ink-faint); }
+  .rcard .use b { color:var(--ink-soft); font-weight:600; }
+  .rcard.default { border-color:color-mix(in srgb, var(--accent) 40%, var(--line)); }
+  .badge { font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent-ink); background:var(--accent-soft); padding:2px 7px; border-radius:20px; }
+
+  /* ---- pattern + capability tables ---- */
+  .plain { width:100%; border-collapse:collapse; margin-top:18px; font-size:14px; }
+  .plain th, .plain td { text-align:left; padding:11px 14px; border-bottom:1px solid var(--line-soft); }
+  .plain thead th { font-family:var(--mono); font-size:10.5px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .plain td.mono, .plain th.mono { font-family:var(--mono); font-size:12.5px; }
+  .plain .patt { font-family:var(--serif); font-weight:600; color:var(--ink); font-size:15px; }
+
+  .capgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:12px; margin-top:20px; }
+  .cap { padding:15px 16px; }
+  .cap .ck { font-family:var(--mono); font-size:12px; color:var(--accent-ink); font-weight:600; }
+  .cap h3 { margin:5px 0 4px; }
+  .cap p { font-size:13px; margin:0; }
+  .note-inline { display:inline-block; margin-top:6px; font-size:11.5px; color:var(--brass);
+    font-family:var(--mono); }
+
+  /* ---- research ---- */
+  .research .plain td:first-child { font-family:var(--mono); font-size:12.5px; color:var(--ink); }
+  .qbig { font-family:var(--serif); font-size:clamp(20px,3vw,26px); color:var(--ink);
+    border-left:3px solid var(--accent); padding:2px 0 2px 16px; margin:18px 0; max-width:60ch;
+    line-height:1.25; font-weight:600; }
+  .statline { display:flex; gap:26px; flex-wrap:wrap; margin-top:18px; }
+  .stat { }
+  .stat .v { font-family:var(--serif); font-size:30px; font-weight:600; color:var(--ink);
+    font-variant-numeric:tabular-nums; }
+  .stat .l { font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--ink-faint); }
+
+  footer { margin-top:72px; padding-top:22px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-faint); }
+  footer code { color:var(--ink-soft); }
+  footer .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+  @media (max-width:620px) {
+    .prow { grid-template-columns:1fr; gap:2px; padding:14px 0; }
+    .prow .ptype { margin-bottom:4px; }
+    .grid2 { grid-template-columns:auto 1fr; grid-template-rows:auto auto auto auto auto; }
+    .grid2 .axis.top-span { grid-column:2 / 3; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="mast">
+    <span class="mark"><span class="dot"></span>Votiverse · Engine reference</span>
+    <span class="mark" style="margin-left:auto">@votiverse/config</span>
+  </div>
+
+  <section>
+    <p class="eyebrow">Governance configuration</p>
+    <h1>Every knob a group can turn — and which ones fit which scale.</h1>
+    <p class="lede">A Votiverse group governs itself through a <strong>10‑parameter</strong> configuration plus a set of toggleable capabilities. The parameters are deliberately few and fully orthogonal: every combination is valid, so the space doubles as an experiment surface — vary one axis, hold the rest, observe what changes.</p>
+    <p class="kicker">Governance rules live in <code>GovernanceConfig</code> (delegation · ballot · timeline). Capabilities (voting, scoring, surveys, community notes) are separate, per‑group toggles owned by the backend. Predictions are a platform feature, always on. Six named presets are curated points in the space; any of them can be customized.</p>
+  </section>
+
+  <!-- PARAMETERS -->
+  <section>
+    <p class="eyebrow">The parameter space</p>
+    <h2>10 parameters, 3 groups</h2>
+    <p>Each parameter is a governance <em class="term">decision</em> a group creator can reason about — not an implementation dial. Defaults shown are from the recommended default preset, <span class="mono">LIQUID_DELEGATION</span>.</p>
+
+    <div class="params">
+      <div class="card pgroup">
+        <header><h3>Delegation</h3><span class="n">2 · booleans</span></header>
+        <div class="prow">
+          <span class="pname">candidacy</span><span class="ptype">boolean · def true</span>
+          <span class="pdesc">Formal candidate declaration. When <b>on</b>, members can declare as candidates, publish profiles, and appear in delegate discovery. In proxy mode (transferable off), only declared candidates can receive delegations.</span>
+        </div>
+        <div class="prow">
+          <span class="pname">transferable</span><span class="ptype">boolean · def true</span>
+          <span class="pdesc">Transitive delegation. When <b>on</b>, voting power flows through chains (A→B→C means C carries A's weight). When <b>off</b> with candidacy on, delegation is a single hop — classic proxy.</span>
+        </div>
+        <div class="derived"><b>Derived, not configured:</b> delegation exists when <span class="mono">candidacy || transferable</span> · topic‑ and issue‑scoped delegation are always available · chain depth is unlimited when transferable, 1 hop in proxy mode · delegations are always revocable.</div>
+      </div>
+
+      <div class="card pgroup">
+        <header><h3>Ballot</h3><span class="n">5 · how votes are counted &amp; seen</span></header>
+        <div class="prow">
+          <span class="pname">secret</span><span class="ptype">boolean · def true</span>
+          <span class="pdesc">Are individual votes hidden from other members?</span>
+        </div>
+        <div class="prow">
+          <span class="pname">liveResults</span><span class="ptype">boolean · def false</span>
+          <span class="pdesc">Are aggregate tallies visible <b>while voting is still open</b>? (Sealed results prevent bandwagon effects.)</span>
+        </div>
+        <div class="prow">
+          <span class="pname">allowVoteChange</span><span class="ptype">boolean · def true</span>
+          <span class="pdesc">Can participants change their vote during the voting period?</span>
+        </div>
+        <div class="prow">
+          <span class="pname">quorum</span><span class="ptype">number 0–1 · def 0.1</span>
+          <span class="pdesc">Minimum fraction of members who must vote for the result to be valid. <b>0</b> = no quorum.</span>
+        </div>
+        <div class="prow">
+          <span class="pname">method</span><span class="ptype">enum · def "majority"</span>
+          <span class="pdesc"><b>majority</b> or <b>supermajority</b>. The supermajority threshold defaults to <span class="mono">2/3</span>.</span>
+        </div>
+        <div class="derived"><b>Derived, not configured:</b> delegates are always accountable to their delegators — a delegator can see how their delegate voted regardless of ballot secrecy · participation is always voluntary.</div>
+      </div>
+
+      <div class="card pgroup">
+        <header><h3>Timeline</h3><span class="n">3 · phase durations, in days</span></header>
+        <div class="prow">
+          <span class="pname">deliberationDays</span><span class="ptype">int ≥ 1 · def 7</span>
+          <span class="pdesc">Proposals are submitted, endorsed, and community‑noted. Issues can be added or cancelled in this phase.</span>
+        </div>
+        <div class="prow">
+          <span class="pname">curationDays</span><span class="ptype">int ≥ 0 · def 2</span>
+          <span class="pdesc">Admins curate the voting booklet and write recommendations. <b>0</b> = no curation phase; the system auto‑selects the highest‑endorsed proposals.</span>
+        </div>
+        <div class="prow">
+          <span class="pname">votingDays</span><span class="ptype">int ≥ 1 · def 7</span>
+          <span class="pdesc">The voting window. Votes outside it are rejected by the engine.</span>
+        </div>
+        <div class="derived"><b>Lifecycle:</b> deliberation → curation → voting → closed. The issue set (the ballot) is editable until voting opens; nothing during voting; the result is a permanent record after close.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DELEGATION 2x2 -->
+  <section>
+    <p class="eyebrow">The core axis</p>
+    <h2>Delegation is a 2×2 grid</h2>
+    <p>The two delegation booleans answer two independent questions — <em class="term">Are there formal candidates?</em> and <em class="term">Can votes be transferred through chains?</em> — producing four distinct governance families. This grid is the single most consequential choice a group makes.</p>
+
+    <div class="grid2">
+      <div class="corner"></div>
+      <div class="axis top-span" style="grid-column:2 / 4">transferable →</div>
+      <div class="axis"></div>
+      <div class="axis" >off</div>
+      <div class="axis">on</div>
+
+      <div class="axis side">candidacy →</div>
+      <div class="quad">
+        <span class="qname">Direct democracy</span>
+        <span class="qmeta">candidacy off · transferable off</span>
+        <span class="qdesc">Everyone votes on everything. No delegation mechanism exists.</span>
+        <span class="qtag">Direct Democracy · Swiss Votation</span>
+      </div>
+      <div class="quad">
+        <span class="qname">Informal liquid (Open)</span>
+        <span class="qmeta">candidacy off · transferable on</span>
+        <span class="qdesc">Anyone delegates to anyone; chains flow freely. No formal candidate system.</span>
+        <span class="qtag">Liquid Open</span>
+      </div>
+
+      <div class="axis side">on</div>
+      <div class="quad">
+        <span class="qname">Representative (Proxy)</span>
+        <span class="qmeta">candidacy on · transferable off</span>
+        <span class="qdesc">Appoint a declared candidate as your proxy. They vote for you but can't pass it further.</span>
+        <span class="qtag">Representative</span>
+      </div>
+      <div class="quad on">
+        <span class="qname">Liquid delegation</span>
+        <span class="qmeta">candidacy on · transferable on</span>
+        <span class="qdesc">Candidates for discovery &amp; accountability; transitive chains. The recommended default.</span>
+        <span class="qtag">Liquid Delegation · Civic</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRESET MATRIX -->
+  <section>
+    <p class="eyebrow">Named systems</p>
+    <h2>The six presets, side by side</h2>
+    <p>Each preset is a genuinely different governance philosophy — a named point in the space, not a tweak. The matrix below is the whole configuration for each. Read the <span class="mono">scale / typical use</span> column for the "which one for which group" question.</p>
+
+    <div class="scroll">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th class="preset">Preset</th>
+            <th>Family</th>
+            <th>candidacy</th>
+            <th>transfer&shy;able</th>
+            <th>secret</th>
+            <th>live&nbsp;results</th>
+            <th>vote&nbsp;change</th>
+            <th>quorum</th>
+            <th>method</th>
+            <th>delib</th>
+            <th>curation</th>
+            <th>voting</th>
+            <th class="scale-cell">Scale / typical use</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th class="preset"><span class="pk">Liquid Delegation</span><span class="pkk">LIQUID_DELEGATION · default</span></th>
+            <td><span class="quadchip">Liquid</span></td>
+            <td><span class="on-dot"></span></td><td><span class="on-dot"></span></td>
+            <td><span class="on-dot"></span></td><td><span class="off-dot"></span></td><td><span class="on-dot"></span></td>
+            <td class="num">10%</td><td class="mono">maj</td>
+            <td class="num">7</td><td class="num">2</td><td class="num">7</td>
+            <td class="scale-cell">Any group that wants a well‑rounded system. The recommended starting point.</td>
+          </tr>
+          <tr>
+            <th class="preset"><span class="pk">Direct Democracy</span><span class="pkk">DIRECT_DEMOCRACY</span></th>
+            <td><span class="quadchip">Direct</span></td>
+            <td><span class="off-dot"></span></td><td><span class="off-dot"></span></td>
+            <td><span class="on-dot"></span></td><td><span class="off-dot"></span></td><td><span class="on-dot"></span></td>
+            <td class="num">0%</td><td class="mono">maj</td>
+            <td class="num">7</td><td class="num">0</td><td class="num">7</td>
+            <td class="scale-cell">Small clubs, parent committees, informal collectives where direct participation is practical.</td>
+          </tr>
+          <tr>
+            <th class="preset"><span class="pk">Swiss Votation</span><span class="pkk">SWISS_VOTATION</span></th>
+            <td><span class="quadchip">Direct</span></td>
+            <td><span class="off-dot"></span></td><td><span class="off-dot"></span></td>
+            <td><span class="on-dot"></span></td><td><span class="off-dot"></span></td><td><span class="on-dot"></span></td>
+            <td class="num">20%</td><td class="mono">maj</td>
+            <td class="num">7</td><td class="num">2</td><td class="num">7</td>
+            <td class="scale-cell">Cooperatives, associations, civic groups wanting informed direct democracy with a booklet.</td>
+          </tr>
+          <tr>
+            <th class="preset"><span class="pk">Liquid Open</span><span class="pkk">LIQUID_OPEN</span></th>
+            <td><span class="quadchip">Open</span></td>
+            <td><span class="off-dot"></span></td><td><span class="on-dot"></span></td>
+            <td><span class="off-dot"></span></td><td><span class="on-dot"></span></td><td><span class="on-dot"></span></td>
+            <td class="num">10%</td><td class="mono">maj</td>
+            <td class="num">5</td><td class="num">0</td><td class="num">5</td>
+            <td class="scale-cell">Tech communities, professional associations, medium high‑trust orgs. Deliberates in the open.</td>
+          </tr>
+          <tr>
+            <th class="preset"><span class="pk">Representative</span><span class="pkk">REPRESENTATIVE</span></th>
+            <td><span class="quadchip">Proxy</span></td>
+            <td><span class="on-dot"></span></td><td><span class="off-dot"></span></td>
+            <td><span class="on-dot"></span></td><td><span class="off-dot"></span></td><td><span class="on-dot"></span></td>
+            <td class="num">50%</td><td class="mono">maj</td>
+            <td class="num">3</td><td class="num">0</td><td class="num">3</td>
+            <td class="scale-cell">Corporate boards, HOAs, unions, formal committees. High quorum for legitimacy.</td>
+          </tr>
+          <tr>
+            <th class="preset"><span class="pk">Civic Participatory</span><span class="pkk">CIVIC</span></th>
+            <td><span class="quadchip">Liquid</span></td>
+            <td><span class="on-dot"></span></td><td><span class="on-dot"></span></td>
+            <td><span class="on-dot"></span></td><td><span class="off-dot"></span></td><td><span class="on-dot"></span></td>
+            <td class="num">10%</td><td class="mono">maj</td>
+            <td class="num">14</td><td class="num">3</td><td class="num">14</td>
+            <td class="scale-cell">Cities, participatory budgeting, citizen assemblies. Long timelines for large, diverse populations.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span><span class="on-dot"></span> on / true</span>
+      <span><span class="off-dot"></span> off / false</span>
+      <span>quorum = min fraction voting</span>
+      <span>delib / curation / voting = days</span>
+      <span>maj = majority</span>
+    </div>
+    <p class="kicker" style="margin-top:16px">All six presets use <span class="mono">majority</span>; <span class="mono">supermajority</span> (2/3) is available as a parameter but no preset ships it. The default for new groups is <span class="mono">LIQUID_DELEGATION</span>.</p>
+  </section>
+
+  <!-- RATIONALE -->
+  <section>
+    <p class="eyebrow">Why each exists</p>
+    <h2>Preset rationale</h2>
+    <div class="cards">
+      <div class="card rcard default">
+        <h3><span class="rk">01</span>Liquid Delegation <span class="badge">default</span></h3>
+        <p>Liquid delegation plus candidate accountability. Secret ballot shields voters from pressure; sealed results prevent bandwagons. The synthesis described in Paper I.</p>
+        <p class="use"><b>Fits:</b> any group; a safe, well‑rounded start.</p>
+      </div>
+      <div class="card rcard">
+        <h3>Direct Democracy</h3>
+        <p>Everyone votes on everything. No delegation, no curation — zero governance overhead for groups small enough not to need it.</p>
+        <p class="use"><b>Fits:</b> small clubs, parent committees, informal collectives.</p>
+      </div>
+      <div class="card rcard">
+        <h3>Swiss Votation</h3>
+        <p>Direct democracy with structured deliberation. A curation phase produces a voting booklet; a 20% quorum guards legitimacy. Inspired by the Swiss popular vote.</p>
+        <p class="use"><b>Fits:</b> cooperatives, associations, civic groups.</p>
+      </div>
+      <div class="card rcard">
+        <h3>Liquid Open</h3>
+        <p>Informal liquid democracy for high‑trust groups where everyone knows each other. Public ballots, live results, short timelines, no formal candidates.</p>
+        <p class="use"><b>Fits:</b> tech communities, professional bodies, mid‑size orgs.</p>
+      </div>
+      <div class="card rcard">
+        <h3>Representative</h3>
+        <p>Classic proxy voting: appoint a declared candidate who votes for you but can't pass it further. 50% quorum and short timelines for focused decisions.</p>
+        <p class="use"><b>Fits:</b> boards, HOAs, unions, formal committees.</p>
+      </div>
+      <div class="card rcard">
+        <h3>Civic Participatory</h3>
+        <p>Liquid delegation at municipal scale. Two‑week deliberation and voting windows accommodate broad, diverse participation.</p>
+        <p class="use"><b>Fits:</b> cities, participatory budgeting, citizen assemblies.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BALLOT PATTERNS -->
+  <section>
+    <p class="eyebrow">Ballot shorthand</p>
+    <h2>Three ballot toggles → four recognizable patterns</h2>
+    <p>The <span class="mono">secret</span>, <span class="mono">liveResults</span>, and <span class="mono">allowVoteChange</span> flags combine into voting styles most people already recognize by name.</p>
+    <table class="plain">
+      <thead>
+        <tr><th>Pattern</th><th class="mono">secret</th><th class="mono">liveResults</th><th class="mono">voteChange</th><th>Feel</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="patt">Swiss votation</td><td class="mono">true</td><td class="mono">false</td><td class="mono">true</td><td>Private deliberation, sealed until close</td></tr>
+        <tr><td class="patt">Show of hands</td><td class="mono">false</td><td class="mono">true</td><td class="mono">true</td><td>Open, deliberative, consensus‑building</td></tr>
+        <tr><td class="patt">Traditional election</td><td class="mono">true</td><td class="mono">false</td><td class="mono">false</td><td>Cast once, sealed results</td></tr>
+        <tr><td class="patt">Accountable board vote</td><td class="mono">false</td><td class="mono">false</td><td class="mono">false</td><td>Public record, commitment once cast</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- CAPABILITIES -->
+  <section>
+    <p class="eyebrow">Beyond GovernanceConfig</p>
+    <h2>Capabilities — independently toggled layers</h2>
+    <p>Governance rules define <em class="term">how a vote works</em>. Capabilities decide <em class="term">which activities a group runs at all</em>. They live in the backend's per‑group capability registry (<span class="mono">group_capabilities</span>), not in <span class="mono">GovernanceConfig</span>, and each is switched on or off independently.</p>
+    <div class="capgrid">
+      <div class="card cap">
+        <span class="ck">voting</span><h3>Voting</h3>
+        <p>Proposals, delegation, ballots, tallies — the full decision engine governed by the 10 parameters above.</p>
+      </div>
+      <div class="card cap">
+        <span class="ck">scoring</span><h3>Scoring</h3>
+        <p>Rubric‑based, multi‑criteria ranking of options or candidates (the <span class="mono">@votiverse/scoring</span> package). Its own draft→open→closed lifecycle.</p>
+      </div>
+      <div class="card cap">
+        <span class="ck">surveys</span><h3>Surveys</h3>
+        <p>Sentiment surveys decoupled from binding votes. Always anonymous, and <b>non‑delegable</b> by hard architectural rule.</p>
+      </div>
+      <div class="card cap">
+        <span class="ck">community_notes</span><h3>Community notes</h3>
+        <p>Crowd‑sourced context on proposals and candidacies, evaluated by the community.</p>
+      </div>
+    </div>
+    <p class="kicker" style="margin-top:18px"><b style="color:var(--ink)">Predictions</b> are deliberately <em class="term">not</em> a capability — they are a platform‑level feature, always available wherever the UI offers the affordance. <span class="note-inline">roles: owner · admin · member (backend‑owned, per group)</span></p>
+  </section>
+
+  <!-- RESEARCH -->
+  <section class="research">
+    <p class="eyebrow">For research</p>
+    <h2>The space as an experiment surface</h2>
+    <p>The point of keeping the space small and fully orthogonal is that <em class="term">every combination is valid</em> — there are no illegal states to design around. Hold every parameter fixed, vary one, and you have a clean A/B on a governance mechanism.</p>
+
+    <div class="statline">
+      <div class="stat"><div class="v">10</div><div class="l">governance parameters</div></div>
+      <div class="stat"><div class="v">64</div><div class="l">discrete boolean/enum combos</div></div>
+      <div class="stat"><div class="v">2</div><div class="l">continuous ranges (quorum, timeline)</div></div>
+      <div class="stat"><div class="v">6</div><div class="l">curated presets</div></div>
+    </div>
+    <p class="kicker" style="margin-top:14px">5 booleans × 1 two‑value method enum = 64 discrete points, multiplied by the continuous quorum and the three timeline ranges — small enough to enumerate, expressive enough for real experiments.</p>
+
+    <p class="qbig">“Which system produces better outcomes at <span style="color:var(--accent-ink)">this scale</span>, for <span style="color:var(--accent-ink)">this kind of group</span>?”</p>
+
+    <p>Configurations worth studying that aren't named presets — start from a preset and override:</p>
+    <table class="plain">
+      <thead>
+        <tr><th>Configuration</th><th>Override</th><th>Research question</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Liquid, public ballots</td><td class="mono">secret=false</td><td>Does delegate accountability change when votes are visible?</td></tr>
+        <tr><td>Representative by topic</td><td class="mono">candidacy=true, transferable=false</td><td>Does topic‑scoped representation beat global proxies?</td></tr>
+        <tr><td>Direct + community notes</td><td class="mono">notes capability on</td><td>Do community notes improve outcomes without delegation?</td></tr>
+        <tr><td>Liquid + hard quorum</td><td class="mono">quorum=0.5</td><td>Does a high quorum reduce reliance on delegation?</td></tr>
+        <tr><td>Show‑of‑hands liquid</td><td class="mono">transferable=true, secret=false, liveResults=true</td><td>How does real‑time visibility shift delegation behavior?</td></tr>
+      </tbody>
+    </table>
+    <p class="kicker" style="margin-top:14px">Edge cases beyond the 10 parameters — bounded chain depth, delegation expiry, max delegates — aren't governance decisions; they're internal engine params a researcher can set programmatically through the engine API.</p>
+  </section>
+
+  <footer>
+    <div class="row">
+      <span>Source of truth: <code>packages/config/src/types.ts</code> · <code>packages/config/src/presets.ts</code></span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span>Customize any preset with <code>deriveConfig(preset, overrides)</code> — every combination is valid.</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span>Full rationale: <code>docs/design/governance-parameter-space.md</code> · governance model: <code>docs/papers/paper-i-whitepaper.md</code></span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
