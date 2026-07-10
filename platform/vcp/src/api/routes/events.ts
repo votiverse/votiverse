@@ -290,5 +290,58 @@ export function eventRoutes(manager: AssemblyManager) {
     },
   );
 
+  /** POST /assemblies/:id/events/:eid/issues — add issues to an event before voting opens. */
+  app.post(
+    "/assemblies/:id/events/:eid/issues",
+    requireParticipant(manager),
+    async (c) => {
+      const assemblyId = c.req.param("id");
+      const eid = c.req.param("eid");
+      const participantId = getParticipantId(c);
+
+      if (!participantId) {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: "Participant identity is required" } },
+          400,
+        );
+      }
+
+      const body = await c.req.json<{
+        issues: Array<{ title: string; description?: string; topicId?: string | null; choices?: string[] }>;
+      }>();
+      if (!body.issues || body.issues.length === 0) {
+        return c.json(
+          { error: { code: "VALIDATION_ERROR", message: "issues is required and must be non-empty" } },
+          400,
+        );
+      }
+
+      const { engine } = await manager.getEngine(assemblyId);
+      const votingEvent = engine.events.get(eid as VotingEventId);
+      if (!votingEvent) {
+        return c.json(
+          { error: { code: "NOT_FOUND", message: `Voting event "${eid}" not found` } },
+          404,
+        );
+      }
+
+      const newIssues = await engine.events.addIssues(
+        eid as VotingEventId,
+        body.issues.map((i) => ({
+          title: i.title,
+          description: i.description ?? "",
+          topicId: (i.topicId ?? null) as TopicId | null,
+          ...(i.choices ? { choices: i.choices } : {}),
+        })),
+        participantId as ParticipantId,
+      );
+
+      // Persist the new issue details to the VCP store, then return the full event.
+      await manager.persistIssues(assemblyId, newIssues);
+      const updated = engine.events.get(eid as VotingEventId)!;
+      return c.json(buildEventResponse(engine, updated), 201);
+    },
+  );
+
   return app;
 }
