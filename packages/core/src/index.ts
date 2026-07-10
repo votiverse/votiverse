@@ -92,6 +92,8 @@ export type {
   IssueCancelledPayload,
   VotingEventCancelledEvent,
   VotingEventCancelledPayload,
+  IssuesAddedEvent,
+  IssuesAddedPayload,
   PredictionCommittedEvent,
   OutcomeRecordedEvent,
   SurveyCreatedEvent,

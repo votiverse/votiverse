@@ -23,6 +23,7 @@ import type {
   TopicCreatedEvent,
   IssueCancelledEvent,
   VotingEventCancelledEvent,
+  IssuesAddedEvent,
   TimeProvider,
 } from "@votiverse/core";
 import {
@@ -36,6 +37,7 @@ import {
   systemTime,
   NotFoundError,
   GovernanceRuleViolation,
+  ValidationError,
 } from "@votiverse/core";
 import type { GovernanceConfig, PresetName, ValidationResult } from "@votiverse/config";
 import { getPreset, getPresetNames, validateConfig, deriveConfig } from "@votiverse/config";
@@ -268,6 +270,36 @@ export class VotiverseEngine {
         // vote-blocking and cancelled-badge logic keyed on cancelledIssues just works.
         const issueIds = payload.issueIds ?? this.votingEvents.get(payload.votingEventId)?.issueIds ?? [];
         for (const issueId of issueIds) this.cancelledIssues.add(issueId);
+      } else if (event.type === "IssuesAdded") {
+        const payload = event.payload as {
+          votingEventId: VotingEventId;
+          issues: readonly VotingEventIssuePayload[];
+        };
+        for (const issueMeta of payload.issues) {
+          if (!this.issues.has(issueMeta.id)) {
+            this.issues.set(issueMeta.id, {
+              id: issueMeta.id,
+              title: issueMeta.title,
+              description: issueMeta.description,
+              topicId: issueMeta.topicId,
+              votingEventId: payload.votingEventId,
+              ...(issueMeta.choices ? { choices: issueMeta.choices } : {}),
+            });
+          }
+        }
+        // Extend the parent event's issue list (VotingEventCreated always
+        // replays first, so the parent exists).
+        const parent = this.votingEvents.get(payload.votingEventId);
+        if (parent) {
+          const existing = new Set(parent.issueIds);
+          const added = payload.issues.map((i) => i.id).filter((id) => !existing.has(id));
+          if (added.length > 0) {
+            this.votingEvents.set(payload.votingEventId, {
+              ...parent,
+              issueIds: [...parent.issueIds, ...added],
+            });
+          }
+        }
       }
     }
 
@@ -526,6 +558,81 @@ export class VotiverseEngine {
           }
         }
       }
+    },
+
+    /**
+     * Add one or more issues to an existing voting event during deliberation
+     * or curation (before voting opens). Issues are appended to the end so
+     * positional consumers (tally/weights arrays, the UI) stay aligned.
+     * Rejected once voting has started or on a cancelled event. Returns the
+     * newly created issues so callers can persist their details.
+     */
+    addIssues: async (
+      votingEventId: VotingEventId,
+      issues: readonly {
+        title: string;
+        description: string;
+        topicId: TopicId | null;
+        choices?: string[];
+      }[],
+      addedBy: ParticipantId,
+    ): Promise<readonly Issue[]> => {
+      const votingEvent = this.votingEvents.get(votingEventId);
+      if (!votingEvent) throw new NotFoundError("VotingEvent", votingEventId);
+      if (this.cancelledEvents.has(votingEventId)) {
+        throw new GovernanceRuleViolation(
+          "Cannot add issues to a cancelled voting event",
+          "EVENT_CANCELLED",
+        );
+      }
+      if (this.timeProvider.now() >= votingEvent.timeline.votingStart) {
+        throw new GovernanceRuleViolation(
+          "Cannot add issues after voting has started",
+          "ADD_ISSUE_TOO_LATE",
+        );
+      }
+      if (issues.length === 0) {
+        throw new ValidationError("issues", "At least one issue is required");
+      }
+
+      const newIssues: Issue[] = [];
+      const issuePayloads: VotingEventIssuePayload[] = [];
+      for (const issueParams of issues) {
+        const issueId = generateIssueId();
+        const issue: Issue = {
+          id: issueId,
+          title: issueParams.title,
+          description: issueParams.description,
+          topicId: issueParams.topicId,
+          votingEventId,
+          ...(issueParams.choices ? { choices: issueParams.choices } : {}),
+        };
+        this.issues.set(issueId, issue);
+        newIssues.push(issue);
+        issuePayloads.push({
+          id: issueId,
+          title: issueParams.title,
+          description: issueParams.description,
+          topicId: issueParams.topicId,
+          ...(issueParams.choices ? { choices: issueParams.choices } : {}),
+        });
+      }
+
+      const event = createEvent<IssuesAddedEvent>(
+        "IssuesAdded",
+        { votingEventId, issues: issuePayloads, addedBy },
+        generateEventId(),
+        now(),
+      );
+      await this.eventStore.append(event);
+
+      // Extend the (otherwise immutable) voting event's issue list.
+      this.votingEvents.set(votingEventId, {
+        ...votingEvent,
+        issueIds: [...votingEvent.issueIds, ...newIssues.map((i) => i.id)],
+      });
+
+      return newIssues;
     },
   };
 

@@ -357,6 +357,111 @@ describe("VotiverseEngine — integration", () => {
     });
   });
 
+  describe("Adding issues during deliberation", () => {
+    function upcomingTimeline() {
+      const now = clock.now() as number;
+      return {
+        deliberationStart: timestamp(now) as Timestamp,
+        votingStart: timestamp(now + 3 * DAY) as Timestamp,
+        votingEnd: timestamp(now + 10 * DAY) as Timestamp,
+      };
+    }
+
+    async function upcomingEvent() {
+      const [alice] = await inviteParticipants("Alice");
+      const event = await engine.events.create({
+        title: "Agenda",
+        description: "x",
+        issues: [{ title: "Original", description: "first", topicId: null }],
+        eligibleParticipantIds: [alice!],
+        timeline: upcomingTimeline(),
+      });
+      return { alice: alice!, event };
+    }
+
+    it("appends issues to an existing event and grows issueIds (append-only)", async () => {
+      const { alice, event } = await upcomingEvent();
+      expect(event.issueIds).toHaveLength(1);
+
+      const added = await engine.events.addIssues(
+        event.id,
+        [
+          { title: "Added A", description: "a", topicId: null },
+          { title: "Added B", description: "b", topicId: null },
+        ],
+        alice,
+      );
+
+      expect(added).toHaveLength(2);
+      const refreshed = engine.events.get(event.id)!;
+      expect(refreshed.issueIds).toHaveLength(3);
+      // Original issue stays at index 0 — appends never reorder.
+      expect(refreshed.issueIds[0]).toBe(event.issueIds[0]);
+      expect(engine.events.getIssue(added[0]!.id)?.title).toBe("Added A");
+    });
+
+    it("accepts votes on an added issue once the window opens", async () => {
+      const { alice, event } = await upcomingEvent();
+      const [added] = await engine.events.addIssues(
+        event.id,
+        [{ title: "Late question", description: "q", topicId: null }],
+        alice,
+      );
+      clock.advance(4 * DAY); // into the voting window
+      await engine.voting.cast(alice, added!.id, "for");
+      expect(await engine.voting.getVotes(added!.id)).toHaveLength(1);
+    });
+
+    it("rejects adding after voting has started", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const event = await engine.events.create({
+        title: "Active",
+        description: "x",
+        issues: [{ title: "Original", description: "first", topicId: null }],
+        eligibleParticipantIds: [alice!],
+        timeline: activeVotingTimeline(clock),
+      });
+      await expect(
+        engine.events.addIssues(event.id, [{ title: "Too late", description: "x", topicId: null }], alice!),
+      ).rejects.toThrow("after voting has started");
+    });
+
+    it("rejects adding to a cancelled event", async () => {
+      const { alice, event } = await upcomingEvent();
+      await engine.events.cancelEvent(event.id, alice, "gone");
+      await expect(
+        engine.events.addIssues(event.id, [{ title: "Nope", description: "x", topicId: null }], alice),
+      ).rejects.toThrow("cancelled");
+    });
+
+    it("rejects an empty issues list", async () => {
+      const { alice, event } = await upcomingEvent();
+      await expect(engine.events.addIssues(event.id, [], alice)).rejects.toThrow();
+    });
+
+    it("persists added issues across rehydration", async () => {
+      const { alice, event } = await upcomingEvent();
+      const added = await engine.events.addIssues(
+        event.id,
+        [{ title: "Added", description: "a", topicId: null }],
+        alice,
+      );
+
+      const engine2 = createEngine({
+        config: getPreset("LIQUID_OPEN"),
+        eventStore: store,
+        identityProvider: provider,
+        timeProvider: clock,
+      });
+      await engine2.rehydrate();
+
+      const refreshed = engine2.events.get(event.id)!;
+      expect(refreshed.issueIds).toHaveLength(2);
+      expect(refreshed.issueIds).toContain(added[0]!.id);
+      expect(engine2.events.getIssue(added[0]!.id)?.title).toBe("Added");
+    });
+  });
+
   describe("Weight distribution and chain resolution", () => {
     it("computes weight distribution", async () => {
       const [alice, bob, carol] = await inviteParticipants("Alice", "Bob", "Carol");
