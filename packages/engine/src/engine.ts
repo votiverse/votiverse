@@ -22,6 +22,7 @@ import type {
   VotingEventIssuePayload,
   TopicCreatedEvent,
   IssueCancelledEvent,
+  VotingEventCancelledEvent,
   TimeProvider,
 } from "@votiverse/core";
 import {
@@ -168,6 +169,7 @@ export class VotiverseEngine {
   private readonly votingEvents = new Map<VotingEventId, VotingEvent>();
   private readonly issues = new Map<IssueId, Issue>();
   private readonly cancelledIssues = new Set<IssueId>();
+  private readonly cancelledEvents = new Set<VotingEventId>();
 
   constructor(options: EngineOptions) {
     this.governanceConfig = options.config;
@@ -259,6 +261,13 @@ export class VotiverseEngine {
       } else if (event.type === "IssueCancelled") {
         const payload = event.payload as { issueId: IssueId };
         this.cancelledIssues.add(payload.issueId);
+      } else if (event.type === "VotingEventCancelled") {
+        const payload = event.payload as { votingEventId: VotingEventId; issueIds?: readonly IssueId[] };
+        this.cancelledEvents.add(payload.votingEventId);
+        // Cascade: every issue in a cancelled event is itself cancelled, so
+        // vote-blocking and cancelled-badge logic keyed on cancelledIssues just works.
+        const issueIds = payload.issueIds ?? this.votingEvents.get(payload.votingEventId)?.issueIds ?? [];
+        for (const issueId of issueIds) this.cancelledIssues.add(issueId);
       }
     }
 
@@ -468,6 +477,53 @@ export class VotiverseEngine {
       for (const proposal of proposals) {
         if (proposal.status === "submitted") {
           await this.proposalService.withdraw(proposal.id, cancelledBy as string);
+        }
+      }
+    },
+
+    /** Whether an entire voting event has been cancelled. */
+    isEventCancelled: (id: VotingEventId): boolean => this.cancelledEvents.has(id),
+
+    /**
+     * Cancel an entire voting event before voting opens. Every issue in the
+     * event is cancelled (votes rejected, active proposals auto-withdrawn) and
+     * the event is flagged cancelled. Rejected once voting has started —
+     * an in-progress or closed vote is a governance record, not a draft.
+     */
+    cancelEvent: async (
+      votingEventId: VotingEventId,
+      cancelledBy: ParticipantId,
+      reason: string,
+    ): Promise<void> => {
+      const votingEvent = this.votingEvents.get(votingEventId);
+      if (!votingEvent) throw new NotFoundError("VotingEvent", votingEventId);
+      if (this.cancelledEvents.has(votingEventId)) {
+        throw new GovernanceRuleViolation("Voting event is already cancelled", "EVENT_ALREADY_CANCELLED");
+      }
+      if (this.timeProvider.now() >= votingEvent.timeline.votingStart) {
+        throw new GovernanceRuleViolation(
+          "Cannot cancel a voting event after voting has started",
+          "CANCELLATION_TOO_LATE",
+        );
+      }
+
+      const event = createEvent<VotingEventCancelledEvent>(
+        "VotingEventCancelled",
+        { votingEventId, issueIds: votingEvent.issueIds, cancelledBy, reason },
+        generateEventId(),
+        now(),
+      );
+      await this.eventStore.append(event);
+      this.cancelledEvents.add(votingEventId);
+
+      // Cascade to issues: block votes and auto-withdraw their active proposals.
+      for (const issueId of votingEvent.issueIds) {
+        this.cancelledIssues.add(issueId);
+        const proposals = await this.proposalService.listByIssue(issueId);
+        for (const proposal of proposals) {
+          if (proposal.status === "submitted") {
+            await this.proposalService.withdraw(proposal.id, cancelledBy as string);
+          }
         }
       }
     },

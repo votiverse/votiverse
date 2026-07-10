@@ -78,6 +78,7 @@ export type EventType =
   | "RoleGranted"
   | "RoleRevoked"
   | "IssueCancelled"
+  | "VotingEventCancelled"
   | "ScoringEventCreated"
   | "ScoringEventOpened"
   | "ScoringEventDeadlineExtended"
@@ -174,6 +175,14 @@ export interface VoteRetractedPayload {
 export interface IssueCancelledPayload {
   readonly issueId: IssueId;
   readonly votingEventId: VotingEventId;
+  readonly cancelledBy: ParticipantId;
+  readonly reason: string;
+}
+
+export interface VotingEventCancelledPayload {
+  readonly votingEventId: VotingEventId;
+  /** Issues belonging to the event at cancellation time (snapshot for auditability). */
+  readonly issueIds: readonly IssueId[];
   readonly cancelledBy: ParticipantId;
   readonly reason: string;
 }
@@ -463,6 +472,8 @@ export type VoteRetractedEvent = BaseEvent<"VoteRetracted", VoteRetractedPayload
 
 export type IssueCancelledEvent = BaseEvent<"IssueCancelled", IssueCancelledPayload>;
 
+export type VotingEventCancelledEvent = BaseEvent<"VotingEventCancelled", VotingEventCancelledPayload>;
+
 export type PredictionCommittedEvent = BaseEvent<"PredictionCommitted", PredictionCommittedPayload>;
 
 export type OutcomeRecordedEvent = BaseEvent<"OutcomeRecorded", OutcomeRecordedPayload>;
@@ -517,6 +528,7 @@ export type DomainEvent =
   | VoteCastEvent
   | VoteRetractedEvent
   | IssueCancelledEvent
+  | VotingEventCancelledEvent
   | PredictionCommittedEvent
   | OutcomeRecordedEvent
   | SurveyCreatedEvent

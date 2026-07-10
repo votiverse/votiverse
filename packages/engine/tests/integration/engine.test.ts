@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { VotiverseEngine, createEngine } from "../../src/engine.js";
 import { InMemoryEventStore, timestamp, ValidationError, TestClock, GovernanceRuleViolation } from "@votiverse/core";
-import type { ParticipantId, TopicId, Timestamp, ContentHash } from "@votiverse/core";
+import type { ParticipantId, TopicId, Timestamp, ContentHash, VotingEventId } from "@votiverse/core";
 import { getPreset, deriveConfig } from "@votiverse/config";
 import { InvitationProvider } from "@votiverse/identity";
 import { isOk } from "@votiverse/core";
@@ -230,6 +230,130 @@ describe("VotiverseEngine — integration", () => {
       // Advance past voting end — rejected
       clock.advance(8 * DAY);
       await expect(engine.voting.cast(alice!, issueId, "against")).rejects.toThrow("Voting has closed");
+    });
+  });
+
+  describe("Event cancellation", () => {
+    /** A timeline whose voting window is still in the future (deliberation phase). */
+    function upcomingTimeline() {
+      const now = clock.now() as number;
+      return {
+        deliberationStart: timestamp(now) as Timestamp,
+        votingStart: timestamp(now + 3 * DAY) as Timestamp,
+        votingEnd: timestamp(now + 10 * DAY) as Timestamp,
+      };
+    }
+
+    it("cancels a voting event before voting opens and blocks votes on its issues", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const event = await engine.events.create({
+        title: "Doomed Vote",
+        description: "Will be cancelled",
+        issues: [
+          { title: "Issue A", description: "A", topicId: null },
+          { title: "Issue B", description: "B", topicId: null },
+        ],
+        eligibleParticipantIds: [alice!],
+        timeline: upcomingTimeline(),
+      });
+
+      await engine.events.cancelEvent(event.id, alice!, "Superseded by a new proposal");
+
+      expect(engine.events.isEventCancelled(event.id)).toBe(true);
+      for (const issueId of event.issueIds) {
+        expect(engine.events.isIssueCancelled(issueId)).toBe(true);
+      }
+
+      // Even once the voting window opens, cancelled issues reject votes.
+      clock.advance(4 * DAY);
+      await expect(engine.voting.cast(alice!, event.issueIds[0]!, "for")).rejects.toThrow(
+        "Issue has been cancelled",
+      );
+    });
+
+    it("records an immutable VotingEventCancelled event carrying the reason", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const event = await engine.events.create({
+        title: "Cancel Me",
+        description: "x",
+        issues: [{ title: "Issue", description: "y", topicId: null }],
+        eligibleParticipantIds: [alice!],
+        timeline: upcomingTimeline(),
+      });
+
+      await engine.events.cancelEvent(event.id, alice!, "Duplicate of last month's vote");
+
+      const events = await store.getAll();
+      const cancelled = events.find((e) => e.type === "VotingEventCancelled");
+      expect(cancelled).toBeDefined();
+      expect((cancelled!.payload as { reason: string }).reason).toBe("Duplicate of last month's vote");
+    });
+
+    it("rejects cancellation after voting has started", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const event = await engine.events.create({
+        title: "Active Vote",
+        description: "x",
+        issues: [{ title: "Issue", description: "y", topicId: null }],
+        eligibleParticipantIds: [alice!],
+        timeline: activeVotingTimeline(clock),
+      });
+
+      await expect(engine.events.cancelEvent(event.id, alice!, "too late")).rejects.toThrow(
+        "after voting has started",
+      );
+      expect(engine.events.isEventCancelled(event.id)).toBe(false);
+    });
+
+    it("rejects double cancellation", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const event = await engine.events.create({
+        title: "Cancel Twice",
+        description: "x",
+        issues: [{ title: "Issue", description: "y", topicId: null }],
+        eligibleParticipantIds: [alice!],
+        timeline: upcomingTimeline(),
+      });
+
+      await engine.events.cancelEvent(event.id, alice!, "first");
+      await expect(engine.events.cancelEvent(event.id, alice!, "second")).rejects.toThrow(
+        "already cancelled",
+      );
+    });
+
+    it("throws for an unknown voting event", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      await expect(
+        engine.events.cancelEvent("nonexistent" as VotingEventId, alice!, "reason"),
+      ).rejects.toThrow();
+    });
+
+    it("persists cancellation across rehydration", async () => {
+      const [alice] = await inviteParticipants("Alice");
+      const event = await engine.events.create({
+        title: "Persist Cancel",
+        description: "x",
+        issues: [
+          { title: "Issue A", description: "y", topicId: null },
+          { title: "Issue B", description: "z", topicId: null },
+        ],
+        eligibleParticipantIds: [alice!],
+        timeline: upcomingTimeline(),
+      });
+      await engine.events.cancelEvent(event.id, alice!, "reason");
+
+      const engine2 = createEngine({
+        config: getPreset("LIQUID_OPEN"),
+        eventStore: store,
+        identityProvider: provider,
+        timeProvider: clock,
+      });
+      await engine2.rehydrate();
+
+      expect(engine2.events.isEventCancelled(event.id)).toBe(true);
+      for (const issueId of event.issueIds) {
+        expect(engine2.events.isIssueCancelled(issueId)).toBe(true);
+      }
     });
   });
 
