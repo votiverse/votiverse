@@ -1,6 +1,6 @@
 # Vote Lifecycle: Abort-During-Voting and Archive-Closed
 
-**Status:** Resolved 2026-07-10 — **abort-during-voting rejected** (ratified non-feature); **archive-closed approved** to build. See the Decision Log (§8).
+**Status:** 2026-07-10 — **abort-during-voting rejected** (ratified non-feature); **archive-closed deferred** (specified in §5, not scheduled — build only when a decluttering need is demonstrated). See the Decision Log (§8).
 **Date:** 2026-07-10
 **Context:** `docs/design/entity-mutability.md`, `docs/design/groups-and-capabilities.md`, `docs/design/governance-parameter-space.md`, `docs/design/notification-hub.md`, Paper I (integrity, one-person-one-vote); ratified constraint also recorded in `CLAUDE.md` → "Architectural Decisions — Do Not Revisit".
 
@@ -15,7 +15,7 @@ We shipped the first, lowest-stakes case on 2026-07-10: **Cancel a vote before v
 This document scoped the two remaining phases and the project owner ruled on them (§8):
 
 - **Abort-during-voting — REJECTED.** Stopping an open vote is a ratified **non-feature** (§4). An open vote ends only via time + quorum.
-- **Archive-closed — APPROVED.** Hiding a finished vote from the active list, keeping the record intact, is a backend-only visibility feature to build (§5).
+- **Archive-closed — DEFERRED.** The design stands (§5) and its sub-decisions are settled, but the owner deferred building it (2026-07-10) until a concrete need for decluttering closed votes is demonstrated. We don't yet know we need it.
 
 ---
 
@@ -87,7 +87,9 @@ The alternative to an emergency stop is not chaos — it is the system's existin
 
 ---
 
-## 5. Archive-closed — approved to build
+## 5. Archive-closed — specified but deferred
+
+> **Deferred 2026-07-10.** The design and its sub-decisions (§5.6) are settled, but building it is deferred until a real need to declutter closed votes appears. The spec below is ready to pick up on demand; nothing here is scheduled.
 
 ### 5.1 What it is
 
@@ -160,7 +162,7 @@ Optional later: auto-hide votes closed more than N months ago (still restorable,
 
 ## 7. Sequencing
 
-Only **archive-closed** remains to build; abort is a ratified non-feature (§4). Archive is low-risk and reversible — the work is the backend `archived_events` table + list annotation, with the web mirroring the shipped group-archive UI. It can be scheduled whenever decluttering closed votes becomes a felt need.
+Nothing from this doc is scheduled. Abort is a ratified non-feature (§4); archive-closed is specified but **deferred** (§5) until decluttering closed votes becomes a demonstrated need — it is low-risk and self-contained, so it can be picked up on demand.
 
 ---
 
@@ -170,7 +172,8 @@ Only **archive-closed** remains to build; abort is a ratified non-feature (§4).
 |---|----------|---------------------|
 | A1 | Allow aborting an open vote? | **No — ratified non-feature.** An open vote ends only via `votingEnd` + `quorum`. Recorded in `CLAUDE.md` Do-Not-Revisit. |
 | A2–A4 | Abort gating / config flag / notification | **Moot** (abort not built). |
-| B1 | Who can archive a closed vote? | **Admin-only.** |
+| B0 | Build archive-closed now? | **Deferred** — spec stands (§5); build only when a decluttering need is demonstrated. |
+| B1 | Who can archive a closed vote? | **Admin-only** (settled for when it's built). |
 | B2 | Archive list response shape | **Exclude by default; annotate `archived`; `?archived=true` for restore list.** |
 | B3 | Enforce closed-only | **Client gate + server-side soft check** on derived status. |
 
