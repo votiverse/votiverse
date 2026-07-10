@@ -138,14 +138,20 @@ function EventCard({ groupId, event: evt, history, timelineConfig }: { groupId: 
 
   return (
     <Link to={`/group/${groupId}/events/${evt.id}`} className="block group">
-      <Card className="hover:border-accent-muted hover:shadow transition-all">
+      <Card className={`hover:border-accent-muted hover:shadow transition-all ${evt.cancelled ? "opacity-70" : ""}`}>
         <CardBody className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h3 className="font-bold text-text-primary">{evt.title}</h3>
-              {status && <StatusBadge status={status} />}
-              {status === "voting" && votingEnd && (
-                <Countdown target={votingEnd} className="text-[10px]" />
+              {evt.cancelled ? (
+                <Badge color="red">{t("eventDetail.cancelled")}</Badge>
+              ) : (
+                <>
+                  {status && <StatusBadge status={status} />}
+                  {status === "voting" && votingEnd && (
+                    <Countdown target={votingEnd} className="text-[10px]" />
+                  )}
+                </>
               )}
             </div>
             {evt.description && (

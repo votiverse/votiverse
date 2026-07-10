@@ -88,6 +88,8 @@ export interface VotingEvent {
   };
   createdBy?: string;
   createdAt: string;
+  /** True when the entire event was cancelled before voting opened. */
+  cancelled?: boolean;
 }
 
 export interface Issue {

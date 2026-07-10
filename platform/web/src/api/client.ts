@@ -270,6 +270,15 @@ export function getEvent(groupId: string, eventId: string): Promise<VotingEvent>
   return request("GET", `/groups/${groupId}/events/${eventId}`);
 }
 
+/** Cancel an entire voting event before voting opens (admin-only). */
+export function cancelEvent(
+  groupId: string,
+  eventId: string,
+  reason: string,
+): Promise<{ ok: boolean; eventId: string; cancelled: boolean }> {
+  return request("POST", `/groups/${groupId}/events/${eventId}/cancel`, { reason });
+}
+
 // ---- Topics ----
 
 export function listTopics(groupId: string): Promise<{ topics: Topic[] }> {

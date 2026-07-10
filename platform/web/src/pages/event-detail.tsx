@@ -4,12 +4,13 @@ import { useTranslation, Trans } from "react-i18next";
 import { useApi } from "../hooks/use-api.js";
 import { useIdentity } from "../hooks/use-identity.js";
 import { useGroup } from "../hooks/use-group.js";
+import { useGroupRole } from "../hooks/use-group-role.js";
 import { useIssueStatus, invalidateHistoryCache } from "../hooks/use-issue-status.js";
 import { useAttention } from "../hooks/use-attention.js";
 import { signal } from "../hooks/use-mutation-signal.js";
 import * as api from "../api/client.js";
 import type { Tally, WeightDist, ParticipationRecord, Proposal, Candidacy, Delegation } from "../api/types.js";
-import { Lock, ChevronLeft } from "lucide-react";
+import { Lock, ChevronLeft, Ban } from "lucide-react";
 import { VotingBooklet } from "../components/voting-booklet.js";
 import { deriveEventStatus } from "../lib/status.js";
 import { formatDateTime } from "../lib/format.js";
@@ -69,6 +70,7 @@ export function EventDetail() {
   const { getParticipantId } = useIdentity();
   const participantId = groupId ? getParticipantId(groupId) : null;
   const { group } = useGroup(groupId);
+  const { isAdmin } = useGroupRole(groupId);
   const { data: event, loading, error, refetch } = useApi(
     () => api.getEvent(groupId!, eventId!),
     [groupId, eventId],
@@ -229,14 +231,14 @@ export function EventDetail() {
         <div className="flex items-center justify-between gap-3 mb-1">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold font-display text-text-primary">{event.title}</h1>
-            <EventStatusBadge status={status} />
-            {resultsVisibility === "sealed" && status !== "closed" && (
+            {event.cancelled ? <Badge color="red">{t("eventDetail.cancelled")}</Badge> : <EventStatusBadge status={status} />}
+            {resultsVisibility === "sealed" && status !== "closed" && !event.cancelled && (
               <Tooltip text={t("eventDetail.resultsSealedUntilEnd")}>
                 <Lock size={14} className="text-text-tertiary" />
               </Tooltip>
             )}
           </div>
-          {participantId && issues.length > 0 && (
+          {participantId && issues.length > 0 && !event.cancelled && (
             <VoteProgress
               votedCount={issues.filter((i) => votedIssueIds.has(i.id)).length}
               totalCount={issues.length}
@@ -245,6 +247,18 @@ export function EventDetail() {
         </div>
         {event.description && <p className="text-sm text-text-muted">{event.description}</p>}
       </div>
+
+      {/* Admin: cancel the vote before voting opens */}
+      {isAdmin && !event.cancelled && (status === "upcoming" || status === "deliberation") && (
+        <CancelVoteControl
+          groupId={groupId!}
+          eventId={eventId!}
+          onCancelled={() => {
+            refetch();
+            refetchTally();
+          }}
+        />
+      )}
 
       {/* Timeline bar */}
       <EventTimeline
@@ -288,6 +302,86 @@ export function EventDetail() {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── Admin: cancel a voting event before voting opens ──────────────────
+function CancelVoteControl({
+  groupId,
+  eventId,
+  onCancelled,
+}: {
+  groupId: string;
+  eventId: string;
+  onCancelled: () => void;
+}) {
+  const { t } = useTranslation("governance");
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    const trimmed = reason.trim();
+    if (!trimmed) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.cancelEvent(groupId, eventId, trimmed);
+      signal("attention"); // refresh sidebar pending/active counts
+      onCancelled();
+    } catch (err) {
+      setError(err instanceof api.ApiError ? err.message : t("eventDetail.cancelError"));
+      setSubmitting(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <div className="flex justify-end mb-4">
+        <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+          <Ban size={15} className="mr-1.5" />
+          {t("eventDetail.cancelVote")}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 rounded-xl border border-error-border bg-error-subtle p-4">
+      <div className="flex items-start gap-2.5 mb-3">
+        <Ban size={18} className="text-error-text mt-0.5 shrink-0" />
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-error-text">{t("eventDetail.cancelVoteTitle")}</h3>
+          <p className="text-sm text-text-muted mt-0.5">{t("eventDetail.cancelVoteDesc")}</p>
+        </div>
+      </div>
+      <textarea
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder={t("eventDetail.cancelReasonPlaceholder")}
+        rows={2}
+        className="block w-full rounded-xl border border-border-strong bg-surface-raised px-3 py-2 text-base sm:text-sm shadow-sm placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-focus-ring"
+      />
+      {error && <p className="text-sm text-error-text mt-2">{error}</p>}
+      <div className="flex items-center justify-end gap-2 mt-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={submitting}
+          onClick={() => {
+            setOpen(false);
+            setReason("");
+            setError(null);
+          }}
+        >
+          {t("common:cancel")}
+        </Button>
+        <Button variant="danger" size="sm" disabled={submitting || !reason.trim()} onClick={submit}>
+          {submitting ? t("common:loading") : t("eventDetail.cancelConfirmButton")}
+        </Button>
       </div>
     </div>
   );
